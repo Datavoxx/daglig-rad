@@ -19,6 +19,12 @@ Viktigt:
 - Extrahera "avvikelser" som objekt med typ + beskrivning + timmar (om uttryckt).
 - Behåll originaltexten oförändrad i original_transkript.
 
+ÄTA (Ändrings- och Tilläggsarbeten):
+- Identifiera ÄTA om användaren nämner arbete som INTE kunde utföras på grund av yttre omständigheter OCH detta leder till tillkommande arbete.
+- Typiska formuleringar: "på grund av X måste vi göra Y", "kunde inte utföra arbetet pga...", "detta kommer leda till extra arbete".
+- ÄTA är INTE samma som avvikelser - avvikelser är problem/förseningar, ÄTA är dokumentation av kontraktsändringar/tilläggsarbete.
+- Sätt has_ata till true endast om det finns tydliga indikationer på ändrings- eller tilläggsarbeten.
+
 JSON-schema:
 {
   "report_date": "YYYY-MM-DD",
@@ -38,6 +44,16 @@ JSON-schema:
       "hours": number|null
     }
   ],
+  "ata": {
+    "has_ata": boolean,
+    "items": [
+      {
+        "reason": "Anledning/orsak till ändringen",
+        "consequence": "Vad detta leder till/tillkommande arbete",
+        "estimated_hours": number|null
+      }
+    ]
+  },
   "extra_work": [string],
   "materials": {
     "delivered": [string],
