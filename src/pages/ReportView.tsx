@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { generateReportPdf } from "@/lib/generateReportPdf";
 
 interface DailyReport {
   id: string;
@@ -65,6 +66,7 @@ export default function ReportView() {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [creatingLink, setCreatingLink] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -95,11 +97,26 @@ export default function ReportView() {
     setLoading(false);
   };
 
-  const handleExportPdf = () => {
-    toast({
-      title: "PDF-export",
-      description: "PDF-generering kommer i nästa version.",
-    });
+  const handleExportPdf = async () => {
+    if (!report) return;
+    
+    setExportingPdf(true);
+    try {
+      await generateReportPdf(report);
+      toast({
+        title: "PDF exporterad",
+        description: "Rapporten har laddats ner.",
+      });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Kunde inte exportera PDF",
+        description: "Försök igen senare.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const handleCreateShareLink = async () => {
@@ -170,9 +187,13 @@ export default function ReportView() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportPdf}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exportera PDF
+          <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
+            {exportingPdf ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
+            {exportingPdf ? "Exporterar..." : "Exportera PDF"}
           </Button>
           <Button variant="outline" onClick={() => setShareDialogOpen(true)}>
             <Share2 className="mr-2 h-4 w-4" />
