@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Mail, Save, Loader2 } from "lucide-react";
+import { User, Mail, Save, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,21 +74,31 @@ export default function Settings() {
   }
 
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-display font-semibold tracking-tight">Inställningar</h1>
-        <p className="text-muted-foreground">Hantera ditt konto och preferenser</p>
+        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">
+          Inställningar
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Hantera ditt konto och preferenser
+        </p>
       </div>
 
+      {/* Profile card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profil
-          </CardTitle>
-          <CardDescription>Din personliga information</CardDescription>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <User className="h-7 w-7 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Profil</CardTitle>
+              <CardDescription>Din personliga information</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">E-post</Label>
             <div className="relative">
@@ -111,19 +121,19 @@ export default function Settings() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Ditt namn"
-                className="pl-10"
+                className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Sparar...
               </>
             ) : (
               <>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="h-4 w-4" />
                 Spara ändringar
               </>
             )}
@@ -131,15 +141,24 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* About card */}
       <Card>
         <CardHeader>
-          <CardTitle>Om Dagrapport</CardTitle>
-          <CardDescription>Version 1.0</CardDescription>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <Info className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Om Dagrapport</CardTitle>
+              <CardDescription>Version 1.0</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             Dagrapport hjälper dig att snabbt skapa strukturerade dagrapporter från
-            röst- eller texttranskript med hjälp av AI.
+            röst- eller texttranskript med hjälp av AI. Perfekt för byggbranschen
+            och andra områden där dokumentation är viktigt.
           </p>
         </CardContent>
       </Card>
