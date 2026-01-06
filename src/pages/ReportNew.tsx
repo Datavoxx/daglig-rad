@@ -75,28 +75,25 @@ export default function ReportNew() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
   const [userId, setUserId] = useState<string>("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [interimTranscript, setInterimTranscript] = useState("");
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingIntervalRef = useRef<number | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef<string>("");
 
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Check for Web Speech API support
+  const isSpeechRecognitionSupported = typeof window !== 'undefined' && 
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   useEffect(() => {
     fetchProjects();
     fetchUser();
     
-    // Cleanup on unmount
     return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
       }
     };
   }, []);
@@ -167,118 +164,113 @@ export default function ReportNew() {
     }
   };
 
-  const getSupportedMimeType = (): string => {
-    const types = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/mp4',
-      'audio/ogg;codecs=opus',
-    ];
-    for (const type of types) {
-      if (MediaRecorder.isTypeSupported(type)) {
-        return type;
-      }
+  const startRecording = () => {
+    if (!isSpeechRecognitionSupported) {
+      toast({
+        title: "Röstinspelning stöds ej",
+        description: "Din webbläsare stöder inte Web Speech API. Använd Chrome, Edge eller Safari.",
+        variant: "destructive",
+      });
+      return;
     }
-    return 'audio/webm';
-  };
 
-  const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionAPI();
       
-      const mimeType = getSupportedMimeType();
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      recognition.lang = 'sv-SE';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      // Store starting transcript
+      finalTranscriptRef.current = transcript;
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = '';
+        let final = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            final += result[0].transcript + ' ';
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        
+        if (final) {
+          finalTranscriptRef.current += (finalTranscriptRef.current ? ' ' : '') + final.trim();
+          setTranscript(finalTranscriptRef.current);
+        }
+        
+        setInterimTranscript(interim);
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        
+        if (event.error === 'no-speech') {
+          toast({
+            title: "Inget tal upptäckt",
+            description: "Försök tala tydligare och närmare mikrofonen",
+            variant: "destructive",
+          });
+        } else if (event.error === 'audio-capture') {
+          toast({
+            title: "Mikrofon ej tillgänglig",
+            description: "Kontrollera att mikrofonen är ansluten och tillåten",
+            variant: "destructive",
+          });
+        } else if (event.error !== 'aborted') {
+          toast({
+            title: "Inspelningsfel",
+            description: `Fel: ${event.error}`,
+            variant: "destructive",
+          });
+        }
+        
+        setIsRecording(false);
+        setInterimTranscript("");
+      };
+
+      recognition.onend = () => {
+        // Only update state if we're still supposed to be recording
+        // (handles automatic stop vs manual stop)
+        if (isRecording) {
+          // Restart if it stopped unexpectedly (silence, etc)
+          try {
+            recognition.start();
+          } catch {
+            setIsRecording(false);
+            setInterimTranscript("");
+          }
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        await transcribeAudio(audioBlob, mimeType);
-        
-        // Stop stream tracks
-        stream.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      };
-
-      mediaRecorder.start(1000); // Collect data every second
+      recognitionRef.current = recognition;
+      recognition.start();
       setIsRecording(true);
-      setRecordingDuration(0);
-
-      // Start duration timer
-      recordingIntervalRef.current = window.setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-
-      toast({ title: "Inspelning startad", description: "Tala tydligt nära mikrofonen" });
+      
+      toast({ title: "Inspelning startad", description: "Tala tydligt - texten visas i realtid" });
     } catch (error) {
-      console.error("Microphone error:", error);
+      console.error("Speech recognition start error:", error);
       toast({
         title: "Kunde inte starta inspelning",
-        description: "Kontrollera att du har tillåtit mikrofontillstånd",
+        description: "Ett oväntat fel uppstod",
         variant: "destructive",
       });
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current) {
       setIsRecording(false);
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setInterimTranscript("");
       
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob, mimeType: string) => {
-    setIsTranscribing(true);
-
-    try {
-      // Convert blob to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]); // Remove data:audio/... prefix
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(audioBlob);
-      });
-
-      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: base64, mimeType }
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (data?.text) {
-        setTranscript(prev => prev ? prev + '\n\n' + data.text : data.text);
-        toast({ title: "Transkribering klar!", description: "Texten har lagts till" });
-      }
-    } catch (error) {
-      console.error("Transcription error:", error);
-      toast({
-        title: "Transkribering misslyckades",
-        description: error instanceof Error ? error.message : "Okänt fel",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTranscribing(false);
+      toast({ title: "Inspelning stoppad" });
     }
   };
 
@@ -286,22 +278,8 @@ export default function ReportNew() {
     if (isRecording) {
       stopRecording();
     } else {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        toast({
-          title: "Röstinspelning stöds ej",
-          description: "Din webbläsare stöder inte röstinspelning",
-          variant: "destructive",
-        });
-        return;
-      }
       startRecording();
     }
-  };
-
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (generatedReport) {
@@ -395,39 +373,50 @@ export default function ReportNew() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Exempel: Idag var vi fem snickare på plats. Vi jobbade 8 timmar per person och fokuserade på att sätta gips i lägenheterna på plan 3. Det levererades virke från Byggmax. Vi hade en timmes väntetid på att el-materialet skulle komma..."
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              className="min-h-[200px] resize-none"
-            />
+            <div className="relative">
+              <Textarea
+                placeholder="Exempel: Idag var vi fem snickare på plats. Vi jobbade 8 timmar per person och fokuserade på att sätta gips i lägenheterna på plan 3. Det levererades virke från Byggmax. Vi hade en timmes väntetid på att el-materialet skulle komma..."
+                value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+                onChange={(e) => {
+                  setTranscript(e.target.value);
+                  finalTranscriptRef.current = e.target.value;
+                }}
+                className="min-h-[200px] resize-none"
+                disabled={isRecording}
+              />
+              {interimTranscript && (
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                  Lyssnar...
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button
                 variant={isRecording ? "destructive" : "outline"}
                 onClick={toggleRecording}
-                disabled={isTranscribing}
                 className="flex-1"
+                disabled={!isSpeechRecognitionSupported}
               >
-                {isTranscribing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Transkriberar...
-                  </>
-                ) : isRecording ? (
+                {isRecording ? (
                   <>
                     <span className="mr-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="font-mono">{formatDuration(recordingDuration)}</span>
                     <MicOff className="ml-2 h-4 w-4" />
-                    Stoppa
+                    Stoppa inspelning
                   </>
                 ) : (
                   <>
                     <Mic className="mr-2 h-4 w-4" />
-                    Spela in
+                    Spela in (realtid)
                   </>
                 )}
               </Button>
             </div>
+            {!isSpeechRecognitionSupported && (
+              <p className="text-sm text-destructive flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4" />
+                Din webbläsare stöder inte röstinspelning. Använd Chrome, Edge eller Safari.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
