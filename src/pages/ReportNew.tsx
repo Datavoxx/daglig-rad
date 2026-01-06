@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
@@ -75,6 +75,13 @@ export default function ReportNew() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
   const [userId, setUserId] = useState<string>("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -82,6 +89,16 @@ export default function ReportNew() {
   useEffect(() => {
     fetchProjects();
     fetchUser();
+    
+    // Cleanup on unmount
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
 
   const fetchProjects = async () => {
@@ -150,26 +167,141 @@ export default function ReportNew() {
     }
   };
 
+  const getSupportedMimeType = (): string => {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+    ];
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
+    }
+    return 'audio/webm';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const mimeType = getSupportedMimeType();
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        await transcribeAudio(audioBlob, mimeType);
+        
+        // Stop stream tracks
+        stream.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      };
+
+      mediaRecorder.start(1000); // Collect data every second
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Start duration timer
+      recordingIntervalRef.current = window.setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      toast({ title: "Inspelning startad", description: "Tala tydligt nära mikrofonen" });
+    } catch (error) {
+      console.error("Microphone error:", error);
+      toast({
+        title: "Kunde inte starta inspelning",
+        description: "Kontrollera att du har tillåtit mikrofontillstånd",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob, mimeType: string) => {
+    setIsTranscribing(true);
+
+    try {
+      // Convert blob to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // Remove data:audio/... prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { audio: base64, mimeType }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.text) {
+        setTranscript(prev => prev ? prev + '\n\n' + data.text : data.text);
+        toast({ title: "Transkribering klar!", description: "Texten har lagts till" });
+      }
+    } catch (error) {
+      console.error("Transcription error:", error);
+      toast({
+        title: "Transkribering misslyckades",
+        description: error instanceof Error ? error.message : "Okänt fel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
   const toggleRecording = () => {
     if (isRecording) {
-      setIsRecording(false);
-      toast({ title: "Inspelning stoppad" });
+      stopRecording();
     } else {
-      // Check for browser support
       if (!navigator.mediaDevices?.getUserMedia) {
         toast({
           title: "Röstinspelning stöds ej",
-          description: "Din webbläsare stöder inte röstinspelning. Klistra in transkript istället.",
+          description: "Din webbläsare stöder inte röstinspelning",
           variant: "destructive",
         });
         return;
       }
-      setIsRecording(true);
-      toast({
-        title: "Röstinspelning påbörjad",
-        description: "Obs: transkribering kommer i en framtida version. Klistra in transkript för nu.",
-      });
+      startRecording();
     }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (generatedReport) {
@@ -273,12 +405,20 @@ export default function ReportNew() {
               <Button
                 variant={isRecording ? "destructive" : "outline"}
                 onClick={toggleRecording}
+                disabled={isTranscribing}
                 className="flex-1"
               >
-                {isRecording ? (
+                {isTranscribing ? (
                   <>
-                    <MicOff className="mr-2 h-4 w-4" />
-                    Stoppa inspelning
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Transkriberar...
+                  </>
+                ) : isRecording ? (
+                  <>
+                    <span className="mr-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="font-mono">{formatDuration(recordingDuration)}</span>
+                    <MicOff className="ml-2 h-4 w-4" />
+                    Stoppa
                   </>
                 ) : (
                   <>
