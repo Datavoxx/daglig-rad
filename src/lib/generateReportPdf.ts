@@ -12,6 +12,10 @@ interface DailyReport {
   total_hours: number | null;
   work_items: string[];
   deviations: Array<{ type: string; description: string; hours: number | null }>;
+  ata: {
+    has_ata: boolean;
+    items: Array<{ reason: string; consequence: string; estimated_hours: number | null }>;
+  } | null;
   extra_work: string[];
   materials_delivered: string[];
   materials_missing: string[];
@@ -156,6 +160,41 @@ export async function generateReportPdf(report: DailyReport): Promise<void> {
       },
       columnStyles: {
         0: { cellWidth: 35 },
+        2: { cellWidth: 20, halign: "center" },
+      },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // ÄTA section
+  if (report.ata?.has_ata && report.ata.items?.length > 0) {
+    doc.setFontSize(14);
+    doc.setTextColor(...DARK);
+    doc.text("ÄTA (ÄNDRINGS- OCH TILLÄGGSARBETEN)", margin, yPos);
+    yPos += 6;
+
+    autoTable(doc, {
+      startY: yPos,
+      margin: { left: margin, right: margin },
+      head: [["Anledning", "Konsekvens", "Timmar"]],
+      body: report.ata.items.map((item) => [
+        item.reason,
+        item.consequence,
+        item.estimated_hours ? `${item.estimated_hours}h` : "—",
+      ]),
+      theme: "striped",
+      headStyles: {
+        fillColor: [59, 130, 246] as [number, number, number], // blue-500
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: "bold",
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      columnStyles: {
         2: { cellWidth: 20, halign: "center" },
       },
     });

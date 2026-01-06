@@ -50,6 +50,14 @@ interface GeneratedReport {
     description: string;
     hours: number | null;
   }>;
+  ata: {
+    has_ata: boolean;
+    items: Array<{
+      reason: string;
+      consequence: string;
+      estimated_hours: number | null;
+    }>;
+  } | null;
   extra_work: string[];
   materials: {
     delivered: string[];

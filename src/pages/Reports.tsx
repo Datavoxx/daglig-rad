@@ -12,6 +12,7 @@ import {
   FileCheck,
   Search,
   Filter,
+  FileWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface DailyReport {
   headcount: number | null;
   total_hours: number | null;
   deviations: any[];
+  ata: { has_ata: boolean; items: any[] } | null;
   created_at: string;
   project: {
     id: string;
@@ -76,6 +78,7 @@ export default function Reports() {
           headcount,
           total_hours,
           deviations,
+          ata,
           created_at,
           project:projects(id, name)
         `)
@@ -111,6 +114,11 @@ export default function Reports() {
   const getDeviationCount = (deviations: any[]) => {
     if (!Array.isArray(deviations)) return 0;
     return deviations.length;
+  };
+
+  const getAtaCount = (ata: { has_ata: boolean; items: any[] } | null) => {
+    if (!ata?.has_ata || !Array.isArray(ata.items)) return 0;
+    return ata.items.length;
   };
 
   return (
@@ -207,12 +215,19 @@ export default function Reports() {
                     Avvikelser
                   </div>
                 </TableHead>
+                <TableHead className="w-24 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <FileWarning className="h-4 w-4" />
+                    ÄTA
+                  </div>
+                </TableHead>
                 <TableHead className="w-24 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredReports.map((report) => {
                 const deviationCount = getDeviationCount(report.deviations);
+                const ataCount = getAtaCount(report.ata);
                 return (
                   <TableRow
                     key={report.id}
@@ -233,6 +248,15 @@ export default function Reports() {
                       {deviationCount > 0 ? (
                         <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
                           {deviationCount}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {ataCount > 0 ? (
+                        <Badge variant="outline" className="bg-info/10 text-info border-info/30">
+                          {ataCount}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground">—</span>

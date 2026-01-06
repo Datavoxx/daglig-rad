@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       daily_reports: {
         Row: {
+          ata: Json | null
           confidence_overall: number | null
           created_at: string | null
           deviations: Json | null
@@ -37,6 +38,7 @@ export type Database = {
           work_items: string[] | null
         }
         Insert: {
+          ata?: Json | null
           confidence_overall?: number | null
           created_at?: string | null
           deviations?: Json | null
@@ -58,6 +60,7 @@ export type Database = {
           work_items?: string[] | null
         }
         Update: {
+          ata?: Json | null
           confidence_overall?: number | null
           created_at?: string | null
           deviations?: Json | null

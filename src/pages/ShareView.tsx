@@ -11,6 +11,7 @@ import {
   Package,
   Loader2,
   AlertCircle,
+  FileWarning,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,10 @@ interface DailyReport {
   total_hours: number | null;
   work_items: string[];
   deviations: Array<{ type: string; description: string; hours: number | null }>;
+  ata: {
+    has_ata: boolean;
+    items: Array<{ reason: string; consequence: string; estimated_hours: number | null }>;
+  } | null;
   materials_delivered: string[];
   materials_missing: string[];
   notes: string | null;
@@ -85,6 +90,7 @@ export default function ShareView() {
         total_hours,
         work_items,
         deviations,
+        ata,
         materials_delivered,
         materials_missing,
         notes,
@@ -226,6 +232,45 @@ export default function ShareView() {
               )}
             </CardContent>
           </Card>
+
+          {/* ÄTA */}
+          {report.ata?.has_ata && report.ata.items.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileWarning className="h-5 w-5 text-info" />
+                  ÄTA
+                  <Badge variant="outline" className="ml-auto bg-info/10 text-info border-info/30">
+                    {report.ata.items.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {report.ata.items.map((item, i) => (
+                    <div key={i} className="rounded-lg border border-info/20 bg-info/5 p-3">
+                      <div className="space-y-1">
+                        <p className="text-sm">
+                          <span className="font-medium text-muted-foreground">Anledning: </span>
+                          {item.reason}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium text-muted-foreground">Konsekvens: </span>
+                          {item.consequence}
+                        </p>
+                        {item.estimated_hours && (
+                          <p className="text-sm">
+                            <span className="font-medium text-muted-foreground">Uppskattade timmar: </span>
+                            {item.estimated_hours}h
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Materials */}
           <Card>

@@ -13,6 +13,7 @@ import {
   FileText,
   Sparkles,
   X,
+  FileWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,17 @@ interface Deviation {
   hours: number | null;
 }
 
+interface AtaItem {
+  reason: string;
+  consequence: string;
+  estimated_hours: number | null;
+}
+
+interface Ata {
+  has_ata: boolean;
+  items: AtaItem[];
+}
+
 interface ReportData {
   crew: {
     headcount: number | null;
@@ -46,6 +58,7 @@ interface ReportData {
   };
   work_items: string[];
   deviations: Deviation[];
+  ata: Ata | null;
   extra_work: string[];
   materials: {
     delivered: string[];
@@ -146,6 +159,38 @@ export function ReportEditor({
     }));
   };
 
+  const addAtaItem = () => {
+    setData((prev) => ({
+      ...prev,
+      ata: {
+        has_ata: true,
+        items: [...(prev.ata?.items || []), { reason: "", consequence: "", estimated_hours: null }],
+      },
+    }));
+  };
+
+  const updateAtaItem = (index: number, field: keyof AtaItem, value: any) => {
+    setData((prev) => ({
+      ...prev,
+      ata: {
+        has_ata: true,
+        items: (prev.ata?.items || []).map((item, i) =>
+          i === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const removeAtaItem = (index: number) => {
+    setData((prev) => {
+      const newItems = (prev.ata?.items || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        ata: newItems.length > 0 ? { has_ata: true, items: newItems } : null,
+      };
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
 
@@ -160,6 +205,7 @@ export function ReportEditor({
         total_hours: data.crew.total_hours,
         work_items: data.work_items.filter((w) => w.trim()),
         deviations: data.deviations as any,
+        ata: data.ata as any,
         extra_work: data.extra_work.filter((w) => w.trim()),
         materials_delivered: data.materials.delivered,
         materials_missing: data.materials.missing,
@@ -418,6 +464,76 @@ export function ReportEditor({
             ))}
             {data.deviations.length === 0 && (
               <p className="text-sm text-muted-foreground">Inga avvikelser registrerade</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ÄTA (Ändrings- och Tilläggsarbeten) */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between text-lg">
+              <span className="flex items-center gap-2">
+                <FileWarning className="h-5 w-5 text-info" />
+                ÄTA
+                {data.ata?.has_ata && data.ata.items.length > 0 && (
+                  <Badge variant="outline" className="ml-2 border-info/30 bg-info/10 text-info">
+                    {data.ata.items.length}
+                  </Badge>
+                )}
+              </span>
+              <Button variant="ghost" size="sm" onClick={addAtaItem}>
+                <Plus className="mr-1 h-4 w-4" />
+                Lägg till
+              </Button>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Ändrings- och tilläggsarbeten utöver ursprunglig plan
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(data.ata?.items || []).map((item, index) => (
+              <div key={index} className="space-y-2 rounded-lg border border-info/20 bg-info/5 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-info">ÄTA #{index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeAtaItem(index)}
+                    className="h-6 w-6 shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    value={item.reason}
+                    onChange={(e) => updateAtaItem(index, "reason", e.target.value)}
+                    placeholder="Anledning: Varför kunde arbetet inte utföras?"
+                  />
+                  <Input
+                    value={item.consequence}
+                    onChange={(e) => updateAtaItem(index, "consequence", e.target.value)}
+                    placeholder="Konsekvens: Vad leder detta till?"
+                  />
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={item.estimated_hours ?? ""}
+                    onChange={(e) =>
+                      updateAtaItem(
+                        index,
+                        "estimated_hours",
+                        e.target.value ? parseFloat(e.target.value) : null
+                      )
+                    }
+                    placeholder="Uppskattade timmar (valfritt)"
+                    className="w-48"
+                  />
+                </div>
+              </div>
+            ))}
+            {(!data.ata?.items || data.ata.items.length === 0) && (
+              <p className="text-sm text-muted-foreground">Inga ÄTA registrerade</p>
             )}
           </CardContent>
         </Card>
