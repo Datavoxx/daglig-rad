@@ -15,6 +15,7 @@ import {
   Package,
   FileText,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReportPdf } from "@/lib/generateReportPdf";
+import { ReportEditor } from "@/components/reports/ReportEditor";
 
 interface DailyReport {
   id: string;
@@ -62,6 +64,7 @@ export default function ReportView() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -169,6 +172,49 @@ export default function ReportView() {
 
   if (!report) return null;
 
+  // Convert to editor format
+  const convertToEditorFormat = () => ({
+    crew: {
+      headcount: report.headcount,
+      roles: report.roles || [],
+      hours_per_person: report.hours_per_person,
+      total_hours: report.total_hours,
+    },
+    work_items: report.work_items || [],
+    deviations: report.deviations || [],
+    extra_work: report.extra_work || [],
+    materials: {
+      delivered: report.materials_delivered || [],
+      missing: report.materials_missing || [],
+    },
+    notes: report.notes,
+    original_transcript: report.original_transcript || "",
+    confidence: {
+      overall: 1,
+      low_confidence_fields: [],
+    },
+  });
+
+  const handleEditSaved = (savedId: string) => {
+    setIsEditing(false);
+    fetchReport(); // Refresh data
+  };
+
+  if (isEditing) {
+    return (
+      <ReportEditor
+        report={convertToEditorFormat()}
+        projectId={report.project.id}
+        projectName={report.project.name}
+        reportDate={new Date(report.report_date)}
+        userId="" // Not needed for updates
+        existingReportId={report.id}
+        onBack={() => setIsEditing(false)}
+        onSaved={handleEditSaved}
+      />
+    );
+  }
+
   return (
     <div className="animate-in space-y-6">
       {/* Header */}
@@ -187,6 +233,10 @@ export default function ReportView() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsEditing(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Redigera
+          </Button>
           <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
             {exportingPdf ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

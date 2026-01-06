@@ -65,6 +65,7 @@ interface ReportEditorProps {
   projectName: string;
   reportDate: Date;
   userId: string;
+  existingReportId?: string;
   onBack: () => void;
   onSaved: (id: string) => void;
 }
@@ -86,6 +87,7 @@ export function ReportEditor({
   projectName,
   reportDate,
   userId,
+  existingReportId,
   onBack,
   onSaved,
 }: ReportEditorProps) {
@@ -167,15 +169,33 @@ export function ReportEditor({
         low_confidence_fields: data.confidence.low_confidence_fields,
       };
 
-      const { data: savedReport, error } = await supabase
-        .from("daily_reports")
-        .upsert(reportData, { onConflict: "project_id,report_date" })
-        .select()
-        .single();
+      let savedReport;
+      let error;
+
+      if (existingReportId) {
+        // Update existing report
+        const result = await supabase
+          .from("daily_reports")
+          .update(reportData)
+          .eq("id", existingReportId)
+          .select()
+          .single();
+        savedReport = result.data;
+        error = result.error;
+      } else {
+        // Create new report
+        const result = await supabase
+          .from("daily_reports")
+          .upsert(reportData, { onConflict: "project_id,report_date" })
+          .select()
+          .single();
+        savedReport = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
-      toast({ title: "Rapport sparad!" });
+      toast({ title: existingReportId ? "Rapport uppdaterad!" : "Rapport sparad!" });
       onSaved(savedReport.id);
     } catch (error) {
       console.error("Save error:", error);
