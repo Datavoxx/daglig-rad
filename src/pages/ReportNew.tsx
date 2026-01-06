@@ -89,7 +89,8 @@ export default function ReportNew() {
 
   useEffect(() => {
     fetchProjects();
-    fetchUser();
+    // Set fixed user_id since auth is disabled
+    setUserId("00000000-0000-0000-0000-000000000000");
     
     return () => {
       if (recognitionRef.current) {
@@ -109,13 +110,6 @@ export default function ReportNew() {
       if (projectIdParam && data.some((p) => p.id === projectIdParam)) {
         setSelectedProject(projectIdParam);
       }
-    }
-  };
-
-  const fetchUser = async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
-      setUserId(data.user.id);
     }
   };
 

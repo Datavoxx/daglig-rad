@@ -4,26 +4,14 @@ import {
   FolderKanban,
   FileText,
   Settings,
-  LogOut,
   ChevronLeft,
   Menu,
   Search,
   Bell,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface NavItem {
   label: string;
@@ -37,31 +25,11 @@ const navItems: NavItem[] = [
   { label: "Inställningar", href: "/settings", icon: Settings },
 ];
 
-interface AppLayoutProps {
-  user: { email?: string; id: string } | null;
-}
-
-export function AppLayout({ user }: AppLayoutProps) {
+export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Fel vid utloggning",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      navigate("/auth");
-    }
-  };
-
-  const userInitials = user?.email?.slice(0, 2).toUpperCase() || "U";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -130,43 +98,6 @@ export function AppLayout({ user }: AppLayoutProps) {
           })}
         </nav>
 
-        {/* User section */}
-        <div className="border-t border-sidebar-border p-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50",
-                  collapsed && "justify-center px-0"
-                )}
-              >
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
-                {!collapsed && (
-                  <span className="truncate">{user?.email || "Användare"}</span>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
-                <User className="mr-2 h-4 w-4" />
-                Profil
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                Inställningar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logga ut
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </aside>
 
       {/* Main content */}

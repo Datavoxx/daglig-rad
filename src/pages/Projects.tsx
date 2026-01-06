@@ -90,18 +90,12 @@ export default function Projects() {
         closeDialog();
       }
     } else {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        toast({ title: "Du måste vara inloggad", variant: "destructive" });
-        setSaving(false);
-        return;
-      }
-
+      // Use a fixed user_id since auth is disabled
       const { error } = await supabase.from("projects").insert({
         name: formData.name,
         client_name: formData.client_name || null,
         address: formData.address || null,
-        user_id: userData.user.id,
+        user_id: "00000000-0000-0000-0000-000000000000",
       });
 
       if (error) {
