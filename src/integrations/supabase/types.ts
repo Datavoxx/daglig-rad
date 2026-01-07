@@ -34,7 +34,7 @@ export type Database = {
           roles: string[] | null
           total_hours: number | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           work_items: string[] | null
         }
         Insert: {
@@ -56,7 +56,7 @@ export type Database = {
           roles?: string[] | null
           total_hours?: number | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           work_items?: string[] | null
         }
         Update: {
@@ -78,7 +78,7 @@ export type Database = {
           roles?: string[] | null
           total_hours?: number | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           work_items?: string[] | null
         }
         Relationships: [
