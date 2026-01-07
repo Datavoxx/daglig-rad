@@ -138,7 +138,7 @@ export default function ReportNew() {
           transcript,
           project_id: selectedProject,
           report_date: format(selectedDate, "yyyy-MM-dd"),
-          user_id: userId,
+          user_id: userId || null,
         },
       });
 
