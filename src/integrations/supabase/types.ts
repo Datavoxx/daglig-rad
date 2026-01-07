@@ -118,6 +118,38 @@ export type Database = {
         }
         Relationships: []
       }
+      project_share_links: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          project_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          project_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          project_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_share_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
