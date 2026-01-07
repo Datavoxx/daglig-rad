@@ -29,6 +29,7 @@ import {
   Building2,
   Calendar,
   User,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
@@ -39,6 +40,8 @@ interface Checkpoint {
   required: boolean;
   result: "ok" | "deviation" | "na" | null;
   comment: string;
+  aiPrefilled?: boolean;
+  aiConfidence?: number;
 }
 
 export default function InspectionView() {
@@ -361,7 +364,7 @@ export default function InspectionView() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-muted-foreground">
                         {index + 1}.
                       </span>
@@ -371,6 +374,17 @@ export default function InspectionView() {
                       {checkpoint.required && (
                         <Badge variant="secondary" className="text-xs">
                           Obligatorisk
+                        </Badge>
+                      )}
+                      {checkpoint.aiPrefilled && (
+                        <Badge variant="outline" className="text-xs gap-1 border-primary/50 text-primary">
+                          <Sparkles className="h-3 w-3" />
+                          AI-ifylld
+                          {checkpoint.aiConfidence && checkpoint.aiConfidence > 0 && (
+                            <span className="opacity-70">
+                              ({Math.round(checkpoint.aiConfidence * 100)}%)
+                            </span>
+                          )}
                         </Badge>
                       )}
                     </div>
