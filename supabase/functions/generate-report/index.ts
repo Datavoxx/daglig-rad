@@ -77,9 +77,9 @@ serve(async (req) => {
   try {
     const { transcript, project_id, report_date, user_id } = await req.json();
 
-    if (!transcript || !project_id || !report_date || !user_id) {
+    if (!transcript || !project_id || !report_date) {
       return new Response(
-        JSON.stringify({ error: "Saknar nödvändiga fält: transcript, project_id, report_date, user_id" }),
+        JSON.stringify({ error: "Saknar nödvändiga fält: transcript, project_id, report_date" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -96,7 +96,7 @@ serve(async (req) => {
     const userPrompt = `Metadata:
 - report_date: ${report_date}
 - project_id: ${project_id}
-- reporter_user_id: ${user_id}
+- reporter_user_id: ${user_id || 'anonymous'}
 
 Transcript (svenska):
 """${transcript}"""`;
