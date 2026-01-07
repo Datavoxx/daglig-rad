@@ -91,6 +91,174 @@ export type Database = {
           },
         ]
       }
+      inspection_files: {
+        Row: {
+          checkpoint_index: number | null
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          inspection_id: string
+          storage_path: string
+        }
+        Insert: {
+          checkpoint_index?: number | null
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          inspection_id: string
+          storage_path: string
+        }
+        Update: {
+          checkpoint_index?: number | null
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          inspection_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_files_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_share_links: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          inspection_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          inspection_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          inspection_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_share_links_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_templates: {
+        Row: {
+          category: string
+          checkpoints: Json
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          checkpoints?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          checkpoints?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inspections: {
+        Row: {
+          checkpoints: Json
+          created_at: string
+          id: string
+          inspection_date: string
+          inspector_company: string | null
+          inspector_name: string | null
+          notes: string | null
+          original_transcript: string | null
+          project_id: string
+          signature_data: string | null
+          status: string
+          template_category: string
+          template_id: string | null
+          template_name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          checkpoints?: Json
+          created_at?: string
+          id?: string
+          inspection_date?: string
+          inspector_company?: string | null
+          inspector_name?: string | null
+          notes?: string | null
+          original_transcript?: string | null
+          project_id: string
+          signature_data?: string | null
+          status?: string
+          template_category: string
+          template_id?: string | null
+          template_name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          checkpoints?: Json
+          created_at?: string
+          id?: string
+          inspection_date?: string
+          inspector_company?: string | null
+          inspector_name?: string | null
+          notes?: string | null
+          original_transcript?: string | null
+          project_id?: string
+          signature_data?: string | null
+          status?: string
+          template_category?: string
+          template_id?: string | null
+          template_name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_share_links: {
         Row: {
           created_at: string | null
