@@ -6,10 +6,12 @@ import {
   ArrowLeft,
   Mic,
   MicOff,
-  Wand2,
+  Sparkles,
   Calendar,
   Loader2,
   AlertCircle,
+  FolderKanban,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,13 +93,11 @@ export default function ReportNew() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check for Web Speech API support
   const isSpeechRecognitionSupported = typeof window !== 'undefined' && 
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   useEffect(() => {
     fetchProjects();
-    // No user_id needed since auth is disabled - will be null in database
     
     return () => {
       if (recognitionRef.current) {
@@ -184,7 +184,6 @@ export default function ReportNew() {
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
-      // Store starting transcript
       finalTranscriptRef.current = transcript;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -236,10 +235,7 @@ export default function ReportNew() {
       };
 
       recognition.onend = () => {
-        // Only update state if we're still supposed to be recording
-        // (handles automatic stop vs manual stop)
         if (isRecording) {
-          // Restart if it stopped unexpectedly (silence, etc)
           try {
             recognition.start();
           } catch {
@@ -298,28 +294,62 @@ export default function ReportNew() {
   }
 
   return (
-    <div className="animate-in space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-display font-semibold tracking-tight">Ny dagrapport</h1>
-          <p className="text-muted-foreground">Generera en strukturerad rapport från transkript</p>
+          <h1 className="page-title">Ny dagrapport</h1>
+          <p className="page-subtitle">Generera en strukturerad rapport från transkript</p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Input section */}
+      {/* Step indicators */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+            selectedProject ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground"
+          )}>
+            1
+          </div>
+          <span className="text-sm font-medium">Välj projekt</span>
+        </div>
+        <div className="h-px w-6 bg-border" />
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+            transcript.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          )}>
+            2
+          </div>
+          <span className={cn("text-sm", transcript.trim() ? "font-medium" : "text-muted-foreground")}>Transkript</span>
+        </div>
+        <div className="h-px w-6 bg-border" />
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+            3
+          </div>
+          <span className="text-sm text-muted-foreground">Granska</span>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Project & Date */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">1. Välj projekt och datum</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderKanban className="h-4 w-4 text-primary" />
+              Projekt och datum
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Projekt</Label>
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projekt</Label>
               <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Välj projekt..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +363,7 @@ export default function ReportNew() {
               {projects.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   Du har inga projekt ännu.{" "}
-                  <Button variant="link" className="h-auto p-0" onClick={() => navigate("/projects")}>
+                  <Button variant="link" className="h-auto p-0 text-primary" onClick={() => navigate("/projects")}>
                     Skapa ett projekt
                   </Button>
                 </p>
@@ -341,14 +371,14 @@ export default function ReportNew() {
             </div>
 
             <div className="space-y-2">
-              <Label>Datum</Label>
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Datum</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={cn("w-full justify-start text-left font-normal")}
+                    className="w-full h-11 justify-start text-left font-normal"
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                     {format(selectedDate, "d MMMM yyyy", { locale: sv })}
                   </Button>
                 </PopoverTrigger>
@@ -365,69 +395,72 @@ export default function ReportNew() {
           </CardContent>
         </Card>
 
-        {/* Transcript input */}
+        {/* Transcript */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">2. Transkript</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-primary" />
+              Transkript
+            </CardTitle>
             <CardDescription>
-              Klistra in eller diktera vad som hände på byggarbetsplatsen idag
+              Klistra in eller diktera vad som hände på byggarbetsplatsen
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <Textarea
-                placeholder="Exempel: Idag var vi fem snickare på plats. Vi jobbade 8 timmar per person och fokuserade på att sätta gips i lägenheterna på plan 3. Det levererades virke från Byggmax. Vi hade en timmes väntetid på att el-materialet skulle komma..."
+                placeholder="Exempel: Idag var vi fem snickare på plats. Vi jobbade 8 timmar per person och fokuserade på att sätta gips i lägenheterna på plan 3..."
                 value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
                 onChange={(e) => {
                   setTranscript(e.target.value);
                   finalTranscriptRef.current = e.target.value;
                 }}
-                className="min-h-[200px] resize-none"
+                className="min-h-[180px] resize-none text-[0.9375rem] leading-relaxed"
                 disabled={isRecording}
               />
               {interimTranscript && (
-                <div className="absolute bottom-2 right-2 px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
                   Lyssnar...
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={isRecording ? "destructive" : "outline"}
-                onClick={toggleRecording}
-                className="flex-1"
-                disabled={!isSpeechRecognitionSupported}
-              >
-                {isRecording ? (
-                  <>
-                    <span className="mr-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                    <MicOff className="ml-2 h-4 w-4" />
-                    Stoppa inspelning
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Spela in (realtid)
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              variant={isRecording ? "destructive" : "secondary"}
+              onClick={toggleRecording}
+              className="w-full"
+              disabled={!isSpeechRecognitionSupported}
+            >
+              {isRecording ? (
+                <>
+                  <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
+                  <MicOff className="mr-2 h-4 w-4" />
+                  Stoppa inspelning
+                </>
+              ) : (
+                <>
+                  <Mic className="mr-2 h-4 w-4" />
+                  Spela in (realtid)
+                </>
+              )}
+            </Button>
             {!isSpeechRecognitionSupported && (
               <p className="text-sm text-destructive flex items-center gap-1.5">
                 <AlertCircle className="h-4 w-4" />
-                Din webbläsare stöder inte röstinspelning. Använd Chrome, Edge eller Safari.
+                Din webbläsare stöder inte röstinspelning
               </p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Generate button */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-          <Wand2 className="h-10 w-10 text-primary" />
-          <div>
-            <h3 className="text-lg font-medium">Redo att generera?</h3>
+      {/* Generate action */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+        <CardContent className="flex flex-col sm:flex-row items-center gap-4 py-6">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="text-base font-medium">Redo att generera?</h3>
             <p className="text-sm text-muted-foreground">
               AI:n tolkar ditt transkript och skapar en strukturerad dagrapport
             </p>
@@ -436,7 +469,7 @@ export default function ReportNew() {
             size="lg"
             onClick={handleGenerate}
             disabled={isGenerating || !selectedProject || !transcript.trim()}
-            className="min-w-48"
+            className="min-w-40"
           >
             {isGenerating ? (
               <>
@@ -445,19 +478,20 @@ export default function ReportNew() {
               </>
             ) : (
               <>
-                <Wand2 className="mr-2 h-4 w-4" />
-                Generera dagrapport
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generera rapport
               </>
             )}
           </Button>
-          {(!selectedProject || !transcript.trim()) && (
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              Välj projekt och skriv transkript för att fortsätta
-            </p>
-          )}
         </CardContent>
       </Card>
+
+      {(!selectedProject || !transcript.trim()) && (
+        <p className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+          <AlertCircle className="h-4 w-4" />
+          Välj projekt och skriv transkript för att fortsätta
+        </p>
+      )}
     </div>
   );
 }
