@@ -17,6 +17,7 @@ import {
   Loader2,
   Pencil,
   FileWarning,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReportPdf } from "@/lib/generateReportPdf";
@@ -177,7 +179,6 @@ export default function ReportView() {
 
   if (!report) return null;
 
-  // Convert to editor format
   const convertToEditorFormat = () => ({
     crew: {
       headcount: report.headcount,
@@ -203,7 +204,7 @@ export default function ReportView() {
 
   const handleEditSaved = (savedId: string) => {
     setIsEditing(false);
-    fetchReport(); // Refresh data
+    fetchReport();
   };
 
   if (isEditing) {
@@ -213,7 +214,7 @@ export default function ReportView() {
         projectId={report.project.id}
         projectName={report.project.name}
         reportDate={new Date(report.report_date)}
-        userId="" // Not needed for updates
+        userId=""
         existingReportId={report.id}
         onBack={() => setIsEditing(false)}
         onSaved={handleEditSaved}
@@ -222,72 +223,77 @@ export default function ReportView() {
   }
 
   return (
-    <div className="animate-in space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/reports")}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/reports")} className="shrink-0 mt-0.5">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-display font-semibold tracking-tight">
-              {report.project?.name}
-            </h1>
-            <p className="text-muted-foreground">
-              Dagrapport • {format(new Date(report.report_date), "d MMMM yyyy", { locale: sv })}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <span>{report.project?.name}</span>
+              <ChevronRight className="h-3 w-3" />
+              <span>{format(new Date(report.report_date), "d MMMM yyyy", { locale: sv })}</span>
+            </div>
+            <h1 className="page-title">Dagrapport</h1>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
+        <div className="flex flex-wrap gap-2 pl-12 sm:pl-0">
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Pencil className="mr-2 h-3.5 w-3.5" />
             Redigera
           </Button>
-          <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exportingPdf}>
             {exportingPdf ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
             ) : (
-              <FileDown className="mr-2 h-4 w-4" />
+              <FileDown className="mr-2 h-3.5 w-3.5" />
             )}
-            {exportingPdf ? "Exporterar..." : "Exportera PDF"}
+            Exportera PDF
           </Button>
-          <Button variant="outline" onClick={() => setShareDialogOpen(true)}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Dela
+          <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(true)}>
+            <Share2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         {/* Crew */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <Users className="h-4 w-4 text-primary" />
               Bemanning
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Antal personer</span>
-              <span className="font-medium">{report.headcount ?? "—"}</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Antal personer</p>
+                <p className="text-lg font-semibold tabular-nums">{report.headcount ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Timmar/person</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {report.hours_per_person ? `${report.hours_per_person}h` : "—"}
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Timmar/person</span>
-              <span className="font-medium">
-                {report.hours_per_person ? `${report.hours_per_person}h` : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Roller</span>
-              <span className="font-medium">
-                {report.roles?.length > 0 ? report.roles.join(", ") : "—"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
+            {report.roles?.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Roller</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {report.roles.map((role, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">{role}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 mt-3">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Totala timmar:</span>
-              <span className="font-medium">
+              <span className="font-semibold tabular-nums">
                 {report.total_hours ? `${report.total_hours}h` : "—"}
               </span>
             </div>
@@ -297,8 +303,8 @@ export default function ReportView() {
         {/* Work items */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Hammer className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <Hammer className="h-4 w-4 text-primary" />
               Utfört arbete
             </CardTitle>
           </CardHeader>
@@ -306,14 +312,14 @@ export default function ReportView() {
             {report.work_items?.length > 0 ? (
               <ul className="space-y-2">
                 {report.work_items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <span>{item}</span>
+                  <li key={i} className="flex items-start gap-2.5 text-[0.9375rem]">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <span className="leading-relaxed">{item}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-muted-foreground">Inga arbetsmoment registrerade</p>
+              <p className="text-sm text-muted-foreground">Inga arbetsmoment registrerade</p>
             )}
           </CardContent>
         </Card>
@@ -321,11 +327,11 @@ export default function ReportView() {
         {/* Deviations */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <AlertTriangle className="h-4 w-4 text-warning" />
               Avvikelser
               {report.deviations && report.deviations.length > 0 && (
-                <Badge variant="outline" className="ml-auto bg-warning/10 text-warning border-warning/30">
+                <Badge variant="warning" className="ml-auto">
                   {report.deviations.length}
                 </Badge>
               )}
@@ -335,19 +341,19 @@ export default function ReportView() {
             {report.deviations && report.deviations.length > 0 ? (
               <div className="space-y-3">
                 {report.deviations.map((d, i) => (
-                  <div key={i} className="rounded-lg border border-border p-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{deviationTypes[d.type] || d.type}</Badge>
+                  <div key={i} className="rounded-lg border border-border/60 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="text-xs">{deviationTypes[d.type] || d.type}</Badge>
                       {d.hours && (
-                        <span className="text-sm text-muted-foreground">{d.hours}h</span>
+                        <span className="text-xs text-muted-foreground">{d.hours}h</span>
                       )}
                     </div>
-                    <p className="mt-2 text-sm">{d.description}</p>
+                    <p className="text-sm leading-relaxed">{d.description}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">Inga avvikelser</p>
+              <p className="text-sm text-muted-foreground">Inga avvikelser</p>
             )}
           </CardContent>
         </Card>
@@ -356,10 +362,10 @@ export default function ReportView() {
         {report.ata?.has_ata && report.ata.items.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileWarning className="h-5 w-5 text-info" />
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                <FileWarning className="h-4 w-4 text-info" />
                 ÄTA
-                <Badge variant="outline" className="ml-auto bg-info/10 text-info border-info/30">
+                <Badge variant="info" className="ml-auto">
                   {report.ata.items.length}
                 </Badge>
               </CardTitle>
@@ -367,23 +373,21 @@ export default function ReportView() {
             <CardContent>
               <div className="space-y-3">
                 {report.ata.items.map((item, i) => (
-                  <div key={i} className="rounded-lg border border-info/20 bg-info/5 p-3">
-                    <div className="space-y-1">
+                  <div key={i} className="rounded-lg border border-info/20 bg-info/5 p-3 space-y-1.5">
+                    <p className="text-sm">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Anledning: </span>
+                      {item.reason}
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Konsekvens: </span>
+                      {item.consequence}
+                    </p>
+                    {item.estimated_hours && (
                       <p className="text-sm">
-                        <span className="font-medium text-muted-foreground">Anledning: </span>
-                        {item.reason}
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Uppskattade timmar: </span>
+                        <span className="tabular-nums">{item.estimated_hours}h</span>
                       </p>
-                      <p className="text-sm">
-                        <span className="font-medium text-muted-foreground">Konsekvens: </span>
-                        {item.consequence}
-                      </p>
-                      {item.estimated_hours && (
-                        <p className="text-sm">
-                          <span className="font-medium text-muted-foreground">Uppskattade timmar: </span>
-                          {item.estimated_hours}h
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -394,26 +398,26 @@ export default function ReportView() {
         {/* Materials */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Package className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <Package className="h-4 w-4 text-primary" />
               Material
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-success">Levererat</p>
-              <p className="mt-1">
+              <p className="text-xs font-medium text-success uppercase tracking-wider mb-1.5">Levererat</p>
+              <p className="text-sm leading-relaxed">
                 {report.materials_delivered?.length > 0
                   ? report.materials_delivered.join(", ")
-                  : "—"}
+                  : <span className="text-muted-foreground">—</span>}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-destructive">Saknas</p>
-              <p className="mt-1">
+              <p className="text-xs font-medium text-destructive uppercase tracking-wider mb-1.5">Saknas</p>
+              <p className="text-sm leading-relaxed">
                 {report.materials_missing?.length > 0
                   ? report.materials_missing.join(", ")
-                  : "—"}
+                  : <span className="text-muted-foreground">—</span>}
               </p>
             </div>
           </CardContent>
@@ -423,25 +427,27 @@ export default function ReportView() {
         {report.notes && (
           <Card className="lg:col-span-2">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                <FileText className="h-4 w-4 text-primary" />
                 Anteckningar
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap">{report.notes}</p>
+              <p className="whitespace-pre-wrap text-[0.9375rem] leading-relaxed">{report.notes}</p>
             </CardContent>
           </Card>
         )}
 
         {/* Original transcript */}
         {report.original_transcript && (
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 bg-muted/30">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-muted-foreground">Originaltranskript</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Originaltranskript
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed font-mono">
                 {report.original_transcript}
               </p>
             </CardContent>
@@ -461,13 +467,13 @@ export default function ReportView() {
           <div className="space-y-4 py-4">
             {shareLink ? (
               <div className="flex gap-2">
-                <input
+                <Input
                   readOnly
                   value={shareLink}
-                  className="flex-1 rounded-md border border-input bg-muted px-3 py-2 text-sm"
+                  className="font-mono text-sm"
                 />
-                <Button onClick={handleCopyLink}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <Button onClick={handleCopyLink} variant="outline" size="icon">
+                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             ) : (

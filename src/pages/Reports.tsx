@@ -11,13 +11,13 @@ import {
   AlertTriangle,
   FileCheck,
   Search,
-  Filter,
   FileWarning,
   Share2,
   Copy,
   Check,
   Link,
   Download,
+  ChevronRight,
 } from "lucide-react";
 import { generateProjectPdf } from "@/lib/generateProjectPdf";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,6 @@ export default function Reports() {
     
     setCreatingShareLink(true);
     try {
-      // Kolla om en giltig länk redan finns
       const { data: existingLink } = await supabase
         .from("project_share_links")
         .select("token, expires_at")
@@ -106,7 +105,6 @@ export default function Reports() {
         return;
       }
 
-      // Skapa ny länk
       const { data: newLink, error } = await supabase
         .from("project_share_links")
         .insert({ project_id: selectedProject })
@@ -147,14 +145,12 @@ export default function Reports() {
       const project = projects.find(p => p.id === selectedProject);
       if (!project) return;
 
-      // Hämta fullständig projektinfo
       const { data: projectData } = await supabase
         .from("projects")
         .select("*")
         .eq("id", selectedProject)
         .maybeSingle();
 
-      // Hämta alla dagrapporter för projektet
       const { data: reportsData } = await supabase
         .from("daily_reports")
         .select("*")
@@ -170,7 +166,6 @@ export default function Reports() {
         return;
       }
 
-      // Transformera data för PDF-generatorn
       const projectReport = {
         project: {
           name: projectData.name,
@@ -264,17 +259,19 @@ export default function Reports() {
   };
 
   return (
-    <div className="animate-in space-y-6">
+    <div className="space-y-6">
+      {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-display font-semibold tracking-tight">Dagrapporter</h1>
-          <p className="text-muted-foreground">Översikt över alla dagrapporter</p>
+          <h1 className="page-title">Dagrapporter</h1>
+          <p className="page-subtitle">Översikt över alla dagrapporter</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedProject !== "all" && (
             <>
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={handleDownloadPdf}
                 disabled={generatingPdf}
               >
@@ -283,6 +280,7 @@ export default function Reports() {
               </Button>
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={createProjectShareLink}
                 disabled={creatingShareLink}
               >
@@ -320,7 +318,7 @@ export default function Reports() {
               />
               <Button onClick={copyShareLink} variant="outline" size="icon">
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4 text-success" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -333,34 +331,31 @@ export default function Reports() {
         </DialogContent>
       </Dialog>
 
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Sök på projektnamn..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Alla projekt" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alla projekt</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+          <Input
+            placeholder="Sök på projektnamn..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
         </div>
-      </Card>
+        <Select value={selectedProject} onValueChange={setSelectedProject}>
+          <SelectTrigger className="w-full sm:w-48 border-0 bg-card shadow-sm">
+            <SelectValue placeholder="Alla projekt" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alla projekt</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {loading ? (
         <Card className="p-8">
@@ -370,9 +365,11 @@ export default function Reports() {
         </Card>
       ) : filteredReports.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-medium">Inga rapporter ännu</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <FileText className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h3 className="mt-4 text-base font-medium">Inga rapporter ännu</h3>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">
             {reports.length === 0
               ? "Skapa din första dagrapport för att komma igång"
               : "Inga rapporter matchar dina filter"}
@@ -389,38 +386,14 @@ export default function Reports() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-32">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    Datum
-                  </div>
-                </TableHead>
+                <TableHead className="w-28">Datum</TableHead>
                 <TableHead>Projekt</TableHead>
-                <TableHead className="w-24 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Users className="h-4 w-4" />
-                    Antal
-                  </div>
-                </TableHead>
-                <TableHead className="w-24 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Clock className="h-4 w-4" />
-                    Timmar
-                  </div>
-                </TableHead>
-                <TableHead className="w-32 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4" />
-                    Avvikelser
-                  </div>
-                </TableHead>
-                <TableHead className="w-24 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <FileWarning className="h-4 w-4" />
-                    ÄTA
-                  </div>
-                </TableHead>
+                <TableHead className="w-20 text-center">Antal</TableHead>
+                <TableHead className="w-20 text-center">Timmar</TableHead>
+                <TableHead className="w-24 text-center">Avvikelser</TableHead>
+                <TableHead className="w-20 text-center">ÄTA</TableHead>
                 <TableHead className="w-24 text-center">Status</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -430,42 +403,41 @@ export default function Reports() {
                 return (
                   <TableRow
                     key={report.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer group"
                     onClick={() => navigate(`/reports/${report.id}`)}
                   >
                     <TableCell className="font-medium">
-                      {format(new Date(report.report_date), "d MMM yyyy", { locale: sv })}
+                      {format(new Date(report.report_date), "d MMM", { locale: sv })}
                     </TableCell>
-                    <TableCell>{report.project?.name || "—"}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-muted-foreground">{report.project?.name || "—"}</TableCell>
+                    <TableCell className="text-center tabular-nums">
                       {report.headcount ?? "—"}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center tabular-nums">
                       {report.total_hours ? `${report.total_hours}h` : "—"}
                     </TableCell>
                     <TableCell className="text-center">
                       {deviationCount > 0 ? (
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                          {deviationCount}
-                        </Badge>
+                        <Badge variant="warning">{deviationCount}</Badge>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
                       {ataCount > 0 ? (
-                        <Badge variant="outline" className="bg-info/10 text-info border-info/30">
-                          {ataCount}
-                        </Badge>
+                        <Badge variant="info">{ataCount}</Badge>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary" className="gap-1">
+                      <Badge variant="success" className="gap-1">
                         <FileCheck className="h-3 w-3" />
                         Sparad
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </TableCell>
                   </TableRow>
                 );
