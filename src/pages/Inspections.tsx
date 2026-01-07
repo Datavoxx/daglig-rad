@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ClipboardCheck, Eye, Calendar, Building2 } from "lucide-react";
+import { Plus, ClipboardCheck, Eye, Calendar, Building2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -43,7 +43,7 @@ export default function Inspections() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const { data: inspections, isLoading: inspectionsLoading } = useQuery({
+  const { data: inspections, isLoading: inspectionsLoading, isFetching } = useQuery({
     queryKey: ["inspections", selectedProject, statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -62,7 +62,9 @@ export default function Inspections() {
       if (error) throw error;
       return data;
     },
-    staleTime: 30 * 1000, // Cache for 30 seconds
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching
   });
 
   const getStatusBadge = (status: string) => {
@@ -78,7 +80,8 @@ export default function Inspections() {
     }
   };
 
-  const isLoading = projectsLoading || inspectionsLoading;
+  // Only show skeleton on initial load, not when filtering
+  const isInitialLoading = inspectionsLoading && !inspections;
 
   return (
     <div className="space-y-6">
@@ -130,8 +133,13 @@ export default function Inspections() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
+        <CardContent className="relative">
+          {isFetching && !isInitialLoading && (
+            <div className="absolute top-2 right-2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {isInitialLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
