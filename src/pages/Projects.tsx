@@ -74,6 +74,19 @@ export default function Projects() {
 
     setSaving(true);
 
+    // Hämta inloggad användare
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast({
+        title: "Du måste vara inloggad",
+        description: "Logga in för att skapa projekt",
+        variant: "destructive",
+      });
+      setSaving(false);
+      return;
+    }
+
     if (editingProject) {
       const { error } = await supabase
         .from("projects")
@@ -96,7 +109,7 @@ export default function Projects() {
         name: formData.name,
         client_name: formData.client_name || null,
         address: formData.address || null,
-        user_id: "00000000-0000-0000-0000-000000000000",
+        user_id: user.id,
       });
 
       if (error) {
