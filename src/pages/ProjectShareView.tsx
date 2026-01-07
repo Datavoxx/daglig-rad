@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -14,11 +15,13 @@ import {
   Building2,
   MapPin,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Download
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Json } from "@/integrations/supabase/types";
+import { generateProjectPdf } from "@/lib/generateProjectPdf";
 
 interface Deviation {
   type: string;
@@ -153,16 +156,51 @@ export default function ProjectShareView() {
     return [];
   };
 
-  const parseAta = (ata: Json | null): { description: string; estimatedHours: number } | null => {
+  const parseAta = (ata: Json | null): { description: string; estimatedHours: number; items?: Array<{ reason: string; consequence: string; estimated_hours: number | null }> } | null => {
     if (!ata || typeof ata !== 'object' || Array.isArray(ata)) return null;
-    const ataObj = ata as { description?: string; estimatedHours?: number };
-    if (ataObj.description) {
+    const ataObj = ata as { description?: string; estimatedHours?: number; has_ata?: boolean; items?: Array<{ reason: string; consequence: string; estimated_hours: number | null }> };
+    if (ataObj.description || ataObj.has_ata) {
       return {
-        description: ataObj.description,
-        estimatedHours: ataObj.estimatedHours || 0
+        description: ataObj.description || '',
+        estimatedHours: ataObj.estimatedHours || 0,
+        items: ataObj.items
       };
     }
     return null;
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!project || reports.length === 0) return;
+    
+    // Transformera data för PDF-generatorn
+    const pdfData = {
+      project: {
+        name: project.name,
+        client_name: project.client_name,
+        address: project.address
+      },
+      reports: reports.map(r => {
+        const deviations = parseDeviations(r.deviations);
+        const ataData = r.ata as { has_ata?: boolean; items?: Array<{ reason: string; consequence: string; estimated_hours: number | null }> } | null;
+        
+        return {
+          id: r.id,
+          report_date: r.report_date,
+          headcount: r.headcount,
+          roles: r.roles,
+          hours_per_person: r.hours_per_person,
+          total_hours: r.total_hours,
+          work_items: r.work_items,
+          deviations: deviations.map(d => ({ type: d.type, description: d.description, hours: null })),
+          ata: ataData?.has_ata ? { has_ata: true, items: ataData.items || [] } : null,
+          materials_delivered: r.materials_delivered,
+          materials_missing: r.materials_missing,
+          notes: r.notes
+        };
+      })
+    };
+    
+    await generateProjectPdf(pdfData);
   };
 
   // Beräkna statistik
@@ -215,6 +253,12 @@ export default function ProjectShareView() {
                 <MapPin className="h-4 w-4" />
                 {project.address}
               </p>
+            )}
+            {reports.length > 0 && (
+              <Button onClick={handleDownloadPdf} className="mt-4">
+                <Download className="h-4 w-4 mr-2" />
+                Ladda ner PDF
+              </Button>
             )}
           </div>
         </div>
