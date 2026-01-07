@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, Share2, Copy, Check } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, Share2, Copy, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
@@ -54,8 +54,24 @@ export default function Planning() {
   const [shareLink, setShareLink] = useState("");
   const [creatingShareLink, setCreatingShareLink] = useState(false);
   const [copied, setCopied] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  
+  // Web Speech API refs
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef<string>("");
+  
+  // Check if Web Speech API is supported
+  const isSpeechRecognitionSupported = typeof window !== 'undefined' && 
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   // Fetch projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -155,62 +171,79 @@ export default function Planning() {
     },
   });
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
-        stream.getTracks().forEach((track) => track.stop());
-        await transcribeAudio(audioBlob);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Failed to start recording:", error);
-      toast.error("Kunde inte starta inspelningen. Kontrollera mikrofonbehörigheter.");
+  const startRecording = () => {
+    if (!isSpeechRecognitionSupported) {
+      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome eller Edge.");
+      return;
     }
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
+    
+    recognition.lang = 'sv-SE';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    // Store current transcript as starting point
+    finalTranscriptRef.current = transcript;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = '';
+      let final = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          final += result[0].transcript + ' ';
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      
+      if (final) {
+        finalTranscriptRef.current += (finalTranscriptRef.current ? ' ' : '') + final.trim();
+        setTranscript(finalTranscriptRef.current);
+      }
+      
+      setInterimTranscript(interim);
+    };
+
+    recognition.onerror = (event: Event & { error?: string }) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'no-speech') {
+        toast.info("Ingen röst upptäcktes. Fortsätt prata...");
+      } else if (event.error !== 'aborted') {
+        toast.error("Röstinspelningen avbröts. Försök igen.");
+      }
+      setIsRecording(false);
+      setInterimTranscript("");
+    };
+
+    recognition.onend = () => {
+      // Restart if still recording (continuous mode)
+      if (isRecording && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          // Already started, ignore
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+    toast.success("Inspelning startad – texten visas i realtid");
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current) {
       setIsRecording(false);
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      setIsGenerating(true);
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(",")[1];
-        
-        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-        if (data?.text) {
-          setTranscript((prev) => prev ? `${prev}\n${data.text}` : data.text);
-        }
-        setIsGenerating(false);
-      };
-    } catch (error) {
-      console.error("Transcription failed:", error);
-      toast.error("Kunde inte transkribera ljudet");
-      setIsGenerating(false);
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setInterimTranscript("");
+      toast.success("Inspelning stoppad");
     }
   };
 
@@ -415,29 +448,47 @@ export default function Planning() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              placeholder="T.ex. 'Rivning först, sen stomme, el och VVS parallellt, sen ytskikt. Totalt runt 6 veckor.'"
-              className="min-h-[150px] resize-none"
-              disabled={isRecording || isGenerating}
-            />
+            <div className="relative">
+              <Textarea
+                value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+                onChange={(e) => {
+                  setTranscript(e.target.value);
+                  finalTranscriptRef.current = e.target.value;
+                }}
+                placeholder="T.ex. 'Rivning först, sen stomme, el och VVS parallellt, sen ytskikt. Totalt runt 6 veckor.'"
+                className="min-h-[150px] resize-none pr-24"
+                disabled={isRecording || isGenerating}
+              />
+              {interimTranscript && (
+                <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium animate-pulse">
+                  Lyssnar...
+                </div>
+              )}
+            </div>
+
+            {!isSpeechRecognitionSupported && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                <AlertCircle className="h-4 w-4" />
+                <span>Din webbläsare stöder inte röstinspelning. Prova Chrome eller Edge.</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <Button
                 variant={isRecording ? "destructive" : "outline"}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isGenerating}
+                disabled={isGenerating || !isSpeechRecognitionSupported}
               >
                 {isRecording ? (
                   <>
+                    <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
                     <MicOff className="h-4 w-4 mr-2" />
                     Stoppa inspelning
                   </>
                 ) : (
                   <>
                     <Mic className="h-4 w-4 mr-2" />
-                    Spela in
+                    Spela in (realtid)
                   </>
                 )}
               </Button>
