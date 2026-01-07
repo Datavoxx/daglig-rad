@@ -6,17 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, Mic, MicOff, Loader2, ArrowLeft, Plus, Sparkles, Download, CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, Share2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
 import { PlanningSkeleton } from "@/components/skeletons/PlanningSkeleton";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
-import { format, addWeeks, addDays, startOfWeek, parseISO } from "date-fns";
+import { format, addWeeks, addDays, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -51,6 +50,10 @@ export default function Planning() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [creatingShareLink, setCreatingShareLink] = useState(false);
+  const [copied, setCopied] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -275,6 +278,56 @@ export default function Planning() {
     setViewState("input");
   };
 
+  const createShareLink = async () => {
+    if (!selectedProjectId) return;
+    
+    setCreatingShareLink(true);
+    try {
+      // Check for existing non-expired link
+      const { data: existingLink } = await supabase
+        .from("plan_share_links")
+        .select("token, expires_at")
+        .eq("project_id", selectedProjectId)
+        .gte("expires_at", new Date().toISOString())
+        .single();
+
+      if (existingLink) {
+        setShareLink(`${window.location.origin}/share/plan/${existingLink.token}`);
+        setShareDialogOpen(true);
+        setCreatingShareLink(false);
+        return;
+      }
+
+      // Create new link
+      const { data: newLink, error } = await supabase
+        .from("plan_share_links")
+        .insert({ project_id: selectedProjectId })
+        .select("token")
+        .single();
+
+      if (error) throw error;
+
+      setShareLink(`${window.location.origin}/share/plan/${newLink.token}`);
+      setShareDialogOpen(true);
+    } catch (error: any) {
+      toast.error("Kunde inte skapa delningslänk");
+      console.error("Share link error:", error);
+    } finally {
+      setCreatingShareLink(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      toast.success("Länk kopierad!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Kunde inte kopiera länken");
+    }
+  };
+
   // Calculate end date for display
   const endDate = startDate && generatedPlan 
     ? getEndDate(startDate, generatedPlan.total_weeks) 
@@ -456,9 +509,21 @@ export default function Planning() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={createShareLink}
+                disabled={creatingShareLink}
+              >
+                {creatingShareLink ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Share2 className="h-4 w-4 mr-2" />
+                )}
+                Dela
+              </Button>
               <Button variant="outline" onClick={handleDownloadPdf}>
                 <Download className="h-4 w-4 mr-2" />
-                Ladda ner PDF
+                PDF
               </Button>
               <Button variant="outline" onClick={handleEditPlan}>
                 Redigera
@@ -474,6 +539,32 @@ export default function Planning() {
           </CardContent>
         </Card>
       )}
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dela planering</DialogTitle>
+            <DialogDescription>
+              Kopiera länken nedan för att dela planeringen. Länken är giltig i 30 dagar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-4">
+            <Input 
+              value={shareLink} 
+              readOnly 
+              className="flex-1"
+            />
+            <Button onClick={copyToClipboard} variant="outline">
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

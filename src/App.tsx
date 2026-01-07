@@ -11,6 +11,7 @@ import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
 import ShareView from "@/pages/ShareView";
 import ProjectShareView from "@/pages/ProjectShareView";
+import PlanShareView from "@/pages/PlanShareView";
 import Planning from "@/pages/Planning";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => {
             {/* Public share routes */}
             <Route path="/share/:token" element={<ShareView />} />
             <Route path="/share/project/:token" element={<ProjectShareView />} />
+            <Route path="/share/plan/:token" element={<PlanShareView />} />
 
             {/* Main routes with layout */}
             <Route element={<AppLayout />}>
