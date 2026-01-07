@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReportPdf } from "@/lib/generateReportPdf";
 import { ReportEditor } from "@/components/reports/ReportEditor";
+import { ReportViewSkeleton } from "@/components/skeletons/ReportViewSkeleton";
 
 interface DailyReport {
   id: string;
@@ -170,11 +171,7 @@ export default function ReportView() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ReportViewSkeleton />;
   }
 
   if (!report) return null;

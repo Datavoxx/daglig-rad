@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
+import { ReportsTableSkeleton } from "@/components/skeletons/ReportsTableSkeleton";
 interface DailyReport {
   id: string;
   report_date: string;
@@ -358,11 +358,7 @@ export default function Reports() {
       </div>
 
       {loading ? (
-        <Card className="p-8">
-          <div className="flex items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
-        </Card>
+        <ReportsTableSkeleton />
       ) : filteredReports.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
