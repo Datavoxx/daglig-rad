@@ -8,9 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ArrowRight, ClipboardCheck, Building2, FileText, Mic, MicOff, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardCheck, Building2, FileText, Mic, MicOff, Loader2, AlertCircle, Sparkles, Check, X, Minus } from "lucide-react";
 
-type Step = "project" | "template" | "input" | "creating";
+type Step = "project" | "template" | "input" | "preview" | "creating";
+
+interface AICheckpointResult {
+  id: string;
+  result: "ok" | "deviation" | "na" | null;
+  comment: string;
+  confidence: number;
+}
 
 interface Template {
   id: string;
@@ -29,6 +36,9 @@ export default function InspectionNew() {
   const [textInput, setTextInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [aiResults, setAiResults] = useState<AICheckpointResult[] | null>(null);
+  const [aiSummary, setAiSummary] = useState<string>("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Real-time speech recognition refs
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -225,6 +235,96 @@ export default function InspectionNew() {
     return acc;
   }, {} as Record<string, Template[]>);
 
+  const analyzeWithAI = async () => {
+    if (!selectedTemplate || !textInput.trim()) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('prefill-inspection', {
+        body: {
+          transcript: textInput,
+          checkpoints: selectedTemplate.checkpoints.map((cp: any) => ({
+            id: cp.id,
+            text: cp.text,
+            required: cp.required,
+          })),
+          template_name: selectedTemplate.name,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setAiResults(data.checkpoints);
+      setAiSummary(data.summary);
+      setStep("preview");
+      
+      toast({
+        title: "AI-analys klar",
+        description: data.summary,
+      });
+    } catch (error: any) {
+      console.error("AI analysis error:", error);
+      toast({
+        title: "AI-analys misslyckades",
+        description: error.message || "Kunde inte analysera. Försök igen eller skapa utan AI.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const createWithAIResults = () => {
+    if (!selectedProject || !selectedTemplate) return;
+    
+    const checkpoints = selectedTemplate.checkpoints.map((cp: any) => {
+      const aiResult = aiResults?.find(r => r.id === cp.id);
+      return {
+        ...cp,
+        result: aiResult?.result ?? null,
+        comment: aiResult?.comment ?? "",
+        aiPrefilled: aiResult?.result !== null,
+        aiConfidence: aiResult?.confidence ?? 0,
+      };
+    });
+
+    setStep("creating");
+    
+    supabase
+      .from("inspections")
+      .insert({
+        project_id: selectedProject,
+        template_id: selectedTemplate.id,
+        template_name: selectedTemplate.name,
+        template_category: selectedTemplate.category,
+        checkpoints,
+        original_transcript: textInput || null,
+        status: "draft",
+      })
+      .select("id")
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          toast({
+            title: "Fel vid skapande",
+            description: error.message,
+            variant: "destructive",
+          });
+          setStep("preview");
+          return;
+        }
+        toast({
+          title: "Egenkontroll skapad",
+          description: "AI har förifylt kontrollpunkterna",
+        });
+        navigate(`/inspections/${data.id}`);
+      });
+  };
+
   const handleNext = () => {
     if (step === "project" && selectedProject) {
       setStep("template");
@@ -233,6 +333,8 @@ export default function InspectionNew() {
     } else if (step === "input") {
       setStep("creating");
       createInspection.mutate();
+    } else if (step === "preview") {
+      createWithAIResults();
     }
   };
 
@@ -241,14 +343,35 @@ export default function InspectionNew() {
       setStep("project");
     } else if (step === "input") {
       setStep("template");
+    } else if (step === "preview") {
+      setStep("input");
     }
   };
 
   const canProceed = () => {
     if (step === "project") return !!selectedProject;
     if (step === "template") return !!selectedTemplate;
-    if (step === "input") return !isRecording;
+    if (step === "input") return !isRecording && !isAnalyzing;
+    if (step === "preview") return true;
     return false;
+  };
+
+  const getResultIcon = (result: "ok" | "deviation" | "na" | null) => {
+    switch (result) {
+      case "ok": return <Check className="h-4 w-4 text-green-600" />;
+      case "deviation": return <X className="h-4 w-4 text-red-600" />;
+      case "na": return <Minus className="h-4 w-4 text-muted-foreground" />;
+      default: return null;
+    }
+  };
+
+  const getResultLabel = (result: "ok" | "deviation" | "na" | null) => {
+    switch (result) {
+      case "ok": return "OK";
+      case "deviation": return "Avvikelse";
+      case "na": return "Ej tillämpligt";
+      default: return "Ej ifylld";
+    }
   };
 
   return (
@@ -401,7 +524,7 @@ export default function InspectionNew() {
               Frivillig input (valfritt)
             </CardTitle>
             <CardDescription>
-              Spela in ett röstmeddelande eller skriv in text för att beskriva vad som ska kontrolleras
+              Spela in eller skriv text – AI kan sedan analysera och förifylla kontrollpunkterna
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -415,7 +538,7 @@ export default function InspectionNew() {
                   finalTranscriptRef.current = e.target.value;
                 }}
                 rows={6}
-                disabled={isRecording}
+                disabled={isRecording || isAnalyzing}
               />
               {interimTranscript && (
                 <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
@@ -424,25 +547,27 @@ export default function InspectionNew() {
               )}
             </div>
 
-            <Button
-              variant={isRecording ? "destructive" : "secondary"}
-              onClick={isRecording ? stopRecording : startRecording}
-              className="w-full"
-              disabled={!isSpeechRecognitionSupported}
-            >
-              {isRecording ? (
-                <>
-                  <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
-                  <MicOff className="mr-2 h-4 w-4" />
-                  Stoppa inspelning
-                </>
-              ) : (
-                <>
-                  <Mic className="mr-2 h-4 w-4" />
-                  Spela in (realtid)
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={isRecording ? "destructive" : "secondary"}
+                onClick={isRecording ? stopRecording : startRecording}
+                className="flex-1"
+                disabled={!isSpeechRecognitionSupported || isAnalyzing}
+              >
+                {isRecording ? (
+                  <>
+                    <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
+                    <MicOff className="mr-2 h-4 w-4" />
+                    Stoppa inspelning
+                  </>
+                ) : (
+                  <>
+                    <Mic className="mr-2 h-4 w-4" />
+                    Spela in (realtid)
+                  </>
+                )}
+              </Button>
+            </div>
             
             {!isSpeechRecognitionSupported && (
               <p className="text-sm text-destructive flex items-center gap-1.5">
@@ -450,9 +575,116 @@ export default function InspectionNew() {
                 Din webbläsare stöder inte röstinspelning
               </p>
             )}
+
+            {textInput.trim() && (
+              <Button
+                onClick={analyzeWithAI}
+                disabled={isAnalyzing || isRecording}
+                className="w-full"
+                variant="default"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyserar med AI...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Analysera med AI
+                  </>
+                )}
+              </Button>
+            )}
             
             <p className="text-sm text-muted-foreground">
-              Du kan också lämna detta tomt och fylla i kontrollpunkterna manuellt.
+              {textInput.trim() 
+                ? "Klicka 'Analysera med AI' för att förifylla kontrollpunkter, eller 'Skapa egenkontroll' för att fylla i manuellt."
+                : "Du kan lämna detta tomt och fylla i kontrollpunkterna manuellt."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "preview" && aiResults && selectedTemplate && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI-analys
+            </CardTitle>
+            <CardDescription>
+              {aiSummary}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {aiResults.filter(r => r.result === "ok").length}
+                </div>
+                <div className="text-xs text-muted-foreground">Godkända</div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-950 p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {aiResults.filter(r => r.result === "deviation").length}
+                </div>
+                <div className="text-xs text-muted-foreground">Avvikelser</div>
+              </div>
+              <div className="bg-muted p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-muted-foreground">
+                  {aiResults.filter(r => r.result === null).length}
+                </div>
+                <div className="text-xs text-muted-foreground">Ej ifyllda</div>
+              </div>
+            </div>
+
+            <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
+              {selectedTemplate.checkpoints.map((cp: any, index: number) => {
+                const aiResult = aiResults.find(r => r.id === cp.id);
+                return (
+                  <div key={cp.id} className="p-3 flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getResultIcon(aiResult?.result ?? null)}
+                      {!aiResult?.result && <span className="h-4 w-4 block" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm">{cp.text}</span>
+                        {cp.required && (
+                          <Badge variant="secondary" className="text-xs">Obligatorisk</Badge>
+                        )}
+                        {aiResult?.result && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${
+                              aiResult.result === "ok" ? "border-green-500 text-green-600" :
+                              aiResult.result === "deviation" ? "border-red-500 text-red-600" :
+                              "border-muted-foreground"
+                            }`}
+                          >
+                            {getResultLabel(aiResult.result)}
+                          </Badge>
+                        )}
+                        {aiResult?.confidence && aiResult.confidence > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            ({Math.round(aiResult.confidence * 100)}% säker)
+                          </span>
+                        )}
+                      </div>
+                      {aiResult?.comment && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          "{aiResult.comment}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Du kan redigera alla punkter efter att egenkontrollen skapats.
             </p>
           </CardContent>
         </Card>
@@ -479,7 +711,16 @@ export default function InspectionNew() {
             Tillbaka
           </Button>
           <Button onClick={handleNext} disabled={!canProceed()}>
-            {step === "input" ? "Skapa egenkontroll" : "Nästa"}
+            {step === "preview" ? (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Skapa med AI-resultat
+              </>
+            ) : step === "input" ? (
+              "Skapa egenkontroll"
+            ) : (
+              "Nästa"
+            )}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
