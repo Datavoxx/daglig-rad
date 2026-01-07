@@ -1,0 +1,429 @@
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft,
+  Save,
+  Share2,
+  FileDown,
+  Check,
+  X,
+  Minus,
+  Copy,
+  Building2,
+  Calendar,
+  User,
+} from "lucide-react";
+import { format } from "date-fns";
+import { sv } from "date-fns/locale";
+
+interface Checkpoint {
+  id: string;
+  text: string;
+  required: boolean;
+  result: "ok" | "deviation" | "na" | null;
+  comment: string;
+}
+
+export default function InspectionView() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [shareLink, setShareLink] = useState<string | null>(null);
+
+  const { data: inspection, isLoading } = useQuery({
+    queryKey: ["inspection", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inspections")
+        .select("*, projects(name, client_name)")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [inspectorName, setInspectorName] = useState("");
+  const [inspectorCompany, setInspectorCompany] = useState("");
+  const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState("draft");
+
+  // Update form when inspection data changes
+  if (inspection && checkpoints.length === 0 && Array.isArray(inspection.checkpoints) && inspection.checkpoints.length > 0) {
+    setCheckpoints(inspection.checkpoints as unknown as Checkpoint[]);
+    setInspectorName(inspection.inspector_name || "");
+    setInspectorCompany(inspection.inspector_company || "");
+    setNotes(inspection.notes || "");
+    setStatus(inspection.status);
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("inspections")
+        .update({
+          checkpoints: checkpoints as unknown as any,
+          inspector_name: inspectorName,
+          inspector_company: inspectorCompany,
+          notes,
+          status,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inspection", id] });
+      toast({ title: "Sparad", description: "Egenkontrollen har sparats" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fel",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const shareMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from("inspection_share_links")
+        .insert({ inspection_id: id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      const link = `${window.location.origin}/share/inspection/${data.token}`;
+      setShareLink(link);
+      navigator.clipboard.writeText(link);
+      toast({
+        title: "Delningslänk skapad",
+        description: "Länken har kopierats till urklipp",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fel",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCheckpoint = (index: number, field: keyof Checkpoint, value: any) => {
+    setCheckpoints((prev) =>
+      prev.map((cp, i) => (i === index ? { ...cp, [field]: value } : cp))
+    );
+  };
+
+  const getResultIcon = (result: Checkpoint["result"]) => {
+    switch (result) {
+      case "ok":
+        return <Check className="h-4 w-4 text-green-600" />;
+      case "deviation":
+        return <X className="h-4 w-4 text-red-600" />;
+      case "na":
+        return <Minus className="h-4 w-4 text-muted-foreground" />;
+      default:
+        return null;
+    }
+  };
+
+  const completedCount = checkpoints.filter((cp) => cp.result !== null).length;
+  const deviationCount = checkpoints.filter((cp) => cp.result === "deviation").length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+
+  if (!inspection) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold">Egenkontroll hittades inte</h2>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/inspections")}>
+          Tillbaka till egenkontroller
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{inspection.template_name}</h1>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" />
+                {(inspection.projects as any)?.name}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {format(new Date(inspection.inspection_date), "d MMMM yyyy", { locale: sv })}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => shareMutation.mutate()}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Dela
+          </Button>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Save className="mr-2 h-4 w-4" />
+            Spara
+          </Button>
+        </div>
+      </div>
+
+      {shareLink && (
+        <Card className="bg-primary/5 border-primary">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Share2 className="h-4 w-4" />
+                <span className="text-sm font-medium">Delningslänk:</span>
+                <code className="text-xs bg-background px-2 py-1 rounded">
+                  {shareLink}
+                </code>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareLink);
+                  toast({ title: "Kopierad!" });
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Kontrollpunkter
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {completedCount} / {checkpoints.length}
+            </div>
+            <p className="text-xs text-muted-foreground">ifyllda</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Avvikelser
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{deviationCount}</div>
+            <p className="text-xs text-muted-foreground">funna</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Utkast</SelectItem>
+                <SelectItem value="completed">Slutförd</SelectItem>
+                <SelectItem value="approved">Godkänd</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Kontrollinformation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Kontrollant</Label>
+              <Input
+                value={inspectorName}
+                onChange={(e) => setInspectorName(e.target.value)}
+                placeholder="Namn på kontrollant"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Företag</Label>
+              <Input
+                value={inspectorCompany}
+                onChange={(e) => setInspectorCompany(e.target.value)}
+                placeholder="Företagsnamn"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Anteckningar</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Övriga anteckningar..."
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Mallinfo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <span className="text-sm text-muted-foreground">Kategori:</span>
+              <Badge variant="outline" className="ml-2">
+                {inspection.template_category}
+              </Badge>
+            </div>
+            <div>
+              <span className="text-sm text-muted-foreground">Mall:</span>
+              <span className="ml-2 font-medium">{inspection.template_name}</span>
+            </div>
+            {inspection.original_transcript && (
+              <div>
+                <span className="text-sm text-muted-foreground">Original input:</span>
+                <p className="mt-1 text-sm bg-muted p-2 rounded">
+                  {inspection.original_transcript}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kontrollpunkter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {checkpoints.map((checkpoint, index) => (
+              <div
+                key={checkpoint.id}
+                className={`p-4 rounded-lg border ${
+                  checkpoint.result === "deviation"
+                    ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950"
+                    : checkpoint.result === "ok"
+                    ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {index + 1}.
+                      </span>
+                      <span className={checkpoint.required ? "font-medium" : ""}>
+                        {checkpoint.text}
+                      </span>
+                      {checkpoint.required && (
+                        <Badge variant="secondary" className="text-xs">
+                          Obligatorisk
+                        </Badge>
+                      )}
+                    </div>
+                    {checkpoint.result === "deviation" && (
+                      <Textarea
+                        className="mt-2"
+                        placeholder="Beskriv avvikelsen..."
+                        value={checkpoint.comment}
+                        onChange={(e) =>
+                          updateCheckpoint(index, "comment", e.target.value)
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant={checkpoint.result === "ok" ? "default" : "outline"}
+                      size="sm"
+                      className={
+                        checkpoint.result === "ok"
+                          ? "bg-green-600 hover:bg-green-700"
+                          : ""
+                      }
+                      onClick={() => updateCheckpoint(index, "result", "ok")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={checkpoint.result === "deviation" ? "default" : "outline"}
+                      size="sm"
+                      className={
+                        checkpoint.result === "deviation"
+                          ? "bg-red-600 hover:bg-red-700"
+                          : ""
+                      }
+                      onClick={() => updateCheckpoint(index, "result", "deviation")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={checkpoint.result === "na" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateCheckpoint(index, "result", "na")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

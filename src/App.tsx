@@ -14,6 +14,10 @@ import ProjectShareView from "@/pages/ProjectShareView";
 import PlanShareView from "@/pages/PlanShareView";
 import Planning from "@/pages/Planning";
 import Settings from "@/pages/Settings";
+import Inspections from "@/pages/Inspections";
+import InspectionNew from "@/pages/InspectionNew";
+import InspectionView from "@/pages/InspectionView";
+import InspectionShareView from "@/pages/InspectionShareView";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +34,7 @@ const App = () => {
             <Route path="/share/:token" element={<ShareView />} />
             <Route path="/share/project/:token" element={<ProjectShareView />} />
             <Route path="/share/plan/:token" element={<PlanShareView />} />
+            <Route path="/share/inspection/:token" element={<InspectionShareView />} />
 
             {/* Main routes with layout */}
             <Route element={<AppLayout />}>
@@ -39,6 +44,9 @@ const App = () => {
               <Route path="/reports/new" element={<ReportNew />} />
               <Route path="/reports/:id" element={<ReportView />} />
               <Route path="/planning" element={<Planning />} />
+              <Route path="/inspections" element={<Inspections />} />
+              <Route path="/inspections/new" element={<InspectionNew />} />
+              <Route path="/inspections/:id" element={<InspectionView />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
 

@@ -10,6 +10,7 @@ import {
   Bell,
   ClipboardList,
   CalendarDays,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { label: "Projekt", href: "/projects", icon: FolderKanban },
   { label: "Dagrapporter", href: "/reports", icon: FileText },
   { label: "Planering", href: "/planning", icon: CalendarDays },
+  { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck },
   { label: "Inställningar", href: "/settings", icon: Settings },
 ];
 
