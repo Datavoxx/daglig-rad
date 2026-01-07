@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-import { sv } from "date-fns/locale";
 
 interface PlanPhase {
   name: string;
@@ -34,7 +33,7 @@ const getWeekDateRange = (start: Date, weekNumber: number): string => {
   weekStart.setDate(start.getDate() + (weekNumber - 1) * 7);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 4); // Friday
-  return `${format(weekStart, "d", { locale: sv })}-${format(weekEnd, "d/M", { locale: sv })}`;
+  return `${format(weekStart, "d")}-${format(weekEnd, "d/M")}`;
 };
 
 // Colors
@@ -108,7 +107,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     doc.setFontSize(14);
     doc.setTextColor(...PRIMARY);
     doc.text(
-      `${format(data.startDate, "d MMMM yyyy", { locale: sv })} → ${format(endDate, "d MMMM yyyy", { locale: sv })}`,
+      `${format(data.startDate, "yyyy-MM-dd")} - ${format(endDate, "yyyy-MM-dd")}`,
       pageWidth / 2,
       yPos,
       { align: "center" }
@@ -136,7 +135,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   doc.setFontSize(10);
   doc.setTextColor(...MUTED);
   doc.text(
-    `Genererad ${format(new Date(), "d MMMM yyyy", { locale: sv })}`,
+    `Genererad ${format(new Date(), "yyyy-MM-dd")}`,
     pageWidth / 2,
     pageHeight - 20,
     { align: "center" }
