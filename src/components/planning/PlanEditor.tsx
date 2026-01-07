@@ -5,15 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, AlertCircle } from "lucide-react";
+import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanPhase } from "./GanttTimeline";
+import { format, addWeeks, addDays } from "date-fns";
+import { sv } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 interface PlanEditorProps {
   phases: PlanPhase[];
   totalWeeks: number;
   confidence: number;
   summary: string;
+  startDate?: Date;
+  onStartDateChange?: (date: Date | undefined) => void;
   onPhasesChange: (phases: PlanPhase[]) => void;
   onApprove: () => void;
   onCancel: () => void;
@@ -42,11 +48,19 @@ const colorClasses: Record<string, string> = {
   orange: "bg-orange-100",
 };
 
+// Calculate end date (Friday after X weeks from start)
+const getEndDate = (start: Date, weeks: number): Date => {
+  const lastWeekStart = addWeeks(start, weeks - 1);
+  return addDays(lastWeekStart, 4); // Monday + 4 = Friday
+};
+
 export function PlanEditor({
   phases,
   totalWeeks,
   confidence,
   summary,
+  startDate,
+  onStartDateChange,
   onPhasesChange,
   onApprove,
   onCancel,
@@ -82,6 +96,8 @@ export function PlanEditor({
   };
 
   const confidenceColor = confidence >= 0.8 ? "text-emerald-600" : confidence >= 0.5 ? "text-amber-600" : "text-rose-600";
+  
+  const endDate = startDate ? getEndDate(startDate, totalWeeks) : undefined;
 
   return (
     <div className="space-y-6">
@@ -107,6 +123,56 @@ export function PlanEditor({
               <span className="font-medium">Uppskattad total tid:</span>{" "}
               <span className="text-muted-foreground">ca {totalWeeks} veckor</span>
             </p>
+          </div>
+          
+          {/* Date picker section */}
+          <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Projektstart (måndag)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "EEEE d MMMM yyyy", { locale: sv }) : "Välj startdatum"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => {
+                      if (date && onStartDateChange) {
+                        // Always set to Monday of the selected week
+                        const day = date.getDay();
+                        const diff = day === 0 ? 1 : day === 1 ? 0 : 8 - day;
+                        const monday = new Date(date);
+                        monday.setDate(date.getDate() + (day === 1 ? 0 : diff - (day > 1 ? day - 1 : 0)));
+                        // Simpler: just get the Monday of the week
+                        const mondayOfWeek = new Date(date);
+                        const dayOfWeek = date.getDay();
+                        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                        mondayOfWeek.setDate(date.getDate() + daysToMonday);
+                        onStartDateChange(mondayOfWeek);
+                      }
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Beräknat slutdatum (fredag)</Label>
+              <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center text-sm">
+                {endDate ? format(endDate, "EEEE d MMMM yyyy", { locale: sv }) : "—"}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

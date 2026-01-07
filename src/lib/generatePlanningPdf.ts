@@ -16,7 +16,26 @@ interface PlanningData {
   phases: PlanPhase[];
   totalWeeks: number;
   summary?: string;
+  startDate?: Date;
 }
+
+// Calculate end date (Friday after X weeks from start)
+const getEndDate = (start: Date, weeks: number): Date => {
+  const lastWeekStart = new Date(start);
+  lastWeekStart.setDate(start.getDate() + (weeks - 1) * 7);
+  const friday = new Date(lastWeekStart);
+  friday.setDate(lastWeekStart.getDate() + 4); // Monday + 4 = Friday
+  return friday;
+};
+
+// Get week date range for PDF
+const getWeekDateRange = (start: Date, weekNumber: number): string => {
+  const weekStart = new Date(start);
+  weekStart.setDate(start.getDate() + (weekNumber - 1) * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 4); // Friday
+  return `${format(weekStart, "d", { locale: sv })}-${format(weekEnd, "d/M", { locale: sv })}`;
+};
 
 // Colors
 const PRIMARY: [number, number, number] = [13, 148, 136]; // teal-600
@@ -82,8 +101,22 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   doc.setTextColor(...DARK);
   doc.text(data.projectName, pageWidth / 2, yPos, { align: "center" });
   
+  // Date range if available
+  if (data.startDate) {
+    const endDate = getEndDate(data.startDate, data.totalWeeks);
+    yPos += 18;
+    doc.setFontSize(14);
+    doc.setTextColor(...PRIMARY);
+    doc.text(
+      `${format(data.startDate, "d MMMM yyyy", { locale: sv })} → ${format(endDate, "d MMMM yyyy", { locale: sv })}`,
+      pageWidth / 2,
+      yPos,
+      { align: "center" }
+    );
+  }
+  
   // Summary stats
-  yPos += 25;
+  yPos += 18;
   doc.setFontSize(14);
   doc.setTextColor(...MUTED);
   doc.text(`Total projekttid: ca ${data.totalWeeks} veckor`, pageWidth / 2, yPos, { align: "center" });
@@ -133,15 +166,22 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   const rowHeight = 12;
   const headerHeight = 10;
   
-  // Week headers
+  // Week headers with dates
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
   for (let week = 1; week <= data.totalWeeks; week++) {
     const xPos = ganttLeft + (week - 1) * weekWidth;
     doc.text(`V${week}`, xPos + weekWidth / 2, yPos, { align: "center" });
+    
+    // Add date range below week number if startDate is available
+    if (data.startDate) {
+      doc.setFontSize(6);
+      doc.text(getWeekDateRange(data.startDate, week), xPos + weekWidth / 2, yPos + 4, { align: "center" });
+      doc.setFontSize(8);
+    }
   }
   
-  yPos += headerHeight;
+  yPos += data.startDate ? headerHeight + 4 : headerHeight;
   
   // Horizontal line under headers
   doc.setDrawColor(226, 232, 240); // slate-200

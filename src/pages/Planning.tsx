@@ -6,12 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, Mic, MicOff, Loader2, ArrowLeft, Plus, Sparkles, Download } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, ArrowLeft, Plus, Sparkles, Download, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
 import { PlanningSkeleton } from "@/components/skeletons/PlanningSkeleton";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
+import { format, addWeeks, addDays, startOfWeek, parseISO } from "date-fns";
+import { sv } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -22,6 +27,21 @@ interface GeneratedPlan {
   summary: string;
 }
 
+// Calculate next Monday from a date
+const getNextMonday = (date: Date): Date => {
+  const day = date.getDay();
+  const daysUntilMonday = day === 0 ? 1 : day === 1 ? 0 : 8 - day;
+  const nextMonday = new Date(date);
+  nextMonday.setDate(date.getDate() + daysUntilMonday);
+  return nextMonday;
+};
+
+// Calculate end date (Friday after X weeks)
+const getEndDate = (start: Date, weeks: number): Date => {
+  const lastWeekStart = addWeeks(start, weeks - 1);
+  return addDays(lastWeekStart, 4); // Monday + 4 = Friday
+};
+
 export default function Planning() {
   const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -30,6 +50,7 @@ export default function Planning() {
   const [isRecording, setIsRecording] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -72,8 +93,15 @@ export default function Planning() {
         confidence: 1,
         summary: existingPlan.notes || "",
       });
+      // Load saved start date
+      if ((existingPlan as any).start_date) {
+        setStartDate(parseISO((existingPlan as any).start_date));
+      } else {
+        setStartDate(undefined);
+      }
     } else if (selectedProjectId) {
       setViewState("empty");
+      setStartDate(undefined);
     }
   }, [existingPlan, selectedProjectId]);
 
@@ -92,6 +120,7 @@ export default function Planning() {
         total_weeks: plan.total_weeks,
         notes: plan.summary,
         original_transcript: transcript,
+        start_date: startDate ? startDate.toISOString().split('T')[0] : null,
       };
 
       if (existing) {
@@ -230,6 +259,7 @@ export default function Planning() {
         phases: generatedPlan.phases,
         totalWeeks: generatedPlan.total_weeks,
         summary: generatedPlan.summary,
+        startDate: startDate,
       });
       toast.success("PDF nedladdad");
     } catch (error) {
@@ -241,8 +271,14 @@ export default function Planning() {
   const handleCreateNew = () => {
     setTranscript("");
     setGeneratedPlan(null);
+    setStartDate(getNextMonday(new Date())); // Default to next Monday
     setViewState("input");
   };
+
+  // Calculate end date for display
+  const endDate = startDate && generatedPlan 
+    ? getEndDate(startDate, generatedPlan.total_weeks) 
+    : undefined;
 
   if (projectsLoading) {
     return (
@@ -391,6 +427,8 @@ export default function Planning() {
           totalWeeks={generatedPlan.total_weeks}
           confidence={generatedPlan.confidence}
           summary={generatedPlan.summary}
+          startDate={startDate}
+          onStartDateChange={setStartDate}
           onPhasesChange={(phases) => {
             const maxEnd = Math.max(...phases.map((p) => p.start_week + p.duration_weeks - 1));
             setGeneratedPlan({ ...generatedPlan, phases, total_weeks: maxEnd });
@@ -408,6 +446,12 @@ export default function Planning() {
             <div>
               <CardTitle>{selectedProject?.name}</CardTitle>
               <CardDescription>
+                {startDate && endDate ? (
+                  <>
+                    {format(startDate, "d MMMM", { locale: sv })} → {format(endDate, "d MMMM yyyy", { locale: sv })}
+                    {" • "}
+                  </>
+                ) : null}
                 {generatedPlan.summary || `${generatedPlan.phases.length} moment över ${generatedPlan.total_weeks} veckor`}
               </CardDescription>
             </div>
@@ -425,6 +469,7 @@ export default function Planning() {
             <GanttTimeline
               phases={generatedPlan.phases}
               totalWeeks={generatedPlan.total_weeks}
+              startDate={startDate}
             />
           </CardContent>
         </Card>
