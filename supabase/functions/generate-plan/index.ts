@@ -11,6 +11,7 @@ interface PlanPhase {
   duration_weeks: number;
   color: string;
   parallel_with?: string;
+  description?: string;
 }
 
 interface GeneratedPlan {
@@ -60,7 +61,8 @@ Returnera ENDAST ett JSON-objekt med följande struktur:
       "start_week": 1,
       "duration_weeks": 2,
       "color": "slate",
-      "parallel_with": null
+      "parallel_with": null,
+      "description": "Kort beskrivning av vad som ska göras i denna fas (1-2 meningar)"
     }
   ],
   "total_weeks": 10,
