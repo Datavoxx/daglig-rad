@@ -163,15 +163,15 @@ export async function generateInspectionPdf(inspection: Inspection): Promise<voi
 
     switch (cp.result) {
       case "ok":
-        resultText = "✓ OK";
+        resultText = "OK";
         resultColor = GREEN;
         break;
       case "deviation":
-        resultText = "✗ Avvikelse";
+        resultText = "Avvikelse";
         resultColor = RED;
         break;
       case "na":
-        resultText = "— Ej tillämplig";
+        resultText = "N/A";
         resultColor = MUTED;
         break;
     }
