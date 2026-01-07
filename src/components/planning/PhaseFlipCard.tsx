@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import type { PlanPhase } from "./GanttTimeline";
@@ -7,10 +6,11 @@ interface PhaseFlipCardProps {
   phase: PlanPhase;
   style: React.CSSProperties;
   colorClasses: { bg: string; text: string; border: string };
+  isFlipped: boolean;
+  onFlip: () => void;
 }
 
-export function PhaseFlipCard({ phase, style, colorClasses }: PhaseFlipCardProps) {
-  const [isFlipped, setIsFlipped] = useState(false);
+export function PhaseFlipCard({ phase, style, colorClasses, isFlipped, onFlip }: PhaseFlipCardProps) {
 
   const endWeek = phase.start_week + phase.duration_weeks - 1;
   const weekRange = phase.duration_weeks === 1 
@@ -19,12 +19,12 @@ export function PhaseFlipCard({ phase, style, colorClasses }: PhaseFlipCardProps
 
   return (
     <div
-      className="absolute top-0 h-full cursor-pointer"
+      className={cn("absolute top-0 h-full cursor-pointer", isFlipped && "z-50")}
       style={{
         ...style,
         perspective: "1000px",
       }}
-      onClick={() => setIsFlipped(!isFlipped)}
+      onClick={onFlip}
     >
       <div
         className={cn(
@@ -78,7 +78,7 @@ export function PhaseFlipCard({ phase, style, colorClasses }: PhaseFlipCardProps
             )}
             onClick={(e) => {
               e.stopPropagation();
-              setIsFlipped(false);
+              onFlip();
             }}
           >
             <X className="h-3 w-3" />

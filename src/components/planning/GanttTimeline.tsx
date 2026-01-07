@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PhaseFlipCard } from "./PhaseFlipCard";
 import {
@@ -35,6 +35,8 @@ const colorClasses: Record<string, { bg: string; text: string; border: string }>
 };
 
 export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelineProps) {
+  const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
+  
   const weeks = useMemo(() => 
     Array.from({ length: totalWeeks }, (_, i) => i + 1), 
     [totalWeeks]
@@ -72,8 +74,11 @@ export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelinePr
               return (
                 <div
                   key={`${phase.name}-${index}`}
-                  className="flex items-center h-10 animate-in fade-in slide-in-from-left-2"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="flex items-center h-10 animate-in fade-in slide-in-from-left-2 relative"
+                  style={{ 
+                    animationDelay: `${index * 50}ms`,
+                    zIndex: flippedIndex === index ? 50 : 'auto'
+                  }}
                 >
                   {/* Phase name with tooltip */}
                   <div className="w-48 flex-shrink-0 pr-3">
@@ -113,6 +118,8 @@ export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelinePr
                         width: `${width}%`,
                       }}
                       colorClasses={colors}
+                      isFlipped={flippedIndex === index}
+                      onFlip={() => setFlippedIndex(flippedIndex === index ? null : index)}
                     />
                   </div>
                 </div>
