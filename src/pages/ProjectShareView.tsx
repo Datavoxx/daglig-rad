@@ -236,7 +236,7 @@ export default function ProjectShareView() {
   }
 
   return (
-    <div className="animate-in min-h-screen bg-background">
+    <div className="page-transition min-h-screen bg-background">
       {/* Header */}
       <div className="bg-primary/5 border-b">
         <div className="max-w-4xl mx-auto px-6 py-8">

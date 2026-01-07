@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
+import { RouteTransition } from "./RouteTransition";
 interface NavItem {
   label: string;
   href: string;
@@ -146,9 +146,9 @@ export function AppLayout() {
         {/* Page content */}
         <main className="flex-1 overflow-auto">
           <div className="mx-auto max-w-content px-4 py-6 md:px-6 md:py-8">
-            <div className="animate-in">
+            <RouteTransition>
               <Outlet />
-            </div>
+            </RouteTransition>
           </div>
         </main>
       </div>
