@@ -516,86 +516,107 @@ export default function InspectionNew() {
         </Card>
       )}
 
-      {step === "input" && (
+      {step === "input" && selectedTemplate && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Mic className="h-5 w-5" />
-              Frivillig input (valfritt)
+              <ClipboardCheck className="h-5 w-5" />
+              {selectedTemplate.name}
             </CardTitle>
             <CardDescription>
-              Spela in eller skriv text – AI kan sedan analysera och förifylla kontrollpunkterna
+              {selectedTemplate.checkpoints.length} kontrollpunkter – referera till dem med nummer när du dikterar
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Real-time voice recording */}
-            <div className="relative">
-              <Textarea
-                placeholder="T.ex. 'Kontrollerade våtrummet i lägenhet 302, allt ser bra ut förutom att fogarna vid golvbrunnen behöver ses över...'"
-                value={textInput + (interimTranscript ? (textInput ? ' ' : '') + interimTranscript : '')}
-                onChange={(e) => {
-                  setTextInput(e.target.value);
-                  finalTranscriptRef.current = e.target.value;
-                }}
-                rows={6}
-                disabled={isRecording || isAnalyzing}
-              />
-              {interimTranscript && (
-                <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
-                  Lyssnar...
+          <CardContent className="space-y-6">
+            {/* Checkpoint list */}
+            <div className="border rounded-lg divide-y max-h-[280px] overflow-y-auto">
+              {selectedTemplate.checkpoints.map((cp: any, index: number) => (
+                <div key={cp.id} className="p-3 flex items-center gap-3">
+                  <Badge variant="outline" className="w-8 h-8 flex items-center justify-center shrink-0 font-semibold">
+                    {index + 1}
+                  </Badge>
+                  <span className="text-sm flex-1">{cp.text}</span>
+                  {cp.required && (
+                    <Badge variant="secondary" className="text-xs shrink-0">Obligatorisk</Badge>
+                  )}
                 </div>
+              ))}
+            </div>
+
+            {/* Voice/text input */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Mic className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Diktera eller skriv</span>
+              </div>
+              <div className="relative">
+                <Textarea
+                  placeholder="T.ex. 'Punkt ett OK, punkt två OK, punkt tre har avvikelse - skyddsutrustning saknas...'"
+                  value={textInput + (interimTranscript ? (textInput ? ' ' : '') + interimTranscript : '')}
+                  onChange={(e) => {
+                    setTextInput(e.target.value);
+                    finalTranscriptRef.current = e.target.value;
+                  }}
+                  rows={4}
+                  disabled={isRecording || isAnalyzing}
+                />
+                {interimTranscript && (
+                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
+                    Lyssnar...
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant={isRecording ? "destructive" : "secondary"}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className="flex-1"
+                  disabled={!isSpeechRecognitionSupported || isAnalyzing}
+                >
+                  {isRecording ? (
+                    <>
+                      <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
+                      <MicOff className="mr-2 h-4 w-4" />
+                      Stoppa inspelning
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-4 w-4" />
+                      Spela in (realtid)
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {!isSpeechRecognitionSupported && (
+                <p className="text-sm text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4" />
+                  Din webbläsare stöder inte röstinspelning
+                </p>
+              )}
+
+              {textInput.trim() && (
+                <Button
+                  onClick={analyzeWithAI}
+                  disabled={isAnalyzing || isRecording}
+                  className="w-full"
+                  variant="default"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyserar med AI...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Analysera med AI
+                    </>
+                  )}
+                </Button>
               )}
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant={isRecording ? "destructive" : "secondary"}
-                onClick={isRecording ? stopRecording : startRecording}
-                className="flex-1"
-                disabled={!isSpeechRecognitionSupported || isAnalyzing}
-              >
-                {isRecording ? (
-                  <>
-                    <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
-                    <MicOff className="mr-2 h-4 w-4" />
-                    Stoppa inspelning
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Spela in (realtid)
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            {!isSpeechRecognitionSupported && (
-              <p className="text-sm text-destructive flex items-center gap-1.5">
-                <AlertCircle className="h-4 w-4" />
-                Din webbläsare stöder inte röstinspelning
-              </p>
-            )}
-
-            {textInput.trim() && (
-              <Button
-                onClick={analyzeWithAI}
-                disabled={isAnalyzing || isRecording}
-                className="w-full"
-                variant="default"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyserar med AI...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Analysera med AI
-                  </>
-                )}
-              </Button>
-            )}
             
             <p className="text-sm text-muted-foreground">
               {textInput.trim() 

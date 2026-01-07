@@ -44,6 +44,13 @@ serve(async (req) => {
 
     const systemPrompt = `Du är en erfaren kvalitetskontrollant på en svensk byggarbetsplats. Din uppgift är att analysera ett transkript från en inspektion och matcha det mot en lista med kontrollpunkter.
 
+NUMMER-REFERENSER:
+Användaren refererar ofta till kontrollpunkter med nummer. Matcha dessa till kontrollpunktens ordning i listan:
+- "Punkt 1", "punkt ett", "första punkten", "1:an", "ettan" = kontrollpunkt 1
+- "Punkt 2", "punkt två", "andra punkten", "2:an", "tvåan" = kontrollpunkt 2
+- "alla OK", "allt godkänt", "samtliga OK" = alla punkter OK
+- "punkt 3 avvikelse", "tredje punkten har problem" = kontrollpunkt 3 har avvikelse
+
 REGLER:
 - Analysera transkriptet noggrant och försök matcha information mot varje kontrollpunkt
 - För varje kontrollpunkt, bestäm:
@@ -52,6 +59,7 @@ REGLER:
   - confidence: 0.0-1.0 hur säker du är på bedömningen
 
 VIKTIGT:
+- Om användaren säger "punkt X OK" eller liknande, sätt result till "ok" med hög confidence
 - Var konservativ - sätt result till null om du är osäker
 - Vid avvikelser, inkludera alltid en tydlig kommentar
 - "ok" betyder att punkten uttryckligen nämndes som godkänd eller att inga problem rapporterades för den
