@@ -35,11 +35,12 @@ export default function Inspections() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("*")
+        .select("id, name")
         .order("name");
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const { data: inspections, isLoading: inspectionsLoading } = useQuery({
@@ -47,7 +48,7 @@ export default function Inspections() {
     queryFn: async () => {
       let query = supabase
         .from("inspections")
-        .select("*, projects(name)")
+        .select("id, template_name, template_category, inspection_date, status, project_id, projects(name)")
         .order("inspection_date", { ascending: false });
 
       if (selectedProject !== "all") {
@@ -61,6 +62,7 @@ export default function Inspections() {
       if (error) throw error;
       return data;
     },
+    staleTime: 30 * 1000, // Cache for 30 seconds
   });
 
   const getStatusBadge = (status: string) => {
