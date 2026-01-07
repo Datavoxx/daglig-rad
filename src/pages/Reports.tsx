@@ -17,7 +17,9 @@ import {
   Copy,
   Check,
   Link,
+  Download,
 } from "lucide-react";
+import { generateProjectPdf } from "@/lib/generateProjectPdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +78,7 @@ export default function Reports() {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [creatingShareLink, setCreatingShareLink] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -134,6 +137,77 @@ export default function Reports() {
       title: "Länk kopierad!",
       description: "Delningslänken har kopierats till urklipp.",
     });
+  };
+
+  const handleDownloadPdf = async () => {
+    if (selectedProject === "all") return;
+
+    setGeneratingPdf(true);
+    try {
+      const project = projects.find(p => p.id === selectedProject);
+      if (!project) return;
+
+      // Hämta fullständig projektinfo
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", selectedProject)
+        .maybeSingle();
+
+      // Hämta alla dagrapporter för projektet
+      const { data: reportsData } = await supabase
+        .from("daily_reports")
+        .select("*")
+        .eq("project_id", selectedProject)
+        .order("report_date", { ascending: false });
+
+      if (!projectData || !reportsData) {
+        toast({
+          title: "Kunde inte hämta data",
+          description: "Försök igen senare",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Transformera data för PDF-generatorn
+      const projectReport = {
+        project: {
+          name: projectData.name,
+          client_name: projectData.client_name,
+          address: projectData.address,
+        },
+        reports: reportsData.map((report) => ({
+          id: report.id,
+          report_date: report.report_date,
+          headcount: report.headcount,
+          hours_per_person: report.hours_per_person,
+          total_hours: report.total_hours,
+          roles: report.roles || [],
+          work_items: report.work_items || [],
+          deviations: (Array.isArray(report.deviations) ? report.deviations : []) as { type: string; description: string; hours?: number | null }[],
+          ata: report.ata as { has_ata: boolean; items: any[] } | null,
+          materials_delivered: report.materials_delivered || [],
+          materials_missing: report.materials_missing || [],
+          notes: report.notes,
+        })),
+      };
+
+      generateProjectPdf(projectReport);
+
+      toast({
+        title: "PDF genererad!",
+        description: "Projektets PDF har laddats ner.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Kunde inte generera PDF",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const fetchData = async () => {
@@ -198,14 +272,24 @@ export default function Reports() {
         </div>
         <div className="flex gap-2">
           {selectedProject !== "all" && (
-            <Button 
-              variant="outline" 
-              onClick={createProjectShareLink}
-              disabled={creatingShareLink}
-            >
-              <Share2 className="mr-2 h-4 w-4" />
-              {creatingShareLink ? "Skapar länk..." : "Dela projekt"}
-            </Button>
+            <>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadPdf}
+                disabled={generatingPdf}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {generatingPdf ? "Genererar..." : "Ladda ner PDF"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={createProjectShareLink}
+                disabled={creatingShareLink}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                {creatingShareLink ? "Skapar länk..." : "Dela projekt"}
+              </Button>
+            </>
           )}
           <Button onClick={() => navigate("/reports/new")}>
             <Plus className="mr-2 h-4 w-4" />
