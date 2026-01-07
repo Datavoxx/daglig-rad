@@ -7,6 +7,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { addWeeks, addDays, format } from "date-fns";
+import { sv } from "date-fns/locale";
 
 export interface PlanPhase {
   name: string;
@@ -20,6 +22,7 @@ export interface PlanPhase {
 interface GanttTimelineProps {
   phases: PlanPhase[];
   totalWeeks: number;
+  startDate?: Date;
   className?: string;
 }
 
@@ -34,7 +37,20 @@ const colorClasses: Record<string, { bg: string; text: string; border: string }>
   orange: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" },
 };
 
-export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelineProps) {
+// Calculate end date (Friday after X weeks from start)
+const getEndDate = (start: Date, weeks: number): Date => {
+  const lastWeekStart = addWeeks(start, weeks - 1);
+  return addDays(lastWeekStart, 4); // Monday + 4 = Friday
+};
+
+// Get date range string for a specific week
+const getWeekDateRange = (start: Date, weekNumber: number): string => {
+  const weekStart = addWeeks(start, weekNumber - 1);
+  const weekEnd = addDays(weekStart, 4); // Friday
+  return `${format(weekStart, "d", { locale: sv })}-${format(weekEnd, "d MMM", { locale: sv })}`;
+};
+
+export function GanttTimeline({ phases, totalWeeks, startDate, className }: GanttTimelineProps) {
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
   
   const weeks = useMemo(() => 
@@ -43,22 +59,31 @@ export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelinePr
   );
 
   const columnWidth = 100 / totalWeeks;
+  
+  const endDate = startDate ? getEndDate(startDate, totalWeeks) : undefined;
 
   return (
     <TooltipProvider>
       <div className={cn("w-full overflow-x-auto", className)}>
         <div className="min-w-[600px]">
-          {/* Header with week numbers */}
+          {/* Header with week numbers and dates */}
           <div className="flex border-b border-border pb-2 mb-4">
             <div className="w-48 flex-shrink-0" />
             <div className="flex-1 flex">
               {weeks.map((week) => (
                 <div
                   key={week}
-                  className="text-xs font-medium text-muted-foreground text-center"
+                  className="text-center"
                   style={{ width: `${columnWidth}%` }}
                 >
-                  V{week}
+                  <div className="text-xs font-medium text-muted-foreground">
+                    V{week}
+                  </div>
+                  {startDate && (
+                    <div className="text-[10px] text-muted-foreground/70">
+                      {getWeekDateRange(startDate, week)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -134,6 +159,11 @@ export function GanttTimeline({ phases, totalWeeks, className }: GanttTimelinePr
             </span>
             <span className="text-sm font-medium">
               Total: ca {totalWeeks} veckor
+              {startDate && endDate && (
+                <span className="text-muted-foreground font-normal">
+                  {" "}• {format(startDate, "d MMM", { locale: sv })} → {format(endDate, "d MMM yyyy", { locale: sv })}
+                </span>
+              )}
             </span>
           </div>
         </div>

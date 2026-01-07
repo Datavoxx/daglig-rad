@@ -126,6 +126,7 @@ export type Database = {
           original_transcript: string | null
           phases: Json
           project_id: string
+          start_date: string | null
           total_weeks: number | null
           updated_at: string | null
           user_id: string | null
@@ -137,6 +138,7 @@ export type Database = {
           original_transcript?: string | null
           phases?: Json
           project_id: string
+          start_date?: string | null
           total_weeks?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -148,6 +150,7 @@ export type Database = {
           original_transcript?: string | null
           phases?: Json
           project_id?: string
+          start_date?: string | null
           total_weeks?: number | null
           updated_at?: string | null
           user_id?: string | null
