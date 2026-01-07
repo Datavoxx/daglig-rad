@@ -30,9 +30,11 @@ import {
   Calendar,
   User,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
+import { generateInspectionPdf } from "@/lib/generateInspectionPdf";
 
 interface Checkpoint {
   id: string;
@@ -50,6 +52,7 @@ export default function InspectionView() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [shareLink, setShareLink] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: inspection, isLoading } = useQuery({
     queryKey: ["inspection", id],
@@ -198,6 +201,44 @@ export default function InspectionView() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              if (!inspection) return;
+              setIsExporting(true);
+              try {
+                await generateInspectionPdf({
+                  id: inspection.id,
+                  template_name: inspection.template_name,
+                  template_category: inspection.template_category,
+                  inspection_date: inspection.inspection_date,
+                  inspector_name: inspectorName,
+                  inspector_company: inspectorCompany,
+                  notes,
+                  status,
+                  checkpoints,
+                  project: inspection.projects as any,
+                });
+                toast({ title: "PDF exporterad", description: "Filen har laddats ner" });
+              } catch (error: any) {
+                toast({
+                  title: "Exportfel",
+                  description: error.message || "Kunde inte exportera PDF",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
+            PDF
+          </Button>
           <Button variant="outline" onClick={() => shareMutation.mutate()}>
             <Share2 className="mr-2 h-4 w-4" />
             Dela
