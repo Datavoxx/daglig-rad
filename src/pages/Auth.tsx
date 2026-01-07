@@ -111,7 +111,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="animate-in flex min-h-screen items-center justify-center bg-background p-4">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/30 via-background to-background" />
       
       <Card className="relative z-10 w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">

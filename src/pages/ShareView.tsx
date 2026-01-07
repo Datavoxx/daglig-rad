@@ -130,7 +130,7 @@ export default function ShareView() {
   if (!report) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="animate-in min-h-screen bg-background">
       <div className="mx-auto max-w-4xl p-4 md:p-8">
         {/* Header */}
         <div className="mb-8 text-center">
