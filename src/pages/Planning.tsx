@@ -6,11 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, Mic, MicOff, Loader2, ArrowLeft, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, ArrowLeft, Plus, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
 import { PlanningSkeleton } from "@/components/skeletons/PlanningSkeleton";
+import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -220,6 +221,23 @@ export default function Planning() {
     setViewState("review");
   };
 
+  const handleDownloadPdf = async () => {
+    if (!generatedPlan || !selectedProject) return;
+    
+    try {
+      await generatePlanningPdf({
+        projectName: selectedProject.name,
+        phases: generatedPlan.phases,
+        totalWeeks: generatedPlan.total_weeks,
+        summary: generatedPlan.summary,
+      });
+      toast.success("PDF nedladdad");
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      toast.error("Kunde inte generera PDF");
+    }
+  };
+
   const handleCreateNew = () => {
     setTranscript("");
     setGeneratedPlan(null);
@@ -393,9 +411,15 @@ export default function Planning() {
                 {generatedPlan.summary || `${generatedPlan.phases.length} moment över ${generatedPlan.total_weeks} veckor`}
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={handleEditPlan}>
-              Redigera
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4 mr-2" />
+                Ladda ner PDF
+              </Button>
+              <Button variant="outline" onClick={handleEditPlan}>
+                Redigera
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <GanttTimeline
