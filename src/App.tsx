@@ -10,6 +10,7 @@ import Reports from "@/pages/Reports";
 import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
 import ShareView from "@/pages/ShareView";
+import ProjectShareView from "@/pages/ProjectShareView";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 
@@ -23,8 +24,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public share route */}
+            {/* Public share routes */}
             <Route path="/share/:token" element={<ShareView />} />
+            <Route path="/share/project/:token" element={<ProjectShareView />} />
 
             {/* Main routes with layout */}
             <Route element={<AppLayout />}>
