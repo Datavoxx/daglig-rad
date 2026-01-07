@@ -197,7 +197,7 @@ export function ReportEditor({
     try {
       const reportData = {
         project_id: projectId,
-        user_id: userId,
+        user_id: userId || null,
         report_date: format(reportDate, "yyyy-MM-dd"),
         headcount: data.crew.headcount,
         roles: data.crew.roles,

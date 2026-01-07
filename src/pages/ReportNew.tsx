@@ -97,8 +97,7 @@ export default function ReportNew() {
 
   useEffect(() => {
     fetchProjects();
-    // Set fixed user_id since auth is disabled
-    setUserId("00000000-0000-0000-0000-000000000000");
+    // No user_id needed since auth is disabled - will be null in database
     
     return () => {
       if (recognitionRef.current) {
