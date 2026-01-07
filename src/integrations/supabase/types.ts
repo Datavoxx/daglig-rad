@@ -118,6 +118,42 @@ export type Database = {
         }
         Relationships: []
       }
+      project_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          original_transcript: string | null
+          phases: Json
+          project_id: string
+          total_weeks: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          original_transcript?: string | null
+          phases?: Json
+          project_id: string
+          total_weeks?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          original_transcript?: string | null
+          phases?: Json
+          project_id?: string
+          total_weeks?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       project_share_links: {
         Row: {
           created_at: string | null

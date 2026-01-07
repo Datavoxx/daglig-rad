@@ -11,6 +11,7 @@ import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
 import ShareView from "@/pages/ShareView";
 import ProjectShareView from "@/pages/ProjectShareView";
+import Planning from "@/pages/Planning";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/reports" element={<Reports />} />
               <Route path="/reports/new" element={<ReportNew />} />
               <Route path="/reports/:id" element={<ReportView />} />
+              <Route path="/planning" element={<Planning />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
 
