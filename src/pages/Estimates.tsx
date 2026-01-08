@@ -375,8 +375,25 @@ export default function Estimates() {
 
     try {
       setIsGenerating(true);
+
+      // Fetch user's pricing settings
+      const { data: userData } = await supabase.auth.getUser();
+      let userPricing = null;
+      if (userData.user) {
+        const { data: pricingData } = await supabase
+          .from("user_pricing_settings")
+          .select("*")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        userPricing = pricingData;
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-estimate", {
-        body: { transcript, project_name: selectedProject?.name },
+        body: { 
+          transcript, 
+          project_name: selectedProject?.name,
+          user_pricing: userPricing,
+        },
       });
 
       if (error) throw error;

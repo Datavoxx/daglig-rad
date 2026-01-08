@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { transcript, project_name } = await req.json();
+    const { transcript, project_name, user_pricing } = await req.json();
 
     if (!transcript || typeof transcript !== "string") {
       return new Response(
@@ -47,6 +47,15 @@ Deno.serve(async (req) => {
     console.log("Generating estimate for:", project_name);
     console.log("Transcript:", transcript);
 
+    // Default pricing if user hasn't set up their own
+    const pricing = {
+      hourly_rate_carpenter: user_pricing?.hourly_rate_carpenter ?? 520,
+      hourly_rate_painter: user_pricing?.hourly_rate_painter ?? 480,
+      hourly_rate_tiler: user_pricing?.hourly_rate_tiler ?? 520,
+      hourly_rate_general: user_pricing?.hourly_rate_general ?? 500,
+      material_markup_percent: user_pricing?.material_markup_percent ?? 10,
+    };
+
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -55,7 +64,20 @@ Deno.serve(async (req) => {
     const systemPrompt = `Du är en expert på att skapa projektkalkyler för byggbranschen i Sverige. Din uppgift är att:
 1. Analysera användarens beskrivning
 2. Identifiera alla arbetsmoment, material och underentreprenörer
-3. Skapa en strukturerad kalkyl med rimliga uppskattningar
+3. Skapa en strukturerad kalkyl med ANVÄNDARENS egna priser
+
+VIKTIGT - ANVÄND DESSA PRISER (användarens inställningar):
+- Snickare: ${pricing.hourly_rate_carpenter} kr/tim
+- Målare: ${pricing.hourly_rate_painter} kr/tim  
+- Plattsättare: ${pricing.hourly_rate_tiler} kr/tim
+- Allmänt arbete: ${pricing.hourly_rate_general} kr/tim
+
+INSTRUKTIONER:
+- ANVÄND alltid ovanstående timpriser för arbete (gissa INTE egna priser)
+- För material: Ange mängd och enhet, men sätt unit_price till 0 (användaren fyller i själv)
+- För underentreprenörer (el, VVS): Sätt unit_price till 0 (användaren fyller i offertpris)
+- Uppskatta antal TIMMAR baserat på projektets omfattning
+- Markera tydligt i comment vad som är uppskattat
 
 VIKTIGT - Innan du skapar kalkylen:
 - Om beskrivningen är för vag för att göra en meningsfull kalkyl, returnera ett needs_more_info objekt
@@ -85,33 +107,28 @@ Om beskrivningen är tillräcklig:
     {
       "moment": "Namn på moment",
       "type": "labor|material|subcontractor",
-      "quantity": null eller antal,
+      "quantity": null eller antal (för material),
       "unit": "tim|m2|st|lpm|klump",
       "hours": antal timmar (för arbete),
-      "unit_price": á-pris i SEK,
-      "subtotal": beräknad delkostnad,
-      "comment": "Förklaring/antagande",
+      "unit_price": á-pris i SEK (0 för material/UE som användaren fyller i),
+      "subtotal": beräknad delkostnad (0 om unit_price är 0),
+      "comment": "Förklaring - t.ex. 'Ditt timpris' eller 'Fyll i materialpris'",
       "uncertainty": "low|medium|high"
     }
   ]
 }
 
-SVENSKA BYGGPRISER (2024):
-- Snickare/hantverkare: 450-550 kr/tim
-- Elektriker: 500-650 kr/tim
-- Rörmokare/VVS: 550-700 kr/tim
-- Rivning badrum: 8000-15000 kr beroende på storlek
-- Tätskikt badrum: 400-600 kr/m2 material+arbete
-- Kakel/klinker: 500-1200 kr/m2 beroende på material
-- Golvläggning: 300-600 kr/m2
-- Målning vägg: 100-200 kr/m2
-- El-installation badrum: 15000-35000 kr
-- VVS-installation badrum: 25000-50000 kr
+TIMUPPSKATTNINGAR (referens för 8 kvm badrum):
+- Rivning: 12-20 tim
+- Tätskikt: 6-10 tim
+- Kakelsättning väggar: 16-24 tim
+- Klinker golv: 6-10 tim
+- Snickeriarbete: 8-16 tim
 
 OSÄKERHETSNIVÅER:
-- low: Väl definierat, standardarbete
-- medium: Normalt projekt, viss variation möjlig
-- high: Många okända faktorer, prisvariation trolig
+- low: Väl definierat, ditt timpris används
+- medium: Normalt projekt, timmar uppskattat
+- high: Kräver offert eller platsbedömning
 
 Svara ENDAST med JSON, ingen annan text.`;
 
