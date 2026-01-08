@@ -16,8 +16,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Deeper, more sophisticated teal */
-    --primary: 173 58% 32%;
+    /* Byggio green palette */
+    --primary: 142 69% 45%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
@@ -26,27 +26,27 @@
     --muted: 45 12% 95%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 173 35% 94%;
-    --accent-foreground: 173 58% 24%;
+    --accent: 142 35% 94%;
+    --accent-foreground: 142 69% 28%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 173 58% 32%;
+    --ring: 142 69% 45%;
 
     --radius: 0.625rem;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 25%;
-    --sidebar-primary: 173 58% 32%;
+    --sidebar-primary: 142 69% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 173 35% 96%;
-    --sidebar-accent-foreground: 173 58% 24%;
+    --sidebar-accent: 142 35% 96%;
+    --sidebar-accent-foreground: 142 69% 28%;
     --sidebar-border: 220 13% 93%;
-    --sidebar-ring: 173 58% 32%;
+    --sidebar-ring: 142 69% 45%;
 
     /* Semantic colors */
     --success: 152 69% 40%;
@@ -62,7 +62,7 @@
     --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.06), 0 2px 4px -2px hsl(222 47% 11% / 0.04);
     --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.08), 0 4px 6px -4px hsl(222 47% 11% / 0.04);
     --shadow-xl: 0 20px 25px -5px hsl(222 47% 11% / 0.08), 0 8px 10px -6px hsl(222 47% 11% / 0.04);
-    --shadow-glow: 0 0 20px hsl(173 58% 32% / 0.12);
+    --shadow-glow: 0 0 20px hsl(142 69% 45% / 0.12);
     --shadow-card: 0 1px 3px 0 hsl(222 47% 11% / 0.04), 0 1px 2px -1px hsl(222 47% 11% / 0.02);
     --shadow-elevated: 0 4px 12px -2px hsl(222 47% 11% / 0.08), 0 2px 4px -2px hsl(222 47% 11% / 0.04);
   }
@@ -77,7 +77,7 @@
     --popover: 222 40% 8%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 173 58% 42%;
+    --primary: 142 69% 55%;
     --primary-foreground: 222 47% 8%;
 
     --secondary: 222 30% 16%;
@@ -86,24 +86,24 @@
     --muted: 222 30% 14%;
     --muted-foreground: 215 16% 58%;
 
-    --accent: 173 30% 16%;
-    --accent-foreground: 173 58% 60%;
+    --accent: 142 30% 16%;
+    --accent-foreground: 142 69% 65%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 222 25% 18%;
     --input: 222 25% 18%;
-    --ring: 173 58% 42%;
+    --ring: 142 69% 55%;
 
     --sidebar-background: 222 45% 7%;
     --sidebar-foreground: 210 16% 80%;
-    --sidebar-primary: 173 58% 42%;
+    --sidebar-primary: 142 69% 55%;
     --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 173 30% 14%;
-    --sidebar-accent-foreground: 173 58% 60%;
+    --sidebar-accent: 142 30% 14%;
+    --sidebar-accent-foreground: 142 69% 65%;
     --sidebar-border: 222 25% 16%;
-    --sidebar-ring: 173 58% 42%;
+    --sidebar-ring: 142 69% 55%;
 
     --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
@@ -117,7 +117,7 @@
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
     --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.35), 0 8px 10px -6px hsl(0 0% 0% / 0.25);
-    --shadow-glow: 0 0 20px hsl(173 58% 42% / 0.2);
+    --shadow-glow: 0 0 20px hsl(142 69% 55% / 0.2);
     --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
     --shadow-elevated: 0 4px 12px -2px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
   }
@@ -186,7 +186,7 @@
 
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(173 58% 24%));
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(142 69% 28%));
   }
 
   /* Page transition - expand from center */
