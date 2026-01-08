@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 const emailSchema = z.string().email("Ogiltig e-postadress");
 const passwordSchema = z.string().min(6, "Lösenordet måste vara minst 6 tecken");
@@ -116,11 +117,11 @@ export default function Auth() {
       
       <Card className="relative z-10 w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-glow">
-            <FileText className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto mb-4">
+            <img src={byggioLogo} alt="Byggio" className="h-16 mx-auto" />
           </div>
-          <CardTitle className="font-display text-2xl">Dagrapport</CardTitle>
-          <CardDescription>Digitalisera dina dagrapporter med AI</CardDescription>
+          <CardTitle className="font-display text-2xl">Välkommen till Byggio</CardTitle>
+          <CardDescription>Byggprojekt, enkelt och digitalt</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
