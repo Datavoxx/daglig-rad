@@ -447,12 +447,12 @@ export function ReportEditor({
           <CardContent className="space-y-4">
             {data.deviations.map((deviation, index) => (
               <div key={index} className="space-y-2 rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Select
                     value={deviation.type}
                     onValueChange={(value) => updateDeviation(index, "type", value)}
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-full sm:w-40">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -463,28 +463,30 @@ export function ReportEditor({
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    className="w-24"
-                    placeholder="Timmar"
-                    value={deviation.hours ?? ""}
-                    onChange={(e) =>
-                      updateDeviation(
-                        index,
-                        "hours",
-                        e.target.value ? parseFloat(e.target.value) : null
-                      )
-                    }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeDeviation(index)}
-                    className="shrink-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      step="0.5"
+                      className="w-24"
+                      placeholder="Timmar"
+                      value={deviation.hours ?? ""}
+                      onChange={(e) =>
+                        updateDeviation(
+                          index,
+                          "hours",
+                          e.target.value ? parseFloat(e.target.value) : null
+                        )
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeDeviation(index)}
+                      className="shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <Input
                   value={deviation.description}

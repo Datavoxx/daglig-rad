@@ -156,7 +156,7 @@ export function PlanEditor({
           </div>
           
           {/* Date picker section */}
-          <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+          <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-sm">Projektstart (måndag)</Label>
               <Popover>
@@ -169,7 +169,7 @@ export function PlanEditor({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "EEEE d MMMM yyyy", { locale: sv }) : "Välj startdatum"}
+                    {startDate ? format(startDate, "d MMM yyyy", { locale: sv }) : "Välj startdatum"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -200,7 +200,7 @@ export function PlanEditor({
             <div className="space-y-1.5">
               <Label className="text-sm">Beräknat slutdatum (fredag)</Label>
               <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center text-sm">
-                {endDate ? format(endDate, "EEEE d MMMM yyyy", { locale: sv }) : "—"}
+                {endDate ? format(endDate, "d MMM yyyy", { locale: sv }) : "—"}
               </div>
             </div>
           </div>
@@ -219,8 +219,74 @@ export function PlanEditor({
 
         {editingPhases.map((phase, index) => (
           <Card key={index} className="group">
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center gap-3">
+            <CardContent className="py-3 px-3 sm:px-4">
+              {/* Mobile: stacked layout */}
+              <div className="sm:hidden space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-3 h-3 rounded-full flex-shrink-0", colorClasses[phase.color])} />
+                  <Input
+                    value={phase.name}
+                    onChange={(e) => handlePhaseChange(index, "name", e.target.value)}
+                    className="flex-1 h-9"
+                    placeholder="Momentnamn"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleRemovePhase(index)}
+                    disabled={editingPhases.length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Start</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={phase.start_week}
+                      onChange={(e) => handlePhaseChange(index, "start_week", parseInt(e.target.value) || 1)}
+                      className="h-9 text-center"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Längd</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={phase.duration_weeks}
+                      onChange={(e) => handlePhaseChange(index, "duration_weeks", parseInt(e.target.value) || 1)}
+                      className="h-9 text-center"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Färg</Label>
+                    <Select
+                      value={phase.color}
+                      onValueChange={(value) => handlePhaseChange(index, "color", value)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLORS.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={cn("w-3 h-3 rounded-full", colorClasses[color.value])} />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop: horizontal layout */}
+              <div className="hidden sm:flex items-center gap-3">
                 <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
                 
                 {/* Color indicator */}

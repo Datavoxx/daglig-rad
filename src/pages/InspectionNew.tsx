@@ -376,13 +376,13 @@ export default function InspectionNew() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")} className="shrink-0">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ny egenkontroll</h1>
-          <p className="text-muted-foreground">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Ny egenkontroll</h1>
+          <p className="text-sm text-muted-foreground">
             Steg {step === "project" ? 1 : step === "template" ? 2 : step === "input" ? 3 : 3} av 3
           </p>
         </div>
