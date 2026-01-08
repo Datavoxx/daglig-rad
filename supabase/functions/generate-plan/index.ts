@@ -47,13 +47,29 @@ serve(async (req) => {
 
     const systemPrompt = `Du är en expert på byggprojektplanering. Din uppgift är att tolka en fri beskrivning av ett byggprojekt och skapa en strukturerad tidsplan.
 
-VIKTIGT:
-- Tolka beskrivningen generöst och fyll i rimliga antaganden
+KVALITETSKRAV - MYCKET VIKTIGT:
+- Om beskrivningen är för vag eller saknar konkret information om VAD som ska göras, returnera ett objekt med needs_more_info: true
+- En giltig beskrivning MÅSTE innehålla MINST ETT av följande:
+  * Typ av arbete (t.ex. renovering, nybygge, installation, badrumsrenovering)
+  * Specifika arbetsmoment (t.ex. rivning, målning, elinstallation, kakelsättning)
+  * Vad som ska hända under olika veckor/perioder
+- Endast tidsangivelser som "6 veckor" eller "ett projekt på X veckor" är INTE tillräckligt!
+- Om någon bara säger "vi har ett projekt på 6 veckor" utan att beskriva VAD som ska göras - det är för vagt!
+
+Om inputen är för vag, returnera ENDAST:
+{
+  "needs_more_info": true,
+  "missing": ["Vad som ska göras i projektet", "Vilka arbetsmoment som ingår"],
+  "example": "Beskriv t.ex: 'Vecka 1-2: Rivning av befintligt kök och förberedelser. Vecka 3: El och VVS-installation. Vecka 4-5: Montering av nytt kök och bänkskivor. Vecka 6: Slutbesiktning och städning.'"
+}
+
+Om inputen innehåller tillräcklig information om arbetet:
+- Tolka beskrivningen och fyll i rimliga antaganden för detaljer
 - Om tider inte nämns, gör rimliga uppskattningar baserat på branschstandard
 - Identifiera om arbeten kan ske parallellt
 - Var konservativ med tidsuppskattningar (hellre för lång tid än för kort)
 
-Returnera ENDAST ett JSON-objekt med följande struktur:
+Returnera då ett JSON-objekt med följande struktur:
 {
   "phases": [
     {
