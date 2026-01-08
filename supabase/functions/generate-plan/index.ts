@@ -140,7 +140,7 @@ Confidence ska vara mellan 0 och 1 baserat på hur tydlig beskrivningen var.`;
     console.log('AI response:', content);
 
     // Parse the JSON response
-    let plan: GeneratedPlan;
+    let plan;
     try {
       // Extract JSON from the response (handle markdown code blocks)
       const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -153,8 +153,21 @@ Confidence ska vara mellan 0 och 1 baserat på hur tydlig beskrivningen var.`;
       throw new Error('Kunde inte tolka AI-svaret. Försök igen.');
     }
 
+    // Check if AI needs more info - return early before processing phases
+    if (plan.needs_more_info) {
+      console.log('AI needs more info, returning needs_more_info response');
+      return new Response(
+        JSON.stringify({
+          needs_more_info: true,
+          missing: plan.missing || [],
+          example: plan.example || "Beskriv vilka arbetsmoment som ska utföras.",
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validate and assign colors if missing
-    plan.phases = plan.phases.map((phase, index) => ({
+    plan.phases = plan.phases.map((phase: any, index: number) => ({
       ...phase,
       color: phase.color || PHASE_COLORS[index % PHASE_COLORS.length],
       start_week: phase.start_week || 1,
@@ -163,7 +176,7 @@ Confidence ska vara mellan 0 och 1 baserat på hur tydlig beskrivningen var.`;
 
     // Calculate total weeks if not provided
     if (!plan.total_weeks) {
-      const maxEnd = Math.max(...plan.phases.map(p => p.start_week + p.duration_weeks - 1));
+      const maxEnd = Math.max(...plan.phases.map((p: any) => p.start_week + p.duration_weeks - 1));
       plan.total_weeks = maxEnd;
     }
 
