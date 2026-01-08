@@ -512,54 +512,6 @@ export default function Estimates() {
     }
   };
 
-  const createShareLink = async () => {
-    if (!existingEstimate?.id) return;
-
-    setCreatingShareLink(true);
-    try {
-      const { data: existingLink } = await supabase
-        .from("estimate_share_links")
-        .select("token, expires_at")
-        .eq("estimate_id", existingEstimate.id)
-        .gte("expires_at", new Date().toISOString())
-        .single();
-
-      if (existingLink) {
-        setShareLink(`${window.location.origin}/share/estimate/${existingLink.token}`);
-        setShareDialogOpen(true);
-        setCreatingShareLink(false);
-        return;
-      }
-
-      const { data: newLink, error } = await supabase
-        .from("estimate_share_links")
-        .insert({ estimate_id: existingEstimate.id })
-        .select("token")
-        .single();
-
-      if (error) throw error;
-
-      setShareLink(`${window.location.origin}/share/estimate/${newLink.token}`);
-      setShareDialogOpen(true);
-    } catch (error: any) {
-      toast.error("Kunde inte skapa delningslänk");
-      console.error("Share link error:", error);
-    } finally {
-      setCreatingShareLink(false);
-    }
-  };
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      toast.success("Länk kopierad!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Kunde inte kopiera länken");
-    }
-  };
-
   if (projectsLoading) {
     return (
       <div className="page-transition p-6 max-w-6xl mx-auto">
@@ -778,16 +730,6 @@ export default function Estimates() {
                 <Download className="h-4 w-4 mr-2" />
                 Ladda ner PDF
               </Button>
-              {existingEstimate && (
-                <Button variant="outline" onClick={createShareLink} disabled={creatingShareLink}>
-                  {creatingShareLink ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Share2 className="h-4 w-4 mr-2" />
-                  )}
-                  Dela
-                </Button>
-              )}
               <Button onClick={handleSave} disabled={saveEstimateMutation.isPending}>
                 {saveEstimateMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -852,29 +794,6 @@ export default function Estimates() {
           )}
         </div>
       )}
-
-      {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dela kalkyl</DialogTitle>
-            <DialogDescription>
-              Kopiera länken nedan för att dela kalkylen. Länken är giltig i 30 dagar.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={shareLink}
-              readOnly
-              className="flex-1 px-3 py-2 border rounded-md bg-muted text-sm"
-            />
-            <Button onClick={copyToClipboard}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -11,12 +11,14 @@ import {
   CalendarDays,
   ClipboardCheck,
   Calculator,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
+
 interface NavItem {
   label: string;
   href: string;
@@ -29,6 +31,7 @@ const navItems: NavItem[] = [
   { label: "Planering", href: "/planning", icon: CalendarDays },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck },
   { label: "Kalkyl", href: "/estimates", icon: Calculator },
+  { label: "Guide", href: "/guide", icon: BookOpen },
   { label: "Inställningar", href: "/settings", icon: Settings },
 ];
 
