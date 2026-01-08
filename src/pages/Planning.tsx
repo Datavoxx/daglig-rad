@@ -7,7 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, Share2, Copy, Check, AlertCircle } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, Share2, Copy, Check, AlertCircle, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
@@ -168,6 +179,28 @@ export default function Planning() {
     onError: (error) => {
       console.error("Failed to save plan:", error);
       toast.error("Kunde inte spara planeringen");
+    },
+  });
+
+  // Delete plan mutation
+  const deletePlanMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("project_plans")
+        .delete()
+        .eq("project_id", selectedProjectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project-plan", selectedProjectId] });
+      setGeneratedPlan(null);
+      setTranscript("");
+      setViewState("empty");
+      toast.success("Planeringen har raderats");
+    },
+    onError: (error) => {
+      console.error("Failed to delete plan:", error);
+      toast.error("Kunde inte radera planeringen");
     },
   });
 
@@ -569,6 +602,39 @@ export default function Planning() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Radera
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Radera planering?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Detta kommer permanent radera planeringen för {selectedProject?.name}. 
+                      Du kan sedan skapa en helt ny planering från grunden.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deletePlanMutation.mutate()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deletePlanMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Raderar...
+                        </>
+                      ) : (
+                        "Ja, radera"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button 
                 variant="outline" 
                 onClick={createShareLink}
