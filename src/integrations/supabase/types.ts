@@ -665,6 +665,48 @@ export type Database = {
           },
         ]
       }
+      user_pricing_settings: {
+        Row: {
+          created_at: string | null
+          default_estimate_markup: number | null
+          hourly_rate_carpenter: number | null
+          hourly_rate_general: number | null
+          hourly_rate_painter: number | null
+          hourly_rate_tiler: number | null
+          id: string
+          material_markup_percent: number | null
+          updated_at: string | null
+          user_id: string
+          vat_percent: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_estimate_markup?: number | null
+          hourly_rate_carpenter?: number | null
+          hourly_rate_general?: number | null
+          hourly_rate_painter?: number | null
+          hourly_rate_tiler?: number | null
+          id?: string
+          material_markup_percent?: number | null
+          updated_at?: string | null
+          user_id: string
+          vat_percent?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          default_estimate_markup?: number | null
+          hourly_rate_carpenter?: number | null
+          hourly_rate_general?: number | null
+          hourly_rate_painter?: number | null
+          hourly_rate_tiler?: number | null
+          id?: string
+          material_markup_percent?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vat_percent?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
