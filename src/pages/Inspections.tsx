@@ -115,29 +115,29 @@ export default function Inspections() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Egenkontroller</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Egenkontroller</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Hantera och skapa egenkontroller för dina byggprojekt
           </p>
         </div>
-        <Button onClick={() => navigate("/inspections/new")}>
+        <Button onClick={() => navigate("/inspections/new")} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Ny egenkontroll
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
               Egenkontroller
             </CardTitle>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Alla projekt" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +150,7 @@ export default function Inspections() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Alla status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -180,8 +180,8 @@ export default function Inspections() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mall</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Projekt</TableHead>
+                  <TableHead className="hidden sm:table-cell">Kategori</TableHead>
+                  <TableHead className="hidden md:table-cell">Projekt</TableHead>
                   <TableHead>Datum</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Åtgärder</TableHead>
@@ -197,12 +197,12 @@ export default function Inspections() {
                     <TableCell className="font-medium">
                       {inspection.template_name}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline">
                         {inspection.template_category}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         {(inspection.projects as any)?.name || "—"}
