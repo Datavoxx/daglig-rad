@@ -91,6 +91,97 @@ export type Database = {
           },
         ]
       }
+      estimate_items: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          estimate_id: string
+          hours: number | null
+          id: string
+          moment: string
+          quantity: number | null
+          sort_order: number
+          subtotal: number | null
+          type: string
+          uncertainty: string | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          estimate_id: string
+          hours?: number | null
+          id?: string
+          moment: string
+          quantity?: number | null
+          sort_order?: number
+          subtotal?: number | null
+          type: string
+          uncertainty?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          estimate_id?: string
+          hours?: number | null
+          id?: string
+          moment?: string
+          quantity?: number | null
+          sort_order?: number
+          subtotal?: number | null
+          type?: string
+          uncertainty?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "project_estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_share_links: {
+        Row: {
+          created_at: string | null
+          estimate_id: string
+          expires_at: string | null
+          id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          estimate_id: string
+          expires_at?: string | null
+          id?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string | null
+          estimate_id?: string
+          expires_at?: string | null
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_share_links_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "project_estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_files: {
         Row: {
           checkpoint_index: number | null
@@ -324,6 +415,77 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      project_estimates: {
+        Row: {
+          assumptions: Json | null
+          created_at: string | null
+          id: string
+          labor_cost: number | null
+          markup_percent: number | null
+          material_cost: number | null
+          notes: string | null
+          original_transcript: string | null
+          project_id: string
+          scope: string | null
+          status: string
+          subcontractor_cost: number | null
+          total_excl_vat: number | null
+          total_incl_vat: number | null
+          uncertainties: Json | null
+          updated_at: string | null
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          assumptions?: Json | null
+          created_at?: string | null
+          id?: string
+          labor_cost?: number | null
+          markup_percent?: number | null
+          material_cost?: number | null
+          notes?: string | null
+          original_transcript?: string | null
+          project_id: string
+          scope?: string | null
+          status?: string
+          subcontractor_cost?: number | null
+          total_excl_vat?: number | null
+          total_incl_vat?: number | null
+          uncertainties?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          assumptions?: Json | null
+          created_at?: string | null
+          id?: string
+          labor_cost?: number | null
+          markup_percent?: number | null
+          material_cost?: number | null
+          notes?: string | null
+          original_transcript?: string | null
+          project_id?: string
+          scope?: string | null
+          status?: string
+          subcontractor_cost?: number | null
+          total_excl_vat?: number | null
+          total_incl_vat?: number | null
+          uncertainties?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_plans: {
         Row: {
