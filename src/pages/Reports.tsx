@@ -12,10 +12,6 @@ import {
   FileCheck,
   Search,
   FileWarning,
-  Share2,
-  Copy,
-  Check,
-  Link,
   Download,
   ChevronRight,
 } from "lucide-react";
@@ -39,13 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportsTableSkeleton } from "@/components/skeletons/ReportsTableSkeleton";
@@ -74,10 +63,6 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string>("all");
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [creatingShareLink, setCreatingShareLink] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -85,57 +70,6 @@ export default function Reports() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const createProjectShareLink = async () => {
-    if (selectedProject === "all") return;
-    
-    setCreatingShareLink(true);
-    try {
-      const { data: existingLink } = await supabase
-        .from("project_share_links")
-        .select("token, expires_at")
-        .eq("project_id", selectedProject)
-        .gte("expires_at", new Date().toISOString())
-        .single();
-
-      if (existingLink) {
-        setShareLink(`${window.location.origin}/share/project/${existingLink.token}`);
-        setShareDialogOpen(true);
-        setCreatingShareLink(false);
-        return;
-      }
-
-      const { data: newLink, error } = await supabase
-        .from("project_share_links")
-        .insert({ project_id: selectedProject })
-        .select("token")
-        .single();
-
-      if (error) throw error;
-
-      setShareLink(`${window.location.origin}/share/project/${newLink.token}`);
-      setShareDialogOpen(true);
-    } catch (error: any) {
-      toast({
-        title: "Kunde inte skapa delningslänk",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingShareLink(false);
-    }
-  };
-
-  const copyShareLink = async () => {
-    if (!shareLink) return;
-    await navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({
-      title: "Länk kopierad!",
-      description: "Delningslänken har kopierats till urklipp.",
-    });
-  };
 
   const handleDownloadPdf = async () => {
     if (selectedProject === "all") return;
@@ -268,26 +202,15 @@ export default function Reports() {
         </div>
         <div className="flex flex-wrap gap-2">
           {selectedProject !== "all" && (
-            <>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleDownloadPdf}
-                disabled={generatingPdf}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {generatingPdf ? "Genererar..." : "Ladda ner PDF"}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={createProjectShareLink}
-                disabled={creatingShareLink}
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                {creatingShareLink ? "Skapar länk..." : "Dela projekt"}
-              </Button>
-            </>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadPdf}
+              disabled={generatingPdf}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {generatingPdf ? "Genererar..." : "Ladda ner PDF"}
+            </Button>
           )}
           <Button onClick={() => navigate("/reports/new")}>
             <Plus className="mr-2 h-4 w-4" />
@@ -296,40 +219,6 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link className="h-5 w-5" />
-              Dela projektrapporter
-            </DialogTitle>
-            <DialogDescription>
-              Dela denna länk med beställaren så de kan se alla dagrapporter för projektet.
-              Länken är giltig i 30 dagar.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Input 
-                value={shareLink || ""} 
-                readOnly 
-                className="font-mono text-sm"
-              />
-              <Button onClick={copyShareLink} variant="outline" size="icon">
-                {copied ? (
-                  <Check className="h-4 w-4 text-success" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Beställaren kan se alla dagrapporter, inklusive utfört arbete, avvikelser och ÄTA.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Filter bar */}
       <div className="filter-bar">

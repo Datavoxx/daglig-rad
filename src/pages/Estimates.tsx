@@ -14,8 +14,6 @@ import {
   Plus,
   Sparkles,
   Download,
-  Share2,
-  Copy,
   Check,
   Trash2,
   Edit,
@@ -30,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { EstimateSummary } from "@/components/estimates/EstimateSummary";
 import { EstimateTable, type EstimateItem } from "@/components/estimates/EstimateTable";
@@ -95,11 +92,7 @@ export default function Estimates() {
   const [markupPercent, setMarkupPercent] = useState(15);
 
   // Dialogs
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [shareLink, setShareLink] = useState("");
-  const [creatingShareLink, setCreatingShareLink] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // Web Speech API refs
   const recognitionRef = useRef<SpeechRecognition | null>(null);
