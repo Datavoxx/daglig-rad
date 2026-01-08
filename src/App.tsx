@@ -5,21 +5,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Auth from "@/pages/Auth";
 import Projects from "@/pages/Projects";
 import Reports from "@/pages/Reports";
 import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
-import ShareView from "@/pages/ShareView";
-import ProjectShareView from "@/pages/ProjectShareView";
-import PlanShareView from "@/pages/PlanShareView";
 import Planning from "@/pages/Planning";
 import Settings from "@/pages/Settings";
 import Inspections from "@/pages/Inspections";
 import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
-import InspectionShareView from "@/pages/InspectionShareView";
 import Estimates from "@/pages/Estimates";
-import EstimateShareView from "@/pages/EstimateShareView";
+import Guide from "@/pages/Guide";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,15 +30,11 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public share routes */}
-            <Route path="/share/:token" element={<ShareView />} />
-            <Route path="/share/project/:token" element={<ProjectShareView />} />
-            <Route path="/share/plan/:token" element={<PlanShareView />} />
-            <Route path="/share/inspection/:token" element={<InspectionShareView />} />
-            <Route path="/share/estimate/:token" element={<EstimateShareView />} />
+            {/* Auth route */}
+            <Route path="/auth" element={<Auth />} />
 
-            {/* Main routes with layout */}
-            <Route element={<AppLayout />}>
+            {/* Protected routes with layout */}
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/projects" replace />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/reports" element={<Reports />} />
@@ -51,6 +45,7 @@ const App = () => {
               <Route path="/inspections/new" element={<InspectionNew />} />
               <Route path="/inspections/:id" element={<InspectionView />} />
               <Route path="/estimates" element={<Estimates />} />
+              <Route path="/guide" element={<Guide />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
 
