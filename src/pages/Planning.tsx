@@ -266,6 +266,15 @@ export default function Planning() {
 
       if (error) throw error;
       
+      // Check if AI needs more information
+      if (data.needs_more_info) {
+        toast.error("Beskrivningen är för vag", {
+          description: data.example || "Beskriv vilka arbetsmoment som ska utföras och ungefär när de ska ske.",
+          duration: 10000,
+        });
+        return; // Stay in input state
+      }
+      
       setGeneratedPlan(data);
       setViewState("review");
     } catch (error: any) {
