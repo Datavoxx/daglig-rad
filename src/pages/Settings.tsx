@@ -161,18 +161,17 @@ export default function Settings() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base">Om Dagrapport</CardTitle>
-                <Badge variant="secondary" className="text-2xs">v1.0</Badge>
+                <CardTitle className="text-base">Om Byggio</CardTitle>
+                <Badge variant="secondary" className="text-2xs">Beta</Badge>
               </div>
-              <CardDescription>Byggbranschens dagrapportverktyg</CardDescription>
+              <CardDescription>Byggprojekt, enkelt och digitalt</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Dagrapport hjälper dig att snabbt skapa strukturerade dagrapporter från
-            röst- eller texttranskript med hjälp av AI. Perfekt för byggbranschen
-            och andra områden där dokumentation är viktigt.
+            Byggio hjälper dig att hantera dina byggprojekt digitalt – från dagrapporter 
+            och planering till egenkontroller och kalkyler. Allt på ett ställe.
           </p>
         </CardContent>
       </Card>

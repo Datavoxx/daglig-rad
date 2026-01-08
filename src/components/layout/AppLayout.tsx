@@ -12,12 +12,15 @@ import {
   ClipboardCheck,
   Calculator,
   BookOpen,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
   label: string;
@@ -115,6 +118,22 @@ export function AppLayout() {
             );
           })}
         </nav>
+
+        {/* Logout */}
+        <div className="border-t border-sidebar-border p-2">
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/auth");
+            }}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+            )}
+          >
+            <LogOut className={cn("h-[18px] w-[18px] shrink-0", collapsed && "mx-auto")} />
+            {!collapsed && <span>Logga ut</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -130,6 +149,12 @@ export function AppLayout() {
             >
               <Menu className="h-5 w-5" />
             </Button>
+            <Badge 
+              variant="secondary" 
+              className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+            >
+              Beta
+            </Badge>
             <div className="relative hidden w-64 md:block lg:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
