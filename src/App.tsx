@@ -18,6 +18,8 @@ import Inspections from "@/pages/Inspections";
 import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
 import InspectionShareView from "@/pages/InspectionShareView";
+import Estimates from "@/pages/Estimates";
+import EstimateShareView from "@/pages/EstimateShareView";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,7 @@ const App = () => {
             <Route path="/share/project/:token" element={<ProjectShareView />} />
             <Route path="/share/plan/:token" element={<PlanShareView />} />
             <Route path="/share/inspection/:token" element={<InspectionShareView />} />
+            <Route path="/share/estimate/:token" element={<EstimateShareView />} />
 
             {/* Main routes with layout */}
             <Route element={<AppLayout />}>
@@ -47,6 +50,7 @@ const App = () => {
               <Route path="/inspections" element={<Inspections />} />
               <Route path="/inspections/new" element={<InspectionNew />} />
               <Route path="/inspections/:id" element={<InspectionView />} />
+              <Route path="/estimates" element={<Estimates />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
 

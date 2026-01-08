@@ -11,6 +11,7 @@ import {
   ClipboardList,
   CalendarDays,
   ClipboardCheck,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "Dagrapporter", href: "/reports", icon: FileText },
   { label: "Planering", href: "/planning", icon: CalendarDays },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck },
+  { label: "Kalkyl", href: "/estimates", icon: Calculator },
   { label: "Inställningar", href: "/settings", icon: Settings },
 ];
 
