@@ -35,6 +35,7 @@ import {
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { generateInspectionPdf } from "@/lib/generateInspectionPdf";
+import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 
 interface Checkpoint {
   id: string;
@@ -53,6 +54,7 @@ export default function InspectionView() {
   const queryClient = useQueryClient();
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
   const { data: inspection, isLoading } = useQuery({
     queryKey: ["inspection", id],
@@ -158,6 +160,39 @@ export default function InspectionView() {
 
   const completedCount = checkpoints.filter((cp) => cp.result !== null).length;
   const deviationCount = checkpoints.filter((cp) => cp.result === "deviation").length;
+
+  const handleVoiceEdit = async (transcript: string) => {
+    setIsApplyingVoice(true);
+    try {
+      const { data: updatedData, error } = await supabase.functions.invoke("apply-voice-edits", {
+        body: {
+          transcript,
+          currentData: { checkpoints, inspectorName, inspectorCompany, notes, status },
+          documentType: "inspection",
+        },
+      });
+
+      if (error) throw error;
+
+      if (updatedData) {
+        if (updatedData.checkpoints) setCheckpoints(updatedData.checkpoints);
+        if (updatedData.inspectorName !== undefined) setInspectorName(updatedData.inspectorName);
+        if (updatedData.inspectorCompany !== undefined) setInspectorCompany(updatedData.inspectorCompany);
+        if (updatedData.notes !== undefined) setNotes(updatedData.notes);
+        if (updatedData.status !== undefined) setStatus(updatedData.status);
+        toast({ title: "Ändringar applicerade", description: "Egenkontrollen har uppdaterats" });
+      }
+    } catch (error: any) {
+      console.error("Voice edit error:", error);
+      toast({
+        title: "Kunde inte applicera ändringar",
+        description: error.message || "Försök igen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingVoice(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -479,6 +514,11 @@ export default function InspectionView() {
           </div>
         </CardContent>
       </Card>
+
+      <VoiceInputOverlay
+        onTranscriptComplete={handleVoiceEdit}
+        isProcessing={isApplyingVoice}
+      />
     </div>
   );
 }

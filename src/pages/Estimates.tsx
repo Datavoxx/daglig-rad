@@ -19,6 +19,7 @@ import {
   Check,
   Trash2,
   Edit,
+  Settings,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ import { EstimateTable, type EstimateItem } from "@/components/estimates/Estimat
 import { EstimateTotals } from "@/components/estimates/EstimateTotals";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
+import { ProjectPricingDialog, type ProjectPricing } from "@/components/estimates/ProjectPricingDialog";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -49,6 +51,16 @@ interface GeneratedEstimate {
   material_cost: number;
   subcontractor_cost: number;
 }
+
+const defaultProjectPricing: ProjectPricing = {
+  hourly_rate_carpenter: 520,
+  hourly_rate_painter: 480,
+  hourly_rate_tiler: 520,
+  hourly_rate_general: 500,
+  material_markup_percent: 10,
+  default_estimate_markup: 15,
+  vat_percent: 25,
+};
 
 export default function Estimates() {
   const queryClient = useQueryClient();
@@ -65,6 +77,10 @@ export default function Estimates() {
   const [uncertainties, setUncertainties] = useState<string[]>([]);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [markupPercent, setMarkupPercent] = useState(15);
+
+  // Project pricing
+  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [projectPricing, setProjectPricing] = useState<ProjectPricing>(defaultProjectPricing);
 
   // Dialogs
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -133,6 +149,39 @@ export default function Estimates() {
     },
     enabled: !!selectedProjectId,
   });
+
+  // Fetch project pricing settings
+  const { data: projectPricingData } = useQuery({
+    queryKey: ["project-pricing", selectedProjectId],
+    queryFn: async () => {
+      if (!selectedProjectId) return null;
+      const { data, error } = await supabase
+        .from("project_pricing_settings")
+        .select("*")
+        .eq("project_id", selectedProjectId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProjectId,
+  });
+
+  // Update project pricing when data loads
+  useEffect(() => {
+    if (projectPricingData) {
+      setProjectPricing({
+        hourly_rate_carpenter: Number(projectPricingData.hourly_rate_carpenter) || defaultProjectPricing.hourly_rate_carpenter,
+        hourly_rate_painter: Number(projectPricingData.hourly_rate_painter) || defaultProjectPricing.hourly_rate_painter,
+        hourly_rate_tiler: Number(projectPricingData.hourly_rate_tiler) || defaultProjectPricing.hourly_rate_tiler,
+        hourly_rate_general: Number(projectPricingData.hourly_rate_general) || defaultProjectPricing.hourly_rate_general,
+        material_markup_percent: Number(projectPricingData.material_markup_percent) || defaultProjectPricing.material_markup_percent,
+        default_estimate_markup: Number(projectPricingData.default_estimate_markup) || defaultProjectPricing.default_estimate_markup,
+        vat_percent: Number(projectPricingData.vat_percent) || defaultProjectPricing.vat_percent,
+      });
+    } else if (selectedProjectId) {
+      setProjectPricing(defaultProjectPricing);
+    }
+  }, [projectPricingData, selectedProjectId]);
 
   // Update view state when estimate data changes
   useEffect(() => {
@@ -376,23 +425,11 @@ export default function Estimates() {
     try {
       setIsGenerating(true);
 
-      // Fetch user's pricing settings
-      const { data: userData } = await supabase.auth.getUser();
-      let userPricing = null;
-      if (userData.user) {
-        const { data: pricingData } = await supabase
-          .from("user_pricing_settings")
-          .select("*")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
-        userPricing = pricingData;
-      }
-
       const { data, error } = await supabase.functions.invoke("generate-estimate", {
         body: { 
           transcript, 
           project_name: selectedProject?.name,
-          user_pricing: userPricing,
+          user_pricing: projectPricing,
         },
       });
 
@@ -442,6 +479,18 @@ export default function Estimates() {
   const handleCreateNew = () => {
     resetEstimate();
     setViewState("input");
+  };
+
+  const handleSaveProjectPricing = async () => {
+    const { error } = await supabase
+      .from("project_pricing_settings")
+      .upsert({
+        project_id: selectedProjectId,
+        ...projectPricing,
+      }, { onConflict: "project_id" });
+
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ["project-pricing", selectedProjectId] });
   };
 
   const handleEdit = () => {
@@ -565,6 +614,15 @@ export default function Estimates() {
             </SelectContent>
           </Select>
         </div>
+        {selectedProjectId && (
+          <div className="space-y-1.5">
+            <Label className="invisible">Inställningar</Label>
+            <Button variant="outline" onClick={() => setPricingDialogOpen(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Projektpriser
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Empty state - no project selected */}
@@ -806,6 +864,17 @@ export default function Estimates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Project Pricing Dialog */}
+      <ProjectPricingDialog
+        open={pricingDialogOpen}
+        onOpenChange={setPricingDialogOpen}
+        projectId={selectedProjectId}
+        projectName={selectedProject?.name || ""}
+        pricing={projectPricing}
+        onPricingChange={setProjectPricing}
+        onSave={handleSaveProjectPricing}
+      />
     </div>
   );
 }

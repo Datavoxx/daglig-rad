@@ -526,6 +526,56 @@ export type Database = {
         }
         Relationships: []
       }
+      project_pricing_settings: {
+        Row: {
+          created_at: string | null
+          default_estimate_markup: number | null
+          hourly_rate_carpenter: number | null
+          hourly_rate_general: number | null
+          hourly_rate_painter: number | null
+          hourly_rate_tiler: number | null
+          id: string
+          material_markup_percent: number | null
+          project_id: string
+          updated_at: string | null
+          vat_percent: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_estimate_markup?: number | null
+          hourly_rate_carpenter?: number | null
+          hourly_rate_general?: number | null
+          hourly_rate_painter?: number | null
+          hourly_rate_tiler?: number | null
+          id?: string
+          material_markup_percent?: number | null
+          project_id: string
+          updated_at?: string | null
+          vat_percent?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          default_estimate_markup?: number | null
+          hourly_rate_carpenter?: number | null
+          hourly_rate_general?: number | null
+          hourly_rate_painter?: number | null
+          hourly_rate_tiler?: number | null
+          id?: string
+          material_markup_percent?: number | null
+          project_id?: string
+          updated_at?: string | null
+          vat_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_pricing_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_share_links: {
         Row: {
           created_at: string | null

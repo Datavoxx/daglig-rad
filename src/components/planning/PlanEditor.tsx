@@ -12,6 +12,9 @@ import { format, addWeeks, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PlanEditorProps {
   phases: PlanPhase[];
@@ -67,6 +70,7 @@ export function PlanEditor({
   isLoading,
 }: PlanEditorProps) {
   const [editingPhases, setEditingPhases] = useState<PlanPhase[]>(phases);
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
   const handlePhaseChange = (index: number, field: keyof PlanPhase, value: string | number) => {
     const updated = [...editingPhases];
@@ -93,6 +97,32 @@ export function PlanEditor({
     const updated = editingPhases.filter((_, i) => i !== index);
     setEditingPhases(updated);
     onPhasesChange(updated);
+  };
+
+  const handleVoiceEdit = async (transcript: string) => {
+    setIsApplyingVoice(true);
+    try {
+      const { data: updatedData, error } = await supabase.functions.invoke("apply-voice-edits", {
+        body: {
+          transcript,
+          currentData: { phases: editingPhases, totalWeeks, startDate },
+          documentType: "planning",
+        },
+      });
+
+      if (error) throw error;
+
+      if (updatedData?.phases) {
+        setEditingPhases(updatedData.phases);
+        onPhasesChange(updatedData.phases);
+        toast.success("Ändringar applicerade");
+      }
+    } catch (error: any) {
+      console.error("Voice edit error:", error);
+      toast.error("Kunde inte applicera ändringar");
+    } finally {
+      setIsApplyingVoice(false);
+    }
   };
 
   const confidenceColor = confidence >= 0.8 ? "text-emerald-600" : confidence >= 0.5 ? "text-amber-600" : "text-rose-600";
@@ -274,6 +304,11 @@ export function PlanEditor({
           {isLoading ? "Sparar..." : "Godkänn planering"}
         </Button>
       </div>
+
+      <VoiceInputOverlay
+        onTranscriptComplete={handleVoiceEdit}
+        isProcessing={isApplyingVoice}
+      />
     </div>
   );
 }
