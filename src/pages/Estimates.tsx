@@ -19,7 +19,6 @@ import {
   Check,
   Trash2,
   Edit,
-  Settings,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -37,8 +36,8 @@ import { EstimateSummary } from "@/components/estimates/EstimateSummary";
 import { EstimateTable, type EstimateItem } from "@/components/estimates/EstimateTable";
 import { EstimateTotals } from "@/components/estimates/EstimateTotals";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
+import { TemplateSelector } from "@/components/estimates/TemplateSelector";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
-import { ProjectPricingDialog, type ProjectPricing } from "@/components/estimates/ProjectPricingDialog";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -52,19 +51,36 @@ interface GeneratedEstimate {
   subcontractor_cost: number;
 }
 
-const defaultProjectPricing: ProjectPricing = {
-  hourly_rate_carpenter: 520,
-  hourly_rate_painter: 480,
-  hourly_rate_tiler: 520,
-  hourly_rate_general: 500,
-  material_markup_percent: 10,
-  default_estimate_markup: 15,
-  vat_percent: 25,
-};
+interface EstimateTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  hourly_rates: Record<string, number>;
+  work_items: Array<{
+    wbs: string;
+    name: string;
+    unit: string;
+    resource: string;
+    hours_per_unit: number;
+  }>;
+  cost_library: Array<{
+    id: string;
+    name: string;
+    unit: string;
+    price: number;
+  }>;
+  material_spill_percent?: number;
+  overhead_percent?: number;
+  risk_percent?: number;
+  profit_percent?: number;
+  vat_percent?: number;
+  establishment_cost?: number;
+}
 
 export default function Estimates() {
   const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -77,10 +93,6 @@ export default function Estimates() {
   const [uncertainties, setUncertainties] = useState<string[]>([]);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [markupPercent, setMarkupPercent] = useState(15);
-
-  // Project pricing
-  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
-  const [projectPricing, setProjectPricing] = useState<ProjectPricing>(defaultProjectPricing);
 
   // Dialogs
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -119,6 +131,19 @@ export default function Estimates() {
     },
   });
 
+  // Fetch estimate templates
+  const { data: templates, isLoading: templatesLoading, refetch: refetchTemplates } = useQuery({
+    queryKey: ["estimate-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estimate_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as EstimateTemplate[];
+    },
+  });
+
   // Fetch existing estimate for selected project
   const { data: existingEstimate, isLoading: estimateLoading } = useQuery({
     queryKey: ["project-estimate", selectedProjectId],
@@ -150,39 +175,6 @@ export default function Estimates() {
     enabled: !!selectedProjectId,
   });
 
-  // Fetch project pricing settings
-  const { data: projectPricingData } = useQuery({
-    queryKey: ["project-pricing", selectedProjectId],
-    queryFn: async () => {
-      if (!selectedProjectId) return null;
-      const { data, error } = await supabase
-        .from("project_pricing_settings")
-        .select("*")
-        .eq("project_id", selectedProjectId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedProjectId,
-  });
-
-  // Update project pricing when data loads
-  useEffect(() => {
-    if (projectPricingData) {
-      setProjectPricing({
-        hourly_rate_carpenter: Number(projectPricingData.hourly_rate_carpenter) || defaultProjectPricing.hourly_rate_carpenter,
-        hourly_rate_painter: Number(projectPricingData.hourly_rate_painter) || defaultProjectPricing.hourly_rate_painter,
-        hourly_rate_tiler: Number(projectPricingData.hourly_rate_tiler) || defaultProjectPricing.hourly_rate_tiler,
-        hourly_rate_general: Number(projectPricingData.hourly_rate_general) || defaultProjectPricing.hourly_rate_general,
-        material_markup_percent: Number(projectPricingData.material_markup_percent) || defaultProjectPricing.material_markup_percent,
-        default_estimate_markup: Number(projectPricingData.default_estimate_markup) || defaultProjectPricing.default_estimate_markup,
-        vat_percent: Number(projectPricingData.vat_percent) || defaultProjectPricing.vat_percent,
-      });
-    } else if (selectedProjectId) {
-      setProjectPricing(defaultProjectPricing);
-    }
-  }, [projectPricingData, selectedProjectId]);
-
   // Update view state when estimate data changes
   useEffect(() => {
     if (existingEstimate) {
@@ -191,6 +183,7 @@ export default function Estimates() {
       setAssumptions((existingEstimate.assumptions as string[]) || []);
       setUncertainties((existingEstimate.uncertainties as string[]) || []);
       setMarkupPercent(Number(existingEstimate.markup_percent) || 15);
+      setSelectedTemplateId(existingEstimate.template_id || null);
       setItems(
         existingEstimate.items.map((item: any) => ({
           id: item.id,
@@ -250,6 +243,7 @@ export default function Estimates() {
 
       const estimateData = {
         project_id: selectedProjectId,
+        template_id: selectedTemplateId,
         scope,
         assumptions: JSON.parse(JSON.stringify(assumptions)),
         uncertainties: JSON.parse(JSON.stringify(uncertainties)),
@@ -420,7 +414,13 @@ export default function Estimates() {
       return;
     }
 
+    if (!selectedTemplateId) {
+      toast.error("Välj en kalkylmall först");
+      return;
+    }
+
     const selectedProject = projects?.find((p) => p.id === selectedProjectId);
+    const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
 
     try {
       setIsGenerating(true);
@@ -429,7 +429,7 @@ export default function Estimates() {
         body: { 
           transcript, 
           project_name: selectedProject?.name,
-          user_pricing: projectPricing,
+          template: selectedTemplate,
         },
       });
 
@@ -479,18 +479,6 @@ export default function Estimates() {
   const handleCreateNew = () => {
     resetEstimate();
     setViewState("input");
-  };
-
-  const handleSaveProjectPricing = async () => {
-    const { error } = await supabase
-      .from("project_pricing_settings")
-      .upsert({
-        project_id: selectedProjectId,
-        ...projectPricing,
-      }, { onConflict: "project_id" });
-
-    if (error) throw error;
-    queryClient.invalidateQueries({ queryKey: ["project-pricing", selectedProjectId] });
   };
 
   const handleEdit = () => {
@@ -588,6 +576,7 @@ export default function Estimates() {
   }
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
+  const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
 
   return (
     <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
@@ -598,7 +587,7 @@ export default function Estimates() {
       </div>
 
       {/* Project selector */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4">
         <div className="space-y-1.5">
           <Label>Välj projekt</Label>
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
@@ -614,13 +603,18 @@ export default function Estimates() {
             </SelectContent>
           </Select>
         </div>
-        {selectedProjectId && (
+
+        {/* Template selector - only show when creating new estimate */}
+        {selectedProjectId && (viewState === "empty" || viewState === "input") && (
           <div className="space-y-1.5">
-            <Label className="invisible">Inställningar</Label>
-            <Button variant="outline" onClick={() => setPricingDialogOpen(true)}>
-              <Settings className="h-4 w-4 mr-2" />
-              Projektpriser
-            </Button>
+            <Label>Kalkylmall</Label>
+            <TemplateSelector
+              templates={templates || []}
+              selectedTemplateId={selectedTemplateId}
+              onSelectTemplate={setSelectedTemplateId}
+              onTemplateCreated={() => refetchTemplates()}
+              disabled={templatesLoading}
+            />
           </div>
         )}
       </div>
@@ -648,10 +642,11 @@ export default function Estimates() {
             <Calculator className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">Ingen kalkyl ännu</h3>
             <p className="text-muted-foreground max-w-md mx-auto mb-6">
-              Skapa en kalkyl för projektet. Beskriv vad som ska göras så hjälper AI till att
-              strukturera momenten.
+              {selectedTemplateId 
+                ? "Fyll i mängder och detaljer via röst eller text."
+                : "Välj en kalkylmall ovan, sedan kan du fylla i mängderna via röst."}
             </p>
-            <Button onClick={handleCreateNew}>
+            <Button onClick={handleCreateNew} disabled={!selectedTemplateId}>
               <Plus className="h-4 w-4 mr-2" />
               Skapa kalkyl
             </Button>
@@ -663,10 +658,13 @@ export default function Estimates() {
       {viewState === "input" && (
         <Card>
           <CardHeader>
-            <CardTitle>Beskriv projektet</CardTitle>
+            <CardTitle>Fyll i mängder och detaljer</CardTitle>
             <CardDescription>
-              Berätta fritt om projektet – vad ska göras, ungefärlig storlek och vilka resurser som
-              behövs. AI hjälper till att strukturera kalkylen.
+              {selectedTemplate ? (
+                <>Mall: <strong>{selectedTemplate.name}</strong> – Beskriv mängder och specifika detaljer.</>
+              ) : (
+                "Berätta om projektets mängder och detaljer."
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -677,7 +675,7 @@ export default function Estimates() {
                   setTranscript(e.target.value);
                   finalTranscriptRef.current = e.target.value;
                 }}
-                placeholder="T.ex. 'Badrumsrenovering ca 8 kvm. Rivning av befintligt, nytt tätskikt, kakel på väggar och klinker på golv. VVS och el som underentreprenader.'"
+                placeholder="T.ex. 'Sex kvadrat golv, tjugo kvadrat vägg, en golvbrunn, en WC och en kommod.'"
                 className="min-h-[150px] pr-12"
               />
               {isSpeechRecognitionSupported && (
@@ -733,9 +731,15 @@ export default function Estimates() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">{selectedProject?.name}</h2>
-              {existingEstimate?.version && (
-                <p className="text-sm text-muted-foreground">Version {existingEstimate.version}</p>
-              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {existingEstimate?.version && <span>Version {existingEstimate.version}</span>}
+                {selectedTemplate && (
+                  <>
+                    <span>•</span>
+                    <span>Mall: {selectedTemplate.name}</span>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleDownloadPdf}>
@@ -864,17 +868,6 @@ export default function Estimates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Project Pricing Dialog */}
-      <ProjectPricingDialog
-        open={pricingDialogOpen}
-        onOpenChange={setPricingDialogOpen}
-        projectId={selectedProjectId}
-        projectName={selectedProject?.name || ""}
-        pricing={projectPricing}
-        onPricingChange={setProjectPricing}
-        onSave={handleSaveProjectPricing}
-      />
     </div>
   );
 }

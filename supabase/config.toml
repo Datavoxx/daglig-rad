@@ -15,8 +15,8 @@ verify_jwt = false
 [functions.generate-estimate]
 verify_jwt = false
 
-[functions.parse-pricing-voice]
+[functions.apply-voice-edits]
 verify_jwt = false
 
-[functions.apply-voice-edits]
+[functions.parse-template-voice]
 verify_jwt = false

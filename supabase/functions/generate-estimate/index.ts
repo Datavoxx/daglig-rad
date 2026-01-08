@@ -1,4 +1,4 @@
-// Generate Estimate Edge Function
+// Generate Estimate Edge Function with Template Support
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +28,36 @@ interface GeneratedEstimate {
   example?: string;
 }
 
+interface WorkItem {
+  wbs: string;
+  name: string;
+  unit: string;
+  resource: string;
+  hours_per_unit: number;
+}
+
+interface CostLibraryItem {
+  id: string;
+  name: string;
+  unit: string;
+  price: number;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  description?: string;
+  hourly_rates: Record<string, number>;
+  work_items: WorkItem[];
+  cost_library: CostLibraryItem[];
+  material_spill_percent?: number;
+  overhead_percent?: number;
+  risk_percent?: number;
+  profit_percent?: number;
+  vat_percent?: number;
+  establishment_cost?: number;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -35,7 +65,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { transcript, project_name, user_pricing } = await req.json();
+    const { transcript, project_name, template } = await req.json();
 
     if (!transcript || typeof transcript !== "string") {
       return new Response(
@@ -46,44 +76,106 @@ Deno.serve(async (req) => {
 
     console.log("Generating estimate for:", project_name);
     console.log("Transcript:", transcript);
-
-    // Default pricing if user hasn't set up their own
-    const pricing = {
-      hourly_rate_carpenter: user_pricing?.hourly_rate_carpenter ?? 520,
-      hourly_rate_painter: user_pricing?.hourly_rate_painter ?? 480,
-      hourly_rate_tiler: user_pricing?.hourly_rate_tiler ?? 520,
-      hourly_rate_general: user_pricing?.hourly_rate_general ?? 500,
-      material_markup_percent: user_pricing?.material_markup_percent ?? 10,
-    };
+    console.log("Template:", template?.name);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `Du är en expert på att skapa projektkalkyler för byggbranschen i Sverige. Din uppgift är att:
-1. Analysera användarens beskrivning
-2. Identifiera alla arbetsmoment, material och underentreprenörer
-3. Skapa en strukturerad kalkyl med ANVÄNDARENS egna priser
+    // Build template-aware prompt
+    let systemPrompt: string;
+    
+    if (template) {
+      // Template-based estimation
+      const hourlyRatesStr = Object.entries(template.hourly_rates || {})
+        .map(([resource, rate]) => `- ${resource}: ${rate} kr/tim`)
+        .join("\n");
+      
+      const workItemsStr = (template.work_items || [])
+        .map((item: WorkItem) => `- ${item.wbs} ${item.name} (${item.unit}, ${item.resource}, ${item.hours_per_unit} h/enhet)`)
+        .join("\n");
+      
+      const materialsStr = (template.cost_library || [])
+        .map((item: CostLibraryItem) => `- ${item.name}: ${item.price} kr/${item.unit}`)
+        .join("\n");
 
-VIKTIGT - ANVÄND DESSA PRISER (användarens inställningar):
-- Snickare: ${pricing.hourly_rate_carpenter} kr/tim
-- Målare: ${pricing.hourly_rate_painter} kr/tim  
-- Plattsättare: ${pricing.hourly_rate_tiler} kr/tim
-- Allmänt arbete: ${pricing.hourly_rate_general} kr/tim
+      systemPrompt = `Du är en expert på byggkalkyler. Du ska skapa en kalkyl baserad på en MALL och användarens mängdbeskrivning.
+
+MALL: ${template.name}
+${template.description || ""}
+
+TIMPRISER (från mallen):
+${hourlyRatesStr || "Inga timpriser definierade"}
+
+ARBETSMOMENT (WBS från mallen):
+${workItemsStr || "Inga moment definierade"}
+
+MATERIALKOSTNADER (från mallen):
+${materialsStr || "Inga material definierade"}
+
+PÅSLAG OCH MOMS:
+- Materialspill: ${template.material_spill_percent ?? 7}%
+- Omkostnader: ${template.overhead_percent ?? 12}%
+- Risk: ${template.risk_percent ?? 8}%
+- Vinst: ${template.profit_percent ?? 10}%
+- Moms: ${template.vat_percent ?? 25}%
+- Etablering: ${template.establishment_cost ?? 4500} kr
 
 INSTRUKTIONER:
-- ANVÄND alltid ovanstående timpriser för arbete (gissa INTE egna priser)
+1. Tolka användarens beskrivning för att få fram MÄNGDER (m², st, lpm, etc.)
+2. Matcha mängderna mot mallens arbetsmoment
+3. Beräkna timmar baserat på mallens "hours_per_unit"
+4. Använd mallens timpriser och materialpriser
+5. Skapa en komplett kalkyl
+
+Om beskrivningen saknar tillräcklig information för att bestämma mängder, returnera:
+{
+  "needs_more_info": true,
+  "missing": ["Lista på vad som saknas"],
+  "example": "Exempel på vad användaren borde säga"
+}
+
+Annars returnera JSON:
+{
+  "scope": "Sammanfattning av projektet",
+  "assumptions": ["Antaganden baserade på mallen"],
+  "uncertainties": ["Osäkerheter att beakta"],
+  "items": [
+    {
+      "moment": "Momentnamn från mallen",
+      "type": "labor|material|subcontractor",
+      "quantity": antal (för material),
+      "unit": "m2|st|lpm|tim|klump",
+      "hours": timmar (för arbete),
+      "unit_price": pris från mallen,
+      "subtotal": beräknad kostnad,
+      "comment": "Förklaring",
+      "uncertainty": "low|medium|high"
+    }
+  ]
+}
+
+VIKTIGT: Använd ALLTID mallens priser, gissa aldrig egna priser.
+Svara ENDAST med JSON, ingen annan text.`;
+
+    } else {
+      // Fallback without template (legacy behavior)
+      systemPrompt = `Du är en expert på att skapa projektkalkyler för byggbranschen i Sverige. Din uppgift är att:
+1. Analysera användarens beskrivning
+2. Identifiera alla arbetsmoment, material och underentreprenörer
+3. Skapa en strukturerad kalkyl
+
+STANDARDPRISER (fallback):
+- Snickare: 520 kr/tim
+- Målare: 480 kr/tim  
+- Plattsättare: 520 kr/tim
+- Allmänt arbete: 500 kr/tim
+
+INSTRUKTIONER:
+- Uppskatta antal TIMMAR baserat på projektets omfattning
 - För material: Ange mängd och enhet, men sätt unit_price till 0 (användaren fyller i själv)
 - För underentreprenörer (el, VVS): Sätt unit_price till 0 (användaren fyller i offertpris)
-- Uppskatta antal TIMMAR baserat på projektets omfattning
-- Markera tydligt i comment vad som är uppskattat
-
-VIKTIGT - Innan du skapar kalkylen:
-- Om beskrivningen är för vag för att göra en meningsfull kalkyl, returnera ett needs_more_info objekt
-- Exempel på för vaga beskrivningar: "renovering", "bygge", "lite jobb"
-
-Du ska returnera JSON i detta format:
 
 Om beskrivningen är för vag:
 {
@@ -95,45 +187,28 @@ Om beskrivningen är för vag:
 Om beskrivningen är tillräcklig:
 {
   "scope": "Kort sammanfattning av projektets omfattning",
-  "assumptions": [
-    "Antagande 1 - t.ex. standardmaterial om inget annat anges",
-    "Antagande 2 - t.ex. normal åtkomst"
-  ],
-  "uncertainties": [
-    "Osäkerhet 1 - t.ex. dolda problem kan tillkomma",
-    "Osäkerhet 2 - t.ex. prisläge kan variera"
-  ],
+  "assumptions": ["Antagande 1", "Antagande 2"],
+  "uncertainties": ["Osäkerhet 1", "Osäkerhet 2"],
   "items": [
     {
       "moment": "Namn på moment",
       "type": "labor|material|subcontractor",
-      "quantity": null eller antal (för material),
+      "quantity": null eller antal,
       "unit": "tim|m2|st|lpm|klump",
-      "hours": antal timmar (för arbete),
-      "unit_price": á-pris i SEK (0 för material/UE som användaren fyller i),
-      "subtotal": beräknad delkostnad (0 om unit_price är 0),
-      "comment": "Förklaring - t.ex. 'Ditt timpris' eller 'Fyll i materialpris'",
+      "hours": antal timmar,
+      "unit_price": á-pris i SEK,
+      "subtotal": beräknad delkostnad,
+      "comment": "Förklaring",
       "uncertainty": "low|medium|high"
     }
   ]
 }
 
-TIMUPPSKATTNINGAR (referens för 8 kvm badrum):
-- Rivning: 12-20 tim
-- Tätskikt: 6-10 tim
-- Kakelsättning väggar: 16-24 tim
-- Klinker golv: 6-10 tim
-- Snickeriarbete: 8-16 tim
-
-OSÄKERHETSNIVÅER:
-- low: Väl definierat, ditt timpris används
-- medium: Normalt projekt, timmar uppskattat
-- high: Kräver offert eller platsbedömning
-
 Svara ENDAST med JSON, ingen annan text.`;
+    }
 
     const userPrompt = project_name 
-      ? `Projekt: ${project_name}\n\nBeskrivning: ${transcript}`
+      ? `Projekt: ${project_name}\n\nBeskrivning/mängder: ${transcript}`
       : transcript;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
