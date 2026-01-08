@@ -32,15 +32,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Inspections() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -176,76 +177,134 @@ export default function Inspections() {
               ))}
             </div>
           ) : inspections && inspections.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mall</TableHead>
-                  <TableHead className="hidden sm:table-cell">Kategori</TableHead>
-                  <TableHead className="hidden md:table-cell">Projekt</TableHead>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Åtgärder</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            isMobile ? (
+              // Mobile: Card view
+              <div className="space-y-3">
                 {inspections.map((inspection) => (
-                  <TableRow
+                  <Card
                     key={inspection.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => navigate(`/inspections/${inspection.id}`)}
                   >
-                    <TableCell className="font-medium">
-                      {inspection.template_name}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="outline">
-                        {inspection.template_category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        {(inspection.projects as any)?.name || "—"}
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">{inspection.template_name}</h3>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {format(new Date(inspection.inspection_date), "d MMM yyyy", {
+                              locale: sv,
+                            })}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {inspection.template_category}
+                            </Badge>
+                            {getStatusBadge(inspection.status)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/inspections/${inspection.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(inspection.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(inspection.inspection_date), "d MMM yyyy", {
-                          locale: sv,
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(inspection.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/inspections/${inspection.id}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteId(inspection.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            ) : (
+              // Desktop: Table view
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mall</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Projekt</TableHead>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Åtgärder</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inspections.map((inspection) => (
+                    <TableRow
+                      key={inspection.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/inspections/${inspection.id}`)}
+                    >
+                      <TableCell className="font-medium">
+                        {inspection.template_name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {inspection.template_category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          {(inspection.projects as any)?.name || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {format(new Date(inspection.inspection_date), "d MMM yyyy", {
+                            locale: sv,
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(inspection.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/inspections/${inspection.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(inspection.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />

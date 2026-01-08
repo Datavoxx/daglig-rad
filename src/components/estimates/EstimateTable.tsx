@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -17,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface EstimateItem {
   id: string;
@@ -59,6 +61,20 @@ const UNCERTAINTY_LABELS: Record<string, string> = {
 
 export function EstimateTable({ items, onItemsChange, readOnly = false }: EstimateTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const updateItem = (id: string, updates: Partial<EstimateItem>) => {
     const newItems = items.map((item) => {
@@ -131,6 +147,182 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
     return new Intl.NumberFormat("sv-SE").format(num);
   };
 
+  // Mobile card view
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {items.map((item) => {
+          const isExpanded = expandedItems.has(item.id);
+          return (
+            <Card key={item.id} className="overflow-hidden">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {readOnly ? (
+                        <span className="font-medium truncate">{item.moment || "—"}</span>
+                      ) : (
+                        <Input
+                          value={item.moment}
+                          onChange={(e) => updateItem(item.id, { moment: e.target.value })}
+                          className="h-8 text-sm"
+                          placeholder="Arbetsmoment..."
+                        />
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      <Badge variant="outline" className="text-xs">{TYPE_LABELS[item.type]}</Badge>
+                      {item.quantity && (
+                        <Badge variant="secondary" className="text-xs">{item.quantity} {item.unit}</Badge>
+                      )}
+                      <Badge variant="outline" className={`text-xs ${UNCERTAINTY_COLORS[item.uncertainty]}`}>
+                        {UNCERTAINTY_LABELS[item.uncertainty]}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm text-muted-foreground">
+                        {item.hours ? `${item.hours}h` : ""}
+                      </span>
+                      <span className="font-medium text-sm">{formatNumber(item.subtotal)} kr</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {!readOnly && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => toggleExpand(item.id)}
+                        >
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Expanded edit view */}
+                {!readOnly && isExpanded && (
+                  <div className="mt-3 pt-3 border-t space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Typ</label>
+                        <Select
+                          value={item.type}
+                          onValueChange={(value: "labor" | "material" | "subcontractor") =>
+                            updateItem(item.id, { type: value })
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="labor">Arbete</SelectItem>
+                            <SelectItem value="material">Material</SelectItem>
+                            <SelectItem value="subcontractor">UE</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Osäkerhet</label>
+                        <Select
+                          value={item.uncertainty}
+                          onValueChange={(value: "low" | "medium" | "high") =>
+                            updateItem(item.id, { uncertainty: value })
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Låg</SelectItem>
+                            <SelectItem value="medium">Medel</SelectItem>
+                            <SelectItem value="high">Hög</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Antal</label>
+                        <Input
+                          type="number"
+                          value={item.quantity ?? ""}
+                          onChange={(e) =>
+                            updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Enhet</label>
+                        <Select
+                          value={item.unit}
+                          onValueChange={(value) => updateItem(item.id, { unit: value })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tim">tim</SelectItem>
+                            <SelectItem value="m2">m²</SelectItem>
+                            <SelectItem value="lpm">lpm</SelectItem>
+                            <SelectItem value="st">st</SelectItem>
+                            <SelectItem value="klump">klump</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Timmar</label>
+                        <Input
+                          type="number"
+                          value={item.hours ?? ""}
+                          onChange={(e) =>
+                            updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
+                          }
+                          className="h-9"
+                          disabled={item.type !== "labor"}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Á-pris (kr)</label>
+                      <Input
+                        type="number"
+                        value={item.unit_price || ""}
+                        onChange={(e) =>
+                          updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+        
+        {!readOnly && (
+          <Button variant="outline" onClick={addItem} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Lägg till rad
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop table view
   return (
     <div className="space-y-4">
       <div className="border rounded-lg overflow-hidden">

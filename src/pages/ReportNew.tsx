@@ -306,33 +306,33 @@ export default function ReportNew() {
         </div>
       </div>
 
-      {/* Step indicators */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
+      {/* Step indicators - compact on mobile */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+            "flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
             selectedProject ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground"
           )}>
             1
           </div>
-          <span className="text-sm font-medium">Välj projekt</span>
+          <span className="text-xs sm:text-sm font-medium hidden sm:inline">Välj projekt</span>
         </div>
-        <div className="h-px w-6 bg-border" />
-        <div className="flex items-center gap-2">
+        <div className="h-px w-4 sm:w-6 bg-border" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+            "flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
             transcript.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           )}>
             2
           </div>
-          <span className={cn("text-sm", transcript.trim() ? "font-medium" : "text-muted-foreground")}>Transkript</span>
+          <span className={cn("text-xs sm:text-sm hidden sm:inline", transcript.trim() ? "font-medium" : "text-muted-foreground")}>Transkript</span>
         </div>
-        <div className="h-px w-6 bg-border" />
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+        <div className="h-px w-4 sm:w-6 bg-border" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
             3
           </div>
-          <span className="text-sm text-muted-foreground">Granska</span>
+          <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">Granska</span>
         </div>
       </div>
 

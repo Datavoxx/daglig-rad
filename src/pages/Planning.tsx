@@ -375,22 +375,20 @@ export default function Planning() {
       </div>
 
       {/* Project selector */}
-      <div className="flex items-center gap-4">
-        <div className="space-y-1.5">
-          <Label>Välj projekt</Label>
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Välj ett projekt" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects?.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-1.5">
+        <Label>Välj projekt</Label>
+        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <SelectTrigger className="w-full sm:w-[280px]">
+            <SelectValue placeholder="Välj ett projekt" />
+          </SelectTrigger>
+          <SelectContent>
+            {projects?.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Empty state - no project selected */}

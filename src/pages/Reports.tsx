@@ -5,13 +5,9 @@ import { sv } from "date-fns/locale";
 import {
   Plus,
   FileText,
-  Calendar,
-  Users,
   Clock,
-  AlertTriangle,
   FileCheck,
   Search,
-  FileWarning,
   Download,
   ChevronRight,
 } from "lucide-react";
@@ -19,7 +15,7 @@ import { generateProjectPdf } from "@/lib/generateProjectPdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -38,6 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportsTableSkeleton } from "@/components/skeletons/ReportsTableSkeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
 interface DailyReport {
   id: string;
   report_date: string;
@@ -66,6 +63,7 @@ export default function Reports() {
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchData();
@@ -266,7 +264,59 @@ export default function Reports() {
             </Button>
           )}
         </Card>
+      ) : isMobile ? (
+        // Mobile: Card view
+        <div className="space-y-3">
+          {filteredReports.map((report) => {
+            const deviationCount = getDeviationCount(report.deviations);
+            const ataCount = getAtaCount(report.ata);
+            return (
+              <Card
+                key={report.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/reports/${report.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          {format(new Date(report.report_date), "d MMM", { locale: sv })}
+                        </span>
+                        <span>•</span>
+                        <span className="truncate">{report.project?.name || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-sm">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          {report.headcount ?? "—"} pers
+                        </span>
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5" />
+                          {report.total_hours ? `${report.total_hours}h` : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        {deviationCount > 0 && (
+                          <Badge variant="warning" className="text-xs">{deviationCount} avvik</Badge>
+                        )}
+                        {ataCount > 0 && (
+                          <Badge variant="info" className="text-xs">{ataCount} ÄTA</Badge>
+                        )}
+                        <Badge variant="success" className="text-xs gap-1">
+                          <FileCheck className="h-3 w-3" />
+                          Sparad
+                        </Badge>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
+        // Desktop: Table view
         <Card className="overflow-hidden">
           <Table>
             <TableHeader>

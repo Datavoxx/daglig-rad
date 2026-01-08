@@ -185,28 +185,29 @@ export default function InspectionView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")} className="shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{inspection.template_name}</h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">{inspection.template_name}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
                 {(inspection.projects as any)?.name}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {format(new Date(inspection.inspection_date), "d MMMM yyyy", { locale: sv })}
+                {format(new Date(inspection.inspection_date), "d MMM yyyy", { locale: sv })}
               </span>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 pl-10 sm:pl-0">
           <Button 
             variant="outline" 
+            size="sm"
             onClick={async () => {
               if (!inspection) return;
               setIsExporting(true);
@@ -241,9 +242,9 @@ export default function InspectionView() {
             ) : (
               <FileDown className="mr-2 h-4 w-4" />
             )}
-            PDF
+            <span className="hidden sm:inline">PDF</span>
           </Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             <Save className="mr-2 h-4 w-4" />
             Spara
           </Button>
