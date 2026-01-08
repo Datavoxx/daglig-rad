@@ -182,6 +182,60 @@ export type Database = {
           },
         ]
       }
+      estimate_templates: {
+        Row: {
+          cost_library: Json | null
+          created_at: string | null
+          description: string | null
+          establishment_cost: number | null
+          hourly_rates: Json | null
+          id: string
+          material_spill_percent: number | null
+          name: string
+          overhead_percent: number | null
+          profit_percent: number | null
+          risk_percent: number | null
+          updated_at: string | null
+          user_id: string
+          vat_percent: number | null
+          work_items: Json | null
+        }
+        Insert: {
+          cost_library?: Json | null
+          created_at?: string | null
+          description?: string | null
+          establishment_cost?: number | null
+          hourly_rates?: Json | null
+          id?: string
+          material_spill_percent?: number | null
+          name: string
+          overhead_percent?: number | null
+          profit_percent?: number | null
+          risk_percent?: number | null
+          updated_at?: string | null
+          user_id: string
+          vat_percent?: number | null
+          work_items?: Json | null
+        }
+        Update: {
+          cost_library?: Json | null
+          created_at?: string | null
+          description?: string | null
+          establishment_cost?: number | null
+          hourly_rates?: Json | null
+          id?: string
+          material_spill_percent?: number | null
+          name?: string
+          overhead_percent?: number | null
+          profit_percent?: number | null
+          risk_percent?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vat_percent?: number | null
+          work_items?: Json | null
+        }
+        Relationships: []
+      }
       inspection_files: {
         Row: {
           checkpoint_index: number | null
@@ -430,6 +484,7 @@ export type Database = {
           scope: string | null
           status: string
           subcontractor_cost: number | null
+          template_id: string | null
           total_excl_vat: number | null
           total_incl_vat: number | null
           uncertainties: Json | null
@@ -450,6 +505,7 @@ export type Database = {
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
+          template_id?: string | null
           total_excl_vat?: number | null
           total_incl_vat?: number | null
           uncertainties?: Json | null
@@ -470,6 +526,7 @@ export type Database = {
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
+          template_id?: string | null
           total_excl_vat?: number | null
           total_incl_vat?: number | null
           uncertainties?: Json | null
@@ -483,6 +540,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_estimates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_templates"
             referencedColumns: ["id"]
           },
         ]
