@@ -689,6 +689,45 @@ export default function Estimates() {
                 </Button>
               )}
             </div>
+
+            {/* Template work items preview */}
+            {selectedTemplate && selectedTemplate.work_items && selectedTemplate.work_items.length > 0 && (
+              <Card className="bg-muted/50 border-dashed">
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Calculator className="h-4 w-4" />
+                    Mallens moment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-muted-foreground border-b">
+                          <th className="pb-2 pr-4 font-medium">WBS</th>
+                          <th className="pb-2 pr-4 font-medium">Moment</th>
+                          <th className="pb-2 pr-4 font-medium">Enhet</th>
+                          <th className="pb-2 pr-4 font-medium">Resurs</th>
+                          <th className="pb-2 font-medium text-right">Tim/enh</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedTemplate.work_items.map((item, index) => (
+                          <tr key={index} className="border-b border-muted last:border-0">
+                            <td className="py-1.5 pr-4 text-muted-foreground">{item.wbs}</td>
+                            <td className="py-1.5 pr-4">{item.name}</td>
+                            <td className="py-1.5 pr-4 text-muted-foreground">{item.unit}</td>
+                            <td className="py-1.5 pr-4 text-muted-foreground capitalize">{item.resource}</td>
+                            <td className="py-1.5 text-right text-muted-foreground">{item.hours_per_unit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex gap-3">
               <Button onClick={handleGenerateEstimate} disabled={isGenerating || !transcript.trim()}>
                 {isGenerating ? (

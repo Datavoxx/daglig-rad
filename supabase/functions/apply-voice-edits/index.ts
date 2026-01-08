@@ -61,7 +61,7 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 - "Byt namn på [fas] till [nytt namn]" → uppdatera name
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
-    } else if (documentType === "inspection") {
+  } else if (documentType === "inspection") {
       systemPrompt = `Du är en assistent som uppdaterar egenkontroller baserat på svenska röstinstruktioner.
 
 NUVARANDE EGENKONTROLL:
@@ -77,6 +77,30 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 - "Lägg till kommentar på punkt X: [text]" → uppdatera comment
 - "Ändra kontrollant till [namn]" → uppdatera inspectorName
 - "Lägg till anteckning: [text]" → uppdatera notes
+
+Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
+    } else if (documentType === "template") {
+      systemPrompt = `Du är en assistent som uppdaterar kalkylmallar baserat på svenska röstinstruktioner.
+
+NUVARANDE MALL:
+${JSON.stringify(currentData, null, 2)}
+
+Användaren ger dig instruktioner om ändringar. Applicera ändringarna och returnera den FULLSTÄNDIGA uppdaterade mallen.
+
+FÖRSTÅ DESSA INSTRUKTIONER:
+- "Ändra [resurs] till X kronor" → uppdatera hourly_rates[resurs] = X
+- "Lägg till [resurs] X kronor i timmen" → lägg till i hourly_rates
+- "Ta bort moment X" eller "Ta bort [namn]" → ta bort från work_items
+- "Ändra [moment] till X timmar per enhet" → uppdatera hours_per_unit
+- "Lägg till moment [namn] under [resurs]" → lägg till i work_items
+- "Ändra materialpåslag till X procent" → uppdatera material_spill_percent
+- "Ändra omkostnader till X procent" → uppdatera overhead_percent
+- "Ändra risk till X procent" → uppdatera risk_percent
+- "Ändra vinst till X procent" → uppdatera profit_percent
+- "Ändra moms till X procent" → uppdatera vat_percent
+- "Ändra etablering till X kronor" → uppdatera establishment_cost
+- "Lägg till material [namn] X kronor" → lägg till i cost_library
+- "Ta bort material [namn]" → ta bort från cost_library
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
     } else {

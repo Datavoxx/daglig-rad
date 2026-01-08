@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Loader2, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, Check, Mic, MicOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WorkItem {
   wbs: string;
@@ -43,6 +45,87 @@ interface TemplateEditorProps {
 
 export function TemplateEditor({ template, onSave, onCancel, isSaving }: TemplateEditorProps) {
   const [editedTemplate, setEditedTemplate] = useState<ParsedTemplate>(template);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>("");
+
+  const isSpeechRecognitionSupported =
+    typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+  const startVoiceEdit = () => {
+    if (!isSpeechRecognitionSupported) {
+      toast.error("Din webbläsare stöder inte röstinspelning");
+      return;
+    }
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
+
+    recognition.lang = "sv-SE";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+
+    transcriptRef.current = "";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          transcriptRef.current += event.results[i][0].transcript + " ";
+        }
+      }
+    };
+
+    recognition.onerror = (event: Event & { error?: string }) => {
+      if (event.error !== "aborted") {
+        toast.error("Röstinspelningen avbröts");
+      }
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+    toast.success("Inspelning startad – säg dina ändringar");
+  };
+
+  const stopVoiceEdit = async () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+
+    const transcript = transcriptRef.current.trim();
+    if (!transcript) {
+      toast.info("Ingen röst inspelad");
+      return;
+    }
+
+    setIsProcessingVoice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
+        body: {
+          transcript,
+          currentData: editedTemplate,
+          documentType: "template",
+        },
+      });
+
+      if (error) throw error;
+
+      if (data && typeof data === "object") {
+        setEditedTemplate(data);
+        toast.success("Ändringarna har applicerats");
+      }
+    } catch (error: any) {
+      console.error("Voice edit error:", error);
+      toast.error("Kunde inte tolka röständringarna");
+    } finally {
+      setIsProcessingVoice(false);
+    }
+  };
 
   const updateHourlyRate = (resource: string, value: number) => {
     setEditedTemplate({
@@ -99,6 +182,36 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
 
   return (
     <div className="space-y-6">
+      {/* Header with voice button */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Granska mall</h3>
+        {isSpeechRecognitionSupported && (
+          <Button
+            variant={isRecording ? "destructive" : "outline"}
+            size="sm"
+            onClick={isRecording ? stopVoiceEdit : startVoiceEdit}
+            disabled={isProcessingVoice}
+          >
+            {isProcessingVoice ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Tolkar...
+              </>
+            ) : isRecording ? (
+              <>
+                <MicOff className="h-4 w-4 mr-2" />
+                Stoppa och applicera
+              </>
+            ) : (
+              <>
+                <Mic className="h-4 w-4 mr-2" />
+                Ändra med röst
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
       {/* Name and description */}
       <div className="space-y-4">
         <div className="space-y-2">
