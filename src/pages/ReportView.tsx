@@ -5,9 +5,6 @@ import { sv } from "date-fns/locale";
 import {
   ArrowLeft,
   FileDown,
-  Share2,
-  Copy,
-  Check,
   Users,
   Clock,
   Hammer,
@@ -22,14 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReportPdf } from "@/lib/generateReportPdf";
@@ -73,10 +62,6 @@ export default function ReportView() {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [creatingLink, setCreatingLink] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -127,46 +112,6 @@ export default function ReportView() {
       });
     } finally {
       setExportingPdf(false);
-    }
-  };
-
-  const handleCreateShareLink = async () => {
-    if (!report) return;
-
-    setCreatingLink(true);
-
-    try {
-      const { data, error } = await supabase
-        .from("share_links")
-        .insert({ daily_report_id: report.id })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const link = `${window.location.origin}/share/${data.token}`;
-      setShareLink(link);
-    } catch (error) {
-      toast({
-        title: "Kunde inte skapa delningslänk",
-        description: error instanceof Error ? error.message : "Okänt fel",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingLink(false);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!shareLink) return;
-
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({ title: "Länk kopierad!" });
-    } catch {
-      toast({ title: "Kunde inte kopiera länk", variant: "destructive" });
     }
   };
 
@@ -248,9 +193,6 @@ export default function ReportView() {
               <FileDown className="mr-2 h-3.5 w-3.5" />
             )}
             Exportera PDF
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(true)}>
-            <Share2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -452,42 +394,6 @@ export default function ReportView() {
         )}
       </div>
 
-      {/* Share dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dela dagrapport</DialogTitle>
-            <DialogDescription>
-              Skapa en delningslänk som gäller i 30 dagar
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {shareLink ? (
-              <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={shareLink}
-                  className="font-mono text-sm"
-                />
-                <Button onClick={handleCopyLink} variant="outline" size="icon">
-                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={handleCreateShareLink} disabled={creatingLink} className="w-full">
-                {creatingLink ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Skapar länk...
-                  </>
-                ) : (
-                  "Skapa delningslänk"
-                )}
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

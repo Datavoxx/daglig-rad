@@ -20,12 +20,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Save,
-  Share2,
   FileDown,
   Check,
   X,
   Minus,
-  Copy,
   Building2,
   Calendar,
   User,
@@ -52,7 +50,6 @@ export default function InspectionView() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [shareLink, setShareLink] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
@@ -101,34 +98,6 @@ export default function InspectionView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inspection", id] });
       toast({ title: "Sparad", description: "Egenkontrollen har sparats" });
-    },
-    onError: (error) => {
-      toast({
-        title: "Fel",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const shareMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("inspection_share_links")
-        .insert({ inspection_id: id })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      const link = `${window.location.origin}/share/inspection/${data.token}`;
-      setShareLink(link);
-      navigator.clipboard.writeText(link);
-      toast({
-        title: "Delningslänk skapad",
-        description: "Länken har kopierats till urklipp",
-      });
     },
     onError: (error) => {
       toast({
@@ -274,10 +243,6 @@ export default function InspectionView() {
             )}
             PDF
           </Button>
-          <Button variant="outline" onClick={() => shareMutation.mutate()}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Dela
-          </Button>
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             <Save className="mr-2 h-4 w-4" />
             Spara
@@ -285,31 +250,6 @@ export default function InspectionView() {
         </div>
       </div>
 
-      {shareLink && (
-        <Card className="bg-primary/5 border-primary">
-          <CardContent className="py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Share2 className="h-4 w-4" />
-                <span className="text-sm font-medium">Delningslänk:</span>
-                <code className="text-xs bg-background px-2 py-1 rounded">
-                  {shareLink}
-                </code>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareLink);
-                  toast({ title: "Kopierad!" });
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
