@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Calculator,
   Mic,
@@ -35,6 +36,7 @@ import { EstimateTotals } from "@/components/estimates/EstimateTotals";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { TemplateSelector } from "@/components/estimates/TemplateSelector";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -76,6 +78,7 @@ interface EstimateTemplate {
 
 export default function Estimates() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [viewState, setViewState] = useState<ViewState>("empty");
@@ -536,7 +539,7 @@ export default function Estimates() {
         <div className="space-y-1.5">
           <Label>Välj projekt</Label>
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-[280px]">
+            <SelectTrigger className="w-full sm:w-[280px]">
               <SelectValue placeholder="Välj ett projekt" />
             </SelectTrigger>
             <SelectContent>
@@ -645,30 +648,56 @@ export default function Estimates() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-left text-muted-foreground border-b">
-                          <th className="pb-2 pr-4 font-medium">WBS</th>
-                          <th className="pb-2 pr-4 font-medium">Moment</th>
-                          <th className="pb-2 pr-4 font-medium">Enhet</th>
-                          <th className="pb-2 pr-4 font-medium">Resurs</th>
-                          <th className="pb-2 font-medium text-right">Tim/enh</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedTemplate.work_items.map((item, index) => (
-                          <tr key={index} className="border-b border-muted last:border-0">
-                            <td className="py-1.5 pr-4 text-muted-foreground">{item.wbs}</td>
-                            <td className="py-1.5 pr-4">{item.name}</td>
-                            <td className="py-1.5 pr-4 text-muted-foreground">{item.unit}</td>
-                            <td className="py-1.5 pr-4 text-muted-foreground capitalize">{item.resource}</td>
-                            <td className="py-1.5 text-right text-muted-foreground">{item.hours_per_unit}</td>
+                  {isMobile ? (
+                    // Mobile: Card view
+                    <div className="space-y-2">
+                      {selectedTemplate.work_items.map((item, index) => (
+                        <div key={index} className="p-2 rounded-lg bg-background border">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-xs shrink-0">{item.wbs}</Badge>
+                                <span className="text-sm font-medium truncate">{item.name}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+                                <span>{item.unit}</span>
+                                <span>•</span>
+                                <span className="capitalize">{item.resource}</span>
+                                <span>•</span>
+                                <span>{item.hours_per_unit} tim/enh</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Desktop: Table view
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground border-b">
+                            <th className="pb-2 pr-4 font-medium">WBS</th>
+                            <th className="pb-2 pr-4 font-medium">Moment</th>
+                            <th className="pb-2 pr-4 font-medium">Enhet</th>
+                            <th className="pb-2 pr-4 font-medium">Resurs</th>
+                            <th className="pb-2 font-medium text-right">Tim/enh</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {selectedTemplate.work_items.map((item, index) => (
+                            <tr key={index} className="border-b border-muted last:border-0">
+                              <td className="py-1.5 pr-4 text-muted-foreground">{item.wbs}</td>
+                              <td className="py-1.5 pr-4">{item.name}</td>
+                              <td className="py-1.5 pr-4 text-muted-foreground">{item.unit}</td>
+                              <td className="py-1.5 pr-4 text-muted-foreground capitalize">{item.resource}</td>
+                              <td className="py-1.5 text-right text-muted-foreground">{item.hours_per_unit}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -712,7 +741,7 @@ export default function Estimates() {
       {viewState === "view" && (
         <div className="space-y-6">
           {/* Action buttons */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold">{selectedProject?.name}</h2>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -726,15 +755,15 @@ export default function Estimates() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleDownloadPdf}>
-                <Download className="h-4 w-4 mr-2" />
-                Ladda ner PDF
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadPdf} className="flex-1 sm:flex-none">
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="sm:inline">{isMobile ? "PDF" : "Ladda ner PDF"}</span>
               </Button>
-              <Button onClick={handleSave} disabled={saveEstimateMutation.isPending}>
+              <Button size={isMobile ? "sm" : "default"} onClick={handleSave} disabled={saveEstimateMutation.isPending} className="flex-1 sm:flex-none">
                 {saveEstimateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
                 ) : (
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className="h-4 w-4 sm:mr-2" />
                 )}
                 Spara
               </Button>

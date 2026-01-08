@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, AlertCircle, Trash2 } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, Plus, Sparkles, Download, AlertCircle, Trash2, List, BarChart3 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +27,9 @@ import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 import { format, addWeeks, addDays, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -54,6 +57,7 @@ const getEndDate = (start: Date, weeks: number): Date => {
 
 export default function Planning() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [transcript, setTranscript] = useState("");
@@ -62,6 +66,7 @@ export default function Planning() {
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [mobileViewMode, setMobileViewMode] = useState<"list" | "timeline">("list");
   
   // Web Speech API refs
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -532,7 +537,7 @@ export default function Planning() {
       {/* View state - show saved plan */}
       {viewState === "view" && generatedPlan && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between space-y-0">
             <div>
               <CardTitle>{selectedProject?.name}</CardTitle>
               <CardDescription>
@@ -545,12 +550,12 @@ export default function Planning() {
                 {generatedPlan.summary || `${generatedPlan.phases.length} moment över ${generatedPlan.total_weeks} veckor`}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Radera
+                  <Button variant="outline" size={isMobile ? "sm" : "default"} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Radera</span>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -579,21 +584,53 @@ export default function Planning() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button variant="outline" onClick={handleDownloadPdf}>
-                <Download className="h-4 w-4 mr-2" />
-                PDF
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">PDF</span>
               </Button>
-              <Button variant="outline" onClick={handleEditPlan}>
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleEditPlan}>
                 Redigera
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <GanttTimeline
-              phases={generatedPlan.phases}
-              totalWeeks={generatedPlan.total_weeks}
-              startDate={startDate}
-            />
+            {isMobile ? (
+              <Tabs value={mobileViewMode} onValueChange={(v) => setMobileViewMode(v as "list" | "timeline")} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="list" className="text-xs">
+                    <List className="h-4 w-4 mr-1.5" />
+                    Översikt
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="text-xs">
+                    <BarChart3 className="h-4 w-4 mr-1.5" />
+                    Tidslinje
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="list" className="mt-0">
+                  <PlanningMobileOverview
+                    phases={generatedPlan.phases}
+                    totalWeeks={generatedPlan.total_weeks}
+                    startDate={startDate}
+                  />
+                </TabsContent>
+                <TabsContent value="timeline" className="mt-0">
+                  <div className="text-xs text-muted-foreground text-center mb-2">
+                    ← Dra åt sidan för att se hela tidslinjen →
+                  </div>
+                  <GanttTimeline
+                    phases={generatedPlan.phases}
+                    totalWeeks={generatedPlan.total_weeks}
+                    startDate={startDate}
+                  />
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <GanttTimeline
+                phases={generatedPlan.phases}
+                totalWeeks={generatedPlan.total_weeks}
+                startDate={startDate}
+              />
+            )}
           </CardContent>
         </Card>
       )}
