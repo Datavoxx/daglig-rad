@@ -89,76 +89,70 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += scopeLines.length * 6 + 20;
 
   // Price summary box
-  doc.setFillColor(248, 250, 252); // slate-50
-  doc.roundedRect(margin, yPos, pageWidth - margin * 2, 95, 4, 4, "F");
+  const boxHeight = 110;
+  const boxY = yPos;
+  
+  // Main box with shadow effect
+  doc.setFillColor(250, 252, 254); // Very light teal tint
+  doc.roundedRect(margin, boxY, pageWidth - margin * 2, boxHeight, 6, 6, "F");
   doc.setDrawColor(...PRIMARY);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, yPos, pageWidth - margin * 2, 95, 4, 4, "S");
+  doc.setLineWidth(0.8);
+  doc.roundedRect(margin, boxY, pageWidth - margin * 2, boxHeight, 6, 6, "S");
 
-  yPos += 15;
-  doc.setFontSize(14);
+  yPos = boxY + 18;
+  doc.setFontSize(15);
   doc.setTextColor(...PRIMARY);
+  doc.setFont("helvetica", "bold");
   doc.text("Prissammanfattning", pageWidth / 2, yPos, { align: "center" });
 
-  yPos += 15;
-  const leftCol = margin + 15;
-  const rightCol = pageWidth - margin - 15;
+  yPos += 18;
+  const leftCol = margin + 20;
+  const rightCol = pageWidth - margin - 20;
 
-  const addPriceRow = (label: string, value: string, isBold = false, isTotal = false) => {
-    doc.setFontSize(isTotal ? 13 : 11);
-    if (isBold || isTotal) {
+  const addPriceRow = (label: string, value: string, isBold = false) => {
+    doc.setFontSize(11);
+    if (isBold) {
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(...(isTotal ? PRIMARY : DARK));
+      doc.setTextColor(...DARK);
     } else {
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...MUTED);
     }
     doc.text(label, leftCol, yPos);
     doc.text(value, rightCol, yPos, { align: "right" });
-    yPos += isTotal ? 10 : 8;
+    yPos += 9;
   };
 
   addPriceRow("Arbetskostnad", `${formatNumber(data.laborCost)} kr`);
   addPriceRow("Materialkostnad", `${formatNumber(data.materialCost)} kr`);
   addPriceRow("Underentreprenörer", `${formatNumber(data.subcontractorCost)} kr`);
 
-  yPos += 3;
-  doc.setDrawColor(200, 200, 200);
+  yPos += 2;
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.3);
   doc.line(leftCol, yPos, rightCol, yPos);
-  yPos += 8;
+  yPos += 10;
 
   addPriceRow("Totalt exkl. moms", `${formatNumber(totalExclVat)} kr`, true);
   addPriceRow("Moms (25%)", `${formatNumber(vat)} kr`);
 
-  yPos += 3;
-  doc.setDrawColor(...PRIMARY);
-  doc.setLineWidth(1);
-  doc.line(leftCol, yPos, rightCol, yPos);
-  yPos += 10;
+  // Total highlight box
+  yPos += 4;
+  const totalBoxY = yPos - 5;
+  const totalBoxHeight = 14;
+  doc.setFillColor(...PRIMARY);
+  doc.roundedRect(leftCol - 8, totalBoxY, rightCol - leftCol + 16, totalBoxHeight, 3, 3, "F");
+  
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("Totalt inkl. moms", leftCol, yPos + 2);
+  doc.text(`${formatNumber(totalInclVat)} kr`, rightCol, yPos + 2, { align: "right" });
 
-  addPriceRow("Totalt inkl. moms", `${formatNumber(totalInclVat)} kr`, true, true);
-
-  // Conditions
-  yPos += 25;
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  doc.setFont("helvetica", "normal");
-  doc.text("Villkor:", margin, yPos);
-  yPos += 6;
-  doc.text("• Priserna är baserade på beskrivna arbeten och kan justeras vid avvikelser", margin + 3, yPos);
-  yPos += 5;
-  doc.text("• Betalningsvillkor: 30 dagar netto", margin + 3, yPos);
-  yPos += 5;
-  doc.text(`• Offerten är giltig i ${validDays} dagar från ovan datum`, margin + 3, yPos);
-
-  // Footer
+  // Footer - only page number
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
-  doc.text(
-    `Genererad ${format(new Date(), "yyyy-MM-dd HH:mm")}`,
-    margin,
-    pageHeight - 10
-  );
+  doc.setFont("helvetica", "normal");
   doc.text(
     "Sida 1 av 1",
     pageWidth - margin,
