@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.parse-template-voice]
 verify_jwt = false
+
+[functions.apply-summary-voice-edits]
+verify_jwt = false
+
+[functions.apply-estimate-voice-edits]
+verify_jwt = false

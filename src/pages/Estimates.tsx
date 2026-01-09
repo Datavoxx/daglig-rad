@@ -18,6 +18,7 @@ import {
   Check,
   Trash2,
   Edit,
+  FileText,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -35,7 +36,9 @@ import { EstimateTable, type EstimateItem } from "@/components/estimates/Estimat
 import { EstimateTotals } from "@/components/estimates/EstimateTotals";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { TemplateSelector } from "@/components/estimates/TemplateSelector";
+import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
+import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewState = "empty" | "input" | "review" | "view";
@@ -93,6 +96,7 @@ export default function Estimates() {
   const [uncertainties, setUncertainties] = useState<string[]>([]);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [markupPercent, setMarkupPercent] = useState(15);
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -515,6 +519,62 @@ export default function Estimates() {
     }
   };
 
+  const handleDownloadQuotePdf = async () => {
+    if (!selectedProject) return;
+
+    // Calculate costs
+    const laborCost = items
+      .filter((item) => item.type === "labor")
+      .reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const materialCost = items
+      .filter((item) => item.type === "material")
+      .reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const subcontractorCost = items
+      .filter((item) => item.type === "subcontractor")
+      .reduce((sum, item) => sum + (item.subtotal || 0), 0);
+
+    try {
+      await generateQuotePdf({
+        projectName: selectedProject.name,
+        scope,
+        laborCost,
+        materialCost,
+        subcontractorCost,
+        markupPercent,
+        version: existingEstimate?.version,
+      });
+      toast.success("Offert-PDF nedladdad");
+    } catch (error) {
+      console.error("Failed to generate quote PDF:", error);
+      toast.error("Kunde inte generera offert-PDF");
+    }
+  };
+
+  const handleVoiceEditItems = async (transcript: string) => {
+    if (!transcript.trim()) return;
+
+    try {
+      setIsApplyingVoice(true);
+      const { data, error } = await supabase.functions.invoke("apply-estimate-voice-edits", {
+        body: { transcript, items },
+      });
+
+      if (error) throw error;
+
+      if (data.items) {
+        setItems(data.items);
+        toast.success("Ändring genomförd", {
+          description: data.changes_made || "Kalkylposterna uppdaterades",
+        });
+      }
+    } catch (error) {
+      console.error("Voice edit failed:", error);
+      toast.error("Kunde inte tillämpa ändringen");
+    } finally {
+      setIsApplyingVoice(false);
+    }
+  };
+
   if (projectsLoading) {
     return (
       <div className="page-transition p-6 max-w-6xl mx-auto">
@@ -754,7 +814,11 @@ export default function Estimates() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadQuotePdf} className="flex-1 sm:flex-none">
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="sm:inline">{isMobile ? "Offert" : "Ladda ner offert"}</span>
+              </Button>
               <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadPdf} className="flex-1 sm:flex-none">
                 <Download className="h-4 w-4 sm:mr-2" />
                 <span className="sm:inline">{isMobile ? "PDF" : "Ladda ner PDF"}</span>
@@ -789,13 +853,18 @@ export default function Estimates() {
           )}
 
           {/* Estimate table */}
-          <Card>
+          <Card className="relative">
             <CardHeader>
               <CardTitle className="text-base">Kalkylposter</CardTitle>
             </CardHeader>
             <CardContent>
               <EstimateTable items={items} onItemsChange={setItems} />
             </CardContent>
+            <VoiceInputOverlay
+              onTranscriptComplete={handleVoiceEditItems}
+              isProcessing={isApplyingVoice}
+              className="absolute bottom-4 right-4"
+            />
           </Card>
 
           {/* Totals */}
