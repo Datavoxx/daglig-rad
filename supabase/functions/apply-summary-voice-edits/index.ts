@@ -1,0 +1,116 @@
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface SummaryData {
+  scope: string;
+  assumptions: string[];
+  uncertainties: string[];
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { transcript, currentData } = await req.json() as {
+      transcript: string;
+      currentData: SummaryData;
+    };
+
+    if (!transcript?.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Ingen transkription angiven" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
+    }
+
+    const systemPrompt = `Du är en assistent som hjälper till att uppdatera projektbeskrivningar och antaganden för byggkalkyler baserat på röstkommandon.
+
+Du får:
+1. En transkription av ett röstkommando
+2. Nuvarande data (scope, assumptions, uncertainties)
+
+Din uppgift:
+- Tolka vad användaren vill ändra
+- Returnera uppdaterad data
+
+Exempel på kommandon:
+- "Ändra omfattningen till badrumsrenovering i stället"
+- "Lägg till ett antagande om att det finns befintlig stomme"
+- "Ta bort osäkerheten om el"
+- "Byt ut antagandet om våtrumsmattan till kakel istället"
+
+Returnera ENDAST giltig JSON med denna struktur:
+{
+  "scope": "uppdaterad text eller samma som innan",
+  "assumptions": ["array", "med", "antaganden"],
+  "uncertainties": ["array", "med", "osäkerheter"],
+  "changes_made": "kort beskrivning av vad du ändrade"
+}`;
+
+    const userPrompt = `Röstkommando: "${transcript}"
+
+Nuvarande data:
+- Omfattning: ${currentData.scope}
+- Antaganden: ${JSON.stringify(currentData.assumptions)}
+- Osäkerheter: ${JSON.stringify(currentData.uncertainties)}
+
+Tolka kommandot och returnera uppdaterad data.`;
+
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_completion_tokens: 1000,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Lovable API error:", errorText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("Kunde inte tolka svaret från AI");
+    }
+
+    const result = JSON.parse(jsonMatch[0]);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error: unknown) {
+    console.error("Error in apply-summary-voice-edits:", error);
+    const message = error instanceof Error ? error.message : "Ett fel uppstod";
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

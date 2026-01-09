@@ -3,8 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, AlertTriangle, CheckCircle2, X, Plus } from "lucide-react";
+import { ArrowRight, AlertTriangle, CheckCircle2, X, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface EstimateSummaryProps {
   scope: string;
@@ -29,6 +32,7 @@ export function EstimateSummary({
 }: EstimateSummaryProps) {
   const [newAssumption, setNewAssumption] = useState("");
   const [newUncertainty, setNewUncertainty] = useState("");
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
   const addAssumption = () => {
     if (newAssumption.trim()) {
@@ -52,8 +56,37 @@ export function EstimateSummary({
     onUncertaintiesChange(uncertainties.filter((_, i) => i !== index));
   };
 
+  const handleVoiceEdit = async (transcript: string) => {
+    if (!transcript.trim()) return;
+
+    try {
+      setIsApplyingVoice(true);
+      const { data, error } = await supabase.functions.invoke("apply-summary-voice-edits", {
+        body: {
+          transcript,
+          currentData: { scope, assumptions, uncertainties },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.scope !== undefined) onScopeChange(data.scope);
+      if (data.assumptions) onAssumptionsChange(data.assumptions);
+      if (data.uncertainties) onUncertaintiesChange(data.uncertainties);
+
+      toast.success("Ändring genomförd", {
+        description: data.changes_made || "Sammanfattningen uppdaterades",
+      });
+    } catch (error) {
+      console.error("Voice edit failed:", error);
+      toast.error("Kunde inte tillämpa ändringen");
+    } finally {
+      setIsApplyingVoice(false);
+    }
+  };
+
   return (
-    <Card>
+    <Card className="relative">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -151,11 +184,21 @@ export function EstimateSummary({
         {/* Proceed button */}
         <div className="pt-4 border-t">
           <Button onClick={onProceed} disabled={isLoading} className="w-full sm:w-auto">
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : null}
             Gå vidare till kalkyl
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </CardContent>
+
+      {/* Voice input overlay */}
+      <VoiceInputOverlay
+        onTranscriptComplete={handleVoiceEdit}
+        isProcessing={isApplyingVoice}
+        className="absolute bottom-4 right-4"
+      />
     </Card>
   );
 }
