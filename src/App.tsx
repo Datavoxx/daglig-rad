@@ -18,6 +18,7 @@ import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
 import Estimates from "@/pages/Estimates";
 import Guide from "@/pages/Guide";
+import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,8 +31,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Auth route */}
+            {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/guide-public" element={<GuidePublic />} />
 
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
