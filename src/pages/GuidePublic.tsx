@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { FileText, CalendarDays, ClipboardCheck, Calculator, ArrowRight } from "lucide-react";
+import { FileText, CalendarDays, ClipboardCheck, Calculator, ArrowRight, Download } from "lucide-react";
+import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import byggioLogo from "@/assets/byggio-logo.png";
@@ -66,6 +67,18 @@ export default function GuidePublic() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* PDF Download */}
+        <div className="text-center mb-8">
+          <Button 
+            variant="outline" 
+            onClick={() => generateGuidePdf()}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Ladda ner guide som PDF
+          </Button>
         </div>
 
         {/* CTA */}
