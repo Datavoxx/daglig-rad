@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, User, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -235,6 +235,16 @@ export default function Auth() {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-6 pt-4 border-t border-border/50">
+            <Link 
+              to="/guide-public"
+              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>Förstå Byggio</span>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
