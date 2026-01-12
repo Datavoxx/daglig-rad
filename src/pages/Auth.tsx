@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, User, BookOpen } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User, BookOpen, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,141 +112,185 @@ export default function Auth() {
   };
 
   return (
-    <div className="page-transition flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="page-transition flex min-h-screen items-center justify-center bg-background p-4 py-8">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/30 via-background to-background" />
       
-      <Card className="relative z-10 w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-            <img src={byggioLogo} alt="Byggio" className="h-16 mx-auto" />
-          </div>
-          <CardTitle className="font-display text-2xl">Välkommen till Byggio</CardTitle>
-          <CardDescription>Byggprojekt, enkelt och digitalt</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Logga in</TabsTrigger>
-              <TabsTrigger value="signup">Registrera</TabsTrigger>
-            </TabsList>
+      <div className="relative z-10 flex flex-col items-center w-full max-w-md gap-4">
+        {/* About Byggio */}
+        <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Vilka är Byggio?</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-3">
+            <p>
+              <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
+            </p>
+            <p>
+              Målet med Byggio är att visa hur byggföretag kan digitalisera sina 
+              dagliga arbetsflöden – från dagrapporter och besiktningar till 
+              kalkyler och projektplanering – allt samlat i en enkel och 
+              användarvänlig app.
+            </p>
+          </CardContent>
+        </Card>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">E-post</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="din@email.se"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Lösenord</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="login-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Loggar in..." : "Logga in"}
-                </Button>
-              </form>
-            </TabsContent>
+        {/* Login Card */}
+        <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <img src={byggioLogo} alt="Byggio" className="h-16 mx-auto" />
+            </div>
+            <CardTitle className="font-display text-2xl">Välkommen till Byggio</CardTitle>
+            <CardDescription>Byggprojekt, enkelt och digitalt</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login">Logga in</TabsTrigger>
+                <TabsTrigger value="signup">Registrera</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Namn</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Ditt namn"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">E-post</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="din@email.se"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">E-post</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="din@email.se"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Lösenord</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Lösenord</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Minst 6 tecken"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Skapar konto..." : "Skapa konto"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Loggar in..." : "Logga in"}
+                  </Button>
+                </form>
+              </TabsContent>
 
-          <div className="mt-6 pt-4 border-t border-border/50">
-            <Link 
-              to="/guide-public"
-              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              <TabsContent value="signup">
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Namn</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="Ditt namn"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">E-post</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="din@email.se"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Lösenord</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Minst 6 tecken"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Skapar konto..." : "Skapa konto"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="mt-6 pt-4 border-t border-border/50">
+              <Link 
+                to="/guide-public"
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>Förstå Byggio</span>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact Info */}
+        <div className="text-center text-sm text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">Kontakt</p>
+          <p>Mahad Abdullahi</p>
+          <div className="flex items-center justify-center gap-3">
+            <a 
+              href="tel:0707747731" 
+              className="flex items-center gap-1 hover:text-primary transition-colors"
             >
-              <BookOpen className="h-4 w-4" />
-              <span>Förstå Byggio</span>
-            </Link>
+              <Phone className="h-3 w-3" />
+              0707747731
+            </a>
+            <span>•</span>
+            <a 
+              href="mailto:info@datavoxx.se" 
+              className="flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <Mail className="h-3 w-3" />
+              info@datavoxx.se
+            </a>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
