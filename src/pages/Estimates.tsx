@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import {
   Calculator,
   Mic,
@@ -19,6 +21,7 @@ import {
   Trash2,
   Edit,
   FileText,
+  Home,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -97,6 +100,10 @@ export default function Estimates() {
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [markupPercent, setMarkupPercent] = useState(15);
   const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
+  // ROT settings
+  const [rotEnabled, setRotEnabled] = useState(false);
+  const [rotPercent, setRotPercent] = useState(30);
 
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -118,14 +125,31 @@ export default function Estimates() {
     };
   }, []);
 
-  // Fetch projects
+  // Fetch projects with client info
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name")
+        .select("id, name, client_name, address")
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch company settings
+  const { data: companySettings } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return null;
+      
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("*")
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -184,6 +208,9 @@ export default function Estimates() {
       setUncertainties((existingEstimate.uncertainties as string[]) || []);
       setMarkupPercent(Number(existingEstimate.markup_percent) || 15);
       setSelectedTemplateId(existingEstimate.template_id || null);
+      // Handle ROT settings from existing estimate
+      setRotEnabled((existingEstimate as any).rot_enabled || false);
+      setRotPercent(Number((existingEstimate as any).rot_percent) || 30);
       setItems(
         existingEstimate.items.map((item: any) => ({
           id: item.id,
@@ -212,6 +239,8 @@ export default function Estimates() {
     setItems([]);
     setMarkupPercent(15);
     setTranscript("");
+    setRotEnabled(false);
+    setRotPercent(30);
   };
 
   // Save estimate mutation
@@ -533,14 +562,46 @@ export default function Estimates() {
       .filter((item) => item.type === "subcontractor")
       .reduce((sum, item) => sum + (item.subtotal || 0), 0);
 
+    // Generate offer number
+    const offerNumber = existingEstimate?.id 
+      ? `OFF-${existingEstimate.id.slice(0, 8).toUpperCase()}`
+      : `OFF-${Date.now().toString(36).toUpperCase()}`;
+
     try {
       await generateQuotePdf({
+        company: companySettings ? {
+          company_name: companySettings.company_name || undefined,
+          org_number: companySettings.org_number || undefined,
+          address: companySettings.address || undefined,
+          postal_code: companySettings.postal_code || undefined,
+          city: companySettings.city || undefined,
+          phone: companySettings.phone || undefined,
+          email: companySettings.email || undefined,
+          website: companySettings.website || undefined,
+          bankgiro: companySettings.bankgiro || undefined,
+        } : undefined,
+        customer: {
+          name: selectedProject.client_name || undefined,
+          address: selectedProject.address || undefined,
+        },
+        offerNumber,
         projectName: selectedProject.name,
+        validDays: 30,
         scope,
+        conditions: assumptions,
+        items: items.filter(i => i.type === "labor").map(item => ({
+          moment: item.moment,
+          hours: item.hours,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        })),
         laborCost,
         materialCost,
         subcontractorCost,
         markupPercent,
+        rotEnabled,
+        rotPercent,
+        paymentTerms: "30 dagar netto",
         version: existingEstimate?.version,
       });
       toast.success("Offert-PDF nedladdad");
@@ -867,9 +928,38 @@ export default function Estimates() {
             />
           </Card>
 
-          {/* Totals */}
+          {/* ROT and Totals */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2" />
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  ROT-avdrag
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Switch checked={rotEnabled} onCheckedChange={setRotEnabled} id="rot-toggle" />
+                  <Label htmlFor="rot-toggle" className="cursor-pointer">Aktivera ROT-avdrag</Label>
+                  {rotEnabled && (
+                    <div className="flex items-center gap-2 ml-4">
+                      <Input
+                        type="number"
+                        value={rotPercent}
+                        onChange={(e) => setRotPercent(Number(e.target.value))}
+                        className="w-20"
+                        min={0}
+                        max={50}
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  ROT-avdraget beräknas på arbetskostnaden och visas på offerten.
+                </p>
+              </CardContent>
+            </Card>
             <EstimateTotals
               items={items}
               markupPercent={markupPercent}

@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_settings: {
+        Row: {
+          address: string | null
+          bankgiro: string | null
+          city: string | null
+          company_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          logo_url: string | null
+          org_number: string | null
+          phone: string | null
+          postal_code: string | null
+          updated_at: string | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          bankgiro?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          org_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          bankgiro?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          org_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       daily_reports: {
         Row: {
           ata: Json | null
@@ -473,14 +524,19 @@ export type Database = {
       project_estimates: {
         Row: {
           assumptions: Json | null
+          conditions: Json | null
           created_at: string | null
           id: string
           labor_cost: number | null
           markup_percent: number | null
           material_cost: number | null
           notes: string | null
+          offer_number: string | null
           original_transcript: string | null
+          payment_terms: string | null
           project_id: string
+          rot_enabled: boolean | null
+          rot_percent: number | null
           scope: string | null
           status: string
           subcontractor_cost: number | null
@@ -490,18 +546,24 @@ export type Database = {
           uncertainties: Json | null
           updated_at: string | null
           user_id: string | null
+          valid_days: number | null
           version: number
         }
         Insert: {
           assumptions?: Json | null
+          conditions?: Json | null
           created_at?: string | null
           id?: string
           labor_cost?: number | null
           markup_percent?: number | null
           material_cost?: number | null
           notes?: string | null
+          offer_number?: string | null
           original_transcript?: string | null
+          payment_terms?: string | null
           project_id: string
+          rot_enabled?: boolean | null
+          rot_percent?: number | null
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
@@ -511,18 +573,24 @@ export type Database = {
           uncertainties?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          valid_days?: number | null
           version?: number
         }
         Update: {
           assumptions?: Json | null
+          conditions?: Json | null
           created_at?: string | null
           id?: string
           labor_cost?: number | null
           markup_percent?: number | null
           material_cost?: number | null
           notes?: string | null
+          offer_number?: string | null
           original_transcript?: string | null
+          payment_terms?: string | null
           project_id?: string
+          rot_enabled?: boolean | null
+          rot_percent?: number | null
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
@@ -532,6 +600,7 @@ export type Database = {
           uncertainties?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          valid_days?: number | null
           version?: number
         }
         Relationships: [
