@@ -1,16 +1,5 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
+import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -26,7 +15,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { cn } from "@/lib/utils";
 
 export interface EstimateItem {
@@ -55,6 +43,12 @@ const TYPE_LABELS: Record<string, string> = {
   subcontractor: "UE",
 };
 
+const TYPE_SHORT: Record<string, string> = {
+  labor: "Arb",
+  material: "Mat",
+  subcontractor: "UE",
+};
+
 const UNCERTAINTY_DOT_COLORS: Record<string, string> = {
   low: "text-emerald-500",
   medium: "text-amber-500",
@@ -63,23 +57,16 @@ const UNCERTAINTY_DOT_COLORS: Record<string, string> = {
 
 const UNCERTAINTY_LABELS: Record<string, string> = {
   low: "Låg osäkerhet",
-  medium: "Medel osäkerhet",
+  medium: "Medel",
   high: "Hög osäkerhet",
 };
-
-// Default column widths in pixels
-const DEFAULT_COLUMN_WIDTHS = [32, 200, 80, 70, 60, 90, 100, 40];
 
 export function EstimateTable({ items, onItemsChange, readOnly = false }: EstimateTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [focusedCell, setFocusedCell] = useState<{ id: string; field: string } | null>(null);
   const isMobile = useIsMobile();
-  
-  const { widths, startResize, isResizing } = useResizableColumns({
-    storageKey: "estimate-table-columns",
-    defaultWidths: DEFAULT_COLUMN_WIDTHS,
-    minWidth: 32,
-  });
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) => {
@@ -129,6 +116,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       sort_order: items.length,
     };
     onItemsChange([...items, newItem]);
+    
+    // Focus the new item's moment field after render
+    setTimeout(() => {
+      const ref = inputRefs.current.get(`${newItem.id}-moment`);
+      ref?.focus();
+    }, 50);
   };
 
   const removeItem = (id: string) => {
@@ -147,7 +140,6 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
     const [draggedItem] = newItems.splice(draggedIndex, 1);
     newItems.splice(index, 0, draggedItem);
     
-    // Update sort_order
     newItems.forEach((item, i) => {
       item.sort_order = i;
     });
@@ -164,98 +156,108 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
     return new Intl.NumberFormat("sv-SE").format(num);
   };
 
-  // Resize handle component
-  const ResizeHandle = ({ index }: { index: number }) => (
-    <div
-      className={cn(
-        "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 transition-colors",
-        isResizing && "bg-primary/30"
-      )}
-      onMouseDown={(e) => startResize(index, e)}
-    />
-  );
+  const cycleUncertainty = (id: string, current: string) => {
+    const levels: ("low" | "medium" | "high")[] = ["low", "medium", "high"];
+    const currentIndex = levels.indexOf(current as any);
+    const nextIndex = (currentIndex + 1) % levels.length;
+    updateItem(id, { uncertainty: levels[nextIndex] });
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, itemId: string, field: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Move to next row same field, or add new row if last
+      const currentIndex = items.findIndex(item => item.id === itemId);
+      if (currentIndex === items.length - 1) {
+        addItem();
+      } else {
+        const nextItem = items[currentIndex + 1];
+        const ref = inputRefs.current.get(`${nextItem.id}-${field}`);
+        ref?.focus();
+      }
+    }
+    if (e.key === "Tab" && !e.shiftKey) {
+      const fields = ["moment", "quantity", "unit_price"];
+      const currentFieldIndex = fields.indexOf(field);
+      if (currentFieldIndex < fields.length - 1) {
+        e.preventDefault();
+        const nextField = fields[currentFieldIndex + 1];
+        const ref = inputRefs.current.get(`${itemId}-${nextField}`);
+        ref?.focus();
+      }
+    }
+  };
 
   // Mobile card view
   if (isMobile) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {items.map((item) => {
           const isExpanded = expandedItems.has(item.id);
           return (
-            <Card key={item.id} className="overflow-hidden">
-              <CardContent className="p-3">
+            <div
+              key={item.id}
+              className={cn(
+                "rounded-lg border bg-card transition-colors",
+                isExpanded && "ring-1 ring-primary/20"
+              )}
+            >
+              <div className="p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {readOnly ? (
-                        <span className="font-medium truncate">{item.moment || "—"}</span>
-                      ) : (
-                        <Input
-                          value={item.moment}
-                          onChange={(e) => updateItem(item.id, { moment: e.target.value })}
-                          className="h-8 text-sm"
-                          placeholder="Arbetsmoment..."
-                        />
+                    {readOnly ? (
+                      <span className="font-medium text-sm">{item.moment || "—"}</span>
+                    ) : (
+                      <input
+                        value={item.moment}
+                        onChange={(e) => updateItem(item.id, { moment: e.target.value })}
+                        className="w-full text-sm font-medium bg-transparent border-0 outline-none focus:bg-muted/50 rounded px-1 -mx-1"
+                        placeholder="Arbetsmoment..."
+                      />
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                      <span className="text-xs text-muted-foreground">{TYPE_LABELS[item.type]}</span>
+                      {(item.quantity || item.hours) && (
+                        <span className="text-xs text-muted-foreground">
+                          {item.type === "labor" ? `${item.hours}h` : `${item.quantity} ${item.unit}`}
+                        </span>
                       )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <Badge variant="outline" className="text-xs">{TYPE_LABELS[item.type]}</Badge>
-                      {item.quantity && (
-                        <Badge variant="secondary" className="text-xs">{item.quantity} {item.unit}</Badge>
-                      )}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Circle className={cn("h-2.5 w-2.5 fill-current", UNCERTAINTY_DOT_COLORS[item.uncertainty])} />
-                          </TooltipTrigger>
-                          <TooltipContent>{UNCERTAINTY_LABELS[item.uncertainty]}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm text-muted-foreground">
-                        {item.hours ? `${item.hours}h` : ""}
-                      </span>
-                      <span className="font-medium text-sm">{formatNumber(item.subtotal)} kr</span>
+                      <button
+                        onClick={() => !readOnly && cycleUncertainty(item.id, item.uncertainty)}
+                        disabled={readOnly}
+                        className="inline-flex"
+                      >
+                        <Circle className={cn("h-2 w-2 fill-current", UNCERTAINTY_DOT_COLORS[item.uncertainty])} />
+                      </button>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <span className="font-medium text-sm tabular-nums">{formatNumber(item.subtotal)} kr</span>
                     {!readOnly && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => toggleExpand(item.id)}
-                        >
-                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => toggleExpand(item.id)}
+                      >
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
                     )}
                   </div>
                 </div>
                 
-                {/* Expanded edit view */}
                 {!readOnly && isExpanded && (
                   <div className="mt-3 pt-3 border-t space-y-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-muted-foreground">Typ</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Typ</label>
                         <Select
                           value={item.type}
                           onValueChange={(value: "labor" | "material" | "subcontractor") =>
                             updateItem(item.id, { type: value })
                           }
                         >
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -266,43 +268,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground">Osäkerhet</label>
-                        <Select
-                          value={item.uncertainty}
-                          onValueChange={(value: "low" | "medium" | "high") =>
-                            updateItem(item.id, { uncertainty: value })
-                          }
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Låg</SelectItem>
-                            <SelectItem value="medium">Medel</SelectItem>
-                            <SelectItem value="high">Hög</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground">Antal</label>
-                        <Input
-                          type="number"
-                          value={item.quantity ?? ""}
-                          onChange={(e) =>
-                            updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
-                          }
-                          className="h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground">Enhet</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Enhet</label>
                         <Select
                           value={item.unit}
                           onValueChange={(value) => updateItem(item.id, { unit: value })}
                         >
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -314,275 +285,271 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="text-xs text-muted-foreground">Timmar</label>
-                        <Input
+                        <label className="text-xs text-muted-foreground mb-1 block">Antal</label>
+                        <input
+                          type="number"
+                          value={item.quantity ?? ""}
+                          onChange={(e) =>
+                            updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
+                          }
+                          className="w-full h-8 px-2 text-xs bg-muted/50 rounded border-0 outline-none focus:ring-1 focus:ring-primary/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Timmar</label>
+                        <input
                           type="number"
                           value={item.hours ?? ""}
                           onChange={(e) =>
                             updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
                           }
-                          className="h-9"
+                          className="w-full h-8 px-2 text-xs bg-muted/50 rounded border-0 outline-none focus:ring-1 focus:ring-primary/50"
                           disabled={item.type !== "labor"}
                         />
                       </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Á-pris</label>
+                        <input
+                          type="number"
+                          value={item.unit_price || ""}
+                          onChange={(e) =>
+                            updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
+                          }
+                          className="w-full h-8 px-2 text-xs bg-muted/50 rounded border-0 outline-none focus:ring-1 focus:ring-primary/50"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Á-pris (kr)</label>
-                      <Input
-                        type="number"
-                        value={item.unit_price || ""}
-                        onChange={(e) =>
-                          updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
-                        }
-                        className="h-9"
-                      />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(item.id)}
+                        className="text-destructive hover:text-destructive h-7 text-xs"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Ta bort
+                      </Button>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
         
         {!readOnly && (
-          <Button variant="outline" onClick={addItem} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
+          <button
+            onClick={addItem}
+            className="w-full py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg border border-dashed transition-colors"
+          >
+            <Plus className="h-4 w-4 inline mr-1.5" />
             Lägg till rad
-          </Button>
+          </button>
         )}
       </div>
     );
   }
 
-  // Desktop table view with resizable columns
+  // Desktop: Modern borderless table with Notion-style inline editing
   return (
-    <div className="space-y-4">
-      <div className="border rounded-lg overflow-hidden">
-        <Table className="table-fixed w-full">
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              {!readOnly && (
-                <TableHead 
-                  style={{ width: widths[0] }} 
-                  className="relative p-2"
-                >
-                  <ResizeHandle index={0} />
-                </TableHead>
-              )}
-              <TableHead 
-                style={{ width: widths[1] }} 
-                className="relative"
-              >
-                Moment
-                <ResizeHandle index={1} />
-              </TableHead>
-              <TableHead 
-                style={{ width: widths[2] }} 
-                className="relative"
-              >
-                Typ
-                <ResizeHandle index={2} />
-              </TableHead>
-              <TableHead 
-                style={{ width: widths[3] }} 
-                className="relative text-right"
-              >
-                Antal
-                <ResizeHandle index={3} />
-              </TableHead>
-              <TableHead 
-                style={{ width: widths[4] }} 
-                className="relative"
-              >
-                Enhet
-                <ResizeHandle index={4} />
-              </TableHead>
-              <TableHead 
-                style={{ width: widths[5] }} 
-                className="relative text-right"
-              >
-                Á-pris
-                <ResizeHandle index={5} />
-              </TableHead>
-              <TableHead 
-                style={{ width: widths[6] }} 
-                className="relative text-right"
-              >
-                Summa
-                <ResizeHandle index={6} />
-              </TableHead>
-              {!readOnly && (
-                <TableHead 
-                  style={{ width: widths[7] }} 
-                  className="p-2"
-                />
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item, index) => (
-              <TableRow
-                key={item.id}
-                draggable={!readOnly}
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                className={cn(
-                  draggedIndex === index && "opacity-50",
-                  "group"
-                )}
-              >
-                {!readOnly && (
-                  <TableCell className="cursor-grab p-2">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
-                )}
-                <TableCell className="p-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Circle 
-                            className={cn(
-                              "h-2 w-2 fill-current flex-shrink-0", 
-                              UNCERTAINTY_DOT_COLORS[item.uncertainty]
-                            )} 
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="left">
-                          <p>{UNCERTAINTY_LABELS[item.uncertainty]}</p>
-                          {!readOnly && (
-                            <div className="flex gap-1 mt-1">
-                              {(["low", "medium", "high"] as const).map((level) => (
-                                <button
-                                  key={level}
-                                  onClick={() => updateItem(item.id, { uncertainty: level })}
-                                  className={cn(
-                                    "px-2 py-0.5 text-xs rounded",
-                                    item.uncertainty === level 
-                                      ? "bg-primary text-primary-foreground" 
-                                      : "bg-muted hover:bg-muted/80"
-                                  )}
-                                >
-                                  {level === "low" ? "Låg" : level === "medium" ? "Medel" : "Hög"}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {readOnly ? (
-                      <span className="truncate">{item.moment}</span>
-                    ) : (
-                      <Input
-                        value={item.moment}
-                        onChange={(e) => updateItem(item.id, { moment: e.target.value })}
-                        className="h-7 text-sm border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1"
-                        placeholder="Arbetsmoment..."
-                      />
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="p-1.5">
-                  {readOnly ? (
-                    <Badge variant="outline" className="text-xs">{TYPE_LABELS[item.type]}</Badge>
-                  ) : (
-                    <Select
-                      value={item.type}
-                      onValueChange={(value: "labor" | "material" | "subcontractor") =>
-                        updateItem(item.id, { type: value })
-                      }
-                    >
-                      <SelectTrigger className="h-7 text-xs border-0 bg-transparent focus:bg-background focus:ring-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="labor">Arbete</SelectItem>
-                        <SelectItem value="material">Material</SelectItem>
-                        <SelectItem value="subcontractor">UE</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </TableCell>
-                <TableCell className="text-right p-1.5">
-                  {readOnly ? (
-                    <span className="tabular-nums text-sm">{item.quantity ?? "—"}</span>
-                  ) : (
-                    <Input
-                      type="number"
-                      value={item.quantity ?? ""}
-                      onChange={(e) =>
-                        updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
-                      }
-                      className="h-7 text-sm text-right border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1 tabular-nums"
-                      placeholder="0"
-                    />
-                  )}
-                </TableCell>
-                <TableCell className="p-1.5">
-                  {readOnly ? (
-                    <span className="text-sm">{item.unit}</span>
-                  ) : (
-                    <Select
-                      value={item.unit}
-                      onValueChange={(value) => updateItem(item.id, { unit: value })}
-                    >
-                      <SelectTrigger className="h-7 text-xs border-0 bg-transparent focus:bg-background focus:ring-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="tim">tim</SelectItem>
-                        <SelectItem value="m2">m²</SelectItem>
-                        <SelectItem value="lpm">lpm</SelectItem>
-                        <SelectItem value="st">st</SelectItem>
-                        <SelectItem value="klump">klump</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </TableCell>
-                <TableCell className="text-right p-1.5">
-                  {readOnly ? (
-                    <span className="tabular-nums text-sm">{formatNumber(item.unit_price)}</span>
-                  ) : (
-                    <Input
-                      type="number"
-                      value={item.unit_price || ""}
-                      onChange={(e) =>
-                        updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
-                      }
-                      className="h-7 text-sm text-right border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1 tabular-nums"
-                      placeholder="0"
-                    />
-                  )}
-                </TableCell>
-                <TableCell className="text-right p-1.5 font-medium tabular-nums text-sm">
-                  {formatNumber(item.subtotal)}
-                </TableCell>
-                {!readOnly && (
-                  <TableCell className="p-1.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="space-y-1">
+      {/* Header row */}
+      <div className="grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div></div>
+        <div>Moment</div>
+        <div>Typ</div>
+        <div className="text-right">Antal</div>
+        <div>Enhet</div>
+        <div className="text-right">Á-pris</div>
+        <div className="text-right">Summa</div>
+        <div></div>
       </div>
 
+      {/* Rows */}
+      <div className="space-y-px">
+        {items.map((item, index) => (
+          <div
+            key={item.id}
+            draggable={!readOnly}
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragEnd={handleDragEnd}
+            className={cn(
+              "grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1 items-center rounded-md transition-colors group",
+              draggedIndex === index ? "opacity-50 bg-muted" : "hover:bg-muted/40",
+              focusedCell?.id === item.id && "bg-muted/50"
+            )}
+          >
+            {/* Drag handle */}
+            {!readOnly ? (
+              <div className="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity">
+                <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+            ) : (
+              <div />
+            )}
+
+            {/* Moment with uncertainty dot */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => !readOnly && cycleUncertainty(item.id, item.uncertainty)}
+                      disabled={readOnly}
+                      className="shrink-0"
+                    >
+                      <Circle 
+                        className={cn(
+                          "h-2 w-2 fill-current transition-colors", 
+                          UNCERTAINTY_DOT_COLORS[item.uncertainty]
+                        )} 
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">
+                    {UNCERTAINTY_LABELS[item.uncertainty]}
+                    {!readOnly && " (klicka för att ändra)"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {readOnly ? (
+                <span className="text-sm truncate">{item.moment}</span>
+              ) : (
+                <input
+                  ref={(el) => el && inputRefs.current.set(`${item.id}-moment`, el)}
+                  value={item.moment}
+                  onChange={(e) => updateItem(item.id, { moment: e.target.value })}
+                  onFocus={() => setFocusedCell({ id: item.id, field: "moment" })}
+                  onBlur={() => setFocusedCell(null)}
+                  onKeyDown={(e) => handleKeyDown(e, item.id, "moment")}
+                  placeholder="Skriv moment..."
+                  className="w-full text-sm bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 -mx-1.5 truncate placeholder:text-muted-foreground/40"
+                />
+              )}
+            </div>
+
+            {/* Type */}
+            {readOnly ? (
+              <span className="text-sm text-muted-foreground">{TYPE_SHORT[item.type]}</span>
+            ) : (
+              <Select
+                value={item.type}
+                onValueChange={(value: "labor" | "material" | "subcontractor") =>
+                  updateItem(item.id, { type: value })
+                }
+              >
+                <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="labor">Arbete</SelectItem>
+                  <SelectItem value="material">Material</SelectItem>
+                  <SelectItem value="subcontractor">UE</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Quantity / Hours */}
+            {readOnly ? (
+              <span className="text-sm text-right tabular-nums">
+                {item.type === "labor" ? item.hours : item.quantity}
+              </span>
+            ) : (
+              <input
+                ref={(el) => el && inputRefs.current.set(`${item.id}-quantity`, el)}
+                type="text"
+                inputMode="decimal"
+                value={item.type === "labor" ? (item.hours ?? "") : (item.quantity ?? "")}
+                onChange={(e) => {
+                  const val = e.target.value ? Number(e.target.value) : null;
+                  if (item.type === "labor") {
+                    updateItem(item.id, { hours: val });
+                  } else {
+                    updateItem(item.id, { quantity: val });
+                  }
+                }}
+                onFocus={() => setFocusedCell({ id: item.id, field: "quantity" })}
+                onBlur={() => setFocusedCell(null)}
+                onKeyDown={(e) => handleKeyDown(e, item.id, "quantity")}
+                className="w-full text-sm text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 tabular-nums"
+              />
+            )}
+
+            {/* Unit */}
+            {readOnly ? (
+              <span className="text-sm text-muted-foreground">
+                {item.type === "labor" ? "h" : item.unit}
+              </span>
+            ) : (
+              <Select
+                value={item.unit}
+                onValueChange={(value) => updateItem(item.id, { unit: value })}
+              >
+                <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tim">tim</SelectItem>
+                  <SelectItem value="m2">m²</SelectItem>
+                  <SelectItem value="lpm">lpm</SelectItem>
+                  <SelectItem value="st">st</SelectItem>
+                  <SelectItem value="klump">klump</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Unit price */}
+            {readOnly ? (
+              <span className="text-sm text-right tabular-nums">{formatNumber(item.unit_price)}</span>
+            ) : (
+              <input
+                ref={(el) => el && inputRefs.current.set(`${item.id}-unit_price`, el)}
+                type="text"
+                inputMode="decimal"
+                value={item.unit_price || ""}
+                onChange={(e) => updateItem(item.id, { unit_price: Number(e.target.value) || 0 })}
+                onFocus={() => setFocusedCell({ id: item.id, field: "unit_price" })}
+                onBlur={() => setFocusedCell(null)}
+                onKeyDown={(e) => handleKeyDown(e, item.id, "unit_price")}
+                placeholder="0"
+                className="w-full text-sm text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 tabular-nums placeholder:text-muted-foreground/40"
+              />
+            )}
+
+            {/* Subtotal */}
+            <span className="text-sm text-right font-medium tabular-nums">
+              {formatNumber(item.subtotal)}
+            </span>
+
+            {/* Delete */}
+            {!readOnly ? (
+              <button
+                onClick={() => removeItem(item.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+              </button>
+            ) : (
+              <div />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add row button */}
       {!readOnly && (
-        <Button variant="outline" onClick={addItem} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
+        <button
+          onClick={addItem}
+          className="w-full py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors flex items-center justify-center gap-1.5 mt-1"
+        >
+          <Plus className="h-4 w-4" />
           Lägg till rad
-        </Button>
+        </button>
       )}
     </div>
   );
