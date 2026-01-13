@@ -595,6 +595,11 @@ export default function Estimates() {
           email: companySettings.email || undefined,
           website: companySettings.website || undefined,
           bankgiro: companySettings.bankgiro || undefined,
+          logo_url: companySettings.logo_url || undefined,
+          contact_person: companySettings.contact_person || undefined,
+          contact_phone: companySettings.contact_phone || undefined,
+          momsregnr: companySettings.momsregnr || undefined,
+          f_skatt: companySettings.f_skatt ?? undefined,
         } : undefined,
         customer: {
           name: selectedProject.client_name || undefined,
@@ -1067,10 +1072,6 @@ export default function Estimates() {
               <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadQuotePdf} className="flex-1 sm:flex-none">
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="sm:inline">{isMobile ? "Offert" : "Ladda ner offert"}</span>
-              </Button>
-              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadPdf} className="flex-1 sm:flex-none">
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="sm:inline">{isMobile ? "PDF" : "Ladda ner PDF"}</span>
               </Button>
               <Button size={isMobile ? "sm" : "default"} onClick={handleSave} disabled={saveEstimateMutation.isPending} className="flex-1 sm:flex-none">
                 {saveEstimateMutation.isPending ? (
