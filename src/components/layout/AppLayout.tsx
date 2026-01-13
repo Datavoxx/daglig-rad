@@ -21,21 +21,23 @@ import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  moduleKey: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Projekt", href: "/projects", icon: FolderKanban },
-  { label: "Dagrapporter", href: "/reports", icon: FileText },
-  { label: "Planering", href: "/planning", icon: CalendarDays },
-  { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck },
-  { label: "Kalkyl", href: "/estimates", icon: Calculator },
-  { label: "Guide", href: "/guide", icon: BookOpen },
-  { label: "Inställningar", href: "/settings", icon: Settings },
+  { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { label: "Dagrapporter", href: "/reports", icon: FileText, moduleKey: "reports" },
+  { label: "Planering", href: "/planning", icon: CalendarDays, moduleKey: "planning" },
+  { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
+  { label: "Kalkyl", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
+  { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
 ];
 
 export function AppLayout() {
@@ -43,6 +45,10 @@ export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+
+  // Filter nav items based on user permissions
+  const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -92,7 +98,7 @@ export function AppLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             return (
               <button
