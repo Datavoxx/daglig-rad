@@ -164,7 +164,7 @@ export function AppLayout() {
         )}
       >
         {/* Brand - larger logo */}
-      <div className="flex h-16 items-center justify-center border-b border-sidebar-border p-2">
+      <div className="flex h-20 items-center justify-center border-b border-sidebar-border p-1">
         <img src={byggioLogo} alt="Byggio" className="w-full h-full object-contain" />
         </div>
 
