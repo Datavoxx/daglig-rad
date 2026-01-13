@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { AutoWidthInput } from "@/components/shared/AutoWidthInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -333,10 +334,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                 {!readOnly && <TableHead className="w-10"></TableHead>}
                 <TableHead className="min-w-[180px]">Moment</TableHead>
                 <TableHead className="w-[90px]">Typ</TableHead>
-                <TableHead className="w-[100px] text-right">Antal</TableHead>
+                <TableHead className="min-w-[120px] text-right">Antal</TableHead>
                 <TableHead className="w-[80px]">Enhet</TableHead>
-                <TableHead className="w-[100px] text-right">Timmar</TableHead>
-                <TableHead className="w-[120px] text-right">Á-pris</TableHead>
+                <TableHead className="min-w-[120px] text-right">Timmar</TableHead>
+                <TableHead className="min-w-[160px] text-right">Á-pris</TableHead>
                 <TableHead className="w-[120px] text-right">Delkostnad</TableHead>
                 <TableHead className="w-[90px] text-center">Osäkerhet</TableHead>
                 {!readOnly && <TableHead className="w-[50px]"></TableHead>}
@@ -394,14 +395,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     {readOnly ? (
                       <span className="tabular-nums">{item.quantity ?? "—"}</span>
                     ) : (
-                      <Input
-                        type="number"
-                        value={item.quantity !== null ? item.quantity : ""}
+                      <AutoWidthInput
+                        value={item.quantity}
                         onChange={(e) =>
                           updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
                         }
-                        className="h-8 text-right tabular-nums bg-background border-input"
                         placeholder="0"
+                        minWidth={80}
+                        maxWidth={200}
                       />
                     )}
                   </TableCell>
@@ -430,14 +431,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     {readOnly ? (
                       <span className="tabular-nums">{item.hours ?? "—"}</span>
                     ) : (
-                      <Input
-                        type="number"
-                        value={item.hours !== null ? item.hours : ""}
+                      <AutoWidthInput
+                        value={item.hours}
                         onChange={(e) =>
                           updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
                         }
-                        className="h-8 text-right tabular-nums bg-background border-input"
                         placeholder="0"
+                        minWidth={80}
+                        maxWidth={200}
                         disabled={item.type !== "labor"}
                       />
                     )}
@@ -446,14 +447,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     {readOnly ? (
                       <span className="tabular-nums">{formatNumber(item.unit_price)} kr</span>
                     ) : (
-                      <Input
-                        type="number"
+                      <AutoWidthInput
                         value={item.unit_price}
                         onChange={(e) =>
                           updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
                         }
-                        className="h-8 text-right tabular-nums bg-background border-input"
                         placeholder="0"
+                        minWidth={100}
+                        maxWidth={250}
                       />
                     )}
                   </TableCell>
