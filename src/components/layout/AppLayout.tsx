@@ -23,6 +23,12 @@ import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NavItem {
   label: string;
@@ -51,6 +57,50 @@ export function AppLayout() {
 
   // Filter nav items based on user permissions
   const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
+
+  const renderNavButton = (item: NavItem, isActive: boolean) => (
+    <button
+      onClick={() => {
+        navigate(item.href);
+        setMobileOpen(false);
+      }}
+      className={cn(
+        "relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ease-out",
+        isActive
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-0.5"
+      )}
+    >
+      {/* Active indicator with animation */}
+      <span 
+        className={cn(
+          "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-all duration-200",
+          isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
+        )}
+      />
+      <item.icon className={cn(
+        "h-4 w-4 shrink-0 transition-transform duration-200", 
+        collapsed && "mx-auto",
+        isActive && "scale-110"
+      )} />
+      {!collapsed && <span>{item.label}</span>}
+    </button>
+  );
+
+  const logoutButton = (
+    <button
+      onClick={async () => {
+        await supabase.auth.signOut();
+        navigate("/auth");
+      }}
+      className={cn(
+        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+      )}
+    >
+      <LogOut className={cn("h-4 w-4 shrink-0", collapsed && "mx-auto")} />
+      {!collapsed && <span>Logga ut</span>}
+    </button>
+  );
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -99,56 +149,53 @@ export function AppLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-0.5 p-1.5">
-          {visibleNavItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.href);
-            return (
-                <button
-                key={item.href}
-                onClick={() => {
-                  navigate(item.href);
-                  setMobileOpen(false);
-                }}
-                className={cn(
-                  "relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ease-out",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-0.5"
-                )}
-              >
-                {/* Active indicator with animation */}
-                <span 
-                  className={cn(
-                    "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-all duration-200",
-                    isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
-                  )}
-                />
-                <item.icon className={cn(
-                  "h-4 w-4 shrink-0 transition-transform duration-200", 
-                  collapsed && "mx-auto",
-                  isActive && "scale-110"
-                )} />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
+        <TooltipProvider delayDuration={0}>
+          <nav className="flex-1 space-y-0.5 p-1.5">
+            {visibleNavItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.href);
+              const button = renderNavButton(item, isActive);
+              
+              if (collapsed) {
+                return (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      {button}
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="right" 
+                      sideOffset={8}
+                      className="bg-foreground text-background text-sm font-medium"
+                    >
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              
+              return <div key={item.href}>{button}</div>;
+            })}
+          </nav>
 
-        {/* Logout */}
-        <div className="border-t border-sidebar-border p-1.5">
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate("/auth");
-            }}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+          {/* Logout */}
+          <div className="border-t border-sidebar-border p-1.5">
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {logoutButton}
+                </TooltipTrigger>
+                <TooltipContent 
+                  side="right" 
+                  sideOffset={8}
+                  className="bg-foreground text-background text-sm font-medium"
+                >
+                  Logga ut
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              logoutButton
             )}
-          >
-            <LogOut className={cn("h-4 w-4 shrink-0", collapsed && "mx-auto")} />
-            {!collapsed && <span>Logga ut</span>}
-          </button>
-        </div>
+          </div>
+        </TooltipProvider>
       </aside>
 
       {/* Main content */}
