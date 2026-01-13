@@ -5,12 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2 } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -174,40 +175,44 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
       <div className="h-px bg-border" />
 
       {/* Scope / Project description */}
-      <section className="space-y-1.5">
-        <div className="flex items-center gap-1.5">
-          <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Projektbeskrivning
-          </h2>
-        </div>
-        <Textarea
-          value={estimate.state.scope}
-          onChange={(e) => estimate.updateScope(e.target.value)}
-          placeholder="Beskriv projektets omfattning..."
-          className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-2 -mx-2 transition-colors text-sm"
-        />
-      </section>
+      <Card className="border bg-card">
+        <CardHeader className="pb-2 pt-3 px-3">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium">Projektbeskrivning</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="px-3 pb-3 pt-0">
+          <Textarea
+            value={estimate.state.scope}
+            onChange={(e) => estimate.updateScope(e.target.value)}
+            placeholder="Beskriv projektets omfattning..."
+            className="min-h-[60px] resize-none bg-muted/30 border border-border rounded-md p-2 text-sm focus:ring-1 focus:ring-primary/40 focus:border-primary/40 focus:bg-background transition-colors"
+          />
+        </CardContent>
+      </Card>
 
       {/* Work items */}
-      <section className="space-y-1.5">
-        <div className="flex items-center gap-1.5">
-          <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Arbete som ingår
-          </h2>
-        </div>
-        <Textarea
-          value={estimate.state.assumptions.join("\n")}
-          onChange={(e) =>
-            estimate.updateAssumptions(
-              e.target.value.split("\n").filter((s) => s.trim())
-            )
-          }
-          placeholder="En punkt per rad..."
-          className="min-h-[48px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-2 -mx-2 transition-colors text-sm"
-        />
-      </section>
+      <Card className="border bg-card">
+        <CardHeader className="pb-2 pt-3 px-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium">Arbete som ingår</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="px-3 pb-3 pt-0">
+          <Textarea
+            value={estimate.state.assumptions.join("\n")}
+            onChange={(e) =>
+              estimate.updateAssumptions(
+                e.target.value.split("\n").filter((s) => s.trim())
+              )
+            }
+            placeholder="En punkt per rad..."
+            className="min-h-[60px] resize-none bg-muted/30 border border-border rounded-md p-2 text-sm focus:ring-1 focus:ring-primary/40 focus:border-primary/40 focus:bg-background transition-colors"
+          />
+        </CardContent>
+      </Card>
 
       {/* Divider */}
       <div className="h-px bg-border" />
