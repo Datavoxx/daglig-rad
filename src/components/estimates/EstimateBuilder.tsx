@@ -125,7 +125,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
 
   // Editor content
   const editorContent = (
-    <div className="space-y-6 p-6 pb-32">
+    <div className="space-y-4 p-4 pb-28">
       {/* Header section */}
       <div className="flex items-start justify-between gap-4">
         <EstimateHeader
@@ -174,10 +174,10 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
       <div className="h-px bg-border" />
 
       {/* Scope / Project description */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
+      <section className="space-y-1.5">
+        <div className="flex items-center gap-1.5">
           <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Projektbeskrivning
           </h2>
         </div>
@@ -185,15 +185,15 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
           value={estimate.state.scope}
           onChange={(e) => estimate.updateScope(e.target.value)}
           placeholder="Beskriv projektets omfattning..."
-          className="min-h-[80px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-3 -mx-3 transition-colors"
+          className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-2 -mx-2 transition-colors text-sm"
         />
       </section>
 
       {/* Work items */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
+      <section className="space-y-1.5">
+        <div className="flex items-center gap-1.5">
           <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Arbete som ingår
           </h2>
         </div>
@@ -205,7 +205,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
             )
           }
           placeholder="En punkt per rad..."
-          className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-3 -mx-3 transition-colors"
+          className="min-h-[48px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-2 -mx-2 transition-colors text-sm"
         />
       </section>
 
@@ -213,10 +213,10 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
       <div className="h-px bg-border" />
 
       {/* Estimate items table */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
+      <section className="space-y-2">
+        <div className="flex items-center gap-1.5">
           <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Offertposter
           </h2>
         </div>

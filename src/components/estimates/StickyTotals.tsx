@@ -80,56 +80,56 @@ export function StickyTotals({
 
   // Desktop: full breakdown
   return (
-    <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t shadow-lg p-4 -mx-6 -mb-6 mt-6 animate-slide-in-bottom">
-      <div className="flex items-center justify-between gap-6 max-w-none">
-        <div className="flex items-center gap-6 text-sm">
+    <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t shadow-lg p-3 -mx-4 -mb-4 mt-4 animate-slide-in-bottom">
+      <div className="flex items-center justify-between gap-4 max-w-none">
+        <div className="flex items-center gap-4 text-[13px]">
           <div className="hidden lg:block">
-            <span className="text-muted-foreground">Arbete:</span>
-            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(laborCost)}</span>
+            <span className="text-muted-foreground">Arb:</span>
+            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(laborCost)}</span>
           </div>
           <div className="hidden lg:block">
-            <span className="text-muted-foreground">Material:</span>
-            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(materialCost)}</span>
+            <span className="text-muted-foreground">Mat:</span>
+            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(materialCost)}</span>
           </div>
           <div className="hidden xl:block">
             <span className="text-muted-foreground">UE:</span>
-            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(subcontractorCost)}</span>
+            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(subcontractorCost)}</span>
           </div>
           {addonsCost > 0 && (
             <div className="hidden xl:block">
-              <span className="text-muted-foreground">Tillval:</span>
-              <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(addonsCost)}</span>
+              <span className="text-muted-foreground">Tillv:</span>
+              <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(addonsCost)}</span>
             </div>
           )}
           <div className="hidden md:block">
-            <span className="text-muted-foreground">Påslag:</span>
-            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(markup)}</span>
+            <span className="text-muted-foreground">Påsl:</span>
+            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(markup)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Moms:</span>
-            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(vat)}</span>
+            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(vat)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs text-muted-foreground transition-opacity duration-200">
+            <p className="text-[11px] text-muted-foreground transition-opacity duration-200">
               {rotEnabled ? "Att betala (efter ROT)" : "Totalt inkl. moms"}
             </p>
-            <p className="text-2xl font-bold text-primary tabular-nums number-animate">
+            <p className="text-xl font-bold text-primary tabular-nums number-animate">
               {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onDownload} className="transition-all duration-200 hover:shadow-md">
-              <Download className="h-4 w-4 mr-2" />
+          <div className="flex gap-1.5">
+            <Button variant="outline" size="sm" onClick={onDownload} className="transition-all duration-200 hover:shadow-md h-8">
+              <Download className="h-3.5 w-3.5 mr-1.5" />
               Ladda ner
             </Button>
-            <Button onClick={onSave} disabled={isSaving} className="transition-all duration-200 hover:shadow-md">
+            <Button size="sm" onClick={onSave} disabled={isSaving} className="transition-all duration-200 hover:shadow-md h-8">
               {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-3.5 w-3.5 mr-1.5" />
               )}
               Spara
             </Button>

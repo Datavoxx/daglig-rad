@@ -99,7 +99,7 @@ export function AppLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-2">
+        <nav className="flex-1 space-y-0.5 p-1.5">
           {visibleNavItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             return (
@@ -110,7 +110,7 @@ export function AppLayout() {
                   setMobileOpen(false);
                 }}
                 className={cn(
-                  "relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                  "relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ease-out",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-0.5"
@@ -119,12 +119,12 @@ export function AppLayout() {
                 {/* Active indicator with animation */}
                 <span 
                   className={cn(
-                    "absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-all duration-200",
+                    "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-all duration-200",
                     isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
                   )}
                 />
                 <item.icon className={cn(
-                  "h-[18px] w-[18px] shrink-0 transition-transform duration-200", 
+                  "h-4 w-4 shrink-0 transition-transform duration-200", 
                   collapsed && "mx-auto",
                   isActive && "scale-110"
                 )} />
@@ -135,17 +135,17 @@ export function AppLayout() {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-sidebar-border p-2">
+        <div className="border-t border-sidebar-border p-1.5">
           <button
             onClick={async () => {
               await supabase.auth.signOut();
               navigate("/auth");
             }}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+              "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
             )}
           >
-            <LogOut className={cn("h-[18px] w-[18px] shrink-0", collapsed && "mx-auto")} />
+            <LogOut className={cn("h-4 w-4 shrink-0", collapsed && "mx-auto")} />
             {!collapsed && <span>Logga ut</span>}
           </button>
         </div>
