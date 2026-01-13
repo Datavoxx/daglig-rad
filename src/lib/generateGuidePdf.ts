@@ -106,12 +106,12 @@ export function generateGuidePdf() {
   addBullet("Exportera egenkontroller som PDF-protokoll");
   y += 6;
 
-  // Kalkyler
-  addSectionHeader("Kalkyler");
+  // Offerter
+  addSectionHeader("Offerter");
   addParagraph(
-    "Kalkylfunktionen låter dig skapa detaljerade kostnadsberäkningar för dina projekt. Använd mallar med fördefinierade arbetsmoment och timpriser för att snabbt ta fram offerter."
+    "Offertfunktionen låter dig skapa detaljerade kostnadsberäkningar för dina projekt. Använd mallar med fördefinierade arbetsmoment och timpriser för att snabbt ta fram offerter."
   );
-  addBullet("Skapa och spara egna kalkylmallar");
+  addBullet("Skapa och spara egna offertmallar");
   addBullet("Beskriv mängder med röst eller text");
   addBullet("AI beräknar timmar och kostnader baserat på mallen");
   addBullet("Justera påslag och exportera som PDF");

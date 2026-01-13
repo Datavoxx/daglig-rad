@@ -134,7 +134,7 @@ export default function Auth() {
           <p>
             Med hjälp av <strong className="text-foreground">AI-assistans</strong> gör Byggio arbetet 
             <strong className="text-primary"> 62% enklare</strong> – genom automatisk generering av 
-            rapporter, kalkyler och projektplaner baserat på röstinmatning och smart datahantering.
+            rapporter, offerter och projektplaner baserat på röstinmatning och smart datahantering.
           </p>
         </CardContent>
         </Card>

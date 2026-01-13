@@ -23,8 +23,8 @@ const features = [
   },
   {
     icon: Calculator,
-    title: "Kalkyler",
-    description: "Skapa detaljerade kostnadskalkyler med arbete, material och underentreprenörer. Generera professionella offerter.",
+    title: "Offerter",
+    description: "Skapa detaljerade kostnadsofferter med arbete, material och underentreprenörer. Generera professionella offerter.",
   },
 ];
 

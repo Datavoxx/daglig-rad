@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const systemPrompt = `Du är en assistent som hjälper till att uppdatera projektbeskrivningar och antaganden för byggkalkyler baserat på röstkommandon.
+    const systemPrompt = `Du är en assistent som hjälper till att uppdatera projektbeskrivningar och antaganden för offerter baserat på röstkommandon.
 
 Du får:
 1. En transkription av ett röstkommando

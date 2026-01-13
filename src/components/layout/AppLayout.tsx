@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
   { label: "Dagrapporter", href: "/reports", icon: FileText, moduleKey: "reports" },
   { label: "Planering", href: "/planning", icon: CalendarDays, moduleKey: "planning" },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
-  { label: "Kalkyl", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
 ];

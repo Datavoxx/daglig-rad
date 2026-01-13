@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         .map((item: CostLibraryItem) => `- ${item.name}: ${item.price} kr/${item.unit}`)
         .join("\n");
 
-      systemPrompt = `Du är en expert på byggkalkyler. Du ska skapa en kalkyl baserad på en MALL och användarens mängdbeskrivning.
+      systemPrompt = `Du är en expert på offerter för byggprojekt. Du ska skapa en offert baserad på en MALL och användarens mängdbeskrivning.
 
 MALL: ${template.name}
 ${template.description || ""}
