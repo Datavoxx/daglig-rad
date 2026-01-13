@@ -1,6 +1,8 @@
 import { Navigate } from "react-router-dom";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Loader2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 interface ProtectedModuleRouteProps {
   module: string;
@@ -8,7 +10,17 @@ interface ProtectedModuleRouteProps {
 }
 
 export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteProps) {
-  const { hasAccess, loading } = useUserPermissions();
+  const { hasAccess, loading, permissions } = useUserPermissions();
+  const hasShownToast = useRef(false);
+
+  const canAccess = hasAccess(module);
+
+  useEffect(() => {
+    if (!loading && !canAccess && !hasShownToast.current) {
+      hasShownToast.current = true;
+      toast.error("Du saknar behörighet till denna modul");
+    }
+  }, [loading, canAccess]);
 
   if (loading) {
     return (
@@ -18,9 +30,10 @@ export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteP
     );
   }
 
-  if (!hasAccess(module)) {
-    // Redirect to first available module or projects as fallback
-    return <Navigate to="/projects" replace />;
+  if (!canAccess) {
+    // Redirect to dashboard or first available module
+    const fallback = permissions.length > 0 ? `/${permissions[0]}` : "/dashboard";
+    return <Navigate to={fallback} replace />;
   }
 
   return <>{children}</>;
