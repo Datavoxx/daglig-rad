@@ -28,6 +28,10 @@ interface CompanySettings {
   website: string;
   bankgiro: string;
   logo_url?: string;
+  contact_person?: string;
+  contact_phone?: string;
+  momsregnr?: string;
+  f_skatt?: boolean;
 }
 
 export default function Settings() {
@@ -49,6 +53,10 @@ export default function Settings() {
     email: "",
     website: "",
     bankgiro: "",
+    contact_person: "",
+    contact_phone: "",
+    momsregnr: "",
+    f_skatt: true,
   });
   const [savingCompany, setSavingCompany] = useState(false);
   const [hasCompanyChanges, setHasCompanyChanges] = useState(false);
@@ -81,11 +89,17 @@ export default function Settings() {
         companyForm.phone !== (companySettings.phone || "") ||
         companyForm.email !== (companySettings.email || "") ||
         companyForm.website !== (companySettings.website || "") ||
-        companyForm.bankgiro !== (companySettings.bankgiro || "");
+        companyForm.bankgiro !== (companySettings.bankgiro || "") ||
+        companyForm.contact_person !== (companySettings.contact_person || "") ||
+        companyForm.contact_phone !== (companySettings.contact_phone || "") ||
+        companyForm.momsregnr !== (companySettings.momsregnr || "") ||
+        companyForm.f_skatt !== (companySettings.f_skatt ?? true);
       setHasCompanyChanges(hasChanges);
     } else {
       // If no settings exist yet, check if any field has content
-      const hasContent = Object.values(companyForm).some(v => v.trim() !== "");
+      const hasContent = Object.entries(companyForm).some(([key, v]) => 
+        key !== "f_skatt" && typeof v === "string" && v.trim() !== ""
+      );
       setHasCompanyChanges(hasContent);
     }
   }, [companyForm, companySettings]);
@@ -128,6 +142,10 @@ export default function Settings() {
         email: companyData.email || "",
         website: companyData.website || "",
         bankgiro: companyData.bankgiro || "",
+        contact_person: (companyData as any).contact_person || "",
+        contact_phone: (companyData as any).contact_phone || "",
+        momsregnr: (companyData as any).momsregnr || "",
+        f_skatt: (companyData as any).f_skatt ?? true,
       });
       setLogoUrl(companyData.logo_url || null);
     }
@@ -605,6 +623,65 @@ export default function Settings() {
                   placeholder="123-4567"
                   className="pl-10"
                 />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Quote/Offer specific fields */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="contact_person" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Vår referens (namn)
+              </Label>
+              <Input
+                id="contact_person"
+                value={companyForm.contact_person}
+                onChange={(e) => updateCompanyField("contact_person", e.target.value)}
+                placeholder="Anna Andersson"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Referens telefon
+              </Label>
+              <Input
+                id="contact_phone"
+                value={companyForm.contact_phone}
+                onChange={(e) => updateCompanyField("contact_phone", e.target.value)}
+                placeholder="070-123 45 67"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="momsregnr" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Momsreg.nr
+              </Label>
+              <Input
+                id="momsregnr"
+                value={companyForm.momsregnr}
+                onChange={(e) => updateCompanyField("momsregnr", e.target.value)}
+                placeholder="SE559416189401"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Godkänd för F-skatt
+              </Label>
+              <div className="flex items-center gap-2 h-10">
+                <input
+                  type="checkbox"
+                  id="f_skatt"
+                  checked={companyForm.f_skatt}
+                  onChange={(e) => setCompanyForm(prev => ({ ...prev, f_skatt: e.target.checked }))}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <Label htmlFor="f_skatt" className="text-sm font-normal">
+                  Ja, företaget är godkänt för F-skatt
+                </Label>
               </div>
             </div>
           </div>

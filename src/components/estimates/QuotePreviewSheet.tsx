@@ -1,5 +1,5 @@
 import { format, addDays } from "date-fns";
-import { X, FileText } from "lucide-react";
+import { FileText, RefreshCw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -8,7 +8,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 interface CompanyInfo {
   company_name?: string;
@@ -21,6 +21,10 @@ interface CompanyInfo {
   website?: string;
   bankgiro?: string;
   logo_url?: string;
+  contact_person?: string;
+  contact_phone?: string;
+  momsregnr?: string;
+  f_skatt?: boolean;
 }
 
 interface EstimateItem {
@@ -47,6 +51,7 @@ interface QuotePreviewSheetProps {
   rotPercent: number;
   offerNumber?: string;
   validDays?: number;
+  onRefresh?: () => void;
 }
 
 export function QuotePreviewSheet({
@@ -62,6 +67,7 @@ export function QuotePreviewSheet({
   rotPercent,
   offerNumber = "OFF-001",
   validDays = 30,
+  onRefresh,
 }: QuotePreviewSheetProps) {
   const today = new Date();
   const validUntil = addDays(today, validDays);
@@ -82,289 +88,398 @@ export function QuotePreviewSheet({
   const totalExclVat = subtotal + markup;
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;
-  const rotAmount = rotEnabled ? laborCost * (rotPercent / 100) : 0;
+  
+  // ROT calculation on labor cost including VAT (30% of labor cost * 1.25)
+  const laborWithVat = laborCost * 1.25;
+  const rotAmount = rotEnabled ? laborWithVat * (rotPercent / 100) : 0;
   const amountToPay = totalInclVat - rotAmount;
 
   const formatCurrency = (num: number) =>
     new Intl.NumberFormat("sv-SE").format(Math.round(num));
 
-  const laborItems = items.filter((i) => i.type === "labor");
+  // Parse address into lines
+  const parseAddress = (address?: string) => {
+    if (!address) return [];
+    return address.split(",").map((s) => s.trim()).filter(Boolean);
+  };
+
+  const customerAddressLines = parseAddress(project?.address);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0">
+      <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
         <SheetHeader className="p-6 pb-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <FileText className="h-5 w-5 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <SheetTitle>Förhandsgranska offert</SheetTitle>
+                <SheetDescription>
+                  Så här ser offerten ut för kunden
+                </SheetDescription>
+              </div>
             </div>
-            <div>
-              <SheetTitle>Förhandsgranska offert</SheetTitle>
-              <SheetDescription>
-                Så här ser offerten ut för kunden
-              </SheetDescription>
-            </div>
+            {onRefresh && (
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Uppdatera
+              </Button>
+            )}
           </div>
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-100px)]">
-          <div className="p-6 space-y-6">
-            {/* Header with logo and title */}
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
+          {/* ============ PAGE 1 - Main Quote ============ */}
+          <div className="bg-white text-black p-8 min-h-[297mm] relative">
+            {/* Header with logo and offer title */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
                 {company?.logo_url && (
                   <img
                     src={company.logo_url}
                     alt="Företagslogotyp"
-                    className="h-12 w-auto mb-2 object-contain"
+                    className="h-16 w-auto mb-4 object-contain"
                   />
-                )}
-                <p className="font-semibold text-foreground">
-                  {company?.company_name || "Ditt Företag AB"}
-                </p>
-                {company?.org_number && (
-                  <p className="text-xs text-muted-foreground">
-                    Org.nr: {company.org_number}
-                  </p>
-                )}
-                {company?.address && (
-                  <p className="text-xs text-muted-foreground">
-                    {company.address}
-                  </p>
-                )}
-                {company?.postal_code && company?.city && (
-                  <p className="text-xs text-muted-foreground">
-                    {company.postal_code} {company.city}
-                  </p>
-                )}
-                {company?.phone && (
-                  <p className="text-xs text-muted-foreground">
-                    Tel: {company.phone}
-                  </p>
-                )}
-                {company?.email && (
-                  <p className="text-xs text-muted-foreground">
-                    {company.email}
-                  </p>
                 )}
               </div>
               <div className="text-right">
-                <h2 className="text-2xl font-bold text-primary">OFFERT</h2>
-                <p className="text-sm text-foreground">Nr: {offerNumber}</p>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-3xl font-bold text-black mb-2">Offert</h1>
+                <p className="text-sm text-gray-600">Nr: {offerNumber}</p>
+              </div>
+            </div>
+
+            {/* Reference and customer info */}
+            <div className="grid grid-cols-2 gap-8 mb-8 border-t border-b border-gray-300 py-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Vår referens</p>
+                <p className="font-medium text-black">
+                  {company?.contact_person || "–"}
+                  {company?.contact_phone && ` ${company.contact_phone}`}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
                   Datum: {format(today, "yyyy-MM-dd")}
                 </p>
               </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Kund</p>
+                <p className="font-medium text-black">{project?.client_name || "–"}</p>
+                {customerAddressLines.map((line, idx) => (
+                  <p key={idx} className="text-sm text-gray-600">{line}</p>
+                ))}
+              </div>
             </div>
 
-            <Separator className="bg-primary/30" />
-
-            {/* Customer and project info */}
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Kund
-                </p>
-                <p className="font-medium text-foreground">
-                  {project?.client_name || "–"}
-                </p>
-                {project?.address && (
-                  <p className="text-sm text-muted-foreground">
-                    {project.address}
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Projekt
-                </p>
-                <p className="font-medium text-foreground">
-                  {project?.name || "–"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Giltig t.o.m. {format(validUntil, "yyyy-MM-dd")}
-                </p>
-              </div>
+            {/* Project name */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-black mb-2">
+                Projekt: {project?.name || "–"}
+              </h2>
             </div>
 
             {/* Project description */}
-            <div>
-              <p className="text-sm font-semibold text-primary mb-2">
-                PROJEKTBESKRIVNING
-              </p>
-              <p className="text-sm text-foreground leading-relaxed">
+            <div className="mb-6">
+              <h3 className="font-bold text-black mb-2">Projektbeskrivning</h3>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                 {scope || "Ej angiven"}
               </p>
             </div>
 
-            {/* Conditions */}
+            {/* Work items / Arbete */}
             {assumptions && assumptions.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-primary mb-2">
-                  FÖRUTSÄTTNINGAR
-                </p>
+              <div className="mb-6">
+                <h3 className="font-bold text-black mb-2">Arbete:</h3>
                 <ul className="space-y-1">
-                  {assumptions.map((condition, idx) => (
-                    <li
-                      key={idx}
-                      className="text-sm text-foreground flex items-start gap-2"
-                    >
-                      <span className="text-muted-foreground">•</span>
-                      {condition}
+                  {assumptions.map((item, idx) => (
+                    <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      {item}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Work items table */}
-            {laborItems.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-primary mb-2">
-                  ARBETE
-                </p>
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
+            {/* Price table */}
+            <div className="mb-6">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-400">
+                    <th className="text-left py-2 font-bold text-black">Beskrivning</th>
+                    <th className="text-right py-2 font-bold text-black w-20">Antal</th>
+                    <th className="text-right py-2 font-bold text-black w-16">Enhet</th>
+                    <th className="text-right py-2 font-bold text-black w-24">À-pris</th>
+                    <th className="text-right py-2 font-bold text-black w-24">Summa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} className="border-b border-gray-200">
+                      <td className="py-2 text-gray-800">{item.moment}</td>
+                      <td className="py-2 text-right text-gray-600">
+                        {item.type === "labor" ? item.hours : item.quantity}
+                      </td>
+                      <td className="py-2 text-right text-gray-600">
+                        {item.type === "labor" ? "h" : item.unit}
+                      </td>
+                      <td className="py-2 text-right text-gray-600">
+                        {formatCurrency(item.unit_price)}
+                      </td>
+                      <td className="py-2 text-right font-medium text-black">
+                        {formatCurrency(item.subtotal)}
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {/* Subtotals */}
+                  <tr className="border-t-2 border-gray-400">
+                    <td colSpan={4} className="py-2 text-right font-medium text-black">
+                      Summa exkl. moms
+                    </td>
+                    <td className="py-2 text-right font-medium text-black">
+                      {formatCurrency(totalExclVat)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={4} className="py-2 text-right text-gray-600">
+                      Moms 25%
+                    </td>
+                    <td className="py-2 text-right text-gray-600">
+                      {formatCurrency(vat)}
+                    </td>
+                  </tr>
+                  <tr className="border-t border-gray-300">
+                    <td colSpan={4} className="py-2 text-right font-bold text-black">
+                      Totalt inkl. moms
+                    </td>
+                    <td className="py-2 text-right font-bold text-black">
+                      {formatCurrency(totalInclVat)}
+                    </td>
+                  </tr>
+                  
+                  {rotEnabled && (
+                    <>
                       <tr>
-                        <th className="text-left p-2 text-xs font-semibold text-muted-foreground">
-                          Arbetsmoment
-                        </th>
-                        <th className="text-right p-2 text-xs font-semibold text-muted-foreground">
-                          Timmar
-                        </th>
-                        <th className="text-right p-2 text-xs font-semibold text-muted-foreground">
-                          À-pris
-                        </th>
-                        <th className="text-right p-2 text-xs font-semibold text-muted-foreground">
-                          Summa
-                        </th>
+                        <td colSpan={4} className="py-2 text-right text-gray-600 italic">
+                          * {rotPercent}% ROT-avdrag inkl moms
+                        </td>
+                        <td className="py-2 text-right text-gray-600 italic">
+                          -{formatCurrency(rotAmount)}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {laborItems.map((item) => (
-                        <tr key={item.id} className="border-t border-muted/30">
-                          <td className="p-2 text-foreground">{item.moment}</td>
-                          <td className="p-2 text-right text-muted-foreground">
-                            {item.hours || "–"}
-                          </td>
-                          <td className="p-2 text-right text-muted-foreground">
-                            {formatCurrency(item.unit_price)} kr
-                          </td>
-                          <td className="p-2 text-right font-medium text-foreground">
-                            {formatCurrency(item.subtotal)} kr
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Price summary */}
-            <div>
-              <p className="text-sm font-semibold text-primary mb-2">
-                PRISSAMMANSTÄLLNING
-              </p>
-              <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Arbetskostnad</span>
-                  <span className="text-foreground">
-                    {formatCurrency(laborCost)} kr
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Materialkostnad</span>
-                  <span className="text-foreground">
-                    {formatCurrency(materialCost)} kr
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Underentreprenörer
-                  </span>
-                  <span className="text-foreground">
-                    {formatCurrency(subcontractorCost)} kr
-                  </span>
-                </div>
-
-                <Separator className="my-2" />
-
-                <div className="flex justify-between text-sm font-medium">
-                  <span className="text-foreground">Summa exkl. moms</span>
-                  <span className="text-foreground">
-                    {formatCurrency(totalExclVat)} kr
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Moms 25%</span>
-                  <span className="text-foreground">
-                    {formatCurrency(vat)} kr
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-sm font-semibold bg-primary text-primary-foreground rounded-md p-2 -mx-2">
-                  <span>Totalt inkl. moms</span>
-                  <span>{formatCurrency(totalInclVat)} kr</span>
-                </div>
-
-                {rotEnabled && (
-                  <>
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>
-                        ROT-avdrag ({rotPercent}% på arbetskostnad)
-                      </span>
-                      <span>-{formatCurrency(rotAmount)} kr</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold bg-foreground text-background rounded-md p-2 -mx-2">
-                      <span>ATT BETALA</span>
-                      <span>{formatCurrency(amountToPay)} kr</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div>
-              <p className="text-sm font-semibold text-primary mb-2">VILLKOR</p>
-              <ul className="space-y-1">
-                <li className="text-sm text-foreground flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  Offerten är giltig i {validDays} dagar från offertdatum.
-                </li>
-                <li className="text-sm text-foreground flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  Betalningsvillkor: 30 dagar netto
-                </li>
-                {company?.bankgiro && (
-                  <li className="text-sm text-foreground flex items-start gap-2">
-                    <span className="text-muted-foreground">•</span>
-                    Bankgiro: {company.bankgiro}
-                  </li>
-                )}
-                {rotEnabled && (
-                  <li className="text-sm text-foreground flex items-start gap-2">
-                    <span className="text-muted-foreground">•</span>
-                    ROT-avdrag: Kunden ansvarar för att uppfylla kraven för
-                    ROT-avdrag.
-                  </li>
-                )}
-              </ul>
+                      <tr className="bg-gray-100">
+                        <td colSpan={4} className="py-3 text-right font-bold text-black text-lg">
+                          Att betala
+                        </td>
+                        <td className="py-3 text-right font-bold text-black text-lg">
+                          {formatCurrency(amountToPay)}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {/* Footer */}
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground text-center">
-                {[
-                  company?.company_name,
-                  company?.phone ? `Tel: ${company.phone}` : null,
-                  company?.email,
-                ]
-                  .filter(Boolean)
-                  .join("  •  ")}
+            <div className="absolute bottom-8 left-8 right-8 border-t border-gray-300 pt-4">
+              <div className="grid grid-cols-4 gap-4 text-xs text-gray-600">
+                <div>
+                  <p className="font-medium text-black">Postadress</p>
+                  <p>{company?.company_name || "–"}</p>
+                  <p>{company?.address || "–"}</p>
+                  <p>{company?.postal_code} {company?.city}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Telefon</p>
+                  <p>{company?.phone || "–"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Bankgiro</p>
+                  <p>{company?.bankgiro || "–"}</p>
+                  {company?.momsregnr && (
+                    <>
+                      <p className="font-medium text-black mt-2">Momsreg.nr</p>
+                      <p>{company.momsregnr}</p>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-black">Godkänd för F-skatt</p>
+                  <p>{company?.f_skatt !== false ? "Ja" : "Nej"}</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 text-right mt-2">Sida 1 (3)</p>
+            </div>
+          </div>
+
+          {/* ============ PAGE 2 - Acceptance ============ */}
+          <div className="bg-white text-black p-8 min-h-[297mm] relative border-t-4 border-gray-200">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                {company?.logo_url && (
+                  <img
+                    src={company.logo_url}
+                    alt="Företagslogotyp"
+                    className="h-12 w-auto object-contain"
+                  />
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Offert Nr: {offerNumber}</p>
+              </div>
+            </div>
+
+            <div className="mb-12">
+              <p className="text-lg text-gray-800 mb-8">Med vänliga hälsningar</p>
+              <p className="font-bold text-black text-lg">{company?.contact_person || "–"}</p>
+              {company?.contact_phone && (
+                <p className="text-gray-600">Mobil: {company.contact_phone}</p>
+              )}
+              {company?.email && (
+                <p className="text-gray-600">E-post: {company.email}</p>
+              )}
+            </div>
+
+            <div className="border-t border-gray-300 pt-8">
+              <h3 className="font-bold text-black text-lg mb-8">Acceptera ovanstående</h3>
+              
+              <div className="space-y-6">
+                <div className="flex items-end gap-2">
+                  <span className="text-gray-800">Ort:</span>
+                  <div className="flex-1 border-b border-dotted border-gray-400 h-6"></div>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-gray-800">Datum:</span>
+                  <div className="flex-1 border-b border-dotted border-gray-400 h-6"></div>
+                </div>
+                <div className="mt-12">
+                  <div className="border-b border-dotted border-gray-400 h-12 mb-2"></div>
+                  <p className="text-xs text-gray-500 italic">Namnteckning</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 mt-12">
+                Undertecknat dokument mailas till {company?.email || "info@foretag.se"}
               </p>
+            </div>
+
+            {/* Footer */}
+            <div className="absolute bottom-8 left-8 right-8 border-t border-gray-300 pt-4">
+              <div className="grid grid-cols-4 gap-4 text-xs text-gray-600">
+                <div>
+                  <p className="font-medium text-black">Postadress</p>
+                  <p>{company?.company_name || "–"}</p>
+                  <p>{company?.address || "–"}</p>
+                  <p>{company?.postal_code} {company?.city}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Telefon</p>
+                  <p>{company?.phone || "–"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Bankgiro</p>
+                  <p>{company?.bankgiro || "–"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Godkänd för F-skatt</p>
+                  <p>{company?.f_skatt !== false ? "Ja" : "Nej"}</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 text-right mt-2">Sida 2 (3)</p>
+            </div>
+          </div>
+
+          {/* ============ PAGE 3 - Terms ============ */}
+          <div className="bg-white text-black p-8 min-h-[297mm] relative border-t-4 border-gray-200">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                {company?.logo_url && (
+                  <img
+                    src={company.logo_url}
+                    alt="Företagslogotyp"
+                    className="h-12 w-auto object-contain"
+                  />
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Offert Nr: {offerNumber}</p>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-black mb-8">Förutsättningar & villkor</h2>
+
+            <div className="space-y-6 text-sm text-gray-800">
+              <div>
+                <h4 className="font-bold text-black mb-2">Offertens giltighetstid</h4>
+                <p>
+                  Offertens giltighetstid gäller {validDays} dagar från ovanstående datum.
+                  Giltig t.o.m. {format(validUntil, "yyyy-MM-dd")}.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-black mb-2">Betalningsvillkor</h4>
+                <p>10 dagar netto.</p>
+              </div>
+
+              {rotEnabled && (
+                <div>
+                  <h4 className="font-bold text-black mb-2">ROT</h4>
+                  <p>
+                    För fullständig information om hur ROT-avdraget fungerar hänvisar vi till 
+                    Skatteverkets hemsida www.skatteverket.se. Kunden ansvarar för att kraven 
+                    för ROT-avdrag uppfylls.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <h4 className="font-bold text-black mb-2">Personuppgifter</h4>
+                <p>
+                  Vid godkännande av denna offert accepterar du att vi behandlar dina 
+                  personuppgifter i enlighet med GDPR. Vi sparar endast de uppgifter som 
+                  är nödvändiga för att fullfölja vårt avtal med dig. Läs mer på vår 
+                  hemsida {company?.website || "www.foretag.se"}.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-black mb-2">Övrigt</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Arbetet utförs enligt gällande branschregler</li>
+                  <li>Eventuella tillkommande arbeten faktureras enligt överenskommelse</li>
+                  <li>Garanti enligt konsumenttjänstlagen</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="absolute bottom-8 left-8 right-8 border-t border-gray-300 pt-4">
+              <div className="grid grid-cols-4 gap-4 text-xs text-gray-600">
+                <div>
+                  <p className="font-medium text-black">Postadress</p>
+                  <p>{company?.company_name || "–"}</p>
+                  <p>{company?.address || "–"}</p>
+                  <p>{company?.postal_code} {company?.city}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Telefon</p>
+                  <p>{company?.phone || "–"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Bankgiro</p>
+                  <p>{company?.bankgiro || "–"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-black">Godkänd för F-skatt</p>
+                  <p>{company?.f_skatt !== false ? "Ja" : "Nej"}</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 text-right mt-2">Sida 3 (3)</p>
             </div>
           </div>
         </ScrollArea>
