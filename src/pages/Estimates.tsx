@@ -47,7 +47,7 @@ import { EstimateSummary } from "@/components/estimates/EstimateSummary";
 import { EstimateTable, type EstimateItem } from "@/components/estimates/EstimateTable";
 import { EstimateTotals } from "@/components/estimates/EstimateTotals";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
-import { TemplateSelector } from "@/components/estimates/TemplateSelector";
+
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
@@ -454,10 +454,6 @@ export default function Estimates() {
       return;
     }
 
-    if (!selectedTemplateId) {
-      toast.error("Välj en offertmall först");
-      return;
-    }
 
     const selectedProject = projects?.find((p) => p.id === selectedProjectId);
     const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
@@ -694,19 +690,6 @@ export default function Estimates() {
           </Select>
         </div>
 
-        {/* Template selector - only show when creating new estimate */}
-        {selectedProjectId && (viewState === "empty" || viewState === "input") && (
-          <div className="space-y-1.5">
-            <Label>Offertmall</Label>
-            <TemplateSelector
-              templates={templates || []}
-              selectedTemplateId={selectedTemplateId}
-              onSelectTemplate={setSelectedTemplateId}
-              onTemplateCreated={() => refetchTemplates()}
-              disabled={templatesLoading}
-            />
-          </div>
-        )}
       </div>
 
       {/* Empty state - no project selected */}
@@ -732,13 +715,11 @@ export default function Estimates() {
             <Calculator className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">Ingen offert ännu</h3>
             <p className="text-muted-foreground max-w-md mx-auto mb-6">
-              {selectedTemplateId 
-                ? "Fyll i mängder och detaljer via röst eller text."
-                : "Välj en offertmall ovan, sedan kan du fylla i mängderna via röst."}
+              Fyll i mängder och detaljer via röst eller text.
             </p>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button disabled={!selectedTemplateId}>
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Skapa offert
                   <ChevronDown className="h-4 w-4 ml-2" />
