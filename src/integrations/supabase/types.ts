@@ -20,10 +20,14 @@ export type Database = {
           bankgiro: string | null
           city: string | null
           company_name: string | null
+          contact_person: string | null
+          contact_phone: string | null
           created_at: string | null
           email: string | null
+          f_skatt: boolean | null
           id: string
           logo_url: string | null
+          momsregnr: string | null
           org_number: string | null
           phone: string | null
           postal_code: string | null
@@ -36,10 +40,14 @@ export type Database = {
           bankgiro?: string | null
           city?: string | null
           company_name?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           email?: string | null
+          f_skatt?: boolean | null
           id?: string
           logo_url?: string | null
+          momsregnr?: string | null
           org_number?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -52,10 +60,14 @@ export type Database = {
           bankgiro?: string | null
           city?: string | null
           company_name?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           email?: string | null
+          f_skatt?: boolean | null
           id?: string
           logo_url?: string | null
+          momsregnr?: string | null
           org_number?: string | null
           phone?: string | null
           postal_code?: string | null

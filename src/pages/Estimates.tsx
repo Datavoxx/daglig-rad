@@ -1209,6 +1209,7 @@ export default function Estimates() {
         rotEnabled={rotEnabled}
         rotPercent={rotPercent}
         offerNumber={existingEstimate?.id ? `OFF-${existingEstimate.id.substring(0, 6).toUpperCase()}` : "OFF-001"}
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ["project-estimate", selectedProjectId] })}
       />
     </div>
   );
