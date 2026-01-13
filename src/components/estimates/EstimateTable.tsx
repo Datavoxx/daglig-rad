@@ -333,10 +333,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                 {!readOnly && <TableHead className="w-10"></TableHead>}
                 <TableHead className="min-w-[180px]">Moment</TableHead>
                 <TableHead className="w-[90px]">Typ</TableHead>
-                <TableHead className="w-[90px] text-right">Antal</TableHead>
+                <TableHead className="w-[100px] text-right">Antal</TableHead>
                 <TableHead className="w-[80px]">Enhet</TableHead>
-                <TableHead className="w-[90px] text-right">Timmar</TableHead>
-                <TableHead className="w-[110px] text-right">Á-pris</TableHead>
+                <TableHead className="w-[100px] text-right">Timmar</TableHead>
+                <TableHead className="w-[120px] text-right">Á-pris</TableHead>
                 <TableHead className="w-[120px] text-right">Delkostnad</TableHead>
                 <TableHead className="w-[90px] text-center">Osäkerhet</TableHead>
                 {!readOnly && <TableHead className="w-[50px]"></TableHead>}
@@ -396,11 +396,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     ) : (
                       <Input
                         type="number"
-                        value={item.quantity ?? ""}
+                        value={item.quantity !== null ? item.quantity : ""}
                         onChange={(e) =>
                           updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
                         }
-                        className="h-8 text-right tabular-nums min-w-0"
+                        className="h-8 text-right tabular-nums bg-background border-input"
+                        placeholder="0"
                       />
                     )}
                   </TableCell>
@@ -431,11 +432,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     ) : (
                       <Input
                         type="number"
-                        value={item.hours ?? ""}
+                        value={item.hours !== null ? item.hours : ""}
                         onChange={(e) =>
                           updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
                         }
-                        className="h-8 text-right tabular-nums min-w-0"
+                        className="h-8 text-right tabular-nums bg-background border-input"
+                        placeholder="0"
                         disabled={item.type !== "labor"}
                       />
                     )}
@@ -446,11 +448,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                     ) : (
                       <Input
                         type="number"
-                        value={item.unit_price || ""}
+                        value={item.unit_price}
                         onChange={(e) =>
                           updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
                         }
-                        className="h-8 text-right"
+                        className="h-8 text-right tabular-nums bg-background border-input"
+                        placeholder="0"
                       />
                     )}
                   </TableCell>
