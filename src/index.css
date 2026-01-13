@@ -131,8 +131,8 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    font-size: 0.9375rem;
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -143,30 +143,30 @@
 @layer components {
   /* Premium page header */
   .page-header {
-    @apply mb-8;
+    @apply mb-6;
   }
 
   .page-title {
-    @apply text-[1.75rem] font-semibold tracking-tight text-foreground;
+    @apply text-xl font-semibold tracking-tight text-foreground;
   }
 
   .page-subtitle {
-    @apply text-muted-foreground mt-1 text-[0.9375rem];
+    @apply text-muted-foreground mt-0.5 text-sm;
   }
 
   /* Section titles */
   .section-title {
-    @apply text-base font-semibold tracking-tight;
+    @apply text-sm font-semibold tracking-tight;
   }
 
   /* Meta/caption text */
   .text-meta {
-    @apply text-[0.8125rem] text-muted-foreground;
+    @apply text-xs text-muted-foreground;
   }
 
   /* Premium filter bar */
   .filter-bar {
-    @apply flex items-center gap-3 p-1.5 bg-muted/40 rounded-xl;
+    @apply flex items-center gap-2 p-1 bg-muted/40 rounded-lg;
   }
 
   /* Content container with max-width */

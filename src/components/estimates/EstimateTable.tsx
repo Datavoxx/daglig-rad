@@ -355,9 +355,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
 
   // Desktop: Modern borderless table with Notion-style inline editing
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {/* Header row */}
-      <div className="grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="grid grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px] gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
         <div></div>
         <div>Moment</div>
         <div>Typ</div>
@@ -369,7 +369,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       </div>
 
       {/* Rows */}
-      <div className="space-y-px">
+      <div className="space-y-0">
         {items.map((item, index) => (
           <div
             key={item.id}
@@ -378,7 +378,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              "grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1 items-center rounded-md transition-all duration-150 group stagger-item",
+              "grid grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px] gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
               draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
               focusedCell?.id === item.id && "bg-muted/50 shadow-sm"
             )}
@@ -387,7 +387,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             {/* Drag handle */}
             {!readOnly ? (
               <div className="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity">
-                <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                <GripVertical className="h-3 w-3 text-muted-foreground" />
               </div>
             ) : (
               <div />
@@ -419,7 +419,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
               </TooltipProvider>
               
               {readOnly ? (
-                <span className="text-sm truncate">{item.moment}</span>
+                <span className="text-[13px] truncate">{item.moment}</span>
               ) : (
                 <input
                   ref={(el) => el && inputRefs.current.set(`${item.id}-moment`, el)}
@@ -429,14 +429,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                   onBlur={() => setFocusedCell(null)}
                   onKeyDown={(e) => handleKeyDown(e, item.id, "moment")}
                   placeholder="Skriv moment..."
-                  className="w-full text-sm bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 -mx-1.5 truncate placeholder:text-muted-foreground/40"
+                  className="w-full text-[13px] bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1 py-0 -mx-1 truncate placeholder:text-muted-foreground/40"
                 />
               )}
             </div>
 
             {/* Type */}
             {readOnly ? (
-              <span className="text-sm text-muted-foreground">{TYPE_SHORT[item.type]}</span>
+              <span className="text-[13px] text-muted-foreground">{TYPE_SHORT[item.type]}</span>
             ) : (
               <Select
                 value={item.type}
@@ -444,7 +444,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                   updateItem(item.id, { type: value })
                 }
               >
-                <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1.5">
+                <SelectTrigger className="h-6 text-[11px] border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -457,7 +457,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
 
             {/* Quantity / Hours */}
             {readOnly ? (
-              <span className="text-sm text-right tabular-nums">
+              <span className="text-[13px] text-right tabular-nums">
                 {item.type === "labor" ? item.hours : item.quantity}
               </span>
             ) : (
@@ -477,13 +477,13 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                 onFocus={() => setFocusedCell({ id: item.id, field: "quantity" })}
                 onBlur={() => setFocusedCell(null)}
                 onKeyDown={(e) => handleKeyDown(e, item.id, "quantity")}
-                className="w-full text-sm text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 tabular-nums"
+                className="w-full text-[13px] text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1 py-0 tabular-nums"
               />
             )}
 
             {/* Unit */}
             {readOnly ? (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-[13px] text-muted-foreground">
                 {item.type === "labor" ? "h" : item.unit}
               </span>
             ) : (
@@ -491,7 +491,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                 value={item.unit}
                 onValueChange={(value) => updateItem(item.id, { unit: value })}
               >
-                <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
+                <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-0.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,7 +506,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
 
             {/* Unit price */}
             {readOnly ? (
-              <span className="text-sm text-right tabular-nums">{formatNumber(item.unit_price)}</span>
+              <span className="text-[13px] text-right tabular-nums">{formatNumber(item.unit_price)}</span>
             ) : (
               <input
                 ref={(el) => el && inputRefs.current.set(`${item.id}-unit_price`, el)}
@@ -518,12 +518,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                 onBlur={() => setFocusedCell(null)}
                 onKeyDown={(e) => handleKeyDown(e, item.id, "unit_price")}
                 placeholder="0"
-                className="w-full text-sm text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1.5 py-0.5 tabular-nums placeholder:text-muted-foreground/40"
+                className="w-full text-[13px] text-right bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1 py-0 tabular-nums placeholder:text-muted-foreground/40"
               />
             )}
 
             {/* Subtotal */}
-            <span className="text-sm text-right font-medium tabular-nums">
+            <span className="text-[13px] text-right font-medium tabular-nums">
               {formatNumber(item.subtotal)}
             </span>
 
@@ -531,9 +531,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             {!readOnly ? (
               <button
                 onClick={() => removeItem(item.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-destructive/10 rounded"
               >
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
               </button>
             ) : (
               <div />
@@ -546,9 +546,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       {!readOnly && (
         <button
           onClick={addItem}
-          className="w-full py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors flex items-center justify-center gap-1.5 mt-1"
+          className="w-full py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded transition-colors flex items-center justify-center gap-1 mt-0.5"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           Lägg till rad
         </button>
       )}

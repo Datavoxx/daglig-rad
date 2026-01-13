@@ -78,11 +78,11 @@ export function ClosingSection({
   };
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <div className="h-1 w-1 rounded-full bg-primary" />
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Villkor & Avslut
           </h2>
         </div>
@@ -92,18 +92,19 @@ export function ClosingSection({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
             >
               <FileCheck className="h-3 w-3 mr-1" />
               Mall
-              <ChevronDown className="h-3 w-3 ml-1" />
+              <ChevronDown className="h-3 w-3 ml-0.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-44">
             {templates.map((template) => (
               <DropdownMenuItem
                 key={template.id}
                 onClick={() => applyTemplate(template)}
+                className="text-[13px]"
               >
                 {template.name}
               </DropdownMenuItem>
@@ -113,7 +114,7 @@ export function ClosingSection({
       </div>
 
       <div
-        className={`relative rounded-md transition-colors ${
+        className={`relative rounded transition-colors ${
           isFocused ? "bg-muted/50" : "hover:bg-muted/30"
         }`}
       >
@@ -124,8 +125,8 @@ export function ClosingSection({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder="Lägg till villkor och avslutande text..."
-          className="w-full min-h-[80px] p-3 text-sm leading-relaxed bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 whitespace-pre-wrap"
-          rows={4}
+          className="w-full min-h-[60px] p-2 text-[13px] leading-relaxed bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 whitespace-pre-wrap"
+          rows={3}
         />
       </div>
     </section>
