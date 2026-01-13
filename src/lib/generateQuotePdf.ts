@@ -102,35 +102,71 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   // HEADER SECTION
   // ============================================
   
+  // Logo (if available)
+  let logoYOffset = 0;
+  if (data.company?.logo_url) {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load logo"));
+        img.src = data.company!.logo_url!;
+      });
+      
+      // Calculate dimensions maintaining aspect ratio
+      const maxWidth = 35;
+      const maxHeight = 20;
+      let imgWidth = img.width;
+      let imgHeight = img.height;
+      
+      if (imgWidth > maxWidth) {
+        imgHeight = (imgHeight * maxWidth) / imgWidth;
+        imgWidth = maxWidth;
+      }
+      if (imgHeight > maxHeight) {
+        imgWidth = (imgWidth * maxHeight) / imgHeight;
+        imgHeight = maxHeight;
+      }
+      
+      doc.addImage(img, 'PNG', margin, yPos - 3, imgWidth, imgHeight);
+      logoYOffset = imgHeight + 3;
+    } catch (e) {
+      // If logo fails to load, continue without it
+      console.warn("Could not load logo for PDF:", e);
+    }
+  }
+
   // Company info (left side)
+  const companyStartY = yPos + logoYOffset;
   doc.setFontSize(14);
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
-  doc.text(data.company?.company_name || "Ditt Företag AB", margin, yPos);
+  doc.text(data.company?.company_name || "Ditt Företag AB", margin, companyStartY);
   
-  yPos += 5;
+  let companyY = companyStartY + 5;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...MUTED);
   
   if (data.company?.org_number) {
-    doc.text(`Org.nr: ${data.company.org_number}`, margin, yPos);
-    yPos += 4;
+    doc.text(`Org.nr: ${data.company.org_number}`, margin, companyY);
+    companyY += 4;
   }
   if (data.company?.address) {
-    doc.text(data.company.address, margin, yPos);
-    yPos += 4;
+    doc.text(data.company.address, margin, companyY);
+    companyY += 4;
   }
   if (data.company?.postal_code && data.company?.city) {
-    doc.text(`${data.company.postal_code} ${data.company.city}`, margin, yPos);
-    yPos += 4;
+    doc.text(`${data.company.postal_code} ${data.company.city}`, margin, companyY);
+    companyY += 4;
   }
   if (data.company?.phone) {
-    doc.text(`Tel: ${data.company.phone}`, margin, yPos);
-    yPos += 4;
+    doc.text(`Tel: ${data.company.phone}`, margin, companyY);
+    companyY += 4;
   }
   if (data.company?.email) {
-    doc.text(data.company.email, margin, yPos);
+    doc.text(data.company.email, margin, companyY);
   }
 
   // OFFERT title (right side)

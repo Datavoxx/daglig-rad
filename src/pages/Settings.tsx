@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { User, Mail, Save, Loader2, Info, Building2, Phone, CreditCard, Globe } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Mail, Save, Loader2, Info, Building2, Phone, CreditCard, Globe, Upload, Trash2, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ interface CompanySettings {
   email: string;
   website: string;
   bankgiro: string;
+  logo_url?: string;
 }
 
 export default function Settings() {
@@ -51,6 +52,11 @@ export default function Settings() {
   });
   const [savingCompany, setSavingCompany] = useState(false);
   const [hasCompanyChanges, setHasCompanyChanges] = useState(false);
+  
+  // Logo state
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
 
@@ -123,9 +129,129 @@ export default function Settings() {
         website: companyData.website || "",
         bankgiro: companyData.bankgiro || "",
       });
+      setLogoUrl(companyData.logo_url || null);
     }
 
     setLoading(false);
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Filen är för stor",
+        description: "Max filstorlek är 2 MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Ogiltig filtyp",
+        description: "Välj en bild (PNG, JPG)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    setUploadingLogo(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${userData.user.id}/logo.${fileExt}`;
+
+      // Delete old logo if exists
+      await supabase.storage.from("company-logos").remove([filePath]);
+
+      // Upload new logo
+      const { error: uploadError } = await supabase.storage
+        .from("company-logos")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("company-logos")
+        .getPublicUrl(filePath);
+
+      const newLogoUrl = urlData.publicUrl;
+
+      // Update company settings with logo URL
+      if (companySettings?.id) {
+        await supabase
+          .from("company_settings")
+          .update({ logo_url: newLogoUrl })
+          .eq("id", companySettings.id);
+      } else {
+        // Create company settings with logo
+        const { data: newSettings, error: insertError } = await supabase
+          .from("company_settings")
+          .insert({ user_id: userData.user.id, logo_url: newLogoUrl })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+        if (newSettings) setCompanySettings(newSettings);
+      }
+
+      setLogoUrl(newLogoUrl);
+      toast({ title: "Logotyp uppladdad" });
+    } catch (error: any) {
+      toast({
+        title: "Kunde inte ladda upp logotyp",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user || !logoUrl) return;
+
+    setUploadingLogo(true);
+
+    try {
+      // Extract file path from URL
+      const urlParts = logoUrl.split("/");
+      const filePath = `${userData.user.id}/${urlParts[urlParts.length - 1]}`;
+
+      // Delete from storage
+      await supabase.storage.from("company-logos").remove([filePath]);
+
+      // Update company settings
+      if (companySettings?.id) {
+        await supabase
+          .from("company_settings")
+          .update({ logo_url: null })
+          .eq("id", companySettings.id);
+      }
+
+      setLogoUrl(null);
+      toast({ title: "Logotyp borttagen" });
+    } catch (error: any) {
+      toast({
+        title: "Kunde inte ta bort logotyp",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -292,6 +418,61 @@ export default function Settings() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Logo section */}
+          <div className="space-y-3">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Logotyp
+            </Label>
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed bg-muted/30 overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Företagslogga" className="h-full w-full object-contain p-1" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Ladda upp
+                </Button>
+                {logoUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeleteLogo}
+                    disabled={uploadingLogo}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Ta bort
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Visas på offerter och dokument (max 2 MB, PNG eller JPG)
+            </p>
+          </div>
+
+          <Separator />
+
           {/* Company name and org number */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
