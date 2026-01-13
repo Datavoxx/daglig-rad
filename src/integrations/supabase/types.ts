@@ -187,6 +187,50 @@ export type Database = {
           },
         ]
       }
+      estimate_addons: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          estimate_id: string
+          id: string
+          is_selected: boolean | null
+          name: string
+          price: number
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          estimate_id: string
+          id?: string
+          is_selected?: boolean | null
+          name: string
+          price?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          estimate_id?: string
+          id?: string
+          is_selected?: boolean | null
+          name?: string
+          price?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_addons_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "project_estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           comment: string | null
@@ -329,6 +373,39 @@ export type Database = {
           user_id?: string
           vat_percent?: number | null
           work_items?: Json | null
+        }
+        Relationships: []
+      }
+      estimate_text_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -569,9 +646,11 @@ export type Database = {
       project_estimates: {
         Row: {
           assumptions: Json | null
+          closing_text: string | null
           conditions: Json | null
           created_at: string | null
           id: string
+          introduction_text: string | null
           labor_cost: number | null
           markup_percent: number | null
           material_cost: number | null
@@ -596,9 +675,11 @@ export type Database = {
         }
         Insert: {
           assumptions?: Json | null
+          closing_text?: string | null
           conditions?: Json | null
           created_at?: string | null
           id?: string
+          introduction_text?: string | null
           labor_cost?: number | null
           markup_percent?: number | null
           material_cost?: number | null
@@ -623,9 +704,11 @@ export type Database = {
         }
         Update: {
           assumptions?: Json | null
+          closing_text?: string | null
           conditions?: Json | null
           created_at?: string | null
           id?: string
+          introduction_text?: string | null
           labor_cost?: number | null
           markup_percent?: number | null
           material_cost?: number | null

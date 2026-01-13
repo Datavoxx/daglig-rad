@@ -1,0 +1,141 @@
+import { Button } from "@/components/ui/button";
+import { Save, Download, Eye, Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface StickyTotalsProps {
+  laborCost: number;
+  materialCost: number;
+  subcontractorCost: number;
+  addonsCost: number;
+  markup: number;
+  vat: number;
+  totalInclVat: number;
+  rotAmount: number;
+  amountToPay: number;
+  rotEnabled: boolean;
+  onSave: () => void;
+  onDownload: () => void;
+  onPreview?: () => void;
+  isSaving?: boolean;
+}
+
+export function StickyTotals({
+  laborCost,
+  materialCost,
+  subcontractorCost,
+  addonsCost,
+  markup,
+  vat,
+  totalInclVat,
+  rotAmount,
+  amountToPay,
+  rotEnabled,
+  onSave,
+  onDownload,
+  onPreview,
+  isSaving = false,
+}: StickyTotalsProps) {
+  const isMobile = useIsMobile();
+
+  const formatNumber = (num: number) =>
+    new Intl.NumberFormat("sv-SE").format(Math.round(num));
+
+  // Mobile: simplified view with just total and buttons
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg p-4 z-50">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Totalt inkl. moms</p>
+            <p className="text-xl font-bold text-primary">
+              {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
+            </p>
+            {rotEnabled && (
+              <p className="text-xs text-muted-foreground">
+                Efter ROT-avdrag
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {onPreview && (
+              <Button variant="outline" size="icon" onClick={onPreview}>
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+            <Button variant="outline" size="icon" onClick={onDownload}>
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button onClick={onSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: full breakdown
+  return (
+    <div className="sticky bottom-0 bg-background border-t shadow-lg p-4 -mx-6 -mb-6 mt-6">
+      <div className="flex items-center justify-between gap-6 max-w-none">
+        <div className="flex items-center gap-6 text-sm">
+          <div className="hidden lg:block">
+            <span className="text-muted-foreground">Arbete:</span>
+            <span className="ml-1 font-medium">{formatNumber(laborCost)}</span>
+          </div>
+          <div className="hidden lg:block">
+            <span className="text-muted-foreground">Material:</span>
+            <span className="ml-1 font-medium">{formatNumber(materialCost)}</span>
+          </div>
+          <div className="hidden xl:block">
+            <span className="text-muted-foreground">UE:</span>
+            <span className="ml-1 font-medium">{formatNumber(subcontractorCost)}</span>
+          </div>
+          {addonsCost > 0 && (
+            <div className="hidden xl:block">
+              <span className="text-muted-foreground">Tillval:</span>
+              <span className="ml-1 font-medium">{formatNumber(addonsCost)}</span>
+            </div>
+          )}
+          <div className="hidden md:block">
+            <span className="text-muted-foreground">Påslag:</span>
+            <span className="ml-1 font-medium">{formatNumber(markup)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Moms:</span>
+            <span className="ml-1 font-medium">{formatNumber(vat)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">
+              {rotEnabled ? "Att betala (efter ROT)" : "Totalt inkl. moms"}
+            </p>
+            <p className="text-2xl font-bold text-primary">
+              {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Ladda ner
+            </Button>
+            <Button onClick={onSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Spara
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
