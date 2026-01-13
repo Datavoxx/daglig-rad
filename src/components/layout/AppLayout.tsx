@@ -163,10 +163,14 @@ export function AppLayout() {
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Brand - larger logo */}
-      <div className="flex h-20 items-center justify-center border-b border-sidebar-border p-1">
-        <img src={byggioLogo} alt="Byggio" className="w-full h-full object-contain" />
-        </div>
+        {/* Brand - clickable logo */}
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-1 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
+          aria-label="Gå till dashboard"
+        >
+          <img src={byggioLogo} alt="Byggio" className="w-full h-full object-contain hover:scale-105 transition-transform" />
+        </button>
 
         {/* Navigation */}
         <TooltipProvider delayDuration={0}>

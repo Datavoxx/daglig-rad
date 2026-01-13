@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ProtectedModuleRoute } from "@/components/auth/ProtectedModuleRoute";
 import Auth from "@/pages/Auth";
+import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
 import Reports from "@/pages/Reports";
 import ReportNew from "@/pages/ReportNew";
@@ -40,7 +41,8 @@ const App = () => {
 
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/projects" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
               <Route path="/reports" element={<ProtectedModuleRoute module="reports"><Reports /></ProtectedModuleRoute>} />
               <Route path="/reports/new" element={<ProtectedModuleRoute module="reports"><ReportNew /></ProtectedModuleRoute>} />
