@@ -378,10 +378,11 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              "grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1 items-center rounded-md transition-colors group",
-              draggedIndex === index ? "opacity-50 bg-muted" : "hover:bg-muted/40",
-              focusedCell?.id === item.id && "bg-muted/50"
+              "grid grid-cols-[24px_1fr_70px_60px_50px_80px_90px_32px] gap-1 px-1 py-1 items-center rounded-md transition-all duration-150 group stagger-item",
+              draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
+              focusedCell?.id === item.id && "bg-muted/50 shadow-sm"
             )}
+            style={{ animationDelay: `${index * 30}ms` }}
           >
             {/* Drag handle */}
             {!readOnly ? (

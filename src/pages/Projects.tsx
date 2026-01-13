@@ -277,10 +277,11 @@ export default function Projects() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map((project) => (
+          {filteredProjects.map((project, index) => (
             <Card
               key={project.id}
-              className="group relative cursor-pointer hover:shadow-elevated hover:-translate-y-0.5"
+              className="group relative cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 stagger-item"
+              style={{ animationDelay: `${index * 40}ms` }}
               onClick={() => navigate(`/reports/new?project=${project.id}`)}
             >
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">

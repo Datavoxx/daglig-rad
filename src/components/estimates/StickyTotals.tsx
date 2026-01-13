@@ -80,52 +80,52 @@ export function StickyTotals({
 
   // Desktop: full breakdown
   return (
-    <div className="sticky bottom-0 bg-background border-t shadow-lg p-4 -mx-6 -mb-6 mt-6">
+    <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t shadow-lg p-4 -mx-6 -mb-6 mt-6 animate-slide-in-bottom">
       <div className="flex items-center justify-between gap-6 max-w-none">
         <div className="flex items-center gap-6 text-sm">
           <div className="hidden lg:block">
             <span className="text-muted-foreground">Arbete:</span>
-            <span className="ml-1 font-medium">{formatNumber(laborCost)}</span>
+            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(laborCost)}</span>
           </div>
           <div className="hidden lg:block">
             <span className="text-muted-foreground">Material:</span>
-            <span className="ml-1 font-medium">{formatNumber(materialCost)}</span>
+            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(materialCost)}</span>
           </div>
           <div className="hidden xl:block">
             <span className="text-muted-foreground">UE:</span>
-            <span className="ml-1 font-medium">{formatNumber(subcontractorCost)}</span>
+            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(subcontractorCost)}</span>
           </div>
           {addonsCost > 0 && (
             <div className="hidden xl:block">
               <span className="text-muted-foreground">Tillval:</span>
-              <span className="ml-1 font-medium">{formatNumber(addonsCost)}</span>
+              <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(addonsCost)}</span>
             </div>
           )}
           <div className="hidden md:block">
             <span className="text-muted-foreground">Påslag:</span>
-            <span className="ml-1 font-medium">{formatNumber(markup)}</span>
+            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(markup)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Moms:</span>
-            <span className="ml-1 font-medium">{formatNumber(vat)}</span>
+            <span className="ml-1 font-medium tabular-nums number-animate">{formatNumber(vat)}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground transition-opacity duration-200">
               {rotEnabled ? "Att betala (efter ROT)" : "Totalt inkl. moms"}
             </p>
-            <p className="text-2xl font-bold text-primary">
+            <p className="text-2xl font-bold text-primary tabular-nums number-animate">
               {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onDownload}>
+            <Button variant="outline" onClick={onDownload} className="transition-all duration-200 hover:shadow-md">
               <Download className="h-4 w-4 mr-2" />
               Ladda ner
             </Button>
-            <Button onClick={onSave} disabled={isSaving}>
+            <Button onClick={onSave} disabled={isSaving} className="transition-all duration-200 hover:shadow-md">
               {isSaving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
