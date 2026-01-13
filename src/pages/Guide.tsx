@@ -160,7 +160,7 @@ export default function Guide() {
         </CardContent>
       </Card>
 
-      {/* Kalkyler */}
+      {/* Offerter */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -168,14 +168,14 @@ export default function Guide() {
               <Calculator className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Kalkyler</CardTitle>
+              <CardTitle>Offerter</CardTitle>
               <CardDescription>Skapa detaljerade kostnadsberäkningar</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Kalkylfunktionen låter dig skapa detaljerade kostnadsberäkningar för dina projekt. 
+            Offertfunktionen låter dig skapa detaljerade kostnadsberäkningar för dina projekt. 
             Använd mallar med fördefinierade arbetsmoment och timpriser för att snabbt ta fram offerter.
           </p>
 

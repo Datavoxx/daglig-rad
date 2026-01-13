@@ -83,7 +83,7 @@ export async function generateEstimatePdf(data: EstimateData): Promise<void> {
   let yPos = 50;
   doc.setFontSize(32);
   doc.setTextColor(...PRIMARY);
-  doc.text("PROJEKTKALKYL", pageWidth / 2, yPos, { align: "center" });
+  doc.text("PROJEKTOFFERT", pageWidth / 2, yPos, { align: "center" });
   
   // Divider
   yPos += 10;
@@ -162,7 +162,7 @@ export async function generateEstimatePdf(data: EstimateData): Promise<void> {
   yPos = 20;
   doc.setFontSize(16);
   doc.setTextColor(...PRIMARY);
-  doc.text("KALKYLSPECIFIKATION", margin, yPos);
+  doc.text("OFFERTSPECIFIKATION", margin, yPos);
   
   yPos += 10;
   
@@ -288,7 +288,7 @@ export async function generateEstimatePdf(data: EstimateData): Promise<void> {
     .replace(/[^a-zåäö0-9]+/g, "_")
     .replace(/^_|_$/g, "");
   const dateForFile = format(new Date(), "yyyy-MM-dd");
-  const filename = `kalkyl_${projectName}_${dateForFile}.pdf`;
+  const filename = `offert_${projectName}_${dateForFile}.pdf`;
   
   doc.save(filename);
 }

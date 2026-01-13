@@ -332,12 +332,12 @@ export default function Estimates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-estimate", selectedProjectId] });
-      toast.success("Kalkylen har sparats");
+      toast.success("Offerten har sparats");
       setViewState("view");
     },
     onError: (error) => {
       console.error("Failed to save estimate:", error);
-      toast.error("Kunde inte spara kalkylen");
+      toast.error("Kunde inte spara offerten");
     },
   });
 
@@ -355,11 +355,11 @@ export default function Estimates() {
       resetEstimate();
       setViewState("empty");
       setDeleteDialogOpen(false);
-      toast.success("Kalkylen har raderats");
+      toast.success("Offerten har raderats");
     },
     onError: (error) => {
       console.error("Failed to delete estimate:", error);
-      toast.error("Kunde inte radera kalkylen");
+      toast.error("Kunde inte radera offerten");
     },
   });
 
@@ -444,7 +444,7 @@ export default function Estimates() {
     }
 
     if (!selectedTemplateId) {
-      toast.error("Välj en kalkylmall först");
+      toast.error("Välj en offertmall först");
       return;
     }
 
@@ -495,7 +495,7 @@ export default function Estimates() {
       setViewState("review");
     } catch (error: any) {
       console.error("Failed to generate estimate:", error);
-      toast.error(error.message || "Kunde inte generera kalkylen");
+      toast.error(error.message || "Kunde inte generera offerten");
     } finally {
       setIsGenerating(false);
     }
@@ -625,7 +625,7 @@ export default function Estimates() {
       if (data.items) {
         setItems(data.items);
         toast.success("Ändring genomförd", {
-          description: data.changes_made || "Kalkylposterna uppdaterades",
+          description: data.changes_made || "Offertposterna uppdaterades",
         });
       }
     } catch (error) {
@@ -651,8 +651,8 @@ export default function Estimates() {
     <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Kalkyl</h1>
-        <p className="text-muted-foreground">Skapa och hantera projektkalkyler</p>
+        <h1 className="text-2xl font-bold tracking-tight">Offert</h1>
+        <p className="text-muted-foreground">Skapa och hantera projektofferter</p>
       </div>
 
       {/* Project selector */}
@@ -676,7 +676,7 @@ export default function Estimates() {
         {/* Template selector - only show when creating new estimate */}
         {selectedProjectId && (viewState === "empty" || viewState === "input") && (
           <div className="space-y-1.5">
-            <Label>Kalkylmall</Label>
+            <Label>Offertmall</Label>
             <TemplateSelector
               templates={templates || []}
               selectedTemplateId={selectedTemplateId}
@@ -695,7 +695,7 @@ export default function Estimates() {
             <Calculator className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">Välj ett projekt</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Välj ett projekt ovan för att se eller skapa en kalkyl.
+              Välj ett projekt ovan för att se eller skapa en offert.
             </p>
           </CardContent>
         </Card>
@@ -709,15 +709,15 @@ export default function Estimates() {
         <Card className="border-dashed">
           <CardContent className="py-16 text-center">
             <Calculator className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Ingen kalkyl ännu</h3>
+            <h3 className="text-lg font-medium mb-2">Ingen offert ännu</h3>
             <p className="text-muted-foreground max-w-md mx-auto mb-6">
               {selectedTemplateId 
                 ? "Fyll i mängder och detaljer via röst eller text."
-                : "Välj en kalkylmall ovan, sedan kan du fylla i mängderna via röst."}
+                : "Välj en offertmall ovan, sedan kan du fylla i mängderna via röst."}
             </p>
             <Button onClick={handleCreateNew} disabled={!selectedTemplateId}>
               <Plus className="h-4 w-4 mr-2" />
-              Skapa kalkyl
+              Skapa offert
             </Button>
           </CardContent>
         </Card>
@@ -833,7 +833,7 @@ export default function Estimates() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Skapa kalkyl med AI
+                    Skapa offert med AI
                   </>
                 )}
               </Button>
@@ -916,7 +916,7 @@ export default function Estimates() {
           {/* Estimate table */}
           <Card className="relative">
             <CardHeader>
-              <CardTitle className="text-base">Kalkylposter</CardTitle>
+              <CardTitle className="text-base">Offertposter</CardTitle>
             </CardHeader>
             <CardContent>
               <EstimateTable items={items} onItemsChange={setItems} />
@@ -976,7 +976,7 @@ export default function Estimates() {
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Radera kalkyl
+                Radera offert
               </Button>
             </div>
           )}
@@ -987,9 +987,9 @@ export default function Estimates() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Radera kalkyl?</AlertDialogTitle>
+            <AlertDialogTitle>Radera offert?</AlertDialogTitle>
             <AlertDialogDescription>
-              Denna åtgärd kan inte ångras. Kalkylen och alla poster kommer att tas bort permanent.
+              Denna åtgärd kan inte ångras. Offerten och alla poster kommer att tas bort permanent.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

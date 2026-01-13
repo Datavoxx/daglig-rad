@@ -25,7 +25,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `Du är en expert på byggkalkyler och ska tolka röstinput för att skapa en kalkylmall.
+    const systemPrompt = `Du är en expert på offerter för byggprojekt och ska tolka röstinput för att skapa en offertmall.
 
 Baserat på användarens beskrivning, extrahera:
 1. Mallnamn (name)
