@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   ResizablePanelGroup,
@@ -15,6 +13,9 @@ import {
 import { Eye, EyeOff, FileText, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
+import { EstimateHeader } from "./EstimateHeader";
+import { IntroductionSection } from "./IntroductionSection";
+import { ClosingSection } from "./ClosingSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
 import { RotPanel } from "./RotPanel";
@@ -125,73 +126,77 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
   // Editor content
   const editorContent = (
     <div className="space-y-6 p-6 pb-32">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Offert</h1>
-          <p className="text-muted-foreground">{project.name}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Header section */}
+      <div className="flex items-start justify-between gap-4">
+        <EstimateHeader
+          projectName={project.name}
+          clientName={project.client_name}
+          address={project.address}
+          offerNumber={null}
+          version={1}
+          createdAt={null}
+        />
+        <div className="flex items-center gap-2 shrink-0">
           {!isMobile && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setShowPreview(!showPreview)}
+              className="text-muted-foreground hover:text-foreground"
             >
               {showPreview ? (
-                <>
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Dölj förhandsgranskning
-                </>
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Visa förhandsgranskning
-                </>
+                <Eye className="h-4 w-4" />
               )}
             </Button>
           )}
           {estimate.hasExistingEstimate && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
-              className="text-destructive hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Radera
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
 
-      {/* Project info badges */}
-      <div className="flex flex-wrap gap-2">
-        {project.client_name && (
-          <Badge variant="secondary">Kund: {project.client_name}</Badge>
-        )}
-        {project.address && (
-          <Badge variant="outline">{project.address}</Badge>
-        )}
-      </div>
+      {/* Introduction section */}
+      <IntroductionSection
+        text={estimate.state.introductionText}
+        onChange={estimate.updateIntroduction}
+      />
 
-      <Separator />
+      {/* Divider */}
+      <div className="h-px bg-border" />
 
       {/* Scope / Project description */}
-      <div className="space-y-2">
-        <Label htmlFor="scope">Projektbeskrivning</Label>
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-primary" />
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Projektbeskrivning
+          </h2>
+        </div>
         <Textarea
-          id="scope"
           value={estimate.state.scope}
           onChange={(e) => estimate.updateScope(e.target.value)}
           placeholder="Beskriv projektets omfattning..."
-          className="min-h-[100px] resize-none"
+          className="min-h-[80px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-3 -mx-3 transition-colors"
         />
-      </div>
+      </section>
 
-      {/* Work items / Assumptions */}
-      <div className="space-y-2">
-        <Label>Arbete som ingår</Label>
+      {/* Work items */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-primary" />
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Arbete som ingår
+          </h2>
+        </div>
         <Textarea
           value={estimate.state.assumptions.join("\n")}
           onChange={(e) =>
@@ -200,25 +205,29 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
             )
           }
           placeholder="En punkt per rad..."
-          className="min-h-[80px] resize-none"
+          className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:bg-muted/50 rounded-md p-3 -mx-3 transition-colors"
         />
-        <p className="text-xs text-muted-foreground">
-          Skriv varje arbetspunkt på en egen rad
-        </p>
-      </div>
+      </section>
 
-      <Separator />
+      {/* Divider */}
+      <div className="h-px bg-border" />
 
       {/* Estimate items table */}
-      <div className="space-y-2">
-        <Label>Offertposter</Label>
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-primary" />
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Offertposter
+          </h2>
+        </div>
         <EstimateTable
           items={estimate.state.items}
           onItemsChange={estimate.updateItems}
         />
-      </div>
+      </section>
 
-      <Separator />
+      {/* Divider */}
+      <div className="h-px bg-border" />
 
       {/* Addons */}
       <AddonsSection
@@ -228,7 +237,8 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
         onRemove={estimate.removeAddon}
       />
 
-      <Separator />
+      {/* Divider */}
+      <div className="h-px bg-border" />
 
       {/* ROT panel */}
       <RotPanel
@@ -237,6 +247,15 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
         laborCost={estimate.totals.laborCost}
         onToggle={(enabled) => estimate.updateRot(enabled)}
         onPercentChange={(percent) => estimate.updateRot(estimate.state.rotEnabled, percent)}
+      />
+
+      {/* Divider */}
+      <div className="h-px bg-border" />
+
+      {/* Closing section */}
+      <ClosingSection
+        text={estimate.state.closingText}
+        onChange={estimate.updateClosing}
       />
 
       {/* Sticky totals bar */}
@@ -262,7 +281,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
   // Preview content
   const previewContent = (
     <div className="h-full bg-muted/30 border-l">
-      <div className="p-4 border-b bg-background flex items-center gap-2">
+      <div className="p-3 border-b bg-background/80 backdrop-blur-sm flex items-center gap-2 sticky top-0 z-10">
         <FileText className="h-4 w-4 text-primary" />
         <span className="font-medium text-sm">Förhandsgranskning</span>
       </div>
@@ -322,11 +341,11 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
     <>
       {showPreview ? (
         <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-120px)]">
-          <ResizablePanel defaultSize={70} minSize={50}>
+          <ResizablePanel defaultSize={65} minSize={45}>
             <div className="h-full overflow-auto">{editorContent}</div>
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={30} minSize={20}>
+          <ResizablePanel defaultSize={35} minSize={25}>
             {previewContent}
           </ResizablePanel>
         </ResizablePanelGroup>
