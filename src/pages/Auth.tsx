@@ -121,17 +121,22 @@ export default function Auth() {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Vilka är Byggio?</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-3">
-            <p>
-              <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
-            </p>
-            <p>
-              Målet med Byggio är att visa hur byggföretag kan digitalisera sina 
-              dagliga arbetsflöden – från dagrapporter och besiktningar till 
-              kalkyler och projektplanering – allt samlat i en enkel och 
-              användarvänlig app.
-            </p>
-          </CardContent>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <p>
+            <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
+          </p>
+          <p>
+            Målet med Byggio är att visa hur byggföretag kan digitalisera sina 
+            dagliga arbetsflöden – från dagrapporter och besiktningar till 
+            kalkyler och projektplanering – allt samlat i en enkel och 
+            användarvänlig app.
+          </p>
+          <p>
+            Med hjälp av <strong className="text-foreground">AI-assistans</strong> gör Byggio arbetet 
+            <strong className="text-primary"> 62% enklare</strong> – genom automatisk generering av 
+            rapporter, kalkyler och projektplaner baserat på röstinmatning och smart datahantering.
+          </p>
+        </CardContent>
         </Card>
 
         {/* Login Card */}
