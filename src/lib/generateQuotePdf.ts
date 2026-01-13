@@ -383,19 +383,38 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.addPage();
   yPos = margin;
 
-  // Logo
+  // Logo - fetch as blob to avoid CORS issues
   if (data.company?.logo_url) {
     try {
+      const response = await fetch(data.company.logo_url);
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
       const img = new Image();
-      img.crossOrigin = "anonymous";
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject();
-        img.src = data.company!.logo_url!;
+        img.onerror = reject;
+        img.src = base64;
       });
-      doc.addImage(img, 'PNG', margin, yPos, 35, 15);
+      const maxWidth = 35;
+      const maxHeight = 15;
+      let imgWidth = img.width;
+      let imgHeight = img.height;
+      if (imgWidth > maxWidth) {
+        imgHeight = (imgHeight * maxWidth) / imgWidth;
+        imgWidth = maxWidth;
+      }
+      if (imgHeight > maxHeight) {
+        imgWidth = (imgWidth * maxHeight) / imgHeight;
+        imgHeight = maxHeight;
+      }
+      doc.addImage(base64, 'PNG', margin, yPos, imgWidth, imgHeight);
     } catch (e) {
-      // Skip logo
+      console.warn("Could not load logo for PDF page 2:", e);
     }
   }
 
@@ -477,19 +496,38 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.addPage();
   yPos = margin;
 
-  // Logo
+  // Logo - fetch as blob to avoid CORS issues
   if (data.company?.logo_url) {
     try {
+      const response = await fetch(data.company.logo_url);
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
       const img = new Image();
-      img.crossOrigin = "anonymous";
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject();
-        img.src = data.company!.logo_url!;
+        img.onerror = reject;
+        img.src = base64;
       });
-      doc.addImage(img, 'PNG', margin, yPos, 35, 15);
+      const maxWidth = 35;
+      const maxHeight = 15;
+      let imgWidth = img.width;
+      let imgHeight = img.height;
+      if (imgWidth > maxWidth) {
+        imgHeight = (imgHeight * maxWidth) / imgWidth;
+        imgWidth = maxWidth;
+      }
+      if (imgHeight > maxHeight) {
+        imgWidth = (imgWidth * maxHeight) / imgHeight;
+        imgHeight = maxHeight;
+      }
+      doc.addImage(base64, 'PNG', margin, yPos, imgWidth, imgHeight);
     } catch (e) {
-      // Skip logo
+      console.warn("Could not load logo for PDF page 3:", e);
     }
   }
 
