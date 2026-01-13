@@ -24,6 +24,7 @@ import {
   Home,
   ChevronDown,
   Pencil,
+  Eye,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -51,6 +52,7 @@ import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { QuotePreviewSheet } from "@/components/estimates/QuotePreviewSheet";
 
 type ViewState = "empty" | "input" | "review" | "view" | "manual";
 
@@ -113,8 +115,9 @@ export default function Estimates() {
   const [rotEnabled, setRotEnabled] = useState(false);
   const [rotPercent, setRotPercent] = useState(30);
 
-  // Dialogs
+  // Dialogs and sheets
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Web Speech API refs
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -1057,6 +1060,10 @@ export default function Estimates() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setPreviewOpen(true)} className="flex-1 sm:flex-none">
+                <Eye className="h-4 w-4 sm:mr-2" />
+                <span className="sm:inline">{isMobile ? "Visa" : "Förhandsgranska"}</span>
+              </Button>
               <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={handleDownloadQuotePdf} className="flex-1 sm:flex-none">
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="sm:inline">{isMobile ? "Offert" : "Ladda ner offert"}</span>
@@ -1188,6 +1195,21 @@ export default function Estimates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quote Preview Sheet */}
+      <QuotePreviewSheet
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        project={selectedProject || null}
+        company={companySettings}
+        scope={scope}
+        assumptions={assumptions}
+        items={items}
+        markupPercent={markupPercent}
+        rotEnabled={rotEnabled}
+        rotPercent={rotPercent}
+        offerNumber={existingEstimate?.id ? `OFF-${existingEstimate.id.substring(0, 6).toUpperCase()}` : "OFF-001"}
+      />
     </div>
   );
 }
