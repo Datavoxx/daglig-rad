@@ -22,7 +22,15 @@ import {
   Edit,
   FileText,
   Home,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +52,7 @@ import { generateEstimatePdf } from "@/lib/generateEstimatePdf";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type ViewState = "empty" | "input" | "review" | "view";
+type ViewState = "empty" | "input" | "review" | "view" | "manual";
 
 interface GeneratedEstimate {
   scope: string;
@@ -505,9 +513,14 @@ export default function Estimates() {
     setViewState("view");
   };
 
-  const handleCreateNew = () => {
+  const handleCreateWithAI = () => {
     resetEstimate();
     setViewState("input");
+  };
+
+  const handleCreateManual = () => {
+    resetEstimate();
+    setViewState("manual");
   };
 
   const handleEdit = () => {
@@ -715,10 +728,25 @@ export default function Estimates() {
                 ? "Fyll i mängder och detaljer via röst eller text."
                 : "Välj en offertmall ovan, sedan kan du fylla i mängderna via röst."}
             </p>
-            <Button onClick={handleCreateNew} disabled={!selectedTemplateId}>
-              <Plus className="h-4 w-4 mr-2" />
-              Skapa offert
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={!selectedTemplateId}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Skapa offert
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuItem onClick={handleCreateWithAI}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Skapa med AI
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCreateManual}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Skapa manuellt
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardContent>
         </Card>
       )}
@@ -843,6 +871,159 @@ export default function Estimates() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Manual creation state */}
+      {viewState === "manual" && (
+        <div className="space-y-6">
+          {/* Header with project info */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">{selectedProject?.name}</h2>
+              {selectedTemplate && (
+                <p className="text-sm text-muted-foreground">
+                  Mall: {selectedTemplate.name}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                size={isMobile ? "sm" : "default"} 
+                onClick={handleSave} 
+                disabled={saveEstimateMutation.isPending || items.length === 0}
+              >
+                {saveEstimateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 sm:mr-2" />
+                )}
+                <span className="sm:inline">{isMobile ? "Spara" : "Spara offert"}</span>
+              </Button>
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setViewState("empty")}>
+                Avbryt
+              </Button>
+            </div>
+          </div>
+
+          {/* Scope input */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Projektbeskrivning</CardTitle>
+              <CardDescription>Beskriv vad offerten gäller</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                placeholder="T.ex. 'Totalrenovering av badrum 6 kvm inkl. byte av golvbrunn, kakel/klinker, VVS och el.'"
+                className="min-h-[80px]"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Quick-add from template */}
+          {selectedTemplate && selectedTemplate.work_items && selectedTemplate.work_items.length > 0 && (
+            <Card className="border-dashed">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Snabbval från mall
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-2">
+                  {selectedTemplate.work_items.map((workItem, index) => {
+                    const isAdded = items.some(item => item.moment === workItem.name);
+                    return (
+                      <Button
+                        key={index}
+                        variant={isAdded ? "secondary" : "outline"}
+                        size="sm"
+                        disabled={isAdded}
+                        onClick={() => {
+                          const hourlyRate = selectedTemplate.hourly_rates?.general || 500;
+                          const newItem: EstimateItem = {
+                            id: crypto.randomUUID(),
+                            moment: workItem.name,
+                            type: "labor" as const,
+                            quantity: null,
+                            unit: workItem.unit || "tim",
+                            hours: null,
+                            unit_price: hourlyRate,
+                            subtotal: 0,
+                            comment: "",
+                            uncertainty: "medium" as const,
+                            sort_order: items.length,
+                          };
+                          setItems([...items, newItem]);
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {workItem.name}
+                        {isAdded && <Check className="h-3 w-3 ml-1" />}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Estimate table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Offertposter</CardTitle>
+              <CardDescription>Lägg till och redigera poster i offerten</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EstimateTable items={items} onItemsChange={setItems} />
+            </CardContent>
+          </Card>
+
+          {/* ROT and Totals */}
+          {items.length > 0 && (
+            <>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="rot-toggle" className="font-medium">ROT-avdrag</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Beräkna ROT-avdrag för arbetskostnad
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {rotEnabled && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={rotPercent}
+                            onChange={(e) => setRotPercent(Number(e.target.value))}
+                            className="w-20 h-9"
+                            min={0}
+                            max={100}
+                          />
+                          <span className="text-sm text-muted-foreground">%</span>
+                        </div>
+                      )}
+                      <Switch
+                        id="rot-toggle"
+                        checked={rotEnabled}
+                        onCheckedChange={setRotEnabled}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <EstimateTotals
+                items={items}
+                markupPercent={markupPercent}
+                onMarkupChange={setMarkupPercent}
+              />
+            </>
+          )}
+        </div>
       )}
 
       {/* Review state */}
