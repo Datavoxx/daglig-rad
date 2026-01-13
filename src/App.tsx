@@ -14,6 +14,7 @@ import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
 import Planning from "@/pages/Planning";
 import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
 import Inspections from "@/pages/Inspections";
 import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
@@ -52,6 +53,7 @@ const App = () => {
               <Route path="/customers" element={<ProtectedModuleRoute module="customers"><Customers /></ProtectedModuleRoute>} />
               <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
               <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
 
             {/* Catch-all */}
