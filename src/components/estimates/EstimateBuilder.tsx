@@ -322,11 +322,11 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
     <>
       {showPreview ? (
         <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-120px)]">
-          <ResizablePanel defaultSize={60} minSize={40}>
+          <ResizablePanel defaultSize={70} minSize={50}>
             <div className="h-full overflow-auto">{editorContent}</div>
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={40} minSize={25}>
+          <ResizablePanel defaultSize={30} minSize={20}>
             {previewContent}
           </ResizablePanel>
         </ResizablePanelGroup>
