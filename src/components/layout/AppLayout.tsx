@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FolderKanban,
   FileText,
   Settings,
-  ChevronLeft,
   Menu,
   Search,
   Bell,
@@ -18,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
@@ -49,11 +49,38 @@ const navItems: NavItem[] = [
 ];
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userInitial, setUserInitial] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+
+  // Fetch user profile for avatar
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", userData.user.id)
+          .single();
+
+        if (profile) {
+          setUserInitial(
+            profile.full_name
+              ? profile.full_name.charAt(0).toUpperCase()
+              : userData.user.email?.charAt(0).toUpperCase() || "U"
+          );
+          setAvatarUrl(profile.avatar_url);
+        } else {
+          setUserInitial(userData.user.email?.charAt(0).toUpperCase() || "U");
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Filter nav items based on user permissions
   const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
@@ -65,10 +92,10 @@ export function AppLayout() {
         setMobileOpen(false);
       }}
       className={cn(
-        "relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ease-out",
+        "relative flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium transition-all duration-200 ease-out",
         isActive
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-0.5"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       )}
     >
       {/* Active indicator with animation */}
@@ -79,11 +106,9 @@ export function AppLayout() {
         )}
       />
       <item.icon className={cn(
-        "h-4 w-4 shrink-0 transition-transform duration-200", 
-        collapsed && "mx-auto",
+        "h-5 w-5 shrink-0 transition-transform duration-200", 
         isActive && "scale-110"
       )} />
-      {!collapsed && <span>{item.label}</span>}
     </button>
   );
 
@@ -93,12 +118,31 @@ export function AppLayout() {
         await supabase.auth.signOut();
         navigate("/auth");
       }}
+      className="flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+    >
+      <LogOut className="h-5 w-5 shrink-0" />
+    </button>
+  );
+
+  const profileButton = (
+    <button
+      onClick={() => navigate("/profile")}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+        "flex w-full items-center justify-center rounded-md p-1.5 transition-all duration-200",
+        location.pathname === "/profile"
+          ? "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
+          : "hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-sidebar"
       )}
     >
-      <LogOut className={cn("h-4 w-4 shrink-0", collapsed && "mx-auto")} />
-      {!collapsed && <span>Logga ut</span>}
+      <Avatar className="h-9 w-9 border-2 border-primary/20">
+        {avatarUrl ? (
+          <AvatarImage src={avatarUrl} alt="Profil" />
+        ) : (
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+            {userInitial}
+          </AvatarFallback>
+        )}
+      </Avatar>
     </button>
   );
 
@@ -112,40 +156,16 @@ export function AppLayout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - always collapsed */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 md:relative",
-          collapsed ? "w-[68px]" : "w-64",
+          "fixed inset-y-0 left-0 z-50 flex w-[68px] flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 md:relative",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Brand */}
-        <div className={cn(
-          "flex h-16 items-center border-b border-sidebar-border",
-          collapsed ? "justify-center px-2" : "justify-between px-4"
-        )}>
-          {!collapsed && (
-            <div className="flex items-center gap-2.5">
-              <img src={byggioLogo} alt="Byggio" className="h-8" />
-            </div>
-          )}
-          {collapsed && (
-            <img src={byggioLogo} alt="Byggio" className="h-8 w-8 object-contain object-left" />
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8 shrink-0 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              collapsed ? "hidden md:flex absolute right-2" : "hidden md:flex"
-            )}
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            <ChevronLeft
-              className={cn("h-4 w-4 transition-transform duration-200", collapsed && "rotate-180")}
-            />
-          </Button>
+        {/* Brand - larger logo */}
+        <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
+          <img src={byggioLogo} alt="Byggio" className="h-10 w-10 object-contain" />
         </div>
 
         {/* Navigation */}
@@ -155,45 +175,53 @@ export function AppLayout() {
               const isActive = location.pathname.startsWith(item.href);
               const button = renderNavButton(item, isActive);
               
-              if (collapsed) {
-                return (
-                  <Tooltip key={item.href}>
-                    <TooltipTrigger asChild>
-                      {button}
-                    </TooltipTrigger>
-                    <TooltipContent 
-                      side="right" 
-                      sideOffset={8}
-                      className="bg-foreground text-background text-sm font-medium"
-                    >
-                      {item.label}
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-              
-              return <div key={item.href}>{button}</div>;
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    {button}
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="right" 
+                    sideOffset={8}
+                    className="bg-foreground text-background text-sm font-medium"
+                  >
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
             })}
           </nav>
 
+          {/* Profile avatar */}
+          <div className="border-t border-sidebar-border p-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {profileButton}
+              </TooltipTrigger>
+              <TooltipContent 
+                side="right" 
+                sideOffset={8}
+                className="bg-foreground text-background text-sm font-medium"
+              >
+                Min profil
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           {/* Logout */}
           <div className="border-t border-sidebar-border p-1.5">
-            {collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {logoutButton}
-                </TooltipTrigger>
-                <TooltipContent 
-                  side="right" 
-                  sideOffset={8}
-                  className="bg-foreground text-background text-sm font-medium"
-                >
-                  Logga ut
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              logoutButton
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {logoutButton}
+              </TooltipTrigger>
+              <TooltipContent 
+                side="right" 
+                sideOffset={8}
+                className="bg-foreground text-background text-sm font-medium"
+              >
+                Logga ut
+              </TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </aside>
