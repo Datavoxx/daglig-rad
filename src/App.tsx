@@ -18,6 +18,7 @@ import Inspections from "@/pages/Inspections";
 import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
 import Estimates from "@/pages/Estimates";
+import Customers from "@/pages/Customers";
 import Guide from "@/pages/Guide";
 import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
@@ -48,6 +49,7 @@ const App = () => {
               <Route path="/inspections/new" element={<ProtectedModuleRoute module="inspections"><InspectionNew /></ProtectedModuleRoute>} />
               <Route path="/inspections/:id" element={<ProtectedModuleRoute module="inspections"><InspectionView /></ProtectedModuleRoute>} />
               <Route path="/estimates" element={<ProtectedModuleRoute module="estimates"><Estimates /></ProtectedModuleRoute>} />
+              <Route path="/customers" element={<ProtectedModuleRoute module="customers"><Customers /></ProtectedModuleRoute>} />
               <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
               <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
             </Route>
