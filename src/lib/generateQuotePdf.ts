@@ -140,15 +140,27 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   // ============================================
   let yPos = margin;
 
-  // Logo (if available)
+  // Logo (if available) - fetch as blob to avoid CORS issues
   if (data.company?.logo_url) {
     try {
+      // Fetch image as blob to bypass CORS restrictions
+      const response = await fetch(data.company.logo_url);
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      
+      // Create image to get dimensions
       const img = new Image();
-      img.crossOrigin = "anonymous";
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Failed to load logo"));
-        img.src = data.company!.logo_url!;
+        img.onerror = reject;
+        img.src = base64;
       });
       
       const maxWidth = 40;
@@ -165,7 +177,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
         imgHeight = maxHeight;
       }
       
-      doc.addImage(img, 'PNG', margin, yPos, imgWidth, imgHeight);
+      doc.addImage(base64, 'PNG', margin, yPos, imgWidth, imgHeight);
     } catch (e) {
       console.warn("Could not load logo for PDF:", e);
     }
