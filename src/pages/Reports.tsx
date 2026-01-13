@@ -332,13 +332,14 @@ export default function Reports() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReports.map((report) => {
+              {filteredReports.map((report, index) => {
                 const deviationCount = getDeviationCount(report.deviations);
                 const ataCount = getAtaCount(report.ata);
                 return (
                   <TableRow
                     key={report.id}
-                    className="cursor-pointer group"
+                    className="cursor-pointer group transition-colors duration-150 hover:bg-muted/50 stagger-item"
+                    style={{ animationDelay: `${index * 30}ms` }}
                     onClick={() => navigate(`/reports/${report.id}`)}
                   >
                     <TableCell className="font-medium">
