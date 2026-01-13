@@ -8,6 +8,7 @@ const ALL_MODULES = [
   "planning",
   "inspections",
   "estimates",
+  "customers",
   "guide",
   "settings"
 ];

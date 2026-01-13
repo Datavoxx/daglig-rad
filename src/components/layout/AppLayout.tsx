@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   Calculator,
+  Users,
   BookOpen,
   LogOut,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { label: "Planering", href: "/planning", icon: CalendarDays, moduleKey: "planning" },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
 ];
