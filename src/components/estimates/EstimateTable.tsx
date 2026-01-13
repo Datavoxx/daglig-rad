@@ -8,7 +8,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { AutoWidthInput } from "@/components/shared/AutoWidthInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { cn } from "@/lib/utils";
 
 export interface EstimateItem {
   id: string;
@@ -48,22 +55,31 @@ const TYPE_LABELS: Record<string, string> = {
   subcontractor: "UE",
 };
 
-const UNCERTAINTY_COLORS: Record<string, string> = {
-  low: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  medium: "bg-amber-100 text-amber-700 border-amber-200",
-  high: "bg-rose-100 text-rose-700 border-rose-200",
+const UNCERTAINTY_DOT_COLORS: Record<string, string> = {
+  low: "text-emerald-500",
+  medium: "text-amber-500",
+  high: "text-rose-500",
 };
 
 const UNCERTAINTY_LABELS: Record<string, string> = {
-  low: "Låg",
-  medium: "Medel",
-  high: "Hög",
+  low: "Låg osäkerhet",
+  medium: "Medel osäkerhet",
+  high: "Hög osäkerhet",
 };
+
+// Default column widths in pixels
+const DEFAULT_COLUMN_WIDTHS = [32, 200, 80, 70, 60, 90, 100, 40];
 
 export function EstimateTable({ items, onItemsChange, readOnly = false }: EstimateTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
+  
+  const { widths, startResize, isResizing } = useResizableColumns({
+    storageKey: "estimate-table-columns",
+    defaultWidths: DEFAULT_COLUMN_WIDTHS,
+    minWidth: 32,
+  });
 
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) => {
@@ -148,6 +164,17 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
     return new Intl.NumberFormat("sv-SE").format(num);
   };
 
+  // Resize handle component
+  const ResizeHandle = ({ index }: { index: number }) => (
+    <div
+      className={cn(
+        "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 transition-colors",
+        isResizing && "bg-primary/30"
+      )}
+      onMouseDown={(e) => startResize(index, e)}
+    />
+  );
+
   // Mobile card view
   if (isMobile) {
     return (
@@ -176,9 +203,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
                       {item.quantity && (
                         <Badge variant="secondary" className="text-xs">{item.quantity} {item.unit}</Badge>
                       )}
-                      <Badge variant="outline" className={`text-xs ${UNCERTAINTY_COLORS[item.uncertainty]}`}>
-                        {UNCERTAINTY_LABELS[item.uncertainty]}
-                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Circle className={cn("h-2.5 w-2.5 fill-current", UNCERTAINTY_DOT_COLORS[item.uncertainty])} />
+                          </TooltipTrigger>
+                          <TooltipContent>{UNCERTAINTY_LABELS[item.uncertainty]}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm text-muted-foreground">
@@ -323,184 +355,227 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
     );
   }
 
-  // Desktop table view
+  // Desktop table view with resizable columns
   return (
     <div className="space-y-4">
       <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                {!readOnly && <TableHead className="w-10"></TableHead>}
-                <TableHead className="min-w-[180px]">Moment</TableHead>
-                <TableHead className="w-[90px]">Typ</TableHead>
-                <TableHead className="min-w-[120px] text-right">Antal</TableHead>
-                <TableHead className="w-[80px]">Enhet</TableHead>
-                <TableHead className="min-w-[120px] text-right">Timmar</TableHead>
-                <TableHead className="min-w-[160px] text-right">Á-pris</TableHead>
-                <TableHead className="w-[120px] text-right">Delkostnad</TableHead>
-                <TableHead className="w-[90px] text-center">Osäkerhet</TableHead>
-                {!readOnly && <TableHead className="w-[50px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item, index) => (
-                <TableRow
-                  key={item.id}
-                  draggable={!readOnly}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={draggedIndex === index ? "opacity-50" : ""}
+        <Table className="table-fixed w-full">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              {!readOnly && (
+                <TableHead 
+                  style={{ width: widths[0] }} 
+                  className="relative p-2"
                 >
-                  {!readOnly && (
-                    <TableCell className="cursor-grab">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    </TableCell>
-                  )}
-                  <TableCell>
+                  <ResizeHandle index={0} />
+                </TableHead>
+              )}
+              <TableHead 
+                style={{ width: widths[1] }} 
+                className="relative"
+              >
+                Moment
+                <ResizeHandle index={1} />
+              </TableHead>
+              <TableHead 
+                style={{ width: widths[2] }} 
+                className="relative"
+              >
+                Typ
+                <ResizeHandle index={2} />
+              </TableHead>
+              <TableHead 
+                style={{ width: widths[3] }} 
+                className="relative text-right"
+              >
+                Antal
+                <ResizeHandle index={3} />
+              </TableHead>
+              <TableHead 
+                style={{ width: widths[4] }} 
+                className="relative"
+              >
+                Enhet
+                <ResizeHandle index={4} />
+              </TableHead>
+              <TableHead 
+                style={{ width: widths[5] }} 
+                className="relative text-right"
+              >
+                Á-pris
+                <ResizeHandle index={5} />
+              </TableHead>
+              <TableHead 
+                style={{ width: widths[6] }} 
+                className="relative text-right"
+              >
+                Summa
+                <ResizeHandle index={6} />
+              </TableHead>
+              {!readOnly && (
+                <TableHead 
+                  style={{ width: widths[7] }} 
+                  className="p-2"
+                />
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item, index) => (
+              <TableRow
+                key={item.id}
+                draggable={!readOnly}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  draggedIndex === index && "opacity-50",
+                  "group"
+                )}
+              >
+                {!readOnly && (
+                  <TableCell className="cursor-grab p-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  </TableCell>
+                )}
+                <TableCell className="p-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Circle 
+                            className={cn(
+                              "h-2 w-2 fill-current flex-shrink-0", 
+                              UNCERTAINTY_DOT_COLORS[item.uncertainty]
+                            )} 
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="left">
+                          <p>{UNCERTAINTY_LABELS[item.uncertainty]}</p>
+                          {!readOnly && (
+                            <div className="flex gap-1 mt-1">
+                              {(["low", "medium", "high"] as const).map((level) => (
+                                <button
+                                  key={level}
+                                  onClick={() => updateItem(item.id, { uncertainty: level })}
+                                  className={cn(
+                                    "px-2 py-0.5 text-xs rounded",
+                                    item.uncertainty === level 
+                                      ? "bg-primary text-primary-foreground" 
+                                      : "bg-muted hover:bg-muted/80"
+                                  )}
+                                >
+                                  {level === "low" ? "Låg" : level === "medium" ? "Medel" : "Hög"}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {readOnly ? (
-                      <span>{item.moment}</span>
+                      <span className="truncate">{item.moment}</span>
                     ) : (
                       <Input
                         value={item.moment}
                         onChange={(e) => updateItem(item.id, { moment: e.target.value })}
-                        className="h-8"
+                        className="h-7 text-sm border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1"
                         placeholder="Arbetsmoment..."
                       />
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      <Badge variant="outline">{TYPE_LABELS[item.type]}</Badge>
-                    ) : (
-                      <Select
-                        value={item.type}
-                        onValueChange={(value: "labor" | "material" | "subcontractor") =>
-                          updateItem(item.id, { type: value })
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="labor">Arbete</SelectItem>
-                          <SelectItem value="material">Material</SelectItem>
-                          <SelectItem value="subcontractor">UE</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {readOnly ? (
-                      <span className="tabular-nums">{item.quantity ?? "—"}</span>
-                    ) : (
-                      <AutoWidthInput
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
-                        }
-                        placeholder="0"
-                        minWidth={80}
-                        maxWidth={200}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      <span>{item.unit}</span>
-                    ) : (
-                      <Select
-                        value={item.unit}
-                        onValueChange={(value) => updateItem(item.id, { unit: value })}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tim">tim</SelectItem>
-                          <SelectItem value="m2">m²</SelectItem>
-                          <SelectItem value="lpm">lpm</SelectItem>
-                          <SelectItem value="st">st</SelectItem>
-                          <SelectItem value="klump">klump</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {readOnly ? (
-                      <span className="tabular-nums">{item.hours ?? "—"}</span>
-                    ) : (
-                      <AutoWidthInput
-                        value={item.hours}
-                        onChange={(e) =>
-                          updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
-                        }
-                        placeholder="0"
-                        minWidth={80}
-                        maxWidth={200}
-                        disabled={item.type !== "labor"}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {readOnly ? (
-                      <span className="tabular-nums">{formatNumber(item.unit_price)} kr</span>
-                    ) : (
-                      <AutoWidthInput
-                        value={item.unit_price}
-                        onChange={(e) =>
-                          updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
-                        }
-                        placeholder="0"
-                        minWidth={100}
-                        maxWidth={250}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatNumber(item.subtotal)} kr
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {readOnly ? (
-                      <Badge variant="outline" className={UNCERTAINTY_COLORS[item.uncertainty]}>
-                        {UNCERTAINTY_LABELS[item.uncertainty]}
-                      </Badge>
-                    ) : (
-                      <Select
-                        value={item.uncertainty}
-                        onValueChange={(value: "low" | "medium" | "high") =>
-                          updateItem(item.id, { uncertainty: value })
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Låg</SelectItem>
-                          <SelectItem value="medium">Medel</SelectItem>
-                          <SelectItem value="high">Hög</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                  {!readOnly && (
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+                  </div>
+                </TableCell>
+                <TableCell className="p-1.5">
+                  {readOnly ? (
+                    <Badge variant="outline" className="text-xs">{TYPE_LABELS[item.type]}</Badge>
+                  ) : (
+                    <Select
+                      value={item.type}
+                      onValueChange={(value: "labor" | "material" | "subcontractor") =>
+                        updateItem(item.id, { type: value })
+                      }
+                    >
+                      <SelectTrigger className="h-7 text-xs border-0 bg-transparent focus:bg-background focus:ring-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="labor">Arbete</SelectItem>
+                        <SelectItem value="material">Material</SelectItem>
+                        <SelectItem value="subcontractor">UE</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                </TableCell>
+                <TableCell className="text-right p-1.5">
+                  {readOnly ? (
+                    <span className="tabular-nums text-sm">{item.quantity ?? "—"}</span>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={item.quantity ?? ""}
+                      onChange={(e) =>
+                        updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
+                      }
+                      className="h-7 text-sm text-right border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1 tabular-nums"
+                      placeholder="0"
+                    />
+                  )}
+                </TableCell>
+                <TableCell className="p-1.5">
+                  {readOnly ? (
+                    <span className="text-sm">{item.unit}</span>
+                  ) : (
+                    <Select
+                      value={item.unit}
+                      onValueChange={(value) => updateItem(item.id, { unit: value })}
+                    >
+                      <SelectTrigger className="h-7 text-xs border-0 bg-transparent focus:bg-background focus:ring-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tim">tim</SelectItem>
+                        <SelectItem value="m2">m²</SelectItem>
+                        <SelectItem value="lpm">lpm</SelectItem>
+                        <SelectItem value="st">st</SelectItem>
+                        <SelectItem value="klump">klump</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </TableCell>
+                <TableCell className="text-right p-1.5">
+                  {readOnly ? (
+                    <span className="tabular-nums text-sm">{formatNumber(item.unit_price)}</span>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={item.unit_price || ""}
+                      onChange={(e) =>
+                        updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
+                      }
+                      className="h-7 text-sm text-right border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 px-1 tabular-nums"
+                      placeholder="0"
+                    />
+                  )}
+                </TableCell>
+                <TableCell className="text-right p-1.5 font-medium tabular-nums text-sm">
+                  {formatNumber(item.subtotal)}
+                </TableCell>
+                {!readOnly && (
+                  <TableCell className="p-1.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {!readOnly && (
