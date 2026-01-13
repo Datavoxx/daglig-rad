@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedModuleRoute } from "@/components/auth/ProtectedModuleRoute";
 import Auth from "@/pages/Auth";
 import Projects from "@/pages/Projects";
 import Reports from "@/pages/Reports";
@@ -38,17 +39,17 @@ const App = () => {
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/projects" replace />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/reports/new" element={<ReportNew />} />
-              <Route path="/reports/:id" element={<ReportView />} />
-              <Route path="/planning" element={<Planning />} />
-              <Route path="/inspections" element={<Inspections />} />
-              <Route path="/inspections/new" element={<InspectionNew />} />
-              <Route path="/inspections/:id" element={<InspectionView />} />
-              <Route path="/estimates" element={<Estimates />} />
-              <Route path="/guide" element={<Guide />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
+              <Route path="/reports" element={<ProtectedModuleRoute module="reports"><Reports /></ProtectedModuleRoute>} />
+              <Route path="/reports/new" element={<ProtectedModuleRoute module="reports"><ReportNew /></ProtectedModuleRoute>} />
+              <Route path="/reports/:id" element={<ProtectedModuleRoute module="reports"><ReportView /></ProtectedModuleRoute>} />
+              <Route path="/planning" element={<ProtectedModuleRoute module="planning"><Planning /></ProtectedModuleRoute>} />
+              <Route path="/inspections" element={<ProtectedModuleRoute module="inspections"><Inspections /></ProtectedModuleRoute>} />
+              <Route path="/inspections/new" element={<ProtectedModuleRoute module="inspections"><InspectionNew /></ProtectedModuleRoute>} />
+              <Route path="/inspections/:id" element={<ProtectedModuleRoute module="inspections"><InspectionView /></ProtectedModuleRoute>} />
+              <Route path="/estimates" element={<ProtectedModuleRoute module="estimates"><Estimates /></ProtectedModuleRoute>} />
+              <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
+              <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
             </Route>
 
             {/* Catch-all */}
