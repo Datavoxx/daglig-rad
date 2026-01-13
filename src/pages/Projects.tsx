@@ -280,11 +280,16 @@ export default function Projects() {
           {filteredProjects.map((project, index) => (
             <Card
               key={project.id}
-              className="group relative cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 stagger-item"
+              className="group relative cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 stagger-item overflow-hidden"
               style={{ animationDelay: `${index * 40}ms` }}
-              onClick={() => navigate(`/reports/new?project=${project.id}`)}
             >
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+              {/* Clickable overlay for entire card */}
+              <div 
+                className="absolute inset-0 z-0 cursor-pointer" 
+                onClick={() => navigate(`/reports/new?project=${project.id}`)}
+                aria-label={`Öppna ${project.name}`}
+              />
+              <CardHeader className="relative z-10 flex flex-row items-start justify-between space-y-0 pb-3 pointer-events-none">
                 <div className="space-y-1 pr-8">
                   <CardTitle className="text-base font-medium leading-snug">{project.name}</CardTitle>
                   {project.client_name && (
@@ -295,23 +300,24 @@ export default function Projects() {
                   )}
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-3"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-3 pointer-events-auto z-20"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(project); }}>
+                  <DropdownMenuContent align="end" className="z-50">
+                    <DropdownMenuItem onClick={() => openEdit(project)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Redigera
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(project); }}
+                      onClick={() => handleDelete(project)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Ta bort
@@ -319,7 +325,7 @@ export default function Projects() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="relative z-10 pt-0 pointer-events-none">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     {project.address && (
