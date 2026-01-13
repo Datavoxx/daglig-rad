@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AddressAutocomplete } from "@/components/shared/AddressAutocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -223,11 +224,11 @@ export default function Customers() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Adress</Label>
-                <Input
+                <AddressAutocomplete
                   id="address"
-                  placeholder="Gatuadress, postnummer, ort"
+                  placeholder="Börja skriv för att söka adress..."
                   value={formAddress}
-                  onChange={(e) => setFormAddress(e.target.value)}
+                  onChange={setFormAddress}
                 />
               </div>
               <div className="space-y-2">
