@@ -10,6 +10,7 @@ import { ProtectedModuleRoute } from "@/components/auth/ProtectedModuleRoute";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
+import ProjectView from "@/pages/ProjectView";
 import Reports from "@/pages/Reports";
 import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
@@ -44,6 +45,7 @@ const App = () => {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
+              <Route path="/projects/:id" element={<ProtectedModuleRoute module="projects"><ProjectView /></ProtectedModuleRoute>} />
               <Route path="/reports" element={<ProtectedModuleRoute module="reports"><Reports /></ProtectedModuleRoute>} />
               <Route path="/reports/new" element={<ProtectedModuleRoute module="reports"><ReportNew /></ProtectedModuleRoute>} />
               <Route path="/reports/:id" element={<ProtectedModuleRoute module="reports"><ReportView /></ProtectedModuleRoute>} />
