@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TemplateManager } from "@/components/settings/TemplateManager";
 
 interface Profile {
   id: string;
@@ -702,6 +703,9 @@ export default function Settings() {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Template management card */}
+      <TemplateManager />
 
       {/* About card */}
       <Card className="bg-muted/30">
