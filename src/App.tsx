@@ -25,6 +25,7 @@ import Customers from "@/pages/Customers";
 import Guide from "@/pages/Guide";
 import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
+import Register from "@/pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => {
           <Routes>
             {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/guide-public" element={<GuidePublic />} />
 
             {/* Protected routes with layout */}
