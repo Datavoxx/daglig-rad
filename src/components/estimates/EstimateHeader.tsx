@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { MapPin, User } from "lucide-react";
-
+import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 interface EstimateHeaderProps {
   projectName: string;
   clientName?: string | null;
@@ -87,10 +87,9 @@ export function EstimateHeader({
             </div>
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3 shrink-0" />
-              <input
-                type="text"
+              <InlineAddressAutocomplete
                 value={address || ""}
-                onChange={(e) => onAddressChange?.(e.target.value)}
+                onChange={(addr) => onAddressChange?.(addr)}
                 placeholder="Adress..."
                 className="bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50 min-w-[150px]"
               />
