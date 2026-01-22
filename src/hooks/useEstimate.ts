@@ -27,6 +27,16 @@ export interface EstimateState {
   rotEnabled: boolean;
   rotPercent: number;
   transcript: string;
+  // Manual mode fields
+  manualProjectName: string;
+  manualClientName: string;
+  manualAddress: string;
+}
+
+export interface ManualEstimateData {
+  projectName: string;
+  clientName: string;
+  address: string;
 }
 
 const initialState: EstimateState = {
@@ -43,11 +53,22 @@ const initialState: EstimateState = {
   rotEnabled: false,
   rotPercent: 30,
   transcript: "",
+  manualProjectName: "",
+  manualClientName: "",
+  manualAddress: "",
 };
 
-export function useEstimate(projectId: string) {
+export function useEstimate(projectId: string | null, manualData?: ManualEstimateData) {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<EstimateState>({ ...initialState, projectId });
+  const isManualMode = !projectId && !!manualData;
+  
+  const [state, setState] = useState<EstimateState>(() => ({
+    ...initialState,
+    projectId: projectId || "",
+    manualProjectName: manualData?.projectName || "",
+    manualClientName: manualData?.clientName || "",
+    manualAddress: manualData?.address || "",
+  }));
 
   // Fetch existing estimate
   const { data: existingEstimate, isLoading } = useQuery({
@@ -92,8 +113,9 @@ export function useEstimate(projectId: string) {
   // Load existing estimate into state
   useEffect(() => {
     if (existingEstimate) {
-      setState({
-        projectId,
+      setState((prev) => ({
+        ...prev,
+        projectId: projectId || "",
         templateId: existingEstimate.template_id || null,
         scope: existingEstimate.scope || "",
         introductionText: (existingEstimate as any).introduction_text || "",
@@ -125,11 +147,24 @@ export function useEstimate(projectId: string) {
         rotEnabled: existingEstimate.rot_enabled || false,
         rotPercent: Number(existingEstimate.rot_percent) || 30,
         transcript: existingEstimate.original_transcript || "",
-      });
+        // Preserve manual fields from existing estimate if available
+        manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
+        manualClientName: (existingEstimate as any).manual_client_name || prev.manualClientName || "",
+        manualAddress: (existingEstimate as any).manual_address || prev.manualAddress || "",
+      }));
     } else if (projectId) {
-      setState({ ...initialState, projectId });
+      setState((prev) => ({ ...initialState, projectId, manualProjectName: prev.manualProjectName, manualClientName: prev.manualClientName, manualAddress: prev.manualAddress }));
+    } else if (isManualMode) {
+      // Manual mode without existing estimate - keep manual data
+      setState((prev) => ({
+        ...initialState,
+        projectId: "",
+        manualProjectName: manualData?.projectName || "",
+        manualClientName: manualData?.clientName || "",
+        manualAddress: manualData?.address || "",
+      }));
     }
-  }, [existingEstimate, projectId]);
+  }, [existingEstimate, projectId, isManualMode, manualData]);
 
   // Calculate totals
   const calculateTotals = useCallback(() => {
@@ -245,24 +280,36 @@ export function useEstimate(projectId: string) {
   }, []);
 
   const reset = useCallback(() => {
-    setState({ ...initialState, projectId });
-  }, [projectId]);
+    setState({
+      ...initialState,
+      projectId: projectId || "",
+      manualProjectName: manualData?.projectName || "",
+      manualClientName: manualData?.clientName || "",
+      manualAddress: manualData?.address || "",
+    });
+  }, [projectId, manualData]);
 
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase
-        .from("project_estimates")
-        .select("id, version")
-        .eq("project_id", projectId)
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // For manual mode, we need to find by manual_project_name instead of project_id
+      let existing: { id: string; version: number } | null = null;
+      
+      if (projectId) {
+        const { data } = await supabase
+          .from("project_estimates")
+          .select("id, version")
+          .eq("project_id", projectId)
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        existing = data;
+      }
 
       const totals = calculateTotals();
 
       const estimateData = {
-        project_id: projectId,
+        project_id: projectId || null,
         template_id: state.templateId,
         scope: state.scope,
         introduction_text: state.introductionText,
@@ -279,6 +326,10 @@ export function useEstimate(projectId: string) {
         rot_enabled: state.rotEnabled,
         rot_percent: state.rotPercent,
         version: existing ? (existing.version || 1) : 1,
+        // Manual mode fields
+        manual_project_name: isManualMode ? state.manualProjectName : null,
+        manual_client_name: isManualMode ? state.manualClientName : null,
+        manual_address: isManualMode ? state.manualAddress : null,
       };
 
       let estimateId: string;

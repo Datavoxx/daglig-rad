@@ -655,13 +655,16 @@ export type Database = {
           id: string
           introduction_text: string | null
           labor_cost: number | null
+          manual_address: string | null
+          manual_client_name: string | null
+          manual_project_name: string | null
           markup_percent: number | null
           material_cost: number | null
           notes: string | null
           offer_number: string | null
           original_transcript: string | null
           payment_terms: string | null
-          project_id: string
+          project_id: string | null
           rot_enabled: boolean | null
           rot_percent: number | null
           scope: string | null
@@ -684,13 +687,16 @@ export type Database = {
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
+          manual_address?: string | null
+          manual_client_name?: string | null
+          manual_project_name?: string | null
           markup_percent?: number | null
           material_cost?: number | null
           notes?: string | null
           offer_number?: string | null
           original_transcript?: string | null
           payment_terms?: string | null
-          project_id: string
+          project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
           scope?: string | null
@@ -713,13 +719,16 @@ export type Database = {
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
+          manual_address?: string | null
+          manual_client_name?: string | null
+          manual_project_name?: string | null
           markup_percent?: number | null
           material_cost?: number | null
           notes?: string | null
           offer_number?: string | null
           original_transcript?: string | null
           payment_terms?: string | null
-          project_id?: string
+          project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
           scope?: string | null
