@@ -1,5 +1,6 @@
 import { format, addDays } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import type { EstimateItem } from "./EstimateTable";
 import type { EstimateAddon } from "@/hooks/useEstimate";
 
@@ -54,6 +55,12 @@ export function QuoteLivePreview({
   const laborCost = items
     .filter((i) => i.type === "labor")
     .reduce((sum, i) => sum + i.subtotal, 0);
+  
+  // ROT-eligible labor cost (only items marked as rot_eligible)
+  const rotEligibleLaborCost = items
+    .filter((i) => i.type === "labor" && i.rot_eligible)
+    .reduce((sum, i) => sum + i.subtotal, 0);
+    
   const materialCost = items
     .filter((i) => i.type === "material")
     .reduce((sum, i) => sum + i.subtotal, 0);
@@ -70,8 +77,9 @@ export function QuoteLivePreview({
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;
 
-  const laborWithVat = laborCost * 1.25;
-  const rotAmount = rotEnabled ? laborWithVat * (rotPercent / 100) : 0;
+  // Use ROT-eligible labor for ROT calculation
+  const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
+  const rotAmount = rotEnabled ? rotEligibleWithVat * (rotPercent / 100) : 0;
   const amountToPay = totalInclVat - rotAmount;
 
   const formatCurrency = (num: number) =>
@@ -174,8 +182,16 @@ export function QuoteLivePreview({
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-200">
-                      <td className="py-2 text-gray-800">{item.moment}</td>
+                    <tr key={item.id} className={cn(
+                      "border-b border-gray-200",
+                      item.rot_eligible && rotEnabled && item.type === "labor" && "bg-green-50/50"
+                    )}>
+                      <td className="py-2 text-gray-800">
+                        {item.moment}
+                        {item.rot_eligible && rotEnabled && item.type === "labor" && (
+                          <span className="ml-1.5 text-[10px] text-green-700 font-medium">ROT</span>
+                        )}
+                      </td>
                       <td className="py-2 text-right text-gray-600">
                         {item.type === "labor" ? item.hours : item.quantity}
                       </td>

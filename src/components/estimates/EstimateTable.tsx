@@ -13,7 +13,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -29,12 +30,14 @@ export interface EstimateItem {
   comment: string;
   uncertainty: "low" | "medium" | "high";
   sort_order: number;
+  rot_eligible: boolean;
 }
 
 interface EstimateTableProps {
   items: EstimateItem[];
   onItemsChange: (items: EstimateItem[]) => void;
   readOnly?: boolean;
+  rotEnabled?: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -61,7 +64,7 @@ const UNCERTAINTY_LABELS: Record<string, string> = {
   high: "Hög osäkerhet",
 };
 
-export function EstimateTable({ items, onItemsChange, readOnly = false }: EstimateTableProps) {
+export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabled = false }: EstimateTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [focusedCell, setFocusedCell] = useState<{ id: string; field: string } | null>(null);
@@ -114,6 +117,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       comment: "",
       uncertainty: "medium",
       sort_order: items.length,
+      rot_eligible: rotEnabled, // Default to enabled when ROT is on
     };
     onItemsChange([...items, newItem]);
     
@@ -357,7 +361,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
   return (
     <div className="space-y-0.5">
       {/* Header row */}
-      <div className="grid grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px] gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className={cn(
+        "grid gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider",
+        rotEnabled 
+          ? "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_32px_28px]"
+          : "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px]"
+      )}>
         <div></div>
         <div>Moment</div>
         <div>Typ</div>
@@ -365,6 +374,20 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
         <div>Enhet</div>
         <div className="text-right">Á-pris</div>
         <div className="text-right">Summa</div>
+        {rotEnabled && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-center">
+                  <Home className="h-3 w-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                ROT-avdrag
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <div></div>
       </div>
 
@@ -378,9 +401,13 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              "grid grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px] gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
+              "grid gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
+              rotEnabled 
+                ? "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_32px_28px]"
+                : "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px]",
               draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
-              focusedCell?.id === item.id && "bg-muted/50 shadow-sm"
+              focusedCell?.id === item.id && "bg-muted/50 shadow-sm",
+              item.rot_eligible && rotEnabled && "bg-primary/5"
             )}
             style={{ animationDelay: `${index * 30}ms` }}
           >
@@ -526,6 +553,24 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
             <span className="text-[13px] text-right font-medium tabular-nums">
               {formatNumber(item.subtotal)}
             </span>
+
+            {/* ROT checkbox - only for labor rows when ROT is enabled */}
+            {rotEnabled && (
+              <div className="flex items-center justify-center">
+                {item.type === "labor" ? (
+                  <Checkbox
+                    checked={item.rot_eligible}
+                    onCheckedChange={(checked) => 
+                      !readOnly && updateItem(item.id, { rot_eligible: !!checked })
+                    }
+                    disabled={readOnly}
+                    className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground/50">–</span>
+                )}
+              </div>
+            )}
 
             {/* Delete */}
             {!readOnly ? (

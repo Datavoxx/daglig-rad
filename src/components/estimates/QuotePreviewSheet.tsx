@@ -36,6 +36,7 @@ interface EstimateItem {
   hours: number;
   unit_price: number;
   subtotal: number;
+  rot_eligible?: boolean;
 }
 
 interface QuotePreviewSheetProps {
@@ -76,6 +77,12 @@ export function QuotePreviewSheet({
   const laborCost = items
     .filter((i) => i.type === "labor")
     .reduce((sum, i) => sum + i.subtotal, 0);
+    
+  // ROT-eligible labor cost (only items marked as rot_eligible)
+  const rotEligibleLaborCost = items
+    .filter((i) => i.type === "labor" && i.rot_eligible)
+    .reduce((sum, i) => sum + i.subtotal, 0);
+    
   const materialCost = items
     .filter((i) => i.type === "material")
     .reduce((sum, i) => sum + i.subtotal, 0);
@@ -89,9 +96,9 @@ export function QuotePreviewSheet({
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;
   
-  // ROT calculation on labor cost including VAT (30% of labor cost * 1.25)
-  const laborWithVat = laborCost * 1.25;
-  const rotAmount = rotEnabled ? laborWithVat * (rotPercent / 100) : 0;
+  // ROT calculation on rot_eligible labor cost including VAT
+  const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
+  const rotAmount = rotEnabled ? rotEligibleWithVat * (rotPercent / 100) : 0;
   const amountToPay = totalInclVat - rotAmount;
 
   const formatCurrency = (num: number) =>

@@ -247,6 +247,7 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
         <EstimateTable
           items={estimate.state.items}
           onItemsChange={estimate.updateItems}
+          rotEnabled={estimate.state.rotEnabled}
         />
       </section>
 
@@ -269,6 +270,7 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
         enabled={estimate.state.rotEnabled}
         percent={estimate.state.rotPercent}
         laborCost={estimate.totals.laborCost}
+        rotEligibleLaborCost={estimate.totals.rotEligibleLaborCost}
         onToggle={(enabled) => estimate.updateRot(enabled)}
         onPercentChange={(percent) => estimate.updateRot(estimate.state.rotEnabled, percent)}
       />
