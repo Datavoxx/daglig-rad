@@ -86,13 +86,13 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       
       const updated = { ...item, ...updates };
       
-      // Recalculate subtotal
-      if (updated.type === "labor" && updated.hours && updated.unit_price) {
-        updated.subtotal = updated.hours * updated.unit_price;
-      } else if (updated.quantity && updated.unit_price) {
-        updated.subtotal = updated.quantity * updated.unit_price;
+      // Recalculate subtotal - treat null/undefined as 0 so calculations always run
+      if (updated.type === "labor") {
+        updated.subtotal = (updated.hours || 0) * (updated.unit_price || 0);
       } else if (updated.unit === "klump") {
-        updated.subtotal = updated.unit_price;
+        updated.subtotal = updated.unit_price || 0;
+      } else {
+        updated.subtotal = (updated.quantity || 0) * (updated.unit_price || 0);
       }
       
       return updated;
@@ -106,9 +106,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false }: Estima
       id: crypto.randomUUID(),
       moment: "",
       type: "labor",
-      quantity: null,
+      quantity: 1,
       unit: "tim",
-      hours: null,
+      hours: 1,
       unit_price: 0,
       subtotal: 0,
       comment: "",
