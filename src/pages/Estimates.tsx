@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calculator, FolderOpen, PenLine } from "lucide-react";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
+import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 
 export default function Estimates() {
   const [mode, setMode] = useState<"project" | "manual">("project");
@@ -18,6 +19,7 @@ export default function Estimates() {
   const [manualProjectName, setManualProjectName] = useState("");
   const [manualClientName, setManualClientName] = useState("");
   const [manualAddress, setManualAddress] = useState("");
+  const [manualAddressData, setManualAddressData] = useState<AddressData | null>(null);
   const [manualStarted, setManualStarted] = useState(false);
 
   // Fetch projects with client info
@@ -67,6 +69,7 @@ export default function Estimates() {
     setManualProjectName("");
     setManualClientName("");
     setManualAddress("");
+    setManualAddressData(null);
   };
 
   return (
@@ -141,10 +144,11 @@ export default function Estimates() {
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Adress</Label>
-                <Input
-                  placeholder="Gatuadress, postnummer, ort"
+                <AddressAutocomplete
+                  placeholder="Sök adress..."
                   value={manualAddress}
-                  onChange={(e) => setManualAddress(e.target.value)}
+                  onChange={setManualAddress}
+                  onStructuredChange={setManualAddressData}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -188,6 +192,10 @@ export default function Estimates() {
             projectName: manualProjectName,
             clientName: manualClientName,
             address: manualAddress,
+            postalCode: manualAddressData?.postalCode,
+            city: manualAddressData?.city,
+            latitude: manualAddressData?.latitude,
+            longitude: manualAddressData?.longitude,
           }}
           onDelete={handleManualDelete}
         />

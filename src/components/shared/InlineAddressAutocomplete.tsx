@@ -3,9 +3,18 @@ import { Loader2 } from "lucide-react";
 
 const GOOGLE_API_KEY = "AIzaSyDk_9TjgYnd-MmG2BQWzxwUIVaECsZcE4M";
 
+export interface AddressData {
+  formatted: string;
+  postalCode?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 interface InlineAddressAutocompleteProps {
   value: string;
   onChange: (address: string) => void;
+  onStructuredChange?: (data: AddressData) => void;
   placeholder?: string;
   className?: string;
 }
@@ -64,16 +73,35 @@ function loadGoogleMapsScript(): Promise<void> {
     script.onerror = () => {
       isScriptLoading = false;
       console.error("Failed to load Google Maps script");
-      resolve(); // Resolve anyway to show fallback
+      resolve();
     };
 
     document.head.appendChild(script);
   });
 }
 
+function parseAddressComponents(place: google.maps.places.PlaceResult): AddressData {
+  const components = place.address_components || [];
+  
+  const postalCode = components.find(c => 
+    c.types.includes("postal_code"))?.long_name;
+  
+  const city = components.find(c => 
+    c.types.includes("locality") || c.types.includes("postal_town"))?.long_name;
+  
+  return {
+    formatted: place.formatted_address || "",
+    postalCode,
+    city,
+    latitude: place.geometry?.location?.lat(),
+    longitude: place.geometry?.location?.lng(),
+  };
+}
+
 export function InlineAddressAutocomplete({
   value,
   onChange,
+  onStructuredChange,
   placeholder = "Adress...",
   className = "",
 }: InlineAddressAutocompleteProps) {
@@ -93,7 +121,7 @@ export function InlineAddressAutocomplete({
         inputRef.current,
         {
           componentRestrictions: { country: "se" },
-          fields: ["formatted_address", "address_components"],
+          fields: ["formatted_address", "address_components", "geometry"],
           types: ["address"],
         }
       );
@@ -102,6 +130,11 @@ export function InlineAddressAutocomplete({
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
           onChange(place.formatted_address);
+          
+          if (onStructuredChange) {
+            const addressData = parseAddressComponents(place);
+            onStructuredChange(addressData);
+          }
         }
       });
 
@@ -109,7 +142,7 @@ export function InlineAddressAutocomplete({
     } catch (error) {
       console.error("Error initializing autocomplete:", error);
     }
-  }, [onChange]);
+  }, [onChange, onStructuredChange]);
 
   useEffect(() => {
     let mounted = true;

@@ -80,31 +80,43 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          city: string | null
           created_at: string | null
           customer_type: string | null
           email: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
+          postal_code: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
+          city?: string | null
           created_at?: string | null
           customer_type?: string | null
           email?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          postal_code?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
+          city?: string | null
           created_at?: string | null
           customer_type?: string | null
           email?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          postal_code?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -659,7 +671,11 @@ export type Database = {
           introduction_text: string | null
           labor_cost: number | null
           manual_address: string | null
+          manual_city: string | null
           manual_client_name: string | null
+          manual_latitude: number | null
+          manual_longitude: number | null
+          manual_postal_code: string | null
           manual_project_name: string | null
           markup_percent: number | null
           material_cost: number | null
@@ -691,7 +707,11 @@ export type Database = {
           introduction_text?: string | null
           labor_cost?: number | null
           manual_address?: string | null
+          manual_city?: string | null
           manual_client_name?: string | null
+          manual_latitude?: number | null
+          manual_longitude?: number | null
+          manual_postal_code?: string | null
           manual_project_name?: string | null
           markup_percent?: number | null
           material_cost?: number | null
@@ -723,7 +743,11 @@ export type Database = {
           introduction_text?: string | null
           labor_cost?: number | null
           manual_address?: string | null
+          manual_city?: string | null
           manual_client_name?: string | null
+          manual_latitude?: number | null
+          manual_longitude?: number | null
+          manual_postal_code?: string | null
           manual_project_name?: string | null
           markup_percent?: number | null
           material_cost?: number | null
@@ -887,28 +911,40 @@ export type Database = {
       projects: {
         Row: {
           address: string | null
+          city: string | null
           client_name: string | null
           created_at: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
+          postal_code: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
+          city?: string | null
           client_name?: string | null
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          postal_code?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
+          city?: string | null
           client_name?: string | null
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          postal_code?: string | null
           updated_at?: string | null
           user_id?: string
         }
