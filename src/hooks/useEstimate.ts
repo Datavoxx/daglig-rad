@@ -49,7 +49,7 @@ const initialState: EstimateState = {
   uncertainties: [],
   items: [],
   addons: [],
-  markupPercent: 15,
+  markupPercent: 0,
   rotEnabled: false,
   rotPercent: 30,
   transcript: "",
