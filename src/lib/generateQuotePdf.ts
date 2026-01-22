@@ -32,6 +32,7 @@ interface QuoteItem {
   hours?: number;
   unit_price: number;
   subtotal: number;
+  rot_eligible?: boolean;
 }
 
 interface QuoteData {
@@ -78,9 +79,12 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;
   
-  // ROT calculation on labor cost including VAT
-  const laborWithVat = data.laborCost * 1.25;
-  const rotAmount = data.rotEnabled ? laborWithVat * (data.rotPercent / 100) : 0;
+  // ROT calculation - use rot_eligible items only
+  const rotEligibleLaborCost = data.items
+    .filter((item) => item.type === "labor" && item.rot_eligible)
+    .reduce((sum, item) => sum + item.subtotal, 0);
+  const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
+  const rotAmount = data.rotEnabled ? rotEligibleWithVat * (data.rotPercent / 100) : 0;
   const amountToPay = totalInclVat - rotAmount;
 
   // Helper to draw footer on each page

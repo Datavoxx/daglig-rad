@@ -240,6 +240,7 @@ export type Database = {
           id: string
           moment: string
           quantity: number | null
+          rot_eligible: boolean | null
           sort_order: number
           subtotal: number | null
           type: string
@@ -256,6 +257,7 @@ export type Database = {
           id?: string
           moment: string
           quantity?: number | null
+          rot_eligible?: boolean | null
           sort_order?: number
           subtotal?: number | null
           type: string
@@ -272,6 +274,7 @@ export type Database = {
           id?: string
           moment?: string
           quantity?: number | null
+          rot_eligible?: boolean | null
           sort_order?: number
           subtotal?: number | null
           type?: string

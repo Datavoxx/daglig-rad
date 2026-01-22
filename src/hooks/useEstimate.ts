@@ -134,6 +134,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
           comment: item.comment || "",
           uncertainty: item.uncertainty || "medium",
           sort_order: item.sort_order,
+          rot_eligible: item.rot_eligible ?? false,
         })),
         addons: existingEstimate.addons.map((addon: any) => ({
           id: addon.id,
@@ -172,6 +173,11 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       .filter((item) => item.type === "labor")
       .reduce((sum, item) => sum + (item.subtotal || 0), 0);
     
+    // ROT-eligible labor cost (only items marked as rot_eligible)
+    const rotEligibleLaborCost = state.items
+      .filter((item) => item.type === "labor" && item.rot_eligible)
+      .reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    
     const materialCost = state.items
       .filter((item) => item.type === "material")
       .reduce((sum, item) => sum + (item.subtotal || 0), 0);
@@ -190,10 +196,25 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     const vat = totalExclVat * 0.25;
     const totalInclVat = totalExclVat + vat;
 
-    // ROT on labor with VAT
-    const laborWithVat = laborCost * 1.25;
-    const rotAmount = state.rotEnabled ? laborWithVat * (state.rotPercent / 100) : 0;
+    // ROT on ROT-eligible labor with VAT
+    const rotEligibleLaborWithVat = rotEligibleLaborCost * 1.25;
+    const rotAmount = state.rotEnabled ? rotEligibleLaborWithVat * (state.rotPercent / 100) : 0;
     const amountToPay = totalInclVat - rotAmount;
+
+    return {
+      laborCost,
+      rotEligibleLaborCost,
+      materialCost,
+      subcontractorCost,
+      addonsCost,
+      subtotal,
+      markup,
+      totalExclVat,
+      vat,
+      totalInclVat,
+      rotAmount,
+      amountToPay,
+    };
 
     return {
       laborCost,
@@ -383,6 +404,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
           comment: item.comment,
           uncertainty: item.uncertainty,
           sort_order: index,
+          rot_eligible: item.rot_eligible ?? false,
         }));
         const { error } = await supabase.from("estimate_items").insert(itemsToInsert);
         if (error) throw error;
