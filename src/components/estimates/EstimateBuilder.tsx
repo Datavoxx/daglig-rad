@@ -43,18 +43,33 @@ interface Project {
   address?: string;
 }
 
+interface ManualData {
+  projectName: string;
+  clientName: string;
+  address: string;
+}
+
 interface EstimateBuilderProps {
-  project: Project;
+  project?: Project;
+  manualData?: ManualData;
   onDelete?: () => void;
 }
 
-export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
+export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuilderProps) {
   const isMobile = useIsMobile();
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const estimate = useEstimate(project.id);
+  // Determine if we're in manual mode
+  const isManualMode = !project && !!manualData;
+  
+  // Derive display values
+  const displayProjectName = project?.name || manualData?.projectName || "";
+  const displayClientName = project?.client_name || manualData?.clientName || "";
+  const displayAddress = project?.address || manualData?.address || "";
+
+  const estimate = useEstimate(project?.id || null, isManualMode ? manualData : undefined);
 
   // Fetch company settings
   const { data: companySettings } = useQuery({
@@ -77,7 +92,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
     try {
       await generateQuotePdf({
         offerNumber: "OFF-001",
-        projectName: project.name,
+        projectName: displayProjectName,
         validDays: 30,
         company: companySettings
           ? {
@@ -98,8 +113,8 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
             }
           : undefined,
         customer: {
-          name: project.client_name || undefined,
-          address: project.address || undefined,
+          name: displayClientName || undefined,
+          address: displayAddress || undefined,
         },
         scope: estimate.state.scope,
         conditions: estimate.state.assumptions,
@@ -130,9 +145,9 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
       {/* Header section */}
       <div className="flex items-start justify-between gap-4">
         <EstimateHeader
-          projectName={project.name}
-          clientName={project.client_name}
-          address={project.address}
+          projectName={displayProjectName}
+          clientName={displayClientName}
+          address={displayAddress}
           offerNumber={null}
           version={1}
           createdAt={null}
@@ -284,6 +299,13 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
   );
 
   // Preview content
+  // Create a display project object for preview components
+  const displayProject = project || {
+    name: displayProjectName,
+    client_name: displayClientName,
+    address: displayAddress,
+  };
+
   const previewContent = (
     <div className="h-full bg-muted/30 border-l">
       <div className="p-3 border-b bg-background/80 backdrop-blur-sm flex items-center gap-2 sticky top-0 z-10">
@@ -291,7 +313,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
         <span className="font-medium text-sm">Förhandsgranskning</span>
       </div>
       <QuoteLivePreview
-        project={project}
+        project={displayProject}
         company={companySettings}
         scope={estimate.state.scope}
         assumptions={estimate.state.assumptions}
@@ -312,7 +334,7 @@ export function EstimateBuilder({ project, onDelete }: EstimateBuilderProps) {
         <QuotePreviewSheet
           open={mobilePreviewOpen}
           onOpenChange={setMobilePreviewOpen}
-          project={project}
+          project={displayProject}
           company={companySettings}
           scope={estimate.state.scope}
           assumptions={estimate.state.assumptions}
