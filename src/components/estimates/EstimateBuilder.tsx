@@ -63,13 +63,13 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
 
   // Determine if we're in manual mode
   const isManualMode = !project && !!manualData;
-  
-  // Derive display values
-  const displayProjectName = project?.name || manualData?.projectName || "";
-  const displayClientName = project?.client_name || manualData?.clientName || "";
-  const displayAddress = project?.address || manualData?.address || "";
 
   const estimate = useEstimate(project?.id || null, isManualMode ? manualData : undefined);
+  
+  // Derive display values - use estimate state for manual mode to enable editing
+  const displayProjectName = isManualMode ? estimate.state.manualProjectName : project?.name || "";
+  const displayClientName = isManualMode ? estimate.state.manualClientName : project?.client_name || "";
+  const displayAddress = isManualMode ? estimate.state.manualAddress : project?.address || "";
 
   // Fetch company settings
   const { data: companySettings } = useQuery({
@@ -151,6 +151,10 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
           offerNumber={null}
           version={1}
           createdAt={null}
+          isEditable={isManualMode}
+          onProjectNameChange={estimate.updateManualProjectName}
+          onClientNameChange={estimate.updateManualClientName}
+          onAddressChange={estimate.updateManualAddress}
         />
         <div className="flex items-center gap-2 shrink-0">
           {!isMobile && (
