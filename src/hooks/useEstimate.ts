@@ -279,6 +279,18 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     setState((prev) => ({ ...prev, templateId }));
   }, []);
 
+  const updateManualProjectName = useCallback((name: string) => {
+    setState((prev) => ({ ...prev, manualProjectName: name }));
+  }, []);
+
+  const updateManualClientName = useCallback((name: string) => {
+    setState((prev) => ({ ...prev, manualClientName: name }));
+  }, []);
+
+  const updateManualAddress = useCallback((address: string) => {
+    setState((prev) => ({ ...prev, manualAddress: address }));
+  }, []);
+
   const reset = useCallback(() => {
     setState({
       ...initialState,
@@ -441,6 +453,9 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     updateMarkup,
     updateRot,
     updateTemplateId,
+    updateManualProjectName,
+    updateManualClientName,
+    updateManualAddress,
     reset,
     setState,
     

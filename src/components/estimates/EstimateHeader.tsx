@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { FileText, MapPin, User } from "lucide-react";
+import { MapPin, User } from "lucide-react";
 
 interface EstimateHeaderProps {
   projectName: string;
@@ -9,6 +9,10 @@ interface EstimateHeaderProps {
   offerNumber?: string | null;
   version: number;
   createdAt?: string | null;
+  isEditable?: boolean;
+  onProjectNameChange?: (name: string) => void;
+  onClientNameChange?: (name: string) => void;
+  onAddressChange?: (address: string) => void;
 }
 
 export function EstimateHeader({
@@ -18,6 +22,10 @@ export function EstimateHeader({
   offerNumber,
   version,
   createdAt,
+  isEditable = false,
+  onProjectNameChange,
+  onClientNameChange,
+  onAddressChange,
 }: EstimateHeaderProps) {
   const displayDate = createdAt
     ? format(new Date(createdAt), "d MMM yyyy", { locale: sv })
@@ -35,9 +43,19 @@ export function EstimateHeader({
               Offert
             </span>
           </div>
-          <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
-            {projectName}
-          </h1>
+          {isEditable ? (
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => onProjectNameChange?.(e.target.value)}
+              placeholder="Projektnamn..."
+              className="w-full text-lg font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50"
+            />
+          ) : (
+            <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
+              {projectName}
+            </h1>
+          )}
         </div>
 
         <div className="text-right shrink-0">
@@ -55,17 +73,44 @@ export function EstimateHeader({
 
       {/* Client and address row */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-        {clientName && (
-          <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            <span>{clientName}</span>
-          </div>
-        )}
-        {address && (
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            <span className="truncate max-w-[280px]">{address}</span>
-          </div>
+        {isEditable ? (
+          <>
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3 shrink-0" />
+              <input
+                type="text"
+                value={clientName || ""}
+                onChange={(e) => onClientNameChange?.(e.target.value)}
+                placeholder="Kundnamn..."
+                className="bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50 min-w-[100px]"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <input
+                type="text"
+                value={address || ""}
+                onChange={(e) => onAddressChange?.(e.target.value)}
+                placeholder="Adress..."
+                className="bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50 min-w-[150px]"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {clientName && (
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                <span>{clientName}</span>
+              </div>
+            )}
+            {address && (
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate max-w-[280px]">{address}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
