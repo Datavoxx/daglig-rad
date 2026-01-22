@@ -82,8 +82,8 @@ export default function Auth() {
                 </div>
               </CardHeader>
             </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="text-sm text-muted-foreground space-y-3">
+            <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+              <CardContent className="text-sm text-muted-foreground space-y-3 pt-0">
                 <p>
                   <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
                 </p>
