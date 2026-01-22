@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 
 interface Project {
   id: string;
@@ -38,6 +39,7 @@ export default function Projects() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState({ name: "", client_name: "", address: "" });
+  const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -94,6 +96,10 @@ export default function Projects() {
           name: formData.name,
           client_name: formData.client_name || null,
           address: formData.address || null,
+          postal_code: addressData?.postalCode || null,
+          city: addressData?.city || null,
+          latitude: addressData?.latitude || null,
+          longitude: addressData?.longitude || null,
         })
         .eq("id", editingProject.id);
 
@@ -109,6 +115,10 @@ export default function Projects() {
         name: formData.name,
         client_name: formData.client_name || null,
         address: formData.address || null,
+        postal_code: addressData?.postalCode || null,
+        city: addressData?.city || null,
+        latitude: addressData?.latitude || null,
+        longitude: addressData?.longitude || null,
         user_id: user.id,
       });
 
@@ -209,11 +219,12 @@ export default function Projects() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Adress</Label>
-                    <Input
+                    <AddressAutocomplete
                       id="address"
-                      placeholder="T.ex. Storgatan 1, Stockholm"
+                      placeholder="Sök adress..."
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(addr) => setFormData({ ...formData, address: addr })}
+                      onStructuredChange={setAddressData}
                     />
                   </div>
                 </div>

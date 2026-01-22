@@ -4,9 +4,18 @@ import { Loader2, MapPin } from "lucide-react";
 
 const GOOGLE_API_KEY = "AIzaSyDk_9TjgYnd-MmG2BQWzxwUIVaECsZcE4M";
 
+export interface AddressData {
+  formatted: string;
+  postalCode?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 interface AddressAutocompleteProps {
   value: string;
   onChange: (address: string) => void;
+  onStructuredChange?: (data: AddressData) => void;
   placeholder?: string;
   id?: string;
 }
@@ -72,9 +81,28 @@ function loadGoogleMapsScript(): Promise<void> {
   });
 }
 
+function parseAddressComponents(place: google.maps.places.PlaceResult): AddressData {
+  const components = place.address_components || [];
+  
+  const postalCode = components.find(c => 
+    c.types.includes("postal_code"))?.long_name;
+  
+  const city = components.find(c => 
+    c.types.includes("locality") || c.types.includes("postal_town"))?.long_name;
+  
+  return {
+    formatted: place.formatted_address || "",
+    postalCode,
+    city,
+    latitude: place.geometry?.location?.lat(),
+    longitude: place.geometry?.location?.lng(),
+  };
+}
+
 export function AddressAutocomplete({
   value,
   onChange,
+  onStructuredChange,
   placeholder = "Sök adress...",
   id,
 }: AddressAutocompleteProps) {
@@ -94,7 +122,7 @@ export function AddressAutocomplete({
         inputRef.current,
         {
           componentRestrictions: { country: "se" },
-          fields: ["formatted_address", "address_components"],
+          fields: ["formatted_address", "address_components", "geometry"],
           types: ["address"],
         }
       );
@@ -103,6 +131,11 @@ export function AddressAutocomplete({
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
           onChange(place.formatted_address);
+          
+          if (onStructuredChange) {
+            const addressData = parseAddressComponents(place);
+            onStructuredChange(addressData);
+          }
         }
       });
 
@@ -110,7 +143,7 @@ export function AddressAutocomplete({
     } catch (error) {
       console.error("Error initializing autocomplete:", error);
     }
-  }, [onChange]);
+  }, [onChange, onStructuredChange]);
 
   useEffect(() => {
     let mounted = true;

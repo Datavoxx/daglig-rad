@@ -47,6 +47,10 @@ interface ManualData {
   projectName: string;
   clientName: string;
   address: string;
+  postalCode?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface EstimateBuilderProps {

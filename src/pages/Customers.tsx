@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AddressAutocomplete } from "@/components/shared/AddressAutocomplete";
+import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -58,6 +58,7 @@ export default function Customers() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formAddressData, setFormAddressData] = useState<AddressData | null>(null);
   const [formEmail, setFormEmail] = useState("");
   const [formType, setFormType] = useState("business");
 
@@ -85,6 +86,7 @@ export default function Customers() {
   function resetForm() {
     setFormName("");
     setFormAddress("");
+    setFormAddressData(null);
     setFormEmail("");
     setFormType("business");
     setEditingCustomer(null);
@@ -120,6 +122,10 @@ export default function Customers() {
       const customerData = {
         name: formName.trim(),
         address: formAddress.trim() || null,
+        postal_code: formAddressData?.postalCode || null,
+        city: formAddressData?.city || null,
+        latitude: formAddressData?.latitude || null,
+        longitude: formAddressData?.longitude || null,
         email: formEmail.trim() || null,
         customer_type: formType,
       };
@@ -226,9 +232,10 @@ export default function Customers() {
                 <Label htmlFor="address">Adress</Label>
                 <AddressAutocomplete
                   id="address"
-                  placeholder="Börja skriv för att söka adress..."
+                  placeholder="Sök adress..."
                   value={formAddress}
                   onChange={setFormAddress}
+                  onStructuredChange={setFormAddressData}
                 />
               </div>
               <div className="space-y-2">
