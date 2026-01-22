@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, BookOpen, Phone } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, BookOpen, Phone, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [aboutOpen, setAboutOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,25 +70,37 @@ export default function Auth() {
       <div className="relative z-10 flex flex-col items-center w-full max-w-md gap-4">
         {/* About Byggio */}
         <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Vilka är Byggio?</CardTitle>
-          </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-3">
-          <p>
-            <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
-          </p>
-          <p>
-            Målet med Byggio är att visa hur byggföretag kan digitalisera sina 
-            dagliga arbetsflöden – från dagrapporter och besiktningar till 
-            kalkyler och projektplanering – allt samlat i en enkel och 
-            användarvänlig app.
-          </p>
-          <p>
-            Med hjälp av <strong className="text-foreground">AI-assistans</strong> gör Byggio arbetet 
-            <strong className="text-primary"> 62% enklare</strong> – genom automatisk generering av 
-            rapporter, offerter och projektplaner baserat på röstinmatning och smart datahantering.
-          </p>
-        </CardContent>
+          <Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Vilka är Byggio?</CardTitle>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                    aboutOpen && "rotate-180"
+                  )} />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="text-sm text-muted-foreground space-y-3">
+                <p>
+                  <strong className="text-foreground">Byggio</strong> är en demoapp byggd av <strong className="text-foreground">Mahad Abdullahi</strong>.
+                </p>
+                <p>
+                  Målet med Byggio är att visa hur byggföretag kan digitalisera sina 
+                  dagliga arbetsflöden – från dagrapporter och besiktningar till 
+                  kalkyler och projektplanering – allt samlat i en enkel och 
+                  användarvänlig app.
+                </p>
+                <p>
+                  Med hjälp av <strong className="text-foreground">AI-assistans</strong> gör Byggio arbetet 
+                  <strong className="text-primary"> 62% enklare</strong> – genom automatisk generering av 
+                  rapporter, offerter och projektplaner baserat på röstinmatning och smart datahantering.
+                </p>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
 
         {/* Login Card */}
