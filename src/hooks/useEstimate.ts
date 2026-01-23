@@ -126,6 +126,9 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         uncertainties: (existingEstimate.uncertainties as string[]) || [],
         items: existingEstimate.items.map((item: any) => ({
           id: item.id,
+          article: item.article || "",
+          description: item.description || item.moment || "",
+          show_only_total: item.show_only_total || false,
           moment: item.moment,
           type: item.type,
           quantity: item.quantity,
@@ -402,7 +405,10 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       if (state.items.length > 0) {
         const itemsToInsert = state.items.map((item, index) => ({
           estimate_id: estimateId,
-          moment: item.moment,
+          article: item.article || null,
+          description: item.description || null,
+          show_only_total: item.show_only_total || false,
+          moment: item.moment || item.description,
           type: item.type,
           quantity: item.quantity,
           unit: item.unit,

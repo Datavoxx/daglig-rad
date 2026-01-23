@@ -14,13 +14,33 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home, EyeOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
+// Article categories - Bygglet style
+const ARTICLE_OPTIONS = [
+  "Arbete",
+  "Bygg",
+  "Deponi",
+  "Framkörning",
+  "Förbrukning",
+  "Förvaltning",
+  "Markarbete",
+  "Maskin",
+  "Material",
+  "Målning",
+  "Snöröjning",
+  "Städ",
+  "Trädgårdsskötsel",
+] as const;
+
 export interface EstimateItem {
   id: string;
-  moment: string;
+  article: string;         // NEW: Category (Målning, Material, Maskin, etc.)
+  description: string;     // NEW: Free text description
+  show_only_total: boolean; // NEW: Hide price details
+  moment: string;          // Legacy - kept for backwards compatibility
   type: "labor" | "material" | "subcontractor";
   quantity: number | null;
   unit: string;
@@ -107,6 +127,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
   const addItem = () => {
     const newItem: EstimateItem = {
       id: crypto.randomUUID(),
+      article: "",
+      description: "",
+      show_only_total: false,
       moment: "",
       type: "labor",
       quantity: 1,
@@ -121,9 +144,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
     };
     onItemsChange([...items, newItem]);
     
-    // Focus the new item's moment field after render
+    // Focus the new item's description field after render
     setTimeout(() => {
-      const ref = inputRefs.current.get(`${newItem.id}-moment`);
+      const ref = inputRefs.current.get(`${newItem.id}-description`);
       ref?.focus();
     }, 50);
   };
@@ -181,7 +204,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       }
     }
     if (e.key === "Tab" && !e.shiftKey) {
-      const fields = ["moment", "quantity", "unit_price"];
+      const fields = ["description", "quantity", "unit_price"];
       const currentFieldIndex = fields.indexOf(field);
       if (currentFieldIndex < fields.length - 1) {
         e.preventDefault();
@@ -364,12 +387,24 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       <div className={cn(
         "grid gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider",
         rotEnabled 
-          ? "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_32px_28px]"
-          : "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px]"
+          ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
+          : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]"
       )}>
         <div></div>
-        <div>Moment</div>
-        <div>Typ</div>
+        <div>Artikel</div>
+        <div>Beskrivning</div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-center">
+                <EyeOff className="h-3 w-3" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              Visa endast total (dölj prisdetaljer)
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <div className="text-right">Antal</div>
         <div>Enhet</div>
         <div className="text-right">Á-pris</div>
@@ -403,11 +438,12 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
             className={cn(
               "grid gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
               rotEnabled 
-                ? "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_32px_28px]"
-                : "grid-cols-[20px_1fr_60px_50px_40px_70px_80px_28px]",
+                ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
+                : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]",
               draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
               focusedCell?.id === item.id && "bg-muted/50 shadow-sm",
-              item.rot_eligible && rotEnabled && "bg-primary/5"
+              item.rot_eligible && rotEnabled && "bg-primary/5",
+              item.show_only_total && "bg-muted/30"
             )}
             style={{ animationDelay: `${index * 30}ms` }}
           >
@@ -420,7 +456,26 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
               <div />
             )}
 
-            {/* Moment with uncertainty dot */}
+            {/* Article dropdown */}
+            {readOnly ? (
+              <span className="text-[13px] text-muted-foreground truncate">{item.article || "–"}</span>
+            ) : (
+              <Select
+                value={item.article || ""}
+                onValueChange={(value) => updateItem(item.id, { article: value })}
+              >
+                <SelectTrigger className="h-6 text-[11px] border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
+                  <SelectValue placeholder="Välj..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ARTICLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Description with uncertainty dot */}
             <div className="flex items-center gap-1.5 min-w-0">
               <TooltipProvider>
                 <Tooltip>
@@ -446,41 +501,33 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
               </TooltipProvider>
               
               {readOnly ? (
-                <span className="text-[13px] truncate">{item.moment}</span>
+                <span className="text-[13px] truncate">{item.description || item.moment}</span>
               ) : (
                 <input
-                  ref={(el) => el && inputRefs.current.set(`${item.id}-moment`, el)}
-                  value={item.moment}
-                  onChange={(e) => updateItem(item.id, { moment: e.target.value })}
-                  onFocus={() => setFocusedCell({ id: item.id, field: "moment" })}
+                  ref={(el) => el && inputRefs.current.set(`${item.id}-description`, el)}
+                  value={item.description || ""}
+                  onChange={(e) => updateItem(item.id, { description: e.target.value, moment: e.target.value })}
+                  onFocus={() => setFocusedCell({ id: item.id, field: "description" })}
                   onBlur={() => setFocusedCell(null)}
-                  onKeyDown={(e) => handleKeyDown(e, item.id, "moment")}
-                  placeholder="Skriv moment..."
+                  onKeyDown={(e) => handleKeyDown(e, item.id, "description")}
+                  placeholder="T.ex. Fasadtvätt..."
                   className="w-full text-[13px] bg-transparent border-0 outline-none focus:bg-muted/60 rounded px-1 py-0 -mx-1 truncate placeholder:text-muted-foreground/40"
                 />
               )}
             </div>
 
-            {/* Type */}
-            {readOnly ? (
-              <span className="text-[13px] text-muted-foreground">{TYPE_SHORT[item.type]}</span>
-            ) : (
-              <Select
-                value={item.type}
-                onValueChange={(value: "labor" | "material" | "subcontractor") =>
-                  updateItem(item.id, { type: value })
+            {/* Show only total checkbox */}
+            <div className="flex items-center justify-center">
+              <Checkbox
+                checked={item.show_only_total}
+                onCheckedChange={(checked) => 
+                  !readOnly && updateItem(item.id, { show_only_total: !!checked })
                 }
-              >
-                <SelectTrigger className="h-6 text-[11px] border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="labor">Arbete</SelectItem>
-                  <SelectItem value="material">Material</SelectItem>
-                  <SelectItem value="subcontractor">UE</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+                disabled={readOnly}
+                className="h-4 w-4"
+              />
+            </div>
+
 
             {/* Quantity / Hours */}
             {readOnly ? (

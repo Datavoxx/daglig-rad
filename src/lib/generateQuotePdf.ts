@@ -26,6 +26,9 @@ interface CustomerInfo {
 
 interface QuoteItem {
   moment: string;
+  description?: string;
+  article?: string;
+  show_only_total?: boolean;
   type?: "labor" | "material" | "subcontractor";
   quantity?: number;
   unit?: string;
@@ -290,14 +293,20 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     yPos += 4;
   }
 
-  // Price table
-  const tableData = data.items.map((item) => [
-    item.moment,
-    item.type === "labor" ? (item.hours?.toString() || "–") : (item.quantity?.toString() || "–"),
-    item.type === "labor" ? "h" : (item.unit || "–"),
-    formatNumber(item.unit_price),
-    formatNumber(item.subtotal),
-  ]);
+  // Price table - handle show_only_total
+  const tableData = data.items.map((item) => {
+    const description = item.description || item.moment;
+    if (item.show_only_total) {
+      return [description, "–", "–", "–", formatNumber(item.subtotal)];
+    }
+    return [
+      description,
+      item.type === "labor" ? (item.hours?.toString() || "–") : (item.quantity?.toString() || "–"),
+      item.type === "labor" ? "h" : (item.unit || "–"),
+      formatNumber(item.unit_price),
+      formatNumber(item.subtotal),
+    ];
+  });
 
   autoTable(doc, {
     startY: yPos,

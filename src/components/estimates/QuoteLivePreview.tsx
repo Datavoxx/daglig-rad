@@ -187,20 +187,31 @@ export function QuoteLivePreview({
                       item.rot_eligible && rotEnabled && item.type === "labor" && "bg-green-50/50"
                     )}>
                       <td className="py-2 text-gray-800">
-                        {item.moment}
+                        {item.description || item.moment}
                         {item.rot_eligible && rotEnabled && item.type === "labor" && (
                           <span className="ml-1.5 text-[10px] text-green-700 font-medium">ROT</span>
                         )}
                       </td>
-                      <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? item.hours : item.quantity}
-                      </td>
-                      <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? "h" : item.unit}
-                      </td>
-                      <td className="py-2 text-right text-gray-600">
-                        {formatCurrency(item.unit_price)}
-                      </td>
+                      {/* Show price details only if show_only_total is false */}
+                      {item.show_only_total ? (
+                        <>
+                          <td className="py-2 text-right text-gray-400">–</td>
+                          <td className="py-2 text-right text-gray-400">–</td>
+                          <td className="py-2 text-right text-gray-400">–</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-2 text-right text-gray-600">
+                            {item.type === "labor" ? item.hours : item.quantity}
+                          </td>
+                          <td className="py-2 text-right text-gray-600">
+                            {item.type === "labor" ? "h" : item.unit}
+                          </td>
+                          <td className="py-2 text-right text-gray-600">
+                            {formatCurrency(item.unit_price)}
+                          </td>
+                        </>
+                      )}
                       <td className="py-2 text-right font-medium text-black">
                         {formatCurrency(item.subtotal)}
                       </td>

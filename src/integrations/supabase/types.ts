@@ -245,14 +245,17 @@ export type Database = {
       }
       estimate_items: {
         Row: {
+          article: string | null
           comment: string | null
           created_at: string | null
+          description: string | null
           estimate_id: string
           hours: number | null
           id: string
           moment: string
           quantity: number | null
           rot_eligible: boolean | null
+          show_only_total: boolean | null
           sort_order: number
           subtotal: number | null
           type: string
@@ -262,14 +265,17 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          article?: string | null
           comment?: string | null
           created_at?: string | null
+          description?: string | null
           estimate_id: string
           hours?: number | null
           id?: string
           moment: string
           quantity?: number | null
           rot_eligible?: boolean | null
+          show_only_total?: boolean | null
           sort_order?: number
           subtotal?: number | null
           type: string
@@ -279,14 +285,17 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          article?: string | null
           comment?: string | null
           created_at?: string | null
+          description?: string | null
           estimate_id?: string
           hours?: number | null
           id?: string
           moment?: string
           quantity?: number | null
           rot_eligible?: boolean | null
+          show_only_total?: boolean | null
           sort_order?: number
           subtotal?: number | null
           type?: string
