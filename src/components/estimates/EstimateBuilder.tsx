@@ -93,6 +93,23 @@ export function EstimateBuilder({ project, manualData, onDelete, onBack }: Estim
     },
   });
 
+  // Fetch user profile for "Vår referens"
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return null;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userData.user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleDownload = async () => {
     try {
       await generateQuotePdf({
@@ -168,6 +185,7 @@ export function EstimateBuilder({ project, manualData, onDelete, onBack }: Estim
           createdAt={null}
           status={estimate.state.status}
           isEditable={isManualMode}
+          ourReference={userProfile?.full_name}
           onProjectNameChange={estimate.updateManualProjectName}
           onClientNameChange={estimate.updateManualClientName}
           onAddressChange={estimate.updateManualAddress}
