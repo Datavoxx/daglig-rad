@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, FolderOpen, PenLine, FileText, Calendar, User } from "lucide-react";
+import { Calculator, FolderOpen, PenLine, FileText, Calendar, User, ArrowLeft } from "lucide-react";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
@@ -165,6 +165,19 @@ export default function Estimates() {
 
   return (
     <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
+      {/* Back button - show when editing */}
+      {(selectedProjectId || manualStarted) && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="text-muted-foreground hover:text-foreground -ml-2 -mt-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Tillbaka
+        </Button>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Offert</h1>
@@ -330,7 +343,6 @@ export default function Estimates() {
         <EstimateBuilder
           project={selectedProject}
           onDelete={() => setSelectedProjectId("")}
-          onBack={handleBack}
         />
       )}
 
@@ -347,7 +359,6 @@ export default function Estimates() {
             longitude: manualAddressData?.longitude,
           }}
           onDelete={handleManualDelete}
-          onBack={handleBack}
         />
       )}
     </div>
