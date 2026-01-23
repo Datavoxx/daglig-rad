@@ -137,6 +137,16 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
     }
   };
 
+  const handleSaveAsDraft = () => {
+    estimate.updateStatus("draft");
+    setTimeout(() => estimate.save(), 0);
+  };
+
+  const handleSaveAsCompleted = () => {
+    estimate.updateStatus("completed");
+    setTimeout(() => estimate.save(), 0);
+  };
+
   const handleDelete = () => {
     estimate.delete();
     setDeleteDialogOpen(false);
@@ -155,6 +165,7 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
           offerNumber={null}
           version={1}
           createdAt={null}
+          status={estimate.state.status}
           isEditable={isManualMode}
           onProjectNameChange={estimate.updateManualProjectName}
           onClientNameChange={estimate.updateManualClientName}
@@ -300,7 +311,9 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
         rotAmount={estimate.totals.rotAmount}
         amountToPay={estimate.totals.amountToPay}
         rotEnabled={estimate.state.rotEnabled}
-        onSave={() => estimate.save()}
+        status={estimate.state.status}
+        onSaveAsDraft={handleSaveAsDraft}
+        onSaveAsCompleted={handleSaveAsCompleted}
         onDownload={handleDownload}
         onPreview={isMobile ? () => setMobilePreviewOpen(true) : undefined}
         isSaving={estimate.isSaving}

@@ -27,6 +27,7 @@ export interface EstimateState {
   rotEnabled: boolean;
   rotPercent: number;
   transcript: string;
+  status: "draft" | "completed";
   // Manual mode fields
   manualProjectName: string;
   manualClientName: string;
@@ -53,6 +54,7 @@ const initialState: EstimateState = {
   rotEnabled: false,
   rotPercent: 30,
   transcript: "",
+  status: "draft",
   manualProjectName: "",
   manualClientName: "",
   manualAddress: "",
@@ -148,6 +150,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rotEnabled: existingEstimate.rot_enabled || false,
         rotPercent: Number(existingEstimate.rot_percent) || 30,
         transcript: existingEstimate.original_transcript || "",
+        status: (existingEstimate.status as "draft" | "completed") || "draft",
         // Preserve manual fields from existing estimate if available
         manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
         manualClientName: (existingEstimate as any).manual_client_name || prev.manualClientName || "",
@@ -312,6 +315,10 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     setState((prev) => ({ ...prev, manualAddress: address }));
   }, []);
 
+  const updateStatus = useCallback((status: "draft" | "completed") => {
+    setState((prev) => ({ ...prev, status }));
+  }, []);
+
   const reset = useCallback(() => {
     setState({
       ...initialState,
@@ -359,6 +366,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rot_enabled: state.rotEnabled,
         rot_percent: state.rotPercent,
         version: existing ? (existing.version || 1) : 1,
+        status: state.status,
         // Manual mode fields
         manual_project_name: isManualMode ? state.manualProjectName : null,
         manual_client_name: isManualMode ? state.manualClientName : null,
@@ -478,6 +486,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     updateManualProjectName,
     updateManualClientName,
     updateManualAddress,
+    updateStatus,
     reset,
     setState,
     
