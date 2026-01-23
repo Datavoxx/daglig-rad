@@ -6,10 +6,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calculator, FolderOpen, PenLine } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calculator, FolderOpen, PenLine, FileText, Calendar, User } from "lucide-react";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
+import { format } from "date-fns";
+import { sv } from "date-fns/locale";
+
+interface SavedEstimate {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  manual_project_name: string | null;
+  project_id: string | null;
+  offer_number: string | null;
+  manual_client_name: string | null;
+  projects: { name: string; client_name: string | null } | null;
+}
 
 export default function Estimates() {
   const [mode, setMode] = useState<"project" | "manual">("project");
@@ -21,6 +37,8 @@ export default function Estimates() {
   const [manualAddress, setManualAddress] = useState("");
   const [manualAddressData, setManualAddressData] = useState<AddressData | null>(null);
   const [manualStarted, setManualStarted] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
 
   // Fetch projects with client info
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -35,7 +53,39 @@ export default function Estimates() {
     },
   });
 
-  if (projectsLoading) {
+  // Fetch saved estimates
+  const { data: savedEstimates, isLoading: estimatesLoading } = useQuery({
+    queryKey: ["saved-estimates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_estimates")
+        .select(`
+          id,
+          status,
+          created_at,
+          updated_at,
+          manual_project_name,
+          project_id,
+          offer_number,
+          manual_client_name,
+          projects (name, client_name)
+        `)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data as SavedEstimate[];
+    },
+  });
+
+  const drafts = savedEstimates?.filter((e) => e.status === "draft") || [];
+  const completed = savedEstimates?.filter((e) => e.status === "completed") || [];
+
+  const filteredEstimates = activeTab === "all" 
+    ? savedEstimates 
+    : activeTab === "draft" 
+    ? drafts 
+    : completed;
+
+  if (projectsLoading || estimatesLoading) {
     return (
       <div className="page-transition p-6 max-w-6xl mx-auto">
         <EstimateSkeleton />
@@ -53,8 +103,10 @@ export default function Estimates() {
       setManualClientName("");
       setManualAddress("");
       setManualStarted(false);
+      setSelectedEstimateId(null);
     } else {
       setSelectedProjectId("");
+      setSelectedEstimateId(null);
     }
   };
 
@@ -70,6 +122,35 @@ export default function Estimates() {
     setManualClientName("");
     setManualAddress("");
     setManualAddressData(null);
+  };
+
+  const handleSelectEstimate = (estimate: SavedEstimate) => {
+    // If it's a project-based estimate, select the project
+    if (estimate.project_id) {
+      setMode("project");
+      setSelectedProjectId(estimate.project_id);
+      setSelectedEstimateId(estimate.id);
+    } else {
+      // It's a manual estimate - open it directly
+      setMode("manual");
+      setManualProjectName(estimate.manual_project_name || "");
+      setManualClientName(estimate.manual_client_name || "");
+      setManualAddress("");
+      setManualStarted(true);
+      setSelectedEstimateId(estimate.id);
+    }
+  };
+
+  const getEstimateName = (estimate: SavedEstimate) => {
+    if (estimate.projects?.name) return estimate.projects.name;
+    if (estimate.manual_project_name) return estimate.manual_project_name;
+    return "Namnlös offert";
+  };
+
+  const getClientName = (estimate: SavedEstimate) => {
+    if (estimate.projects?.client_name) return estimate.projects.client_name;
+    if (estimate.manual_client_name) return estimate.manual_client_name;
+    return null;
   };
 
   return (
@@ -89,7 +170,7 @@ export default function Estimates() {
           className="gap-1.5"
         >
           <FolderOpen className="h-4 w-4" />
-          Välj projekt
+          Nytt från projekt
         </Button>
         <Button
           variant={mode === "manual" ? "default" : "ghost"}
@@ -98,14 +179,84 @@ export default function Estimates() {
           className="gap-1.5"
         >
           <PenLine className="h-4 w-4" />
-          Skapa manuellt
+          Ny manuell
         </Button>
       </div>
 
+      {/* Saved estimates list */}
+      {!selectedProjectId && !manualStarted && (
+        <Card>
+          <CardContent className="pt-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="all">
+                  Alla ({savedEstimates?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger value="draft">
+                  Draft ({drafts.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Klara ({completed.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={activeTab} className="mt-0">
+                {filteredEstimates && filteredEstimates.length > 0 ? (
+                  <div className="space-y-2">
+                    {filteredEstimates.map((estimate) => (
+                      <div
+                        key={estimate.id}
+                        onClick={() => handleSelectEstimate(estimate)}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{getEstimateName(estimate)}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {getClientName(estimate) && (
+                                <>
+                                  <User className="h-3 w-3" />
+                                  <span className="truncate max-w-[150px]">{getClientName(estimate)}</span>
+                                </>
+                              )}
+                              <Calendar className="h-3 w-3 ml-1" />
+                              <span>{format(new Date(estimate.updated_at), "d MMM yyyy", { locale: sv })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {estimate.offer_number && (
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {estimate.offer_number}
+                            </span>
+                          )}
+                          <Badge 
+                            variant={estimate.status === "draft" ? "secondary" : "default"}
+                            className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+                          >
+                            {estimate.status === "draft" ? "Draft" : "Klar"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Inga offerter ännu</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Project mode: Project selector */}
-      {mode === "project" && (
+      {mode === "project" && !selectedProjectId && (
         <div className="space-y-1.5">
-          <Label>Välj projekt</Label>
+          <Label>Välj projekt för ny offert</Label>
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
             <SelectTrigger className="w-full sm:w-[280px]">
               <SelectValue placeholder="Välj ett projekt" />
@@ -160,19 +311,6 @@ export default function Estimates() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Empty state - project mode, no project selected */}
-      {mode === "project" && !selectedProjectId && (
-        <Card className="border-dashed">
-          <CardContent className="py-16 text-center">
-            <Calculator className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Välj ett projekt</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Välj ett projekt ovan för att se eller skapa en offert.
-            </p>
           </CardContent>
         </Card>
       )}

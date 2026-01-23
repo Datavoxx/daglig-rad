@@ -2,6 +2,8 @@ import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { MapPin, User } from "lucide-react";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
+import { Badge } from "@/components/ui/badge";
+
 interface EstimateHeaderProps {
   projectName: string;
   clientName?: string | null;
@@ -9,6 +11,7 @@ interface EstimateHeaderProps {
   offerNumber?: string | null;
   version: number;
   createdAt?: string | null;
+  status: "draft" | "completed";
   isEditable?: boolean;
   onProjectNameChange?: (name: string) => void;
   onClientNameChange?: (name: string) => void;
@@ -22,6 +25,7 @@ export function EstimateHeader({
   offerNumber,
   version,
   createdAt,
+  status,
   isEditable = false,
   onProjectNameChange,
   onClientNameChange,
@@ -59,8 +63,16 @@ export function EstimateHeader({
         </div>
 
         <div className="text-right shrink-0">
-          <div className="text-[13px] font-medium text-foreground tabular-nums">
-            {displayOfferNumber}
+          <div className="flex items-center gap-2 justify-end">
+            <Badge 
+              variant={status === "draft" ? "secondary" : "default"}
+              className={status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+            >
+              {status === "draft" ? "DRAFT" : "KLAR"}
+            </Badge>
+            <span className="text-[13px] font-medium text-foreground tabular-nums">
+              {displayOfferNumber}
+            </span>
           </div>
           <div className="text-[11px] text-muted-foreground">
             v{version} • {displayDate}
