@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { MapPin, User } from "lucide-react";
+import { MapPin, User, UserCheck } from "lucide-react";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 
@@ -13,6 +13,7 @@ interface EstimateHeaderProps {
   createdAt?: string | null;
   status: "draft" | "completed";
   isEditable?: boolean;
+  ourReference?: string | null;
   onProjectNameChange?: (name: string) => void;
   onClientNameChange?: (name: string) => void;
   onAddressChange?: (address: string) => void;
@@ -27,6 +28,7 @@ export function EstimateHeader({
   createdAt,
   status,
   isEditable = false,
+  ourReference,
   onProjectNameChange,
   onClientNameChange,
   onAddressChange,
@@ -122,6 +124,12 @@ export function EstimateHeader({
               </div>
             )}
           </>
+        )}
+        {ourReference && (
+          <div className="flex items-center gap-1">
+            <UserCheck className="h-3 w-3" />
+            <span>Vår ref: {ourReference}</span>
+          </div>
         )}
       </div>
     </div>
