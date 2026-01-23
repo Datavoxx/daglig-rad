@@ -124,6 +124,16 @@ export default function Estimates() {
     setManualAddressData(null);
   };
 
+  const handleBack = () => {
+    setSelectedProjectId("");
+    setManualStarted(false);
+    setSelectedEstimateId(null);
+    setManualProjectName("");
+    setManualClientName("");
+    setManualAddress("");
+    setManualAddressData(null);
+  };
+
   const handleSelectEstimate = (estimate: SavedEstimate) => {
     // If it's a project-based estimate, select the project
     if (estimate.project_id) {
@@ -320,6 +330,7 @@ export default function Estimates() {
         <EstimateBuilder
           project={selectedProject}
           onDelete={() => setSelectedProjectId("")}
+          onBack={handleBack}
         />
       )}
 
@@ -336,6 +347,7 @@ export default function Estimates() {
             longitude: manualAddressData?.longitude,
           }}
           onDelete={handleManualDelete}
+          onBack={handleBack}
         />
       )}
     </div>
