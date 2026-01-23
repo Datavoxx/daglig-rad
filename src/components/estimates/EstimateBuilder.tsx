@@ -11,7 +11,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -57,9 +57,10 @@ interface EstimateBuilderProps {
   project?: Project;
   manualData?: ManualData;
   onDelete?: () => void;
+  onBack?: () => void;
 }
 
-export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuilderProps) {
+export function EstimateBuilder({ project, manualData, onDelete, onBack }: EstimateBuilderProps) {
   const isMobile = useIsMobile();
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
@@ -172,6 +173,16 @@ export function EstimateBuilder({ project, manualData, onDelete }: EstimateBuild
           onAddressChange={estimate.updateManualAddress}
         />
         <div className="flex items-center gap-2 shrink-0">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           {!isMobile && (
             <Button
               variant="ghost"
