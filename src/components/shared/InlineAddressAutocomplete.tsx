@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 
 const GOOGLE_API_KEY = "AIzaSyDk_9TjgYnd-MmG2BQWzxwUIVaECsZcE4M";
@@ -98,93 +98,91 @@ function parseAddressComponents(place: google.maps.places.PlaceResult): AddressD
   };
 }
 
-export function InlineAddressAutocomplete({
-  value,
-  onChange,
-  onStructuredChange,
-  placeholder = "Adress...",
-  className = "",
-}: InlineAddressAutocompleteProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isApiReady, setIsApiReady] = useState(false);
+export const InlineAddressAutocomplete = React.forwardRef<HTMLInputElement, InlineAddressAutocompleteProps>(
+  function InlineAddressAutocomplete({ value, onChange, onStructuredChange, placeholder = "Adress...", className = "" }, forwardedRef) {
+    const internalRef = useRef<HTMLInputElement>(null);
+    const inputRef = forwardedRef || internalRef;
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isApiReady, setIsApiReady] = useState(false);
 
-  const initializeAutocomplete = useCallback(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
+    const initializeAutocomplete = useCallback(() => {
+      const input = typeof inputRef === 'function' ? null : inputRef.current;
+      if (!input || !window.google?.maps?.places) return;
 
-    // Prevent re-initialization
-    if (autocompleteRef.current) return;
+      // Prevent re-initialization
+      if (autocompleteRef.current) return;
 
-    try {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        inputRef.current,
-        {
-          componentRestrictions: { country: "se" },
-          fields: ["formatted_address", "address_components", "geometry"],
-          types: ["address"],
-        }
-      );
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (place.formatted_address) {
-          onChange(place.formatted_address);
-          
-          if (onStructuredChange) {
-            const addressData = parseAddressComponents(place);
-            onStructuredChange(addressData);
+      try {
+        const autocomplete = new window.google.maps.places.Autocomplete(
+          input,
+          {
+            componentRestrictions: { country: "se" },
+            fields: ["formatted_address", "address_components", "geometry"],
+            types: ["address"],
           }
+        );
+
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (place.formatted_address) {
+            onChange(place.formatted_address);
+            
+            if (onStructuredChange) {
+              const addressData = parseAddressComponents(place);
+              onStructuredChange(addressData);
+            }
+          }
+        });
+
+        autocompleteRef.current = autocomplete;
+      } catch (error) {
+        console.error("Error initializing autocomplete:", error);
+      }
+    }, [onChange, onStructuredChange, inputRef]);
+
+    useEffect(() => {
+      let mounted = true;
+
+      loadGoogleMapsScript().then(() => {
+        if (mounted) {
+          setIsLoading(false);
+          setIsApiReady(!!window.google?.maps?.places);
         }
       });
 
-      autocompleteRef.current = autocomplete;
-    } catch (error) {
-      console.error("Error initializing autocomplete:", error);
-    }
-  }, [onChange, onStructuredChange]);
+      return () => {
+        mounted = false;
+      };
+    }, []);
 
-  useEffect(() => {
-    let mounted = true;
-
-    loadGoogleMapsScript().then(() => {
-      if (mounted) {
-        setIsLoading(false);
-        setIsApiReady(!!window.google?.maps?.places);
+    useEffect(() => {
+      if (isApiReady && !autocompleteRef.current) {
+        initializeAutocomplete();
       }
-    });
+    }, [isApiReady, initializeAutocomplete]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        autocompleteRef.current = null;
+      };
+    }, []);
 
-  useEffect(() => {
-    if (isApiReady && !autocompleteRef.current) {
-      initializeAutocomplete();
-    }
-  }, [isApiReady, initializeAutocomplete]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      autocompleteRef.current = null;
-    };
-  }, []);
-
-  return (
-    <div className="relative inline-flex items-center">
-      <input
-        ref={inputRef}
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={className}
-      />
-      {isLoading && (
-        <Loader2 className="absolute right-1 h-3 w-3 text-muted-foreground animate-spin" />
-      )}
-    </div>
-  );
-}
+    return (
+      <div className="relative inline-flex items-center">
+        <input
+          ref={typeof inputRef === 'function' ? undefined : inputRef}
+          type="text"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={className}
+        />
+        {isLoading && (
+          <Loader2 className="absolute right-1 h-3 w-3 text-muted-foreground animate-spin" />
+        )}
+      </div>
+    );
+  }
+);

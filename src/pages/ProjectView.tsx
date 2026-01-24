@@ -40,10 +40,15 @@ export default function ProjectView() {
       .from("projects")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching project:", error);
+      navigate("/projects");
+      return;
+    }
+
+    if (!data) {
       navigate("/projects");
       return;
     }
@@ -138,7 +143,7 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="workorders" className="mt-6">
-          <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} />
+          <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
         </TabsContent>
 
         <TabsContent value="files" className="mt-6">

@@ -19,11 +19,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
+import { Badge } from "@/components/ui/badge";
 
 interface Project {
   id: string;
@@ -31,52 +38,92 @@ interface Project {
   client_name: string | null;
   address: string | null;
   created_at: string;
+  estimate_id: string | null;
+}
+
+interface Estimate {
+  id: string;
+  offer_number: string | null;
+  manual_project_name: string | null;
+  manual_client_name: string | null;
+  manual_address: string | null;
+  manual_postal_code: string | null;
+  manual_city: string | null;
+  manual_latitude: number | null;
+  manual_longitude: number | null;
+  status: string;
 }
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [formData, setFormData] = useState({ name: "", client_name: "", address: "" });
-  const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [selectedEstimateId, setSelectedEstimateId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProjects();
+    fetchData();
   }, []);
 
-  const fetchProjects = async () => {
-    const { data, error } = await supabase
+  const fetchData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Fetch projects
+    const { data: projectsData, error: projectsError } = await supabase
       .from("projects")
-      .select("*")
+      .select("id, name, client_name, address, created_at, estimate_id")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
+    if (projectsError) {
       toast({
         title: "Kunde inte hämta projekt",
-        description: error.message,
+        description: projectsError.message,
         variant: "destructive",
       });
     } else {
-      setProjects(data || []);
+      setProjects(projectsData || []);
     }
+
+    // Fetch estimates that are not yet linked to a project
+    const { data: estimatesData, error: estimatesError } = await supabase
+      .from("project_estimates")
+      .select("id, offer_number, manual_project_name, manual_client_name, manual_address, manual_postal_code, manual_city, manual_latitude, manual_longitude, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!estimatesError && estimatesData) {
+      // Filter out estimates that are already linked to a project
+      const linkedEstimateIds = (projectsData || []).map(p => p.estimate_id).filter(Boolean);
+      const availableEstimates = estimatesData.filter(e => !linkedEstimateIds.includes(e.id));
+      setEstimates(availableEstimates);
+    }
+
     setLoading(false);
+  };
+
+  const getEstimateDisplayName = (estimate: Estimate) => {
+    if (estimate.manual_project_name) return estimate.manual_project_name;
+    if (estimate.offer_number) return estimate.offer_number;
+    return "Namnlös offert";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast({ title: "Projektnamn krävs", variant: "destructive" });
+    
+    if (!selectedEstimateId && !editingProject) {
+      toast({ title: "Välj en offert att koppla till projektet", variant: "destructive" });
       return;
     }
 
     setSaving(true);
 
-    // Hämta inloggad användare
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -90,16 +137,11 @@ export default function Projects() {
     }
 
     if (editingProject) {
+      // When editing, just update the estimate link if changed
       const { error } = await supabase
         .from("projects")
         .update({
-          name: formData.name,
-          client_name: formData.client_name || null,
-          address: formData.address || null,
-          postal_code: addressData?.postalCode || null,
-          city: addressData?.city || null,
-          latitude: addressData?.latitude || null,
-          longitude: addressData?.longitude || null,
+          estimate_id: selectedEstimateId || editingProject.estimate_id,
         })
         .eq("id", editingProject.id);
 
@@ -107,26 +149,35 @@ export default function Projects() {
         toast({ title: "Kunde inte uppdatera projekt", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Projekt uppdaterat" });
-        fetchProjects();
+        fetchData();
         closeDialog();
       }
     } else {
+      // Creating new project from estimate
+      const selectedEstimate = estimates.find(e => e.id === selectedEstimateId);
+      if (!selectedEstimate) {
+        toast({ title: "Offerten hittades inte", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+
       const { error } = await supabase.from("projects").insert({
-        name: formData.name,
-        client_name: formData.client_name || null,
-        address: formData.address || null,
-        postal_code: addressData?.postalCode || null,
-        city: addressData?.city || null,
-        latitude: addressData?.latitude || null,
-        longitude: addressData?.longitude || null,
+        name: selectedEstimate.manual_project_name || selectedEstimate.offer_number || "Nytt projekt",
+        client_name: selectedEstimate.manual_client_name || null,
+        address: selectedEstimate.manual_address || null,
+        postal_code: selectedEstimate.manual_postal_code || null,
+        city: selectedEstimate.manual_city || null,
+        latitude: selectedEstimate.manual_latitude || null,
+        longitude: selectedEstimate.manual_longitude || null,
+        estimate_id: selectedEstimateId,
         user_id: user.id,
       });
 
       if (error) {
         toast({ title: "Kunde inte skapa projekt", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Projekt skapat" });
-        fetchProjects();
+        toast({ title: "Projekt skapat från offert" });
+        fetchData();
         closeDialog();
       }
     }
@@ -140,24 +191,20 @@ export default function Projects() {
       toast({ title: "Kunde inte ta bort projekt", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Projekt borttaget" });
-      fetchProjects();
+      fetchData();
     }
   };
 
   const openEdit = (project: Project) => {
     setEditingProject(project);
-    setFormData({
-      name: project.name,
-      client_name: project.client_name || "",
-      address: project.address || "",
-    });
+    setSelectedEstimateId(project.estimate_id || "");
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingProject(null);
-    setFormData({ name: "", client_name: "", address: "" });
+    setSelectedEstimateId("");
   };
 
   const filteredProjects = projects.filter((project) =>
@@ -194,45 +241,87 @@ export default function Projects() {
                 <DialogHeader>
                   <DialogTitle>{editingProject ? "Redigera projekt" : "Skapa nytt projekt"}</DialogTitle>
                   <DialogDescription>
-                    {editingProject ? "Uppdatera projektinformationen" : "Fyll i uppgifter om projektet"}
+                    {editingProject 
+                      ? "Uppdatera projektets offert-koppling" 
+                      : "Välj en offert att skapa projekt från. Projektinformationen hämtas automatiskt."
+                    }
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Projektnamn *</Label>
-                    <Input
-                      id="name"
-                      placeholder="T.ex. Kvarteret Björken"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
+                    <Label htmlFor="estimate">Välj offert *</Label>
+                    <Select value={selectedEstimateId} onValueChange={setSelectedEstimateId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Välj en offert..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        {estimates.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>Inga tillgängliga offerter</p>
+                            <p className="text-xs mt-1">Skapa en offert först</p>
+                          </div>
+                        ) : (
+                          estimates.map((estimate) => (
+                            <SelectItem key={estimate.id} value={estimate.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{getEstimateDisplayName(estimate)}</span>
+                                {estimate.offer_number && estimate.manual_project_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({estimate.offer_number})
+                                  </span>
+                                )}
+                                <Badge 
+                                  variant={estimate.status === "draft" ? "secondary" : "default"}
+                                  className={`ml-auto text-xs ${estimate.status === "completed" ? "bg-green-600" : ""}`}
+                                >
+                                  {estimate.status === "draft" ? "Draft" : "Klar"}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {!editingProject && estimates.length === 0 && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full mt-2"
+                        onClick={() => navigate("/estimates")}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Gå till Offerter
+                      </Button>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="client">Beställare</Label>
-                    <Input
-                      id="client"
-                      placeholder="T.ex. Stockholms Stad"
-                      value={formData.client_name}
-                      onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Adress</Label>
-                    <AddressAutocomplete
-                      id="address"
-                      placeholder="Sök adress..."
-                      value={formData.address}
-                      onChange={(addr) => setFormData({ ...formData, address: addr })}
-                      onStructuredChange={setAddressData}
-                    />
-                  </div>
+
+                  {/* Preview selected estimate info */}
+                  {selectedEstimateId && (
+                    <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
+                      <p className="text-sm font-medium">Förhandsvisning:</p>
+                      {(() => {
+                        const est = estimates.find(e => e.id === selectedEstimateId);
+                        if (!est) return null;
+                        return (
+                          <div className="text-sm text-muted-foreground space-y-0.5">
+                            <p><span className="font-medium">Namn:</span> {est.manual_project_name || est.offer_number || "Ej angivet"}</p>
+                            <p><span className="font-medium">Kund:</span> {est.manual_client_name || "Ej angivet"}</p>
+                            <p><span className="font-medium">Adress:</span> {est.manual_address || "Ej angivet"}</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={closeDialog}>
                     Avbryt
                   </Button>
-                  <Button type="submit" disabled={saving}>
+                  <Button 
+                    type="submit" 
+                    disabled={saving || (!selectedEstimateId && !editingProject)}
+                  >
                     {saving ? "Sparar..." : editingProject ? "Spara ändringar" : "Skapa projekt"}
                   </Button>
                 </DialogFooter>
@@ -275,15 +364,23 @@ export default function Projects() {
           </h3>
           <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">
             {projects.length === 0 
-              ? "Skapa ditt första projekt för att komma igång med dagrapporter"
+              ? "Skapa en offert först, sedan kan du skapa ett projekt från den"
               : "Prova att ändra din sökning"
             }
           </p>
           {projects.length === 0 && (
-            <Button className="mt-6" onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Skapa projekt
-            </Button>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" onClick={() => navigate("/estimates")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Skapa offert
+              </Button>
+              {estimates.length > 0 && (
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Skapa projekt
+                </Button>
+              )}
+            </div>
           )}
         </Card>
       ) : (
@@ -321,7 +418,7 @@ export default function Projects() {
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="z-50">
+                  <DropdownMenuContent align="end" className="z-50 bg-background border shadow-lg">
                     <DropdownMenuItem onClick={() => openEdit(project)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Redigera
