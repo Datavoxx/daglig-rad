@@ -41,6 +41,7 @@ interface CurrentData {
   rotEnabled: boolean;
   rotPercent: number;
   closingText: string;
+  markupPercent: number;
 }
 
 Deno.serve(async (req) => {
@@ -68,99 +69,134 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `Du är en assistent som hjälper till att fylla i och uppdatera offerter baserat på röstkommandon på svenska.
 
-DU FÅR:
-1. En transkription av ett röstkommando (på svenska)
-2. Nuvarande offertdata
-
 OFFERTENS STRUKTUR:
-- introductionText: Inledande text till kunden (hälsningsfras, presentation)
-- scope: Projektbeskrivning/omfattning av arbetet
-- assumptions: Lista med "Arbete som ingår" - varje element är en beskrivning
+- introductionText: Inledande text till kunden
+- scope: Projektbeskrivning/omfattning
+- assumptions: Lista med "Arbete som ingår"
 - items: Offertposter med detaljerad information
 - addons: Tillval med namn och pris
 - rotEnabled: Om ROT-avdrag är aktiverat (true/false)
 - rotPercent: ROT-procent (vanligtvis 30 eller 50)
 - closingText: Avslutande text/villkor
+- markupPercent: Pålägg i procent (0-100)
 
-OFFERTPOSTER (items) - VIKTIGT:
+OFFERTPOSTER (items) - FULLSTÄNDIG STRUKTUR:
 Varje post har följande fält:
 - id: Unikt UUID
-- moment: Beskrivning av arbetet (t.ex. "Rivning av badrumsinredning")
-- type: "labor" (arbete), "material" (material), eller "subcontractor" (underentreprenör)
+- article: Artikelkategori - VÄLJ FRÅN: "Arbete", "Bygg", "Deponi", "Framkörning", "Förbrukning", "Förvaltning", "Markarbete", "Maskin", "Material", "Målning", "Snöröjning", "Städ", "Trädgårdsskötsel"
+- description: Detaljerad beskrivning av arbetet
+- show_only_total: true om endast summan ska visas (döljer mängd/pris för kund)
+- moment: Kort rubrik/moment
+- type: "labor" (arbete), "material", eller "subcontractor" (underentreprenör/UE)
 - quantity: Antal/mängd (null för arbete som mäts i timmar)
-- unit: Enhet - "tim" (timmar), "m²" (kvadratmeter), "st" (styck), "lpm" (löpmeter), "klump" (fast pris)
-- hours: Antal timmar (endast för type="labor", annars null)
+- unit: Enhet - "tim", "m²", "st", "lpm", "klump"
+- hours: Antal timmar (endast för type="labor")
 - unit_price: Á-pris per enhet
 - subtotal: Beräknad delsumma
-- uncertainty: "low", "medium", eller "high"
-- rot_eligible: true om posten är ROT-berättigad (endast för arbete)
+- comment: Intern kommentar (visas ej för kund)
+- uncertainty: "low" (låg), "medium" (medel), eller "high" (hög osäkerhet)
+- rot_eligible: true om posten är ROT-berättigad
+
+MAPPNING AV ARTIKEL (automatisk baserat på kontext):
+- Målning/måla → article: "Målning"
+- Rivning/bygg/snickeri/golv → article: "Bygg"
+- Städning/slutstädning → article: "Städ"
+- Maskin/maskiner/grävmaskin → article: "Maskin"
+- El/elektriker/rörmokare → article: "Arbete" (type: "subcontractor")
+- Kakel/klinker/parkett → article: "Material" (type: "material")
+- Transport/framkörning → article: "Framkörning"
+- Deponi/tipp → article: "Deponi"
+- Trädgård → article: "Trädgårdsskötsel"
+
+EXEMPEL PÅ RÖSTKOMMANDON:
+
+1. Lägg till poster med artikel-kategori:
+- "Lägg till målning av väggar, 8 timmar, 550 kronor" → article: "Målning", type: "labor"
+- "Lägg till kakel som material, 25 kvadrat, 450 per kvadrat" → article: "Material", type: "material"
+- "Lägg till elektriker som underentreprenör, klumpsumma 15000" → article: "Arbete", type: "subcontractor"
+
+2. Visa endast total (döljer detaljer för kund):
+- "Visa bara summan på rivning" → show_only_total: true för den posten
+- "Dölj detaljerna på golvläggning" → show_only_total: true
+- "Visa detaljerna på målning" → show_only_total: false
+
+3. Osäkerhetsnivå:
+- "Sätt hög osäkerhet på målning" → uncertainty: "high"
+- "Låg osäkerhet på rivning" → uncertainty: "low"
+- "Medel osäkerhet på alla poster" → alla items får uncertainty: "medium"
+
+4. Kommentarer (intern, visas ej för kund):
+- "Lägg till kommentar på rivning: kolla asbest först" → comment: "kolla asbest först"
+- "Kommentera kakelposten med leverans osäker" → comment: "leverans osäker"
+
+5. ROT-berättigad per post:
+- "Den här posten ska vara ROT-berättigad" → rot_eligible: true
+- "Rivning ska inte ha ROT" → rot_eligible: false
+- "Alla arbetsposter ska ha ROT" → rot_eligible: true på alla type: "labor"
+
+6. Tillval - välja/avmarkera/ta bort:
+- "Välj tillvalet extra städning" → is_selected: true på matchande tillval
+- "Avmarkera tillvalet för projektledning" → is_selected: false
+- "Ta bort tillvalet extra städning" → ta bort från addons-arrayen
+
+7. Påläggsprocent:
+- "Sätt pålägg till 15 procent" → markupPercent: 15
+- "Öka pålägget till 20 procent" → markupPercent: 20
+- "Inget pålägg" eller "Noll procent pålägg" → markupPercent: 0
+
+8. ROT-avdrag globalt:
+- "Aktivera ROT" → rotEnabled: true
+- "Stäng av ROT" → rotEnabled: false
+- "Sätt ROT till 50 procent" → rotPercent: 50
 
 BERÄKNING AV SUBTOTAL:
-- labor (arbete): subtotal = hours × unit_price
-- material: subtotal = quantity × unit_price
-- subcontractor: subtotal = quantity × unit_price
-- Om unit är "klump": subtotal = unit_price (fast pris)
+- labor: subtotal = hours × unit_price
+- material/subcontractor med quantity: subtotal = quantity × unit_price
+- klump (unit="klump"): subtotal = unit_price
 
-TILLVAL (addons):
-- id: Unikt UUID
-- name: Namn på tillvalet
-- description: Beskrivning (valfritt)
-- price: Pris i kronor
-- is_selected: true/false (sätt till true för nya tillval)
-- sort_order: Ordning
-
-EXEMPEL PÅ RÖSTKOMMANDON OCH TOLKNING:
-
-1. Offertposter:
-- "Lägg till rivning 16 timmar 650 kronor per timme" → ny labor-post
-- "Lägg till kakel 25 kvadrat 450 kronor" → ny material-post med unit="m²"
-- "Ändra rivning till 20 timmar" → uppdatera befintlig post
-- "Ta bort golvläggning" → ta bort matchande post
-- "Lägg till underentreprenör för el, klumpsumma 15000" → ny subcontractor med unit="klump"
-
-2. Tillval:
-- "Lägg till tillval för extra städning 2500 kronor" → nytt addon
-- "Tillval: projektledning 5000 kronor" → nytt addon
-
-3. ROT-avdrag:
-- "Aktivera ROT" eller "Slå på ROT-avdrag" → rotEnabled = true
-- "Stäng av ROT" → rotEnabled = false
-- "Sätt ROT till 50 procent" → rotPercent = 50
-
-4. Texter:
-- "Inledningen ska vara: Tack för att ni..." → uppdatera introductionText
-- "Projektbeskrivning: Totalrenovering av badrum" → uppdatera scope
-- "Arbete som ingår: rivning, montering, målning" → uppdatera assumptions
-- "Avslut: Offerten gäller i 30 dagar" → uppdatera closingText
+ENHETSÖVERSÄTTNING:
+- "timmar"/"timme" → "tim"
+- "kvadrat"/"kvadratmeter"/"kvm" → "m²"
+- "styck"/"stycken" → "st"
+- "löpmeter" → "lpm"
+- "klumpsumma"/"fast pris" → "klump"
 
 VIKTIGA REGLER:
-1. Behåll ALL data som inte explicit ändras
-2. Generera UUID med crypto.randomUUID() format för nya poster
-3. Beräkna subtotal korrekt baserat på typ och enhet
-4. Tolka svenska enheter: "timmar"="tim", "kvadrat"/"kvm"="m²", "styck"="st", "löpmeter"="lpm"
-5. Nya tillval ska ha is_selected: true
-6. Sätt rot_eligible: true för arbetsmoment som kan vara ROT-berättigade
+1. Behåll ALLTID all data som inte explicit ändras av röstkommandot
+2. Generera UUID för nya poster (format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx)
+3. Beräkna subtotal korrekt enligt formlerna ovan
+4. Nya offertposter: rot_eligible = true om type är "labor", annars false
+5. Nya tillval: is_selected = true som standard
+6. Mappa article automatiskt baserat på postens karaktär
+7. Om användaren nämner "underentreprenör" eller "UE", sätt type: "subcontractor"
 
-RETURNERA ENDAST giltig JSON med denna exakta struktur:
+RETURNERA ALLTID giltig JSON med exakt denna struktur:
 {
   "introductionText": "...",
   "scope": "...",
-  "assumptions": ["..."],
+  "assumptions": [...],
   "items": [...],
   "addons": [...],
   "rotEnabled": true/false,
   "rotPercent": 30,
   "closingText": "...",
-  "changes_made": "Kort beskrivning av vad du ändrade"
+  "markupPercent": 0,
+  "changes_made": "Kort beskrivning av ändringar på svenska"
 }`;
 
-    // Create a summary of current data for the AI
+    // Build summary of current items with full details
     const itemsSummary = currentData.items.map((item, i) => 
-      `${i + 1}. ${item.moment} (${item.type}): ${item.quantity ?? '-'} ${item.unit}, ${item.hours ?? '-'} tim, ${item.unit_price} kr, summa ${item.subtotal} kr`
+      `${i + 1}. [${item.article || 'Okänd'}] ${item.moment || item.description || '(ingen beskrivning)'} (${item.type}): ` +
+      `${item.quantity ?? '-'} ${item.unit || ''}, ${item.hours ?? '-'} tim, ${item.unit_price || 0} kr/enhet, ` +
+      `summa ${item.subtotal || 0} kr, osäkerhet: ${item.uncertainty || 'ej satt'}, ` +
+      `ROT: ${item.rot_eligible ? 'ja' : 'nej'}, visa bara total: ${item.show_only_total ? 'ja' : 'nej'}` +
+      (item.comment ? `, kommentar: "${item.comment}"` : '')
     ).join('\n');
-
-    const addonsSummary = currentData.addons.map((addon, i) =>
-      `${i + 1}. ${addon.name}: ${addon.price} kr ${addon.is_selected ? '(vald)' : '(ej vald)'}`
+    
+    // Build summary of addons
+    const addonsSummary = currentData.addons.map((addon, i) => 
+      `${i + 1}. ${addon.name}: ${addon.price} kr (${addon.is_selected ? 'vald' : 'ej vald'})` +
+      (addon.description ? ` - ${addon.description}` : '')
     ).join('\n');
 
     const userPrompt = `Röstkommando: "${transcript}"
@@ -172,19 +208,21 @@ Inledning: "${currentData.introductionText || '(tom)'}"
 Projektbeskrivning: "${currentData.scope || '(tom)'}"
 
 Arbete som ingår:
-${currentData.assumptions.length > 0 ? currentData.assumptions.map((a, i) => `- ${a}`).join('\n') : '(inga)'}
+${currentData.assumptions.length > 0 ? currentData.assumptions.map((a) => `- ${a}`).join('\n') : '(inga punkter)'}
 
 Offertposter:
-${itemsSummary || '(inga)'}
+${itemsSummary || '(inga poster)'}
 
 Tillval:
-${addonsSummary || '(inga)'}
+${addonsSummary || '(inga tillval)'}
 
 ROT-avdrag: ${currentData.rotEnabled ? `Aktiverat (${currentData.rotPercent}%)` : 'Ej aktiverat'}
 
+Pålägg: ${currentData.markupPercent ?? 0}%
+
 Avslutande text: "${currentData.closingText || '(tom)'}"
 
-Tolka röstkommandot och returnera uppdaterad offertdata. Behåll all data som inte ändras.`;
+Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all data som inte ändras.`;
 
     console.log("Processing voice command:", transcript);
 
@@ -302,6 +340,7 @@ Tolka röstkommandot och returnera uppdaterad offertdata. Behåll all data som i
     result.rotEnabled = result.rotEnabled ?? currentData.rotEnabled;
     result.rotPercent = result.rotPercent ?? currentData.rotPercent;
     result.closingText = result.closingText ?? currentData.closingText;
+    result.markupPercent = result.markupPercent ?? currentData.markupPercent;
 
     console.log("Processed result:", result.changes_made);
 

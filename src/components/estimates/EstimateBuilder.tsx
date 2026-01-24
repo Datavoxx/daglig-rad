@@ -200,6 +200,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             rotEnabled: estimate.state.rotEnabled,
             rotPercent: estimate.state.rotPercent,
             closingText: estimate.state.closingText,
+            markupPercent: estimate.state.markupPercent,
           },
         },
       });
@@ -228,6 +229,9 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       }
       if (data.closingText !== undefined) {
         estimate.updateClosing(data.closingText);
+      }
+      if (data.markupPercent !== undefined) {
+        estimate.updateMarkup(data.markupPercent);
       }
 
       toast.success(data.changes_made || "Ändringar applicerade");
