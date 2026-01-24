@@ -59,9 +59,13 @@ export default function Estimates() {
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
       const { data, error } = await supabase
         .from("projects")
         .select("id, name, client_name, address")
+        .eq("user_id", userData.user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -72,6 +76,9 @@ export default function Estimates() {
   const { data: savedEstimates, isLoading: estimatesLoading } = useQuery({
     queryKey: ["saved-estimates"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
       const { data, error } = await supabase
         .from("project_estimates")
         .select(`
@@ -85,6 +92,7 @@ export default function Estimates() {
           manual_client_name,
           projects (name, client_name)
         `)
+        .eq("user_id", userData.user.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as SavedEstimate[];

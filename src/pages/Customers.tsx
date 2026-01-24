@@ -68,9 +68,17 @@ export default function Customers() {
 
   async function fetchCustomers() {
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setCustomers([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("customers")
         .select("*")
+        .eq("user_id", userData.user.id)
         .order("name", { ascending: true });
 
       if (error) throw error;

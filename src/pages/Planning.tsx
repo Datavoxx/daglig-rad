@@ -89,9 +89,13 @@ export default function Planning() {
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
+        .eq("user_id", userData.user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

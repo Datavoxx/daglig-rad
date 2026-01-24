@@ -138,6 +138,14 @@ export default function Reports() {
   };
 
   const fetchData = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      setReports([]);
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+
     const [reportsRes, projectsRes] = await Promise.all([
       supabase
         .from("daily_reports")
@@ -151,8 +159,13 @@ export default function Reports() {
           created_at,
           project:projects(id, name)
         `)
+        .eq("user_id", userData.user.id)
         .order("report_date", { ascending: false }),
-      supabase.from("projects").select("id, name").order("name"),
+      supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userData.user.id)
+        .order("name"),
     ]);
 
     if (reportsRes.error) {
