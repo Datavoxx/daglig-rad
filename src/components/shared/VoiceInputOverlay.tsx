@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Loader2, X } from "lucide-react";
+import { Mic, MicOff, Loader2, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ export function VoiceInputOverlay({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [finalTranscript, setFinalTranscript] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef<string>("");
 
@@ -96,7 +97,7 @@ export function VoiceInputOverlay({
     toast.success("Spela in dina ändringar...");
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     if (recognitionRef.current) {
       setIsRecording(false);
       recognitionRef.current.stop();
@@ -105,12 +106,26 @@ export function VoiceInputOverlay({
 
       const transcript = finalTranscriptRef.current.trim();
       if (transcript) {
-        await onTranscriptComplete(transcript);
-        setFinalTranscript("");
+        setShowConfirmation(true);
       } else {
         toast.info("Ingen text tolkades");
       }
     }
+  };
+
+  const confirmTranscript = async () => {
+    const transcript = finalTranscriptRef.current.trim();
+    setShowConfirmation(false);
+    await onTranscriptComplete(transcript);
+    setFinalTranscript("");
+    finalTranscriptRef.current = "";
+  };
+
+  const cancelConfirmation = () => {
+    setShowConfirmation(false);
+    setFinalTranscript("");
+    finalTranscriptRef.current = "";
+    toast.info("Kommando avbrutet");
   };
 
   const cancelRecording = () => {
@@ -123,6 +138,54 @@ export function VoiceInputOverlay({
       toast.info("Inspelning avbruten");
     }
   };
+
+  if (showConfirmation) {
+    return (
+      <div className={cn("fixed bottom-6 right-6 z-50 max-w-md", className)}>
+        <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Bekräfta röstkommando</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelConfirmation}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="text-sm bg-muted/50 rounded p-3 max-h-32 overflow-y-auto">
+            <p className="font-medium mb-1">Du sa:</p>
+            <p className="text-muted-foreground">"{finalTranscript}"</p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="flex-1" 
+              onClick={cancelConfirmation}
+            >
+              Avbryt
+            </Button>
+            <Button 
+              variant="default" 
+              className="flex-1" 
+              onClick={confirmTranscript}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Bearbetar...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Kör kommando
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isRecording) {
     return (
@@ -152,19 +215,9 @@ export function VoiceInputOverlay({
             variant="default" 
             className="w-full" 
             onClick={stopRecording}
-            disabled={isProcessing}
           >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Applicerar...
-              </>
-            ) : (
-              <>
-                <MicOff className="mr-2 h-4 w-4" />
-                Stoppa och applicera
-              </>
-            )}
+            <MicOff className="mr-2 h-4 w-4" />
+            Stoppa inspelning
           </Button>
         </div>
       </div>
