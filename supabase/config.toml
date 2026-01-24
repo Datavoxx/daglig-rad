@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.apply-estimate-voice-edits]
 verify_jwt = false
+
+[functions.apply-full-estimate-voice]
+verify_jwt = false
