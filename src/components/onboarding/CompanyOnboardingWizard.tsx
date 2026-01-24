@@ -175,6 +175,18 @@ export function CompanyOnboardingWizard({
     setIsSubmitting(true);
 
     try {
+      // Save phone to user's profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ phone: formData.phone })
+        .eq("id", userId);
+
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        // Continue anyway, this is not critical
+      }
+
+      // Save company settings with phone as contact_phone
       const { error } = await supabase.from("company_settings").insert({
         user_id: userId,
         company_name: formData.company_name,
@@ -188,7 +200,7 @@ export function CompanyOnboardingWizard({
         bankgiro: formData.bankgiro || null,
         logo_url: formData.logo_url,
         contact_person: userFullName,
-        contact_phone: userPhone,
+        contact_phone: formData.phone,
       });
 
       if (error) throw error;
