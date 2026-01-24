@@ -297,7 +297,7 @@ export default function Projects() {
               {/* Clickable overlay for entire card */}
               <div 
                 className="absolute inset-0 z-0 cursor-pointer" 
-                onClick={() => navigate(`/estimates?project=${project.id}`)}
+                onClick={() => navigate(`/projects/${project.id}`)}
                 aria-label={`Öppna ${project.name}`}
               />
               <CardHeader className="relative z-10 flex flex-row items-start justify-between space-y-0 pb-3 pointer-events-none">

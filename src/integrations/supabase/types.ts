@@ -733,6 +733,56 @@ export type Database = {
         }
         Relationships: []
       }
+      project_ata: {
+        Row: {
+          ata_number: string | null
+          created_at: string | null
+          description: string
+          estimated_cost: number | null
+          estimated_hours: number | null
+          id: string
+          project_id: string
+          reason: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ata_number?: string | null
+          created_at?: string | null
+          description: string
+          estimated_cost?: number | null
+          estimated_hours?: number | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ata_number?: string | null
+          created_at?: string | null
+          description?: string
+          estimated_cost?: number | null
+          estimated_hours?: number | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_ata_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_estimates: {
         Row: {
           assumptions: Json | null
@@ -859,6 +909,50 @@ export type Database = {
           },
         ]
       }
+      project_files: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          project_id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          project_id: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          project_id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_plans: {
         Row: {
           created_at: string | null
@@ -980,47 +1074,117 @@ export type Database = {
           },
         ]
       }
+      project_work_orders: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          order_number: string | null
+          project_id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          order_number?: string | null
+          project_id: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          order_number?: string | null
+          project_id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_work_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
+          budget: number | null
           city: string | null
           client_name: string | null
           created_at: string | null
+          estimate_id: string | null
           id: string
           latitude: number | null
           longitude: number | null
           name: string
           postal_code: string | null
+          start_date: string | null
+          status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
+          budget?: number | null
           city?: string | null
           client_name?: string | null
           created_at?: string | null
+          estimate_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           name: string
           postal_code?: string | null
+          start_date?: string | null
+          status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
+          budget?: number | null
           city?: string | null
           client_name?: string | null
           created_at?: string | null
+          estimate_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           name?: string
           postal_code?: string | null
+          start_date?: string | null
+          status?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "project_estimates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_pdfs: {
         Row: {

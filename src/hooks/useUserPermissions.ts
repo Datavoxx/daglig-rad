@@ -13,9 +13,8 @@ const ALL_MODULES = [
   "settings"
 ];
 
-// Default modules for new users (restricted access)
+// Default modules for new users (restricted access - no projects)
 const DEFAULT_MODULES = [
-  "projects",
   "estimates",
   "customers",
   "settings"
