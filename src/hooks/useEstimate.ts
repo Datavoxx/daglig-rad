@@ -60,9 +60,12 @@ const initialState: EstimateState = {
   manualAddress: "",
 };
 
-export function useEstimate(projectId: string | null, manualData?: ManualEstimateData) {
+export function useEstimate(projectId: string | null, manualData?: ManualEstimateData, estimateId?: string | null) {
   const queryClient = useQueryClient();
   const isManualMode = !projectId && !!manualData;
+  
+  // Track the created estimate ID for manual mode
+  const [createdEstimateId, setCreatedEstimateId] = useState<string | null>(estimateId || null);
   
   const [state, setState] = useState<EstimateState>(() => ({
     ...initialState,
@@ -72,10 +75,42 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     manualAddress: manualData?.address || "",
   }));
 
+  // The effective estimate ID to use for fetching/saving
+  const effectiveEstimateId = estimateId || createdEstimateId;
+
   // Fetch existing estimate
   const { data: existingEstimate, isLoading } = useQuery({
-    queryKey: ["project-estimate", projectId],
+    queryKey: ["project-estimate", projectId, effectiveEstimateId],
     queryFn: async () => {
+      // If we have a specific estimate ID, fetch it directly
+      if (effectiveEstimateId) {
+        const { data: estimate, error } = await supabase
+          .from("project_estimates")
+          .select("*")
+          .eq("id", effectiveEstimateId)
+          .maybeSingle();
+        
+        if (error) throw error;
+        if (!estimate) return null;
+
+        // Fetch items and addons
+        const [itemsRes, addonsRes] = await Promise.all([
+          supabase
+            .from("estimate_items")
+            .select("*")
+            .eq("estimate_id", estimate.id)
+            .order("sort_order", { ascending: true }),
+          supabase
+            .from("estimate_addons")
+            .select("*")
+            .eq("estimate_id", estimate.id)
+            .order("sort_order", { ascending: true }),
+        ]);
+
+        return { ...estimate, items: itemsRes.data || [], addons: addonsRes.data || [] };
+      }
+      
+      // Otherwise fetch by project_id
       if (!projectId) return null;
       
       const { data: estimate, error } = await supabase
@@ -109,7 +144,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
 
       return { ...estimate, items: items || [], addons: addons || [] };
     },
-    enabled: !!projectId,
+    enabled: !!projectId || !!effectiveEstimateId,
   });
 
   // Load existing estimate into state
@@ -335,10 +370,18 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // For manual mode, we need to find by manual_project_name instead of project_id
       let existing: { id: string; version: number } | null = null;
       
-      if (projectId) {
+      // First check if we have an existing estimate ID (from createdEstimateId or passed in)
+      if (effectiveEstimateId) {
+        const { data } = await supabase
+          .from("project_estimates")
+          .select("id, version")
+          .eq("id", effectiveEstimateId)
+          .maybeSingle();
+        existing = data;
+      } else if (projectId) {
+        // Fallback to project_id lookup
         const { data } = await supabase
           .from("project_estimates")
           .select("id, version")
@@ -440,8 +483,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
 
       return estimateId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-estimate", projectId] });
+    onSuccess: (newEstimateId: string) => {
+      // Store the created estimate ID for future saves
+      if (!effectiveEstimateId && newEstimateId) {
+        setCreatedEstimateId(newEstimateId);
+      }
+      queryClient.invalidateQueries({ queryKey: ["project-estimate", projectId, effectiveEstimateId] });
+      queryClient.invalidateQueries({ queryKey: ["saved-estimates"] });
       toast.success("Offerten har sparats");
     },
     onError: (error) => {
@@ -453,14 +501,25 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("project_estimates")
-        .delete()
-        .eq("project_id", projectId);
-      if (error) throw error;
+      // Delete by estimate ID if available, otherwise by project_id
+      if (effectiveEstimateId) {
+        const { error } = await supabase
+          .from("project_estimates")
+          .delete()
+          .eq("id", effectiveEstimateId);
+        if (error) throw error;
+      } else if (projectId) {
+        const { error } = await supabase
+          .from("project_estimates")
+          .delete()
+          .eq("project_id", projectId);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-estimate", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-estimate", projectId, effectiveEstimateId] });
+      queryClient.invalidateQueries({ queryKey: ["saved-estimates"] });
+      setCreatedEstimateId(null);
       reset();
       toast.success("Offerten har raderats");
     },

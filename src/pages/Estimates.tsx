@@ -417,7 +417,9 @@ export default function Estimates() {
       {mode === "project" && selectedProjectId && selectedProject && (
         <EstimateBuilder
           project={selectedProject}
+          estimateId={selectedEstimateId}
           onDelete={() => setSelectedProjectId("")}
+          onBack={handleBack}
         />
       )}
 
@@ -433,7 +435,9 @@ export default function Estimates() {
             latitude: manualAddressData?.latitude,
             longitude: manualAddressData?.longitude,
           }}
+          estimateId={selectedEstimateId}
           onDelete={handleManualDelete}
+          onBack={handleBack}
         />
       )}
     </div>
