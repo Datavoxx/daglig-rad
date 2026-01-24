@@ -142,7 +142,8 @@ export function CompanyOnboardingWizard({
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}/logo.${fileExt}`;
+      // Use timestamp in filename to bust browser cache
+      const fileName = `${userId}/logo_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("company-logos")
