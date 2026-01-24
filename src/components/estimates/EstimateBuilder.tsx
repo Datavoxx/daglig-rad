@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,20 +56,33 @@ interface ManualData {
 interface EstimateBuilderProps {
   project?: Project;
   manualData?: ManualData;
+  estimateId?: string | null;
   onDelete?: () => void;
   onBack?: () => void;
 }
 
-export function EstimateBuilder({ project, manualData, onDelete, onBack }: EstimateBuilderProps) {
+export function EstimateBuilder({ project, manualData, estimateId, onDelete, onBack }: EstimateBuilderProps) {
   const isMobile = useIsMobile();
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const hasAutoSaved = useRef(false);
 
   // Determine if we're in manual mode
   const isManualMode = !project && !!manualData;
 
-  const estimate = useEstimate(project?.id || null, isManualMode ? manualData : undefined);
+  const estimate = useEstimate(project?.id || null, isManualMode ? manualData : undefined, estimateId);
+  
+  // Auto-save new manual estimates immediately
+  useEffect(() => {
+    if (isManualMode && !estimate.hasExistingEstimate && !estimate.isLoading && !hasAutoSaved.current) {
+      hasAutoSaved.current = true;
+      // Small delay to ensure state is initialized
+      setTimeout(() => {
+        estimate.save();
+      }, 100);
+    }
+  }, [isManualMode, estimate.hasExistingEstimate, estimate.isLoading]);
   
   // Derive display values - use estimate state for manual mode to enable editing
   const displayProjectName = isManualMode ? estimate.state.manualProjectName : project?.name || "";
