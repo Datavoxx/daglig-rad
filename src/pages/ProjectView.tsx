@@ -1,26 +1,28 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  ArrowLeft, 
-  FileText, 
-  Calculator, 
-  CalendarDays, 
-  ClipboardCheck,
-  MapPin,
-  User
-} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import ProjectOverviewTab from "@/components/projects/ProjectOverviewTab";
+import ProjectAtaTab from "@/components/projects/ProjectAtaTab";
+import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
+import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
+import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
 
 interface Project {
   id: string;
   name: string;
   client_name: string | null;
   address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  estimate_id: string | null;
+  start_date: string | null;
+  budget: number | null;
+  status: string | null;
   created_at: string;
 }
 
@@ -29,28 +31,28 @@ export default function ProjectView() {
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+  const { loading: permissionsLoading } = useUserPermissions();
+
+  const fetchProject = async () => {
+    if (!id) return;
+    
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching project:", error);
+      navigate("/projects");
+      return;
+    }
+
+    setProject(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchProject = async () => {
-      if (!id) return;
-      
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching project:", error);
-        navigate("/projects");
-        return;
-      }
-
-      setProject(data);
-      setLoading(false);
-    };
-
     fetchProject();
   }, [id, navigate]);
 
@@ -59,13 +61,13 @@ export default function ProjectView() {
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-8 w-64" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
+        <Skeleton className="h-12 w-full max-w-md" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -73,37 +75,6 @@ export default function ProjectView() {
   if (!project) {
     return null;
   }
-
-  const actions = [
-    {
-      title: "Dagrapport",
-      description: "Skapa eller visa dagrapporter",
-      icon: FileText,
-      module: "reports",
-      onClick: () => navigate(`/reports/new?project=${project.id}`),
-    },
-    {
-      title: "Offert",
-      description: "Skapa eller hantera offerter",
-      icon: Calculator,
-      module: "estimates",
-      onClick: () => navigate(`/estimates?project=${project.id}`),
-    },
-    {
-      title: "Planering",
-      description: "Projektplanering och tidslinje",
-      icon: CalendarDays,
-      module: "planning",
-      onClick: () => navigate(`/planning?project=${project.id}`),
-    },
-    {
-      title: "Egenkontroll",
-      description: "Besiktningar och kontroller",
-      icon: ClipboardCheck,
-      module: "inspections",
-      onClick: () => navigate(`/inspections?project=${project.id}`),
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -117,80 +88,67 @@ export default function ProjectView() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="space-y-1">
+        <div className="space-y-1 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            {project.client_name && (
-              <div className="flex items-center gap-1.5">
-                <User className="h-4 w-4" />
-                <span>{project.client_name}</span>
-              </div>
-            )}
-            {project.address && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" />
-                <span>{project.address}</span>
-              </div>
+            {project.client_name && <span>{project.client_name}</span>}
+            {project.address && <span>{project.address}</span>}
+            {project.status && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                {project.status === 'planning' ? 'Planering' : 
+                 project.status === 'active' ? 'Pågående' : 
+                 project.status === 'completed' ? 'Avslutat' : project.status}
+              </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-lg font-medium mb-4">Snabbåtgärder</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {actions.map((action) => {
-            const canAccess = hasAccess(action.module);
-            const ActionIcon = action.icon;
+      {/* Tabs */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">Översikt</span>
+          </TabsTrigger>
+          <TabsTrigger value="ata" className="flex items-center gap-2">
+            <FileEdit className="h-4 w-4" />
+            <span className="hidden sm:inline">ÄTA</span>
+          </TabsTrigger>
+          <TabsTrigger value="workorders" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Arbetsorder</span>
+          </TabsTrigger>
+          <TabsTrigger value="files" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Filer</span>
+          </TabsTrigger>
+          <TabsTrigger value="planning" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">Planering</span>
+          </TabsTrigger>
+        </TabsList>
 
-            if (!canAccess) {
-              return (
-                <Tooltip key={action.title}>
-                  <TooltipTrigger asChild>
-                    <Card className="opacity-50 cursor-not-allowed">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
-                            <ActionIcon className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <CardTitle className="text-base">{action.title}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">{action.description}</p>
-                      </CardContent>
-                    </Card>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Du saknar behörighet till denna modul</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+        <TabsContent value="overview" className="mt-6">
+          <ProjectOverviewTab project={project} onUpdate={fetchProject} />
+        </TabsContent>
 
-            return (
-              <Card
-                key={action.title}
-                className="cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all"
-                onClick={action.onClick}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <ActionIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-base">{action.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+        <TabsContent value="ata" className="mt-6">
+          <ProjectAtaTab projectId={project.id} />
+        </TabsContent>
+
+        <TabsContent value="workorders" className="mt-6">
+          <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} />
+        </TabsContent>
+
+        <TabsContent value="files" className="mt-6">
+          <ProjectFilesTab projectId={project.id} />
+        </TabsContent>
+
+        <TabsContent value="planning" className="mt-6">
+          <ProjectPlanningTab projectId={project.id} projectName={project.name} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
