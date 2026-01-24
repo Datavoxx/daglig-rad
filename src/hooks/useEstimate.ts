@@ -370,6 +370,12 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Get current user for RLS
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error("Du måste vara inloggad för att spara offerter");
+      }
+
       let existing: { id: string; version: number } | null = null;
       
       // First check if we have an existing estimate ID (from createdEstimateId or passed in)
@@ -395,6 +401,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       const totals = calculateTotals();
 
       const estimateData = {
+        user_id: userData.user.id,
         project_id: projectId || null,
         template_id: state.templateId,
         scope: state.scope,
