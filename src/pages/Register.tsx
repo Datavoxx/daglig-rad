@@ -48,7 +48,7 @@ export default function Register() {
     setIsLoading(true);
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -58,10 +58,10 @@ export default function Register() {
         },
       },
     });
-    setIsLoading(false);
 
-    if (error) {
-      if (error.message.includes("already registered")) {
+    if (signUpError) {
+      setIsLoading(false);
+      if (signUpError.message.includes("already registered")) {
         toast({
           title: "Kontot finns redan",
           description: "Denna e-postadress är redan registrerad. Försök logga in istället.",
@@ -70,16 +70,31 @@ export default function Register() {
       } else {
         toast({
           title: "Registrering misslyckades",
-          description: error.message,
+          description: signUpError.message,
           variant: "destructive",
         });
       }
-    } else {
+      return;
+    }
+
+    // Auto-login after successful registration
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (signInError) {
       toast({
         title: "Konto skapat!",
-        description: "Du kan nu logga in med dina uppgifter.",
+        description: "Automatisk inloggning misslyckades. Logga in manuellt.",
+        variant: "destructive",
       });
       navigate("/auth");
+    } else {
+      toast({ title: "Välkommen till Byggio!" });
+      navigate("/projects");
     }
   };
 
