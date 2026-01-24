@@ -9,7 +9,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -431,22 +431,31 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   };
 
   const previewContent = (
-    <div className="h-full bg-muted/30 border-l">
-      <div className="p-3 border-b bg-background/80 backdrop-blur-sm flex items-center gap-2 sticky top-0 z-10">
-        <FileText className="h-4 w-4 text-primary" />
-        <span className="font-medium text-sm">Förhandsgranskning</span>
+    <div 
+      className="h-full bg-muted/30 border-l cursor-pointer group"
+      onClick={() => setMobilePreviewOpen(true)}
+      title="Klicka för att förstora"
+    >
+      <div className="p-3 border-b bg-background/80 backdrop-blur-sm flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <span className="font-medium text-sm">Förhandsgranskning</span>
+        </div>
+        <Maximize2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
       </div>
-      <QuoteLivePreview
-        project={displayProject}
-        company={companySettings}
-        scope={estimate.state.scope}
-        assumptions={estimate.state.assumptions}
-        items={estimate.state.items}
-        addons={estimate.state.addons}
-        markupPercent={estimate.state.markupPercent}
-        rotEnabled={estimate.state.rotEnabled}
-        rotPercent={estimate.state.rotPercent}
-      />
+      <div className="group-hover:opacity-90 transition-opacity">
+        <QuoteLivePreview
+          project={displayProject}
+          company={companySettings}
+          scope={estimate.state.scope}
+          assumptions={estimate.state.assumptions}
+          items={estimate.state.items}
+          addons={estimate.state.addons}
+          markupPercent={estimate.state.markupPercent}
+          rotEnabled={estimate.state.rotEnabled}
+          rotPercent={estimate.state.rotPercent}
+        />
+      </div>
     </div>
   );
 
@@ -507,6 +516,18 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       ) : (
         <div className="h-full overflow-auto">{editorContent}</div>
       )}
+      <QuotePreviewSheet
+        open={mobilePreviewOpen}
+        onOpenChange={setMobilePreviewOpen}
+        project={displayProject}
+        company={companySettings}
+        scope={estimate.state.scope}
+        assumptions={estimate.state.assumptions}
+        items={estimate.state.items}
+        markupPercent={estimate.state.markupPercent}
+        rotEnabled={estimate.state.rotEnabled}
+        rotPercent={estimate.state.rotPercent}
+      />
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
