@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplateManager } from "@/components/settings/TemplateManager";
+import { EmployeeManager } from "@/components/settings/EmployeeManager";
 
 interface CompanySettings {
   id?: string;
@@ -302,6 +303,7 @@ export default function Settings() {
         <TabsList className="mb-6">
           <TabsTrigger value="mallar">Mallar</TabsTrigger>
           <TabsTrigger value="foretag">Företag</TabsTrigger>
+          <TabsTrigger value="anstallda">Anställda</TabsTrigger>
         </TabsList>
 
         {/* Mallar tab */}
@@ -590,6 +592,11 @@ export default function Settings() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        {/* Anställda tab */}
+        <TabsContent value="anstallda" className="space-y-6">
+          <EmployeeManager />
         </TabsContent>
       </Tabs>
     </div>
