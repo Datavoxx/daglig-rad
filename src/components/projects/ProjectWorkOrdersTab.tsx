@@ -27,14 +27,16 @@ interface WorkOrder {
   due_date: string | null;
   status: string;
   created_at: string;
+  estimate_id: string | null;
 }
 
 interface ProjectWorkOrdersTabProps {
   projectId: string;
   projectName: string;
+  estimateId?: string | null;
 }
 
-export default function ProjectWorkOrdersTab({ projectId, projectName }: ProjectWorkOrdersTabProps) {
+export default function ProjectWorkOrdersTab({ projectId, projectName, estimateId }: ProjectWorkOrdersTabProps) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -97,6 +99,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName }: Project
       assigned_to: formData.assigned_to || null,
       due_date: formData.due_date ? format(formData.due_date, "yyyy-MM-dd") : null,
       status: formData.status,
+      estimate_id: estimateId || null,
     };
 
     if (editingOrder) {
@@ -268,7 +271,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName }: Project
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border shadow-lg z-50">
                     <SelectItem value="pending">Väntande</SelectItem>
                     <SelectItem value="in_progress">Pågående</SelectItem>
                     <SelectItem value="completed">Klar</SelectItem>
@@ -336,7 +339,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName }: Project
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-background border shadow-lg z-50">
                         <DropdownMenuItem onClick={() => openEdit(order)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Redigera

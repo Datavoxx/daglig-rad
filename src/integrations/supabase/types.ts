@@ -990,7 +990,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_pricing_settings: {
         Row: {
@@ -1080,6 +1088,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           due_date: string | null
+          estimate_id: string | null
           id: string
           order_number: string | null
           project_id: string
@@ -1093,6 +1102,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          estimate_id?: string | null
           id?: string
           order_number?: string | null
           project_id: string
@@ -1106,6 +1116,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          estimate_id?: string | null
           id?: string
           order_number?: string | null
           project_id?: string
@@ -1115,6 +1126,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_work_orders_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "project_estimates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_work_orders_project_id_fkey"
             columns: ["project_id"]
