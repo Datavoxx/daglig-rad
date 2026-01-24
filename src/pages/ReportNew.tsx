@@ -107,9 +107,16 @@ export default function ReportNew() {
   }, []);
 
   const fetchProjects = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      setProjects([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("projects")
       .select("id, name")
+      .eq("user_id", userData.user.id)
       .order("name");
 
     if (!error && data) {

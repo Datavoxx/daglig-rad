@@ -49,9 +49,13 @@ export default function Inspections() {
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
+        .eq("user_id", userData.user.id)
         .order("name");
       if (error) throw error;
       return data;
@@ -62,9 +66,13 @@ export default function Inspections() {
   const { data: inspections, isLoading: inspectionsLoading, isFetching } = useQuery({
     queryKey: ["inspections", selectedProject, statusFilter],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
       let query = supabase
         .from("inspections")
         .select("id, template_name, template_category, inspection_date, status, project_id, projects(name)")
+        .eq("user_id", userData.user.id)
         .order("inspection_date", { ascending: false });
 
       if (selectedProject !== "all") {
