@@ -13,6 +13,13 @@ const ALL_MODULES = [
   "settings"
 ];
 
+// Default modules for new users (restricted access)
+const DEFAULT_MODULES = [
+  "projects",
+  "estimates",
+  "customers",
+  "settings"
+];
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +44,8 @@ export function useUserPermissions() {
           // On error, give access to all modules
           setPermissions(ALL_MODULES);
         } else if (!data || !data.modules || data.modules.length === 0) {
-          // No permissions set = access to everything (backward compatibility)
-          setPermissions(ALL_MODULES);
+          // No permissions set = use default restricted modules
+          setPermissions(DEFAULT_MODULES);
         } else {
           setPermissions(data.modules);
         }
