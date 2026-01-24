@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ResizablePanelGroup,
@@ -23,6 +21,7 @@ import { RotPanel } from "./RotPanel";
 import { StickyTotals } from "./StickyTotals";
 import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
+import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import {
   AlertDialog,
@@ -66,6 +65,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
   const hasAutoSaved = useRef(false);
 
   // Determine if we're in manual mode
@@ -182,6 +182,61 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     estimate.delete();
     setDeleteDialogOpen(false);
     onDelete?.();
+  };
+
+  // Handle voice input for full estimate editing
+  const handleVoiceEdit = async (transcript: string) => {
+    setIsApplyingVoice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-full-estimate-voice", {
+        body: {
+          transcript,
+          currentData: {
+            introductionText: estimate.state.introductionText,
+            scope: estimate.state.scope,
+            assumptions: estimate.state.assumptions,
+            items: estimate.state.items,
+            addons: estimate.state.addons,
+            rotEnabled: estimate.state.rotEnabled,
+            rotPercent: estimate.state.rotPercent,
+            closingText: estimate.state.closingText,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Apply all updates from AI response
+      if (data.introductionText !== undefined) {
+        estimate.updateIntroduction(data.introductionText);
+      }
+      if (data.scope !== undefined) {
+        estimate.updateScope(data.scope);
+      }
+      if (data.assumptions !== undefined) {
+        estimate.updateAssumptions(data.assumptions);
+      }
+      if (data.items !== undefined) {
+        estimate.updateItems(data.items);
+      }
+      if (data.addons !== undefined) {
+        estimate.updateAddons(data.addons);
+      }
+      if (data.rotEnabled !== undefined) {
+        estimate.updateRot(data.rotEnabled, data.rotPercent);
+      }
+      if (data.closingText !== undefined) {
+        estimate.updateClosing(data.closingText);
+      }
+
+      toast.success(data.changes_made || "Ändringar applicerade");
+    } catch (error) {
+      console.error("Voice edit error:", error);
+      toast.error(error instanceof Error ? error.message : "Kunde inte applicera röständringar");
+    } finally {
+      setIsApplyingVoice(false);
+    }
   };
 
   // Editor content
@@ -408,6 +463,10 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
         />
+        <VoiceInputOverlay
+          onTranscriptComplete={handleVoiceEdit}
+          isProcessing={isApplyingVoice}
+        />
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -444,6 +503,10 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       ) : (
         <div className="h-full overflow-auto">{editorContent}</div>
       )}
+      <VoiceInputOverlay
+        onTranscriptComplete={handleVoiceEdit}
+        isProcessing={isApplyingVoice}
+      />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
