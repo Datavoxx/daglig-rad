@@ -67,6 +67,21 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
+    // Helper function to guess article from text
+    const mapToArticle = (text: string): string => {
+      const lower = (text || "").toLowerCase();
+      if (lower.includes("mål") || lower.includes("paint")) return "Målning";
+      if (lower.includes("städ")) return "Städ";
+      if (lower.includes("golv") || lower.includes("riv") || lower.includes("bygg") || lower.includes("snicka")) return "Bygg";
+      if (lower.includes("maskin") || lower.includes("gräv")) return "Maskin";
+      if (lower.includes("material") || lower.includes("kakel") || lower.includes("klinker")) return "Material";
+      if (lower.includes("transport") || lower.includes("framkör")) return "Framkörning";
+      if (lower.includes("deponi") || lower.includes("tipp")) return "Deponi";
+      if (lower.includes("trädgård")) return "Trädgårdsskötsel";
+      if (lower.includes("el") || lower.includes("vvs") || lower.includes("rörmok")) return "Arbete";
+      return "Arbete";
+    };
+
     const systemPrompt = `Du är en assistent som hjälper till att fylla i och uppdatera offerter baserat på röstkommandon på svenska.
 
 OFFERTENS STRUKTUR:
@@ -80,13 +95,42 @@ OFFERTENS STRUKTUR:
 - closingText: Avslutande text/villkor
 - markupPercent: Pålägg i procent (0-100)
 
-OFFERTPOSTER (items) - FULLSTÄNDIG STRUKTUR:
-Varje post har följande fält:
+OFFERTPOSTER (items) - OBLIGATORISKA FÄLT:
+
+**KRITISKT VIKTIGT - article och description:**
+- article: **OBLIGATORISKT** - Välj ALLTID ett värde från denna lista: "Arbete", "Bygg", "Deponi", "Framkörning", "Förbrukning", "Förvaltning", "Markarbete", "Maskin", "Material", "Målning", "Snöröjning", "Städ", "Trädgårdsskötsel"
+- description: **OBLIGATORISKT** - Detaljerad beskrivning av arbetet. När användaren säger "beskrivning" eller "beskrivningen ska vara", sätt detta fält!
+- moment: Sätt ALLTID samma värde som description (för bakåtkompatibilitet)
+
+TOLKNING AV RÖSTKOMMANDON FÖR ARTIKEL OCH BESKRIVNING:
+- "artikeln ska vara X" eller "artikel X" → article: matcha X till närmaste i listan ovan
+- "beskrivningen ska vara X" eller "beskrivning X" → description: "X" OCH moment: "X"
+- "artikel bygg, beskrivning lägga golv" → article: "Bygg", description: "lägga golv", moment: "lägga golv"
+
+EXEMPEL PÅ KOMPLETTA OFFERTPOSTER:
+
+Kommando: "Lägg till artikel bygg, beskrivning bygga golv, timmar, 750 kronor"
+→ Resultat:
+{
+  "article": "Bygg",
+  "description": "bygga golv",
+  "moment": "bygga golv",
+  "type": "labor",
+  "unit": "tim",
+  "unit_price": 750
+}
+
+Kommando: "Artikel ska vara målning, beskrivning måla väggar"
+→ Resultat:
+{
+  "article": "Målning",
+  "description": "måla väggar",
+  "moment": "måla väggar"
+}
+
+ÖVRIGA FÄLT I OFFERTPOSTER:
 - id: Unikt UUID
-- article: Artikelkategori - VÄLJ FRÅN: "Arbete", "Bygg", "Deponi", "Framkörning", "Förbrukning", "Förvaltning", "Markarbete", "Maskin", "Material", "Målning", "Snöröjning", "Städ", "Trädgårdsskötsel"
-- description: Detaljerad beskrivning av arbetet
 - show_only_total: true om endast summan ska visas (döljer mängd/pris för kund)
-- moment: Kort rubrik/moment
 - type: "labor" (arbete), "material", eller "subcontractor" (underentreprenör/UE)
 - quantity: Antal/mängd (null för arbete som mäts i timmar)
 - unit: Enhet - "tim", "m²", "st", "lpm", "klump"
@@ -110,10 +154,9 @@ MAPPNING AV ARTIKEL (automatisk baserat på kontext):
 
 EXEMPEL PÅ RÖSTKOMMANDON:
 
-1. Lägg till poster med artikel-kategori:
-- "Lägg till målning av väggar, 8 timmar, 550 kronor" → article: "Målning", type: "labor"
-- "Lägg till kakel som material, 25 kvadrat, 450 per kvadrat" → article: "Material", type: "material"
-- "Lägg till elektriker som underentreprenör, klumpsumma 15000" → article: "Arbete", type: "subcontractor"
+1. Lägg till poster med artikel och beskrivning:
+- "Lägg till artikel bygg, beskrivning bygga golv, 8 timmar, 550 kronor" → article: "Bygg", description: "bygga golv"
+- "Artikel målning, beskrivning måla tak" → article: "Målning", description: "måla tak"
 
 2. Visa endast total (döljer detaljer för kund):
 - "Visa bara summan på rivning" → show_only_total: true för den posten
@@ -167,8 +210,10 @@ VIKTIGA REGLER:
 3. Beräkna subtotal korrekt enligt formlerna ovan
 4. Nya offertposter: rot_eligible = true om type är "labor", annars false
 5. Nya tillval: is_selected = true som standard
-6. Mappa article automatiskt baserat på postens karaktär
-7. Om användaren nämner "underentreprenör" eller "UE", sätt type: "subcontractor"
+6. **OBLIGATORISKT: Varje offertpost MÅSTE ha "article" och "description" satta!**
+7. **När användaren säger "beskrivning", sätt BÅDE description OCH moment till samma värde**
+8. **När användaren säger "artikel", matcha till närmaste värde i artikel-listan**
+9. Om användaren nämner "underentreprenör" eller "UE", sätt type: "subcontractor"
 
 RETURNERA ALLTID giltig JSON med exakt denna struktur:
 {
@@ -299,12 +344,19 @@ Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all d
           subtotal = quantity * unitPrice;
         }
 
+        // Ensure description and moment are synced, prioritize description
+        const description = item.description || item.moment || "";
+        const moment = item.moment || item.description || "";
+        
+        // Use mapToArticle if article is missing but we have description
+        const article = item.article || (description ? mapToArticle(description) : "Arbete");
+
         return {
           id: item.id || crypto.randomUUID(),
-          article: item.article || "",
-          description: item.description || "",
+          article,
+          description,
           show_only_total: item.show_only_total || false,
-          moment: item.moment || "",
+          moment,
           type,
           quantity,
           unit,
