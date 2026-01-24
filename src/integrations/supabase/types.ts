@@ -82,43 +82,67 @@ export type Database = {
           address: string | null
           city: string | null
           created_at: string | null
+          customer_number: string | null
           customer_type: string | null
           email: string | null
           id: string
+          invoice_address: string | null
           latitude: number | null
           longitude: number | null
+          mobile: string | null
           name: string
+          notes: string | null
+          org_number: string | null
+          phone: string | null
           postal_code: string | null
           updated_at: string | null
           user_id: string
+          visit_address: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
           city?: string | null
           created_at?: string | null
+          customer_number?: string | null
           customer_type?: string | null
           email?: string | null
           id?: string
+          invoice_address?: string | null
           latitude?: number | null
           longitude?: number | null
+          mobile?: string | null
           name: string
+          notes?: string | null
+          org_number?: string | null
+          phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
           user_id: string
+          visit_address?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
           city?: string | null
           created_at?: string | null
+          customer_number?: string | null
           customer_type?: string | null
           email?: string | null
           id?: string
+          invoice_address?: string | null
           latitude?: number | null
           longitude?: number | null
+          mobile?: string | null
           name?: string
+          notes?: string | null
+          org_number?: string | null
+          phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
           user_id?: string
+          visit_address?: string | null
+          website?: string | null
         }
         Relationships: []
       }

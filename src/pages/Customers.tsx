@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CustomerImportDialog } from "@/components/customers/CustomerImportDialog";
 import {
   Dialog,
   DialogContent,
@@ -208,13 +209,15 @@ export default function Customers() {
             Hantera dina kunduppgifter
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Ny kund
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <CustomerImportDialog onImportComplete={fetchCustomers} />
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Ny kund
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
@@ -291,6 +294,7 @@ export default function Customers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search */}
