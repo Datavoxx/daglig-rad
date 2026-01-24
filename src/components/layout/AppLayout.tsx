@@ -243,12 +243,6 @@ export function AppLayout() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <Badge 
-              variant="secondary" 
-              className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
-            >
-              Beta
-            </Badge>
             <div className="relative hidden w-64 md:block lg:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
