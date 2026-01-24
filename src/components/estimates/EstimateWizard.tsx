@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
+import { CustomerFormDialog } from "@/components/customers/CustomerFormDialog";
 import { ArrowLeft, ArrowRight, Plus, User, FileText, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,7 +41,7 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
   const [projectName, setProjectName] = useState("");
   const [address, setAddress] = useState("");
   const [addressData, setAddressData] = useState<AddressData | null>(null);
-  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,13 +67,8 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
 
   function handleCustomerSelect(customerId: string) {
     if (customerId === "new") {
-      setIsNewCustomer(true);
-      setSelectedCustomerId("");
-      setCustomerName("");
-      setAddress("");
-      setAddressData(null);
+      setShowCustomerDialog(true);
     } else {
-      setIsNewCustomer(false);
       setSelectedCustomerId(customerId);
       const customer = customers.find(c => c.id === customerId);
       if (customer) {
@@ -90,6 +85,34 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
     }
   }
 
+  async function handleCustomerCreated() {
+    await fetchCustomers();
+    // Select the most recently created customer
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("customers")
+      .select("id, name, address, city, postal_code")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    
+    if (data?.[0]) {
+      setSelectedCustomerId(data[0].id);
+      setCustomerName(data[0].name);
+      if (data[0].address) {
+        setAddress(data[0].address);
+        setAddressData({
+          formatted: data[0].address,
+          postalCode: data[0].postal_code,
+          city: data[0].city,
+        });
+      }
+    }
+    setShowCustomerDialog(false);
+  }
+
   function handleAddressChange(newAddress: string) {
     setAddress(newAddress);
   }
@@ -102,7 +125,7 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
   function canProceed() {
     switch (step) {
       case 1:
-        return selectedCustomerId || (isNewCustomer && customerName.trim());
+        return selectedCustomerId;
       case 2:
         return projectName.trim();
       case 3:
@@ -130,8 +153,8 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
 
   function handleComplete() {
     onComplete({
-      customerId: isNewCustomer ? undefined : selectedCustomerId,
-      customerName: isNewCustomer ? customerName : customers.find(c => c.id === selectedCustomerId)?.name || "",
+      customerId: selectedCustomerId,
+      customerName: customers.find(c => c.id === selectedCustomerId)?.name || "",
       projectName,
       address: addressData?.formatted || address,
       postalCode: addressData?.postalCode,
@@ -183,44 +206,37 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <>
-                <Select
-                  value={isNewCustomer ? "new" : selectedCustomerId}
-                  onValueChange={handleCustomerSelect}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj befintlig kund..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-lg z-50">
-                    <SelectItem value="new">
-                      <span className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Ny kund
-                      </span>
+              <Select
+                value={selectedCustomerId}
+                onValueChange={handleCustomerSelect}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Välj befintlig kund..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  <SelectItem value="new">
+                    <span className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Ny kund
+                    </span>
+                  </SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
                     </SelectItem>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {isNewCustomer && (
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="newCustomerName">Kundnamn</Label>
-                    <Input
-                      id="newCustomerName"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Ange kundnamn..."
-                    />
-                  </div>
-                )}
-              </>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
         )}
+
+        <CustomerFormDialog
+          open={showCustomerDialog}
+          onOpenChange={setShowCustomerDialog}
+          customer={null}
+          onSuccess={handleCustomerCreated}
+        />
 
         {step === 2 && (
           <div className="space-y-4">

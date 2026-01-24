@@ -100,23 +100,24 @@ function parseAddressComponents(place: google.maps.places.PlaceResult): AddressD
 }
 
 export const AddressAutocomplete = React.forwardRef<HTMLInputElement, AddressAutocompleteProps>(
-  function AddressAutocomplete({ value, onChange, onStructuredChange, placeholder = "Sök adress...", id }, forwardedRef) {
-    const internalRef = useRef<HTMLInputElement>(null);
-    const inputRef = forwardedRef || internalRef;
+  function AddressAutocomplete({ value, onChange, onStructuredChange, placeholder = "Sök adress...", id }, ref) {
+    const inputRef = useRef<HTMLInputElement>(null);
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isApiReady, setIsApiReady] = useState(false);
 
+    // Expose inputRef via forwarded ref
+    React.useImperativeHandle(ref, () => inputRef.current!, []);
+
     const initializeAutocomplete = useCallback(() => {
-      const input = typeof inputRef === 'function' ? null : inputRef.current;
-      if (!input || !window.google?.maps?.places) return;
+      if (!inputRef.current || !window.google?.maps?.places) return;
 
       // Prevent re-initialization
       if (autocompleteRef.current) return;
 
       try {
         const autocomplete = new window.google.maps.places.Autocomplete(
-          input,
+          inputRef.current,
           {
             componentRestrictions: { country: "se" },
             fields: ["formatted_address", "address_components", "geometry"],
@@ -140,7 +141,7 @@ export const AddressAutocomplete = React.forwardRef<HTMLInputElement, AddressAut
       } catch (error) {
         console.error("Error initializing autocomplete:", error);
       }
-    }, [onChange, onStructuredChange, inputRef]);
+    }, [onChange, onStructuredChange]);
 
     useEffect(() => {
       let mounted = true;
@@ -174,7 +175,7 @@ export const AddressAutocomplete = React.forwardRef<HTMLInputElement, AddressAut
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
-          ref={typeof inputRef === 'function' ? undefined : inputRef}
+          ref={inputRef}
           id={id}
           type="text"
           placeholder={placeholder}
