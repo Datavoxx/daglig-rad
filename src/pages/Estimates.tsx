@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,10 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, FolderOpen, PenLine, FileText, Calendar, User, ArrowLeft } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Calculator, FolderOpen, PenLine, FileText, Calendar, User, ArrowLeft, Trash2 } from "lucide-react";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -39,6 +51,9 @@ export default function Estimates() {
   const [manualStarted, setManualStarted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch projects with client info
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -163,6 +178,28 @@ export default function Estimates() {
     return null;
   };
 
+  const handleDeleteEstimate = async (estimateId: string) => {
+    try {
+      // Delete estimate (items and addons should cascade)
+      const { error } = await supabase
+        .from("project_estimates")
+        .delete()
+        .eq("id", estimateId);
+
+      if (error) throw error;
+
+      toast({ title: "Offert borttagen" });
+      queryClient.invalidateQueries({ queryKey: ["saved-estimates"] });
+    } catch (error) {
+      console.error("Delete estimate error:", error);
+      toast({
+        title: "Kunde inte ta bort offert",
+        description: "Något gick fel, försök igen",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
       {/* Back button - show when editing */}
@@ -260,6 +297,36 @@ export default function Estimates() {
                           >
                             {estimate.status === "draft" ? "Draft" : "Klar"}
                           </Badge>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Ta bort offert?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Offerten "{getEstimateName(estimate)}" kommer att tas bort permanent. 
+                                  Detta kan inte ångras.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteEstimate(estimate.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Ta bort
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}
