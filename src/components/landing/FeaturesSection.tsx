@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import TiltCard from "./TiltCard";
 
 // Arbetsdagbok Mockup
 const WorkDiaryMockup = () => (
@@ -155,31 +156,35 @@ const FeaturesSection = () => {
         {/* Features grid - 1 column on mobile, 2 on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {features.map((feature, index) => (
-            <Card 
+            <TiltCard 
               key={feature.title}
-              className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-border/50 bg-card/50 backdrop-blur-sm stagger-item"
-              style={{ animationDelay: `${index * 75}ms` }}
+              maxTilt={8} 
+              glareEnabled={true}
+              className="stagger-item"
             >
-              {/* Mockup */}
-              <div className="p-4 sm:p-6 pb-0">
-                <div className="transform group-hover:scale-[1.02] transition-transform duration-300">
+              <Card 
+                className="group relative overflow-hidden h-full border-border/50 bg-card/50 backdrop-blur-sm"
+                style={{ animationDelay: `${index * 75}ms` }}
+              >
+                {/* Mockup */}
+                <div className="p-4 sm:p-6 pb-0">
                   <feature.mockup />
                 </div>
-              </div>
 
-              <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
-                {/* Content */}
-                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
+                <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
+                  {/* Content */}
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
 
-                {/* Hover gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              </CardContent>
-            </Card>
+                  {/* Hover gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                </CardContent>
+              </Card>
+            </TiltCard>
           ))}
         </div>
       </div>
