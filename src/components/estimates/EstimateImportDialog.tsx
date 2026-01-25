@@ -62,12 +62,14 @@ const ESTIMATE_COLUMN_MAPPINGS: Record<string, string> = {
   "offertnummer": "offer_number",
   "offert": "offer_number",
   "nr": "offer_number",
+  "nummer": "offer_number",
   
   // Project name
   "projektnamn": "manual_project_name",
   "projekt": "manual_project_name",
   "benämning": "manual_project_name",
   "arbetsplats": "manual_project_name",
+  "namn": "manual_project_name",
   
   // Customer
   "kund": "manual_client_name",
@@ -78,6 +80,7 @@ const ESTIMATE_COLUMN_MAPPINGS: Record<string, string> = {
   // Address
   "adress": "manual_address",
   "plats": "manual_address",
+  "projektadress": "manual_address",
   
   // Postal code / city
   "postnr": "manual_postal_code",
@@ -91,6 +94,7 @@ const ESTIMATE_COLUMN_MAPPINGS: Record<string, string> = {
   "summa ex moms": "total_excl_vat",
   "summa exkl moms": "total_excl_vat",
   "netto": "total_excl_vat",
+  "pris": "total_excl_vat",
   "summa inkl moms": "total_incl_vat",
   "brutto": "total_incl_vat",
   "totalsumma": "total_incl_vat",
