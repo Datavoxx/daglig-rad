@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function Estimates() {
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // Manual mode state for builder
   const [manualData, setManualData] = useState<{
@@ -91,6 +93,19 @@ export default function Estimates() {
     : activeTab === "draft" 
     ? drafts 
     : completed;
+
+  // Handle URL parameter for direct estimate navigation
+  useEffect(() => {
+    const estimateIdFromUrl = searchParams.get("estimateId");
+    if (estimateIdFromUrl && savedEstimates && !manualStarted) {
+      const estimate = savedEstimates.find(e => e.id === estimateIdFromUrl);
+      if (estimate) {
+        handleSelectEstimate(estimate);
+        // Clear URL parameter after opening the estimate
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, savedEstimates, manualStarted]);
 
   if (estimatesLoading) {
     return (
