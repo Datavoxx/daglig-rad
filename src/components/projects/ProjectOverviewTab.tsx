@@ -243,6 +243,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
                 <SelectContent>
                   <SelectItem value="planning">Planering</SelectItem>
                   <SelectItem value="active">Pågående</SelectItem>
+                  <SelectItem value="closing">Slutskede</SelectItem>
                   <SelectItem value="completed">Avslutat</SelectItem>
                 </SelectContent>
               </Select>
@@ -250,6 +251,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
               <p className="text-sm">
                 {project.status === 'planning' ? 'Planering' : 
                  project.status === 'active' ? 'Pågående' : 
+                 project.status === 'closing' ? 'Slutskede' :
                  project.status === 'completed' ? 'Avslutat' : project.status || '-'}
               </p>
             )}
