@@ -65,22 +65,6 @@ const HeroSection = () => {
           </Button>
         </div>
 
-        {/* Trust signals - moved above the fold */}
-        <div className="mb-12 animate-fade-in" style={{ animationDelay: "0.35s" }}>
-          <p className="text-sm text-muted-foreground mb-3">Används av byggföretag i hela Sverige</p>
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground tabular-nums">50+</span>
-              <span className="text-muted-foreground">aktiva företag</span>
-            </div>
-            <div className="h-4 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground tabular-nums">1000+</span>
-              <span className="text-muted-foreground">projekt skapade</span>
-            </div>
-          </div>
-        </div>
-
         {/* App preview mockup with Dashboard visualization */}
         <div className="relative max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: "0.4s" }}>
           <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-emerald-500/20 rounded-2xl blur-2xl" />
