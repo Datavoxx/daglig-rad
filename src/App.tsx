@@ -24,6 +24,7 @@ import Guide from "@/pages/Guide";
 import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
+import Economy from "@/pages/Economy";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => {
               <Route path="/customers" element={<ProtectedModuleRoute module="customers"><Customers /></ProtectedModuleRoute>} />
               <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
               <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
+              <Route path="/economy" element={<ProtectedModuleRoute module="economy"><Economy /></ProtectedModuleRoute>} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
