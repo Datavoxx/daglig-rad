@@ -1,8 +1,26 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, FolderKanban, Calculator, Wallet, Users, TrendingUp, Sparkles } from "lucide-react";
 import AnimatedAIOrb from "./AnimatedAIOrb";
 import TiltCard from "./TiltCard";
+import SparklineChart from "../dashboard/SparklineChart";
+
+// Mock data for dashboard visualization
+const mockKpiData = [
+  { title: "Projekt", value: "12", change: 15, icon: FolderKanban, color: "primary", sparklineColor: "hsl(var(--primary))" },
+  { title: "Offerter", value: "8", change: 23, icon: Calculator, color: "blue", sparklineColor: "hsl(217, 91%, 60%)" },
+  { title: "Offertvärde", value: "1.2M kr", change: 0, icon: Wallet, color: "emerald", sparklineColor: "hsl(160, 84%, 39%)" },
+  { title: "Kunder", value: "24", change: 8, icon: Users, color: "amber", sparklineColor: "hsl(45, 93%, 47%)" },
+];
+
+const mockSparklineData = [2, 3, 5, 4, 6, 8, 7, 9, 8, 10, 11, 12, 14, 12];
+
+const colorClasses: Record<string, { bg: string; icon: string }> = {
+  primary: { bg: "bg-primary/10", icon: "text-primary" },
+  blue: { bg: "bg-blue-500/10", icon: "text-blue-500" },
+  emerald: { bg: "bg-emerald-500/10", icon: "text-emerald-500" },
+  amber: { bg: "bg-amber-500/10", icon: "text-amber-500" },
+};
 
 const HeroSection = () => {
   return (
@@ -69,7 +87,7 @@ const HeroSection = () => {
           </Button>
         </div>
 
-        {/* App preview mockup */}
+        {/* App preview mockup with Dashboard visualization */}
         <div className="relative max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: "0.4s" }}>
           <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-emerald-500/20 rounded-2xl blur-2xl" />
           <TiltCard 
@@ -90,13 +108,53 @@ const HeroSection = () => {
                 </div>
               </div>
             </div>
-            {/* App content placeholder */}
-            <div className="aspect-[16/10] bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
-              <div className="text-center p-8">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <AnimatedAIOrb size="small" />
+
+            {/* Dashboard content */}
+            <div className="bg-gradient-to-br from-muted/30 to-muted/10 p-4 sm:p-6">
+              {/* Dashboard header */}
+              <div className="mb-4 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium text-primary">Dashboard</span>
                 </div>
-                <p className="text-muted-foreground text-sm">Dashboard Preview</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-base sm:text-lg font-semibold text-foreground">Hej, Erik! 👋</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Här är din översikt för idag</p>
+              </div>
+
+              {/* KPI Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {mockKpiData.map((kpi, index) => {
+                  const Icon = kpi.icon;
+                  const colors = colorClasses[kpi.color];
+                  return (
+                    <div 
+                      key={index} 
+                      className="rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm p-3 text-left transition-all hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <div className={`rounded-md p-1.5 ${colors.bg}`}>
+                          <Icon className={`h-3 w-3 ${colors.icon}`} />
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">{kpi.title}</span>
+                      </div>
+                      <div className="text-lg sm:text-xl font-semibold tabular-nums text-foreground mb-1">{kpi.value}</div>
+                      <div className="h-6 mb-1.5 -mx-1">
+                        <SparklineChart data={mockSparklineData} color={kpi.sparklineColor} height={24} />
+                      </div>
+                      {kpi.change > 0 && (
+                        <div className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                          <TrendingUp className="h-2.5 w-2.5" />
+                          <span>+{kpi.change}%</span>
+                        </div>
+                      )}
+                      {kpi.change === 0 && (
+                        <div className="text-[10px] text-muted-foreground">Ingen förändring</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </TiltCard>
