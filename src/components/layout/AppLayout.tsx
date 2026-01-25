@@ -47,10 +47,26 @@ const navItems: NavItem[] = [
 export function AppLayout() {
   const [userInitial, setUserInitial] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading } = useUserPermissions();
   const isMobile = useIsMobile();
+
+  // Live clock - update every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('sv-SE', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   // Fetch user profile for avatar
   useEffect(() => {
@@ -238,7 +254,11 @@ export function AppLayout() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            {/* Live clock */}
+            <span className="text-sm font-medium text-muted-foreground tabular-nums hidden sm:block">
+              {formatTime(currentTime)}
+            </span>
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <Bell className="h-[18px] w-[18px]" />
             </Button>
