@@ -157,7 +157,14 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
             ) : linkedEstimate ? (
               <div 
                 className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors group"
-                onClick={() => navigate(`/estimates?estimateId=${linkedEstimate.id}`)}
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set("estimateId", linkedEstimate.id);
+                  if (linkedEstimate.offer_number) {
+                    params.set("offerNumber", linkedEstimate.offer_number);
+                  }
+                  navigate(`/estimates?${params.toString()}`);
+                }}
               >
                 <Link2 className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                 <span className="group-hover:underline">

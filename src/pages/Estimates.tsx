@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,9 @@ export default function Estimates() {
   } | null>(null);
   const [manualStarted, setManualStarted] = useState(false);
   
+  // Guard ref to ensure deep-linking runs only once per URL param set
+  const deepLinkProcessedRef = useRef<string | null>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -94,18 +97,44 @@ export default function Estimates() {
     ? drafts 
     : completed;
 
-  // Handle URL parameter for direct estimate navigation
+  // Handle URL parameter for direct estimate navigation (robust deep-linking)
   useEffect(() => {
     const estimateIdFromUrl = searchParams.get("estimateId");
-    if (estimateIdFromUrl && savedEstimates && savedEstimates.length > 0 && !manualStarted && !selectedEstimateId) {
-      const estimate = savedEstimates.find(e => e.id === estimateIdFromUrl);
-      if (estimate) {
-        handleSelectEstimate(estimate);
-        // Clear URL parameter after opening the estimate
-        setSearchParams({});
-      }
+    const offerNumberFromUrl = searchParams.get("offerNumber");
+    
+    // Skip if no params or already processed this exact param set
+    const paramKey = `${estimateIdFromUrl || ""}-${offerNumberFromUrl || ""}`;
+    if (!estimateIdFromUrl && !offerNumberFromUrl) return;
+    if (deepLinkProcessedRef.current === paramKey) return;
+    if (!savedEstimates || savedEstimates.length === 0) return;
+    
+    // Try to find by estimateId first
+    let estimate = estimateIdFromUrl 
+      ? savedEstimates.find(e => e.id === estimateIdFromUrl)
+      : null;
+    
+    // Fallback: try to find by offerNumber
+    if (!estimate && offerNumberFromUrl) {
+      estimate = savedEstimates.find(e => e.offer_number === offerNumberFromUrl);
     }
-  }, [searchParams, savedEstimates, manualStarted, selectedEstimateId]);
+    
+    if (estimate) {
+      deepLinkProcessedRef.current = paramKey;
+      handleSelectEstimate(estimate);
+      // URL parameter stays - will be cleared on Back
+    } else {
+      // Show error toast if neither ID nor offerNumber found the estimate
+      toast({
+        title: "Kunde inte hitta offerten",
+        description: offerNumberFromUrl 
+          ? `Offert ${offerNumberFromUrl} hittades inte.`
+          : "Den begärda offerten kunde inte hittas.",
+        variant: "destructive",
+      });
+      // Clear invalid params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, savedEstimates, toast]);
 
   if (estimatesLoading) {
     return (
@@ -143,6 +172,9 @@ export default function Estimates() {
     setSelectedEstimateId(null);
     setManualData(null);
     setShowWizard(false);
+    // Clear URL params and reset deep-link guard
+    deepLinkProcessedRef.current = null;
+    setSearchParams({}, { replace: true });
   };
 
   const handleSelectEstimate = (estimate: SavedEstimate) => {

@@ -10,7 +10,7 @@ export function RouteTransition({ children, className = "" }: RouteTransitionPro
   
   return (
     <div 
-      key={location.pathname + location.search}
+      key={location.pathname}
       className={`page-transition ${className}`}
     >
       {children}
