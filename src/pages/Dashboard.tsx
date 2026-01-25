@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   FolderKanban, 
-  FileText, 
-  Users, 
   Calculator,
-  ArrowRight,
+  Users,
   Clock,
-  TrendingUp,
-  Sparkles
+  Sparkles,
+  Wallet,
+  ArrowRight
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subDays, startOfWeek, format, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { sv } from "date-fns/locale";
+import KpiCard from "@/components/dashboard/KpiCard";
+import WeeklyActivityChart from "@/components/dashboard/WeeklyActivityChart";
 
 interface ActivityItem {
   id: string;
@@ -30,7 +31,6 @@ const Dashboard = () => {
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
 
-  // Dynamic greeting based on time
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 10) setGreeting("God morgon");
@@ -38,7 +38,6 @@ const Dashboard = () => {
     else setGreeting("God kväll");
   }, []);
 
-  // Fetch user profile
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: userData } = await supabase.auth.getUser();
@@ -57,23 +56,102 @@ const Dashboard = () => {
     fetchProfile();
   }, []);
 
-  // Fetch statistics
-  const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
+  // Fetch all dashboard data with trends
+  const { data: dashboardData } = useQuery({
+    queryKey: ["dashboard-data"],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return { projects: 0, estimates: 0, customers: 0 };
+      if (!userData.user) return null;
 
-      const [projectsRes, estimatesRes, customersRes] = await Promise.all([
+      const now = new Date();
+      const thisMonthStart = startOfMonth(now);
+      const thisMonthEnd = endOfMonth(now);
+      const lastMonthStart = startOfMonth(subMonths(now, 1));
+      const lastMonthEnd = endOfMonth(subMonths(now, 1));
+      const fourteenDaysAgo = subDays(now, 14);
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+      const [
+        projectsRes,
+        estimatesRes,
+        customersRes,
+        reportsThisWeek,
+        projectsThisMonth,
+        projectsLastMonth,
+        estimatesThisMonth,
+        estimatesLastMonth,
+        customersThisMonth,
+        customersLastMonth,
+        projectsTrend,
+        estimatesTrend,
+        customersTrend,
+      ] = await Promise.all([
+        // Totals
         supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
-        supabase.from("project_estimates").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
+        supabase.from("project_estimates").select("id, total_incl_vat").eq("user_id", userData.user.id),
         supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
+        // Reports this week
+        supabase.from("daily_reports").select("id, created_at").eq("user_id", userData.user.id).gte("created_at", weekStart.toISOString()),
+        // This month counts
+        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
+        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
+        supabase.from("project_estimates").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
+        supabase.from("project_estimates").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
+        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
+        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
+        // Trends (14 days)
+        supabase.from("projects").select("created_at").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
+        supabase.from("project_estimates").select("created_at, total_incl_vat").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
+        supabase.from("customers").select("created_at").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
       ]);
+
+      // Calculate total estimate value
+      const totalEstimateValue = estimatesRes.data?.reduce((sum, e) => sum + (e.total_incl_vat || 0), 0) || 0;
+
+      // Calculate percentage changes
+      const calcChange = (thisMonth: number, lastMonth: number) => {
+        if (lastMonth === 0) return thisMonth > 0 ? 100 : 0;
+        return ((thisMonth - lastMonth) / lastMonth) * 100;
+      };
+
+      // Generate sparkline data (14 days)
+      const generateSparkline = (items: { created_at: string }[] | null) => {
+        if (!items) return Array(14).fill(0);
+        const days = Array(14).fill(0);
+        items.forEach(item => {
+          const dayIndex = 13 - Math.floor((now.getTime() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          if (dayIndex >= 0 && dayIndex < 14) days[dayIndex]++;
+        });
+        // Cumulative
+        let cumulative = 0;
+        return days.map(d => { cumulative += d; return cumulative; });
+      };
+
+      // Weekly report data
+      const weekDays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
+      const reportsPerDay = weekDays.map((day, i) => {
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(dayDate.getDate() + i);
+        const count = reportsThisWeek.data?.filter(r => {
+          const reportDate = new Date(r.created_at || "");
+          return reportDate.toDateString() === dayDate.toDateString();
+        }).length || 0;
+        return { day, value: count };
+      });
 
       return {
         projects: projectsRes.count || 0,
-        estimates: estimatesRes.count || 0,
+        estimates: estimatesRes.data?.length || 0,
         customers: customersRes.count || 0,
+        totalEstimateValue,
+        projectsChange: calcChange(projectsThisMonth.count || 0, projectsLastMonth.count || 0),
+        estimatesChange: calcChange(estimatesThisMonth.count || 0, estimatesLastMonth.count || 0),
+        customersChange: calcChange(customersThisMonth.count || 0, customersLastMonth.count || 0),
+        projectsSparkline: generateSparkline(projectsTrend.data),
+        estimatesSparkline: generateSparkline(estimatesTrend.data),
+        customersSparkline: generateSparkline(customersTrend.data),
+        reportsPerDay,
+        totalReportsThisWeek: reportsThisWeek.data?.length || 0,
       };
     },
   });
@@ -147,44 +225,27 @@ const Dashboard = () => {
     },
   });
 
-  const statCards = [
-    {
-      label: "Projekt",
-      value: stats?.projects ?? 0,
-      icon: FolderKanban,
-      href: "/projects",
-      color: "from-primary/10 to-primary/5",
-      iconColor: "text-primary",
-    },
-    {
-      label: "Offerter",
-      value: stats?.estimates ?? 0,
-      icon: Calculator,
-      href: "/estimates",
-      color: "from-blue-500/10 to-blue-500/5",
-      iconColor: "text-blue-600 dark:text-blue-400",
-    },
-    {
-      label: "Kunder",
-      value: stats?.customers ?? 0,
-      icon: Users,
-      href: "/customers",
-      color: "from-amber-500/10 to-amber-500/5",
-      iconColor: "text-amber-600 dark:text-amber-400",
-    },
-  ];
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M kr`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)}k kr`;
+    }
+    return `${value.toFixed(0)} kr`;
+  };
 
   const quickActions = [
     {
       title: "Offerter",
-      description: "Skapa och hantera projektofferter med smart kalkylering",
+      description: "Skapa och hantera projektofferter",
       icon: Calculator,
       href: "/estimates",
-      gradient: "from-primary/5 via-transparent to-primary/10",
+      gradient: "from-blue-500/5 via-transparent to-blue-500/10",
     },
     {
       title: "Kunder",
-      description: "Hantera dina kundrelationer och kontaktuppgifter",
+      description: "Hantera dina kundrelationer",
       icon: Users,
       href: "/customers",
       gradient: "from-amber-500/5 via-transparent to-amber-500/10",
@@ -192,94 +253,104 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-8 animate-in">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-6 md:p-8">
+    <div className="space-y-6 animate-in">
+      {/* Hero Section - Compact */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-5 md:p-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-primary/8 blur-2xl" />
         
         <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-5 w-5 text-primary animate-pulse-subtle" />
-            <span className="text-sm font-medium text-primary">Dashboard</span>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary animate-pulse-subtle" />
+            <span className="text-xs font-medium text-primary">Dashboard</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             {greeting}{userName ? `, ${userName}` : ""}! 👋
           </h1>
-          <p className="mt-2 text-muted-foreground max-w-lg">
-            Här är din översikt. Håll koll på projekt, offerter och kunder – allt på ett ställe.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Här är din översikt för idag
           </p>
         </div>
       </section>
 
-      {/* Stats Cards */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat, index) => (
-          <Card
-            key={stat.label}
-            className="group relative overflow-hidden cursor-pointer hover-lift border-border/50 stagger-item"
-            style={{ animationDelay: `${index * 80}ms` }}
-            onClick={() => navigate(stat.href)}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-            <CardContent className="relative p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight number-animate">
-                    {stat.value}
-                  </p>
-                </div>
-                <div className={`rounded-xl bg-background p-2.5 shadow-sm ring-1 ring-border/50 ${stat.iconColor}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                <TrendingUp className="h-3.5 w-3.5" />
-                <span>Se alla</span>
-                <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Modern KPI Cards */}
+      <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          title="Projekt"
+          value={dashboardData?.projects ?? 0}
+          change={dashboardData?.projectsChange}
+          sparklineData={dashboardData?.projectsSparkline}
+          icon={FolderKanban}
+          onClick={() => navigate("/projects")}
+          accentColor="primary"
+          delay={0}
+        />
+        <KpiCard
+          title="Offerter"
+          value={dashboardData?.estimates ?? 0}
+          change={dashboardData?.estimatesChange}
+          sparklineData={dashboardData?.estimatesSparkline}
+          icon={Calculator}
+          onClick={() => navigate("/estimates")}
+          accentColor="blue"
+          delay={80}
+        />
+        <KpiCard
+          title="Offertvärde"
+          value={formatCurrency(dashboardData?.totalEstimateValue ?? 0)}
+          sparklineData={dashboardData?.estimatesSparkline}
+          icon={Wallet}
+          onClick={() => navigate("/estimates")}
+          accentColor="emerald"
+          delay={160}
+        />
+        <KpiCard
+          title="Kunder"
+          value={dashboardData?.customers ?? 0}
+          change={dashboardData?.customersChange}
+          sparklineData={dashboardData?.customersSparkline}
+          icon={Users}
+          onClick={() => navigate("/customers")}
+          accentColor="amber"
+          delay={240}
+        />
       </section>
+
+      {/* Weekly Activity Chart */}
+      {dashboardData && (
+        <WeeklyActivityChart 
+          data={dashboardData.reportsPerDay} 
+          total={dashboardData.totalReportsThisWeek} 
+        />
+      )}
 
       {/* Quick Actions */}
       <section>
-        <h2 className="section-title mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
           <span className="h-1 w-1 rounded-full bg-primary" />
           Snabbåtgärder
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 grid-cols-2">
           {quickActions.map((action, index) => (
             <Card
               key={action.title}
-              className="group relative overflow-hidden cursor-pointer hover-lift border-border/50 stagger-item"
-              style={{ animationDelay: `${(index + 3) * 80}ms` }}
+              className="group relative overflow-hidden cursor-pointer hover-lift border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5 animate-fade-in"
+              style={{ animationDelay: `${400 + index * 80}ms` }}
               onClick={() => navigate(action.href)}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-              <CardContent className="relative p-6">
-                <div className="flex items-start gap-4">
-                  <div className="rounded-xl bg-primary/10 p-3 text-primary ring-1 ring-primary/20">
-                    <action.icon className="h-6 w-6" />
+              <CardContent className="relative p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2 text-primary ring-1 ring-primary/20">
+                    <action.icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">{action.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                    <h3 className="font-medium text-sm text-foreground">{action.title}</h3>
+                    <p className="text-xs text-muted-foreground truncate hidden sm:block">
                       {action.description}
                     </p>
                   </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-primary hover:text-primary hover:bg-primary/10 group-hover:translate-x-1 transition-transform"
-                  >
-                    Öppna
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </CardContent>
             </Card>
@@ -287,26 +358,26 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - Compact */}
       <section>
-        <h2 className="section-title mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
           <span className="h-1 w-1 rounded-full bg-primary" />
           Senaste aktivitet
         </h2>
-        <Card className="border-border/50">
+        <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
           <CardContent className="p-0">
             {recentActivity && recentActivity.length > 0 ? (
               <ul className="divide-y divide-border/50">
                 {recentActivity.map((activity, index) => (
                   <li
                     key={activity.id}
-                    className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors stagger-item"
-                    style={{ animationDelay: `${(index + 5) * 60}ms` }}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors animate-fade-in"
+                    style={{ animationDelay: `${500 + index * 60}ms` }}
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                      {activity.type === "report" && <FileText className="h-4 w-4 text-muted-foreground" />}
-                      {activity.type === "estimate" && <Calculator className="h-4 w-4 text-muted-foreground" />}
-                      {activity.type === "inspection" && <FileText className="h-4 w-4 text-muted-foreground" />}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      {activity.type === "report" && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {activity.type === "estimate" && <Calculator className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {activity.type === "inspection" && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
@@ -316,23 +387,20 @@ const Dashboard = () => {
                         {activity.projectName}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>
-                        {formatDistanceToNow(activity.date, { addSuffix: true, locale: sv })}
-                      </span>
-                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDistanceToNow(activity.date, { addSuffix: true, locale: sv })}
+                    </span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Clock className="h-6 w-6 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground">Ingen aktivitet ännu</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Din senaste aktivitet kommer visas här
+                  Din senaste aktivitet visas här
                 </p>
               </div>
             )}
