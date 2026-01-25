@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus } from "lucide-react";
+import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { EstimateWizard } from "@/components/estimates/EstimateWizard";
@@ -273,10 +274,13 @@ export default function Estimates() {
           <h1 className="text-2xl font-bold tracking-tight">Offert</h1>
           <p className="text-muted-foreground">Skapa och hantera projektofferter</p>
         </div>
-        <Button onClick={() => setShowWizard(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Ny offert
-        </Button>
+        <div className="flex items-center gap-2">
+          <EstimateImportDialog onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["saved-estimates"] })} />
+          <Button onClick={() => setShowWizard(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ny offert
+          </Button>
+        </div>
       </div>
 
       {/* Saved estimates list */}
