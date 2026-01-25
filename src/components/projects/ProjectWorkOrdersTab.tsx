@@ -142,6 +142,29 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
 
   const handleDownloadPdf = async (order: WorkOrder) => {
     try {
+      // Fetch project details
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("client_name, address, postal_code, city, start_date, estimate_id")
+        .eq("id", projectId)
+        .maybeSingle();
+
+      // Fetch estimate items if there's a linked estimate
+      let estimateItems: Array<{ quantity: number | null; unit: string | null; article: string | null; moment: string }> = [];
+      const linkedEstimateId = order.estimate_id || projectData?.estimate_id;
+      
+      if (linkedEstimateId) {
+        const { data: items } = await supabase
+          .from("estimate_items")
+          .select("quantity, unit, article, moment")
+          .eq("estimate_id", linkedEstimateId)
+          .order("sort_order");
+        
+        if (items) {
+          estimateItems = items;
+        }
+      }
+
       await generateWorkOrderPdf({
         orderNumber: order.order_number || "AO",
         projectName,
@@ -150,6 +173,12 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
         assignedTo: order.assigned_to || "",
         dueDate: order.due_date || null,
         status: order.status,
+        clientName: projectData?.client_name || undefined,
+        address: projectData?.address || undefined,
+        postalCode: projectData?.postal_code || undefined,
+        city: projectData?.city || undefined,
+        startDate: projectData?.start_date || undefined,
+        estimateItems,
       });
       toast({ title: "PDF genererad" });
     } catch (error) {
