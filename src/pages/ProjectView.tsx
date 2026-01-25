@@ -103,6 +103,7 @@ export default function ProjectView() {
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                 {project.status === 'planning' ? 'Planering' : 
                  project.status === 'active' ? 'Pågående' : 
+                 project.status === 'closing' ? 'Slutskede' :
                  project.status === 'completed' ? 'Avslutat' : project.status}
               </span>
             )}

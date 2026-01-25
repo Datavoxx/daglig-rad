@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, FolderKanban, MapPin, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ProjectPipeline from "@/components/projects/ProjectPipeline";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,7 @@ interface Project {
   address: string | null;
   created_at: string;
   estimate_id: string | null;
+  status: string | null;
 }
 
 interface Estimate {
@@ -63,6 +65,7 @@ export default function Projects() {
   const [selectedEstimateId, setSelectedEstimateId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -77,7 +80,7 @@ export default function Projects() {
     // Fetch projects
     const { data: projectsData, error: projectsError } = await supabase
       .from("projects")
-      .select("id, name, client_name, address, created_at, estimate_id")
+      .select("id, name, client_name, address, created_at, estimate_id, status")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -207,10 +210,13 @@ export default function Projects() {
     setSelectedEstimateId("");
   };
 
-  const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.client_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = !statusFilter || project.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -339,6 +345,15 @@ export default function Projects() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+
+      {/* Project Pipeline */}
+      {!loading && projects.length > 0 && (
+        <ProjectPipeline
+          projects={projects}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+        />
+      )}
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
