@@ -1,16 +1,52 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Plus, FileEdit, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Plus,
+  FileEdit,
+  Trash2,
+  GripVertical,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Ata {
   id: string;
@@ -21,22 +57,53 @@ interface Ata {
   estimated_cost: number | null;
   status: string;
   created_at: string;
+  article: string | null;
+  unit: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  subtotal: number | null;
+  rot_eligible: boolean | null;
+  show_only_total: boolean | null;
+  sort_order: number | null;
 }
 
 interface ProjectAtaTabProps {
   projectId: string;
 }
 
+const articleCategories = [
+  "Arbete",
+  "Bygg",
+  "Deponi",
+  "El",
+  "Maskin",
+  "Material",
+  "Målning",
+  "Plattsättning",
+  "VVS",
+  "Övrigt",
+];
+
+const unitOptions = ["tim", "st", "m", "m²", "m³", "lpm", "kg", "klump"];
+
+const statusOptions = [
+  { value: "pending", label: "Väntande" },
+  { value: "approved", label: "Godkänd" },
+  { value: "rejected", label: "Nekad" },
+];
+
 export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
   const [atas, setAtas] = useState<Ata[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAta, setEditingAta] = useState<Ata | null>(null);
   const [formData, setFormData] = useState({
+    article: "Arbete",
     description: "",
     reason: "",
-    estimated_hours: "",
-    estimated_cost: "",
+    unit: "tim",
+    quantity: "1",
+    unit_price: "",
+    rot_eligible: false,
     status: "pending",
   });
   const [saving, setSaving] = useState(false);
@@ -51,6 +118,7 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
       .from("project_ata")
       .select("*")
       .eq("project_id", projectId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -64,7 +132,7 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
   const generateAtaNumber = () => {
     const year = new Date().getFullYear();
     const count = atas.length + 1;
-    return `ÄTA-${year}-${String(count).padStart(3, '0')}`;
+    return `ÄTA-${year}-${String(count).padStart(3, "0")}`;
   };
 
   const handleSubmit = async () => {
@@ -81,77 +149,100 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
       return;
     }
 
+    const quantity = formData.quantity ? parseFloat(formData.quantity) : 1;
+    const unitPrice = formData.unit_price ? parseFloat(formData.unit_price) : 0;
+    const subtotal = quantity * unitPrice;
+
     const payload = {
       project_id: projectId,
       user_id: user.id,
-      ata_number: editingAta?.ata_number || generateAtaNumber(),
+      ata_number: generateAtaNumber(),
+      article: formData.article,
       description: formData.description,
       reason: formData.reason || null,
-      estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
-      estimated_cost: formData.estimated_cost ? parseFloat(formData.estimated_cost) : null,
+      unit: formData.unit,
+      quantity,
+      unit_price: unitPrice,
+      subtotal,
+      rot_eligible: formData.rot_eligible,
       status: formData.status,
+      estimated_hours: formData.unit === "tim" ? quantity : null,
+      estimated_cost: subtotal > 0 ? subtotal : null,
+      sort_order: atas.length,
     };
 
-    if (editingAta) {
-      const { error } = await supabase
-        .from("project_ata")
-        .update(payload)
-        .eq("id", editingAta.id);
+    const { error } = await supabase.from("project_ata").insert(payload);
 
-      if (error) {
-        toast({ title: "Kunde inte uppdatera ÄTA", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "ÄTA uppdaterad" });
-        fetchAtas();
-        closeDialog();
-      }
+    if (error) {
+      toast({ title: "Kunde inte skapa ÄTA", description: error.message, variant: "destructive" });
     } else {
-      const { error } = await supabase.from("project_ata").insert(payload);
-
-      if (error) {
-        toast({ title: "Kunde inte skapa ÄTA", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "ÄTA skapad" });
-        fetchAtas();
-        closeDialog();
-      }
+      toast({ title: "ÄTA skapad" });
+      fetchAtas();
+      closeDialog();
     }
 
     setSaving(false);
   };
 
-  const handleDelete = async (ata: Ata) => {
-    const { error } = await supabase.from("project_ata").delete().eq("id", ata.id);
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setFormData({
+      article: "Arbete",
+      description: "",
+      reason: "",
+      unit: "tim",
+      quantity: "1",
+      unit_price: "",
+      rot_eligible: false,
+      status: "pending",
+    });
+  };
+
+  const handleFieldUpdate = async (ataId: string, field: string, value: any) => {
+    const ata = atas.find((a) => a.id === ataId);
+    if (!ata) return;
+
+    let updateData: any = { [field]: value };
+
+    // Recalculate subtotal if quantity or unit_price changes
+    if (field === "quantity" || field === "unit_price") {
+      const quantity = field === "quantity" ? value : ata.quantity || 1;
+      const unitPrice = field === "unit_price" ? value : ata.unit_price || 0;
+      updateData.subtotal = quantity * unitPrice;
+      updateData.estimated_cost = updateData.subtotal > 0 ? updateData.subtotal : null;
+      if (ata.unit === "tim" && field === "quantity") {
+        updateData.estimated_hours = value;
+      }
+    }
+
+    const { error } = await supabase
+      .from("project_ata")
+      .update(updateData)
+      .eq("id", ataId);
+
+    if (error) {
+      toast({ title: "Kunde inte uppdatera", description: error.message, variant: "destructive" });
+    } else {
+      setAtas((prev) =>
+        prev.map((a) => (a.id === ataId ? { ...a, ...updateData } : a))
+      );
+    }
+  };
+
+  const handleDelete = async (ataId: string) => {
+    const { error } = await supabase.from("project_ata").delete().eq("id", ataId);
     if (error) {
       toast({ title: "Kunde inte ta bort ÄTA", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "ÄTA borttagen" });
-      fetchAtas();
+      setAtas((prev) => prev.filter((a) => a.id !== ataId));
     }
-  };
-
-  const openEdit = (ata: Ata) => {
-    setEditingAta(ata);
-    setFormData({
-      description: ata.description,
-      reason: ata.reason || "",
-      estimated_hours: ata.estimated_hours?.toString() || "",
-      estimated_cost: ata.estimated_cost?.toString() || "",
-      status: ata.status,
-    });
-    setDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setDialogOpen(false);
-    setEditingAta(null);
-    setFormData({ description: "", reason: "", estimated_hours: "", estimated_cost: "", status: "pending" });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge variant="default" className="bg-green-500">Godkänd</Badge>;
+        return <Badge variant="success">Godkänd</Badge>;
       case "rejected":
         return <Badge variant="destructive">Nekad</Badge>;
       default:
@@ -160,8 +251,28 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
   };
 
   const formatCurrency = (amount: number | null) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", maximumFractionDigits: 0 }).format(amount);
+    if (!amount && amount !== 0) return "-";
+    return new Intl.NumberFormat("sv-SE", {
+      style: "currency",
+      currency: "SEK",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Calculate totals by status
+  const totals = atas.reduce(
+    (acc, ata) => {
+      const subtotal = ata.subtotal || 0;
+      if (ata.status === "approved") acc.approved += subtotal;
+      else if (ata.status === "rejected") acc.rejected += subtotal;
+      else acc.pending += subtotal;
+      return acc;
+    },
+    { pending: 0, approved: 0, rejected: 0 }
+  );
+
+  const hasMissingPricing = (ata: Ata) => {
+    return !ata.unit_price || ata.unit_price === 0;
   };
 
   return (
@@ -169,37 +280,75 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Ändrings- och tilläggsarbeten</h3>
-          <p className="text-sm text-muted-foreground">Hantera ÄTA för projektet</p>
+          <p className="text-sm text-muted-foreground">
+            Hantera ÄTA för projektet – strukturerat som offertposter
+          </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => open ? setDialogOpen(true) : closeDialog()}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
           <DialogTrigger asChild>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Ny ÄTA
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{editingAta ? "Redigera ÄTA" : "Ny ÄTA"}</DialogTitle>
+              <DialogTitle>Ny ÄTA</DialogTitle>
               <DialogDescription>
-                {editingAta ? "Uppdatera ÄTA-informationen" : "Lägg till ett ändrings- eller tilläggsarbete"}
+                Lägg till ett ändrings- eller tilläggsarbete
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Artikel</Label>
+                  <Select
+                    value={formData.article}
+                    onValueChange={(value) => setFormData({ ...formData, article: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {articleCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Enhet</Label>
+                  <Select
+                    value={formData.unit}
+                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unitOptions.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Beskrivning *</Label>
+                <Label>Beskrivning *</Label>
                 <Textarea
-                  id="description"
                   placeholder="Beskriv arbetet..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
+                  rows={2}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reason">Anledning</Label>
+                <Label>Anledning</Label>
                 <Input
-                  id="reason"
                   placeholder="Varför behövs detta?"
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -207,25 +356,35 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hours">Uppskattade timmar</Label>
+                  <Label>Antal</Label>
                   <Input
-                    id="hours"
                     type="number"
-                    placeholder="0"
-                    value={formData.estimated_hours}
-                    onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
+                    step="0.5"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cost">Uppskattad kostnad</Label>
+                  <Label>À-pris</Label>
                   <Input
-                    id="cost"
                     type="number"
                     placeholder="0"
-                    value={formData.estimated_cost}
-                    onChange={(e) => setFormData({ ...formData, estimated_cost: e.target.value })}
+                    value={formData.unit_price}
+                    onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rot-new"
+                  checked={formData.rot_eligible}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, rot_eligible: checked === true })
+                  }
+                />
+                <Label htmlFor="rot-new" className="cursor-pointer">
+                  ROT-avdrag
+                </Label>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -237,17 +396,21 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Väntande</SelectItem>
-                    <SelectItem value="approved">Godkänd</SelectItem>
-                    <SelectItem value="rejected">Nekad</SelectItem>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={closeDialog}>Avbryt</Button>
+              <Button variant="outline" onClick={closeDialog}>
+                Avbryt
+              </Button>
               <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? "Sparar..." : editingAta ? "Spara ändringar" : "Skapa ÄTA"}
+                {saving ? "Sparar..." : "Skapa ÄTA"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -255,62 +418,210 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-4 bg-muted rounded w-1/3 mb-2" />
-                <div className="h-3 bg-muted rounded w-2/3" />
-              </CardContent>
-            </Card>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 bg-muted/50 rounded animate-pulse" />
           ))}
         </div>
       ) : atas.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed rounded-lg">
           <FileEdit className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="font-medium">Inga ÄTA registrerade</h3>
-          <p className="text-sm text-muted-foreground mt-1">Lägg till ändrings- och tilläggsarbeten här</p>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {atas.map((ata) => (
-            <Card key={ata.id} className="group">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm text-muted-foreground">{ata.ata_number}</span>
-                      {getStatusBadge(ata.status)}
-                    </div>
-                    <p className="font-medium">{ata.description}</p>
-                    {ata.reason && <p className="text-sm text-muted-foreground">{ata.reason}</p>}
-                    <div className="flex gap-4 text-sm text-muted-foreground pt-1">
-                      {ata.estimated_hours && <span>{ata.estimated_hours} timmar</span>}
-                      {ata.estimated_cost && <span>{formatCurrency(ata.estimated_cost)}</span>}
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEdit(ata)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Redigera
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ata)}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Ta bort
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-sm text-muted-foreground mt-1">
+            Lägg till ändrings- och tilläggsarbeten här
+          </p>
         </div>
+      ) : (
+        <TooltipProvider delayDuration={0}>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="w-8"></TableHead>
+                  <TableHead className="w-24">ÄTA-nr</TableHead>
+                  <TableHead className="w-28">Artikel</TableHead>
+                  <TableHead className="min-w-[200px]">Beskrivning</TableHead>
+                  <TableHead className="w-16 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Eye className="h-4 w-4 mx-auto" />
+                      </TooltipTrigger>
+                      <TooltipContent>Visa endast total</TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead className="w-20 text-right">Antal</TableHead>
+                  <TableHead className="w-20">Enhet</TableHead>
+                  <TableHead className="w-24 text-right">À-pris</TableHead>
+                  <TableHead className="w-28 text-right">Summa</TableHead>
+                  <TableHead className="w-12 text-center">ROT</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {atas.map((ata) => (
+                  <TableRow
+                    key={ata.id}
+                    className={cn(
+                      "group",
+                      ata.status === "rejected" && "opacity-50"
+                    )}
+                  >
+                    <TableCell className="text-muted-foreground">
+                      <GripVertical className="h-4 w-4 cursor-grab" />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        {hasMissingPricing(ata) && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Saknar prisuppgifter för fakturering
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {ata.ata_number}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={ata.article || "Arbete"}
+                        onValueChange={(value) => handleFieldUpdate(ata.id, "article", value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {articleCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={ata.description}
+                        onChange={(e) => handleFieldUpdate(ata.id, "description", e.target.value)}
+                        className="h-8 text-sm border-0 bg-transparent hover:bg-muted/50 focus:bg-card"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={ata.show_only_total || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate(ata.id, "show_only_total", checked === true)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={ata.quantity ?? 1}
+                        onChange={(e) =>
+                          handleFieldUpdate(ata.id, "quantity", parseFloat(e.target.value) || 1)
+                        }
+                        className="h-8 text-sm text-right border-0 bg-transparent hover:bg-muted/50 focus:bg-card tabular-nums"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={ata.unit || "tim"}
+                        onValueChange={(value) => handleFieldUpdate(ata.id, "unit", value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unitOptions.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={ata.unit_price ?? ""}
+                        onChange={(e) =>
+                          handleFieldUpdate(
+                            ata.id,
+                            "unit_price",
+                            e.target.value ? parseFloat(e.target.value) : 0
+                          )
+                        }
+                        placeholder="0"
+                        className="h-8 text-sm text-right border-0 bg-transparent hover:bg-muted/50 focus:bg-card tabular-nums"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatCurrency(ata.subtotal)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={ata.rot_eligible || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate(ata.id, "rot_eligible", checked === true)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={ata.status}
+                        onValueChange={(value) => handleFieldUpdate(ata.id, "status", value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/50">
+                          {getStatusBadge(ata.status)}
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(ata.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Totals */}
+          <div className="flex flex-wrap gap-4 justify-end pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="secondary">Väntande</Badge>
+              <span className="font-medium tabular-nums">{formatCurrency(totals.pending)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="success">Godkänd</Badge>
+              <span className="font-medium tabular-nums">{formatCurrency(totals.approved)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="destructive">Nekad</Badge>
+              <span className="font-medium tabular-nums line-through text-muted-foreground">
+                {formatCurrency(totals.rejected)}
+              </span>
+            </div>
+          </div>
+        </TooltipProvider>
       )}
     </div>
   );

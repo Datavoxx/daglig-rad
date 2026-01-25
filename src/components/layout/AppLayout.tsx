@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FolderKanban,
-  FileText,
   Settings,
   Search,
   Bell,
@@ -38,7 +37,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
-  { label: "Dagrapporter", href: "/reports", icon: FileText, moduleKey: "reports" },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },

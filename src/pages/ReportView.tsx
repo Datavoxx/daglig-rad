@@ -86,7 +86,7 @@ export default function ReportView() {
         description: error.message,
         variant: "destructive",
       });
-      navigate("/reports");
+      navigate("/projects");
     } else {
       setReport(data as any);
     }
@@ -169,7 +169,7 @@ export default function ReportView() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/reports")} className="shrink-0 mt-0.5">
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/projects/${report.project?.id}?tab=diary`)} className="shrink-0 mt-0.5">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

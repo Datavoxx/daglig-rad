@@ -735,6 +735,7 @@ export type Database = {
       }
       project_ata: {
         Row: {
+          article: string | null
           ata_number: string | null
           created_at: string | null
           description: string
@@ -742,12 +743,20 @@ export type Database = {
           estimated_hours: number | null
           id: string
           project_id: string
+          quantity: number | null
           reason: string | null
+          rot_eligible: boolean | null
+          show_only_total: boolean | null
+          sort_order: number | null
           status: string | null
+          subtotal: number | null
+          unit: string | null
+          unit_price: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          article?: string | null
           ata_number?: string | null
           created_at?: string | null
           description: string
@@ -755,12 +764,20 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           project_id: string
+          quantity?: number | null
           reason?: string | null
+          rot_eligible?: boolean | null
+          show_only_total?: boolean | null
+          sort_order?: number | null
           status?: string | null
+          subtotal?: number | null
+          unit?: string | null
+          unit_price?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          article?: string | null
           ata_number?: string | null
           created_at?: string | null
           description?: string
@@ -768,8 +785,15 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           project_id?: string
+          quantity?: number | null
           reason?: string | null
+          rot_eligible?: boolean | null
+          show_only_total?: boolean | null
+          sort_order?: number | null
           status?: string | null
+          subtotal?: number | null
+          unit?: string | null
+          unit_price?: number | null
           updated_at?: string | null
           user_id?: string
         }
