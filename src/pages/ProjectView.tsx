@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import ProjectOverviewTab from "@/components/projects/ProjectOverviewTab";
 import ProjectAtaTab from "@/components/projects/ProjectAtaTab";
 import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
 import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
+import ProjectDiaryTab from "@/components/projects/ProjectDiaryTab";
 
 interface Project {
   id: string;
@@ -132,6 +133,10 @@ export default function ProjectView() {
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">Planering</span>
           </TabsTrigger>
+          <TabsTrigger value="diary" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Arbetsdagbok</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -152,6 +157,10 @@ export default function ProjectView() {
 
         <TabsContent value="planning" className="mt-6">
           <ProjectPlanningTab projectId={project.id} projectName={project.name} />
+        </TabsContent>
+
+        <TabsContent value="diary" className="mt-6">
+          <ProjectDiaryTab projectId={project.id} projectName={project.name} />
         </TabsContent>
       </Tabs>
     </div>
