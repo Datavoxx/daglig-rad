@@ -15,8 +15,27 @@ import {
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home, EyeOff } from "lucide-react";
+import { EstimateItemsImportDialog, type ParsedEstimateItem } from "./EstimateItemsImportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+
+// Map article values to labor/material/subcontractor types
+function mapArticleToType(article: string): "labor" | "material" | "subcontractor" {
+  const lower = article.toLowerCase().trim();
+  
+  // Material types
+  if (["material", "mat", "bygg", "förbrukning"].includes(lower)) {
+    return "material";
+  }
+  
+  // Subcontractor
+  if (["ue", "underentreprenör", "underleverantör"].includes(lower)) {
+    return "subcontractor";
+  }
+  
+  // Default to labor
+  return "labor";
+}
 
 // Article categories - Bygglet style
 const ARTICLE_OPTIONS = [
@@ -634,15 +653,46 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
         ))}
       </div>
 
-      {/* Add row button */}
+      {/* Add row button + Import */}
       {!readOnly && (
-        <button
-          onClick={addItem}
-          className="w-full py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded transition-colors flex items-center justify-center gap-1 mt-0.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Lägg till rad
-        </button>
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={addItem}
+            className="flex-1 py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded transition-colors flex items-center justify-center gap-1"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Lägg till rad
+          </button>
+          <EstimateItemsImportDialog
+            existingItemCount={items.length}
+            rotEnabled={rotEnabled}
+            onImport={(parsedItems, mode) => {
+              const newItems: EstimateItem[] = parsedItems.map((item, index) => ({
+                id: crypto.randomUUID(),
+                article: item.article || "Arbete",
+                description: item.description || "",
+                show_only_total: false,
+                moment: item.moment || item.description || "",
+                type: mapArticleToType(item.article || ""),
+                quantity: item.quantity,
+                unit: item.unit || "",
+                hours: item.hours,
+                unit_price: item.unit_price || 0,
+                subtotal: item.subtotal || 0,
+                comment: "",
+                uncertainty: "medium" as const,
+                sort_order: mode === "replace" ? index : items.length + index,
+                rot_eligible: rotEnabled,
+              }));
+              
+              if (mode === "replace") {
+                onItemsChange(newItems);
+              } else {
+                onItemsChange([...items, ...newItems]);
+              }
+            }}
+          />
+        </div>
       )}
     </div>
   );
