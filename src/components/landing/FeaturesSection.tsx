@@ -158,35 +158,40 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <TiltCard 
               key={feature.title}
-              maxTilt={10} 
+              maxTilt={15} 
               glareEnabled={true}
-              className="stagger-item group"
+              className="stagger-item"
             >
-              {/* Hover glow effect - matches hero dashboard */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-primary/10 via-primary/5 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              
-              <Card 
-                className="relative overflow-hidden h-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-shadow duration-300"
-                style={{ animationDelay: `${index * 75}ms` }}
-              >
-                {/* Mockup */}
-                <div className="p-4 sm:p-6 pb-0">
-                  <feature.mockup />
-                </div>
+              <div className="group relative">
+                {/* Hover glow effect - matches hero dashboard */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/15 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <Card 
+                  className="relative h-full border-border/50 bg-card shadow-xl transition-all duration-300 group-hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)]"
+                  style={{ animationDelay: `${index * 75}ms` }}
+                >
+                  {/* Top highlight line - simulates light reflection */}
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-t-xl" />
+                  
+                  {/* Mockup */}
+                  <div className="p-4 sm:p-6 pb-0">
+                    <feature.mockup />
+                  </div>
 
-                <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
-                  {/* Content */}
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-
-                  {/* Hover gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                </CardContent>
-              </Card>
+                  <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
+                    {/* Content */}
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                  
+                  {/* Bottom gradient for depth */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-b-xl" />
+                </Card>
+              </div>
             </TiltCard>
           ))}
         </div>
