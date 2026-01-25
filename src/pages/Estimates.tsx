@@ -97,7 +97,7 @@ export default function Estimates() {
   // Handle URL parameter for direct estimate navigation
   useEffect(() => {
     const estimateIdFromUrl = searchParams.get("estimateId");
-    if (estimateIdFromUrl && savedEstimates && !manualStarted) {
+    if (estimateIdFromUrl && savedEstimates && savedEstimates.length > 0 && !manualStarted && !selectedEstimateId) {
       const estimate = savedEstimates.find(e => e.id === estimateIdFromUrl);
       if (estimate) {
         handleSelectEstimate(estimate);
@@ -105,7 +105,7 @@ export default function Estimates() {
         setSearchParams({});
       }
     }
-  }, [searchParams, savedEstimates, manualStarted]);
+  }, [searchParams, savedEstimates, manualStarted, selectedEstimateId]);
 
   if (estimatesLoading) {
     return (

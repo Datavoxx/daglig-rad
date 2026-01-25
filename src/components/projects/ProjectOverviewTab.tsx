@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Calculator, Link2, Pencil, Save, X } from "lucide-react";
+import { CalendarIcon, Calculator, ExternalLink, Link2, Pencil, Save, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -155,17 +155,15 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
                 </SelectContent>
               </Select>
             ) : linkedEstimate ? (
-              <div className="flex items-center gap-2 text-sm">
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-                <span>{linkedEstimate.offer_number || linkedEstimate.manual_project_name}</span>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0"
-                  onClick={() => navigate(`/estimates?estimateId=${linkedEstimate.id}`)}
-                >
-                  Visa offert
-                </Button>
+              <div 
+                className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors group"
+                onClick={() => navigate(`/estimates?estimateId=${linkedEstimate.id}`)}
+              >
+                <Link2 className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                <span className="group-hover:underline">
+                  {linkedEstimate.offer_number || linkedEstimate.manual_project_name}
+                </span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Ingen offert kopplad</p>
