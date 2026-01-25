@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, FolderKanban, Calculator, Wallet, Users, TrendingUp, Sparkles } from "lucide-react";
-import AnimatedAIOrb from "./AnimatedAIOrb";
 import TiltCard from "./TiltCard";
 import SparklineChart from "../dashboard/SparklineChart";
 
@@ -32,12 +31,7 @@ const HeroSection = () => {
       <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-primary/3 blur-3xl animate-float" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-primary/2 blur-3xl animate-float" style={{ animationDelay: "1s" }} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        {/* Badge with AI orb */}
-        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-10 animate-fade-in">
-          <AnimatedAIOrb size="small" />
-          <span className="text-sm font-medium text-primary">AI-genererade offerter</span>
-        </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-8">
 
         {/* Main heading - outcome-driven, higher contrast */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold tracking-tighter text-foreground mb-4 animate-fade-in">
