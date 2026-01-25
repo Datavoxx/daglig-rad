@@ -13,23 +13,16 @@ const comparisons = [
   {
     icon: Calculator,
     task: "Skicka offert",
-    traditional: { time: 2, unit: "tim" },
-    byggio: { time: 15, unit: "min" },
-    saving: 87,
+    traditional: { time: 25, unit: "min" },
+    byggio: { time: 6, unit: "min" },
+    saving: 76,
   },
   {
     icon: Calendar,
     task: "Projektplanering",
-    traditional: { time: 3, unit: "tim" },
-    byggio: { time: 30, unit: "min" },
+    traditional: { time: 30, unit: "min" },
+    byggio: { time: 5, unit: "min" },
     saving: 83,
-  },
-  {
-    icon: Camera,
-    task: "Dokumentera arbete",
-    traditional: { time: 20, unit: "min" },
-    byggio: { time: 2, unit: "min" },
-    saving: 90,
   },
 ];
 
