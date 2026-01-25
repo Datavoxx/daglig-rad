@@ -21,6 +21,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ReportEditor } from "@/components/reports/ReportEditor";
+import { AtaFollowUpDialog } from "./AtaFollowUpDialog";
+
+interface AtaItem {
+  reason: string;
+  consequence: string;
+  estimated_hours: number | null;
+}
 
 interface GeneratedReport {
   report_date: string;
@@ -40,11 +47,7 @@ interface GeneratedReport {
   }>;
   ata: {
     has_ata: boolean;
-    items: Array<{
-      reason: string;
-      consequence: string;
-      estimated_hours: number | null;
-    }>;
+    items: AtaItem[];
   } | null;
   extra_work: string[];
   materials: {
@@ -78,6 +81,9 @@ export function InlineDiaryCreator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [pendingAtaItems, setPendingAtaItems] = useState<AtaItem[]>([]);
+  const [showAtaDialog, setShowAtaDialog] = useState(false);
+  const [savedReportId, setSavedReportId] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef<string>("");
@@ -228,18 +234,47 @@ export function InlineDiaryCreator({
     }
   };
 
+  const handleReportSaved = (reportId: string) => {
+    // Check if report has ÄTA items that need processing
+    if (generatedReport?.ata?.has_ata && generatedReport.ata.items.length > 0) {
+      setPendingAtaItems(generatedReport.ata.items);
+      setSavedReportId(reportId);
+      setShowAtaDialog(true);
+    } else {
+      onSaved(reportId);
+    }
+  };
+
+  const handleAtaComplete = () => {
+    if (savedReportId) {
+      onSaved(savedReportId);
+    }
+    setPendingAtaItems([]);
+    setShowAtaDialog(false);
+    setSavedReportId(null);
+  };
+
   // Show the report editor for review after generation
   if (generatedReport) {
     return (
-      <ReportEditor
-        report={generatedReport}
-        projectId={projectId}
-        projectName={projectName}
-        reportDate={selectedDate}
-        userId=""
-        onBack={() => setGeneratedReport(null)}
-        onSaved={onSaved}
-      />
+      <>
+        <ReportEditor
+          report={generatedReport}
+          projectId={projectId}
+          projectName={projectName}
+          reportDate={selectedDate}
+          userId=""
+          onBack={() => setGeneratedReport(null)}
+          onSaved={handleReportSaved}
+        />
+        <AtaFollowUpDialog
+          open={showAtaDialog}
+          onOpenChange={setShowAtaDialog}
+          projectId={projectId}
+          ataItems={pendingAtaItems}
+          onComplete={handleAtaComplete}
+        />
+      </>
     );
   }
 
