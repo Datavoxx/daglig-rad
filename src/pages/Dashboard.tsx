@@ -9,7 +9,8 @@ import {
   Clock,
   Sparkles,
   Wallet,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,12 +31,21 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 10) setGreeting("God morgon");
     else if (hour < 17) setGreeting("Hej");
     else setGreeting("God kväll");
+  }, []);
+
+  // Update current hour every minute for diary reminder
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHour(new Date().getHours());
+    }, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -225,6 +235,43 @@ const Dashboard = () => {
     },
   });
 
+  // Fetch active projects that need diary entries today
+  const { data: projectsNeedingDiary } = useQuery({
+    queryKey: ["projects-needing-diary"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
+      const today = format(new Date(), 'yyyy-MM-dd');
+
+      // Fetch active projects
+      const { data: activeProjects } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userData.user.id)
+        .eq("status", "active");
+
+      if (!activeProjects?.length) return [];
+
+      // Fetch today's diary entries
+      const { data: todaysReports } = await supabase
+        .from("daily_reports")
+        .select("project_id")
+        .eq("user_id", userData.user.id)
+        .eq("report_date", today);
+
+      const projectsWithTodaysDiary = new Set(
+        todaysReports?.map(r => r.project_id) || []
+      );
+
+      // Filter out projects that already have today's diary
+      return activeProjects.filter(p => !projectsWithTodaysDiary.has(p.id));
+    },
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const showDiaryReminder = currentHour >= 17 && projectsNeedingDiary && projectsNeedingDiary.length > 0;
+
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `${(value / 1000000).toFixed(1)}M kr`;
@@ -259,17 +306,49 @@ const Dashboard = () => {
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-primary/8 blur-2xl" />
         
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse-subtle" />
-            <span className="text-xs font-medium text-primary">Dashboard</span>
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse-subtle" />
+              <span className="text-xs font-medium text-primary">Dashboard</span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              {greeting}{userName ? `, ${userName}` : ""}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Här är din översikt för idag
+            </p>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            {greeting}{userName ? `, ${userName}` : ""}! 👋
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Här är din översikt för idag
-          </p>
+
+          {/* Diary reminder - only shown after 17:00 for active projects */}
+          {showDiaryReminder && (
+            <div className="flex flex-col gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-amber-600" />
+                <span className="font-medium text-amber-700 dark:text-amber-400 text-sm">
+                  Dags att uppdatera arbetsdagboken
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {projectsNeedingDiary?.slice(0, 3).map(project => (
+                  <Button
+                    key={project.id}
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                    onClick={() => navigate(`/projects/${project.id}?tab=diary`)}
+                  >
+                    {project.name}
+                  </Button>
+                ))}
+                {projectsNeedingDiary && projectsNeedingDiary.length > 3 && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 self-center">
+                    +{projectsNeedingDiary.length - 3} till
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
