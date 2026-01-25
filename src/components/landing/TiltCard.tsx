@@ -43,6 +43,7 @@ const TiltCard = ({ children, className = "", maxTilt = 15, glareEnabled = true 
         transform: `perspective(1000px) rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg)`,
         transition: "transform 0.15s ease-out",
         transformStyle: "preserve-3d",
+        transformOrigin: "center center",
       }}
     >
       {children}
