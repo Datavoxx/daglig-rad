@@ -87,7 +87,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
     const { error } = await supabase
       .from("projects")
       .update({
-        estimate_id: formData.estimate_id || null,
+        estimate_id: formData.estimate_id && formData.estimate_id !== "none" ? formData.estimate_id : null,
         start_date: formData.start_date ? format(formData.start_date, "yyyy-MM-dd") : null,
         budget: formData.budget ? parseFloat(formData.budget) : null,
         status: formData.status,
@@ -139,14 +139,14 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
             <Label>Kopplad offert</Label>
             {isEditing ? (
               <Select
-                value={formData.estimate_id}
-                onValueChange={(value) => setFormData({ ...formData, estimate_id: value })}
+                value={formData.estimate_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, estimate_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Välj offert..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Ingen koppling</SelectItem>
+                  <SelectItem value="none">Ingen koppling</SelectItem>
                   {estimates.map((est) => (
                     <SelectItem key={est.id} value={est.id}>
                       {est.offer_number || est.manual_project_name || "Offert"} - {formatCurrency(est.total_incl_vat)}
