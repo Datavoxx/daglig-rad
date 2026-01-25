@@ -4,7 +4,6 @@ import {
   FolderKanban,
   FileText,
   Settings,
-  Menu,
   Search,
   Bell,
   ClipboardCheck,
@@ -15,13 +14,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { BottomNav } from "./BottomNav";
 import {
   Tooltip,
   TooltipContent,
@@ -47,12 +47,12 @@ const navItems: NavItem[] = [
 ];
 
 export function AppLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [userInitial, setUserInitial] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+  const isMobile = useIsMobile();
 
   // Fetch user profile for avatar
   useEffect(() => {
@@ -87,7 +87,6 @@ export function AppLayout() {
     <button
       onClick={() => {
         navigate(item.href);
-        setMobileOpen(false);
       }}
       className={cn(
         "relative flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium transition-all duration-200 ease-out",
@@ -146,20 +145,9 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - always collapsed */}
+      {/* Sidebar - desktop only */}
       <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[68px] flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 md:relative",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        )}
+        className="hidden md:flex fixed inset-y-0 left-0 z-50 w-[68px] flex-col border-r border-sidebar-border bg-sidebar md:relative"
       >
         {/* Brand - clickable logo */}
         <button
@@ -231,16 +219,19 @@ export function AppLayout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-sm px-4 md:px-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 md:hidden"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+        <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-sm px-3 md:px-6">
+          <div className="flex items-center gap-3">
+            {/* Mobile: Logo */}
+            {isMobile && (
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="flex h-9 w-9 items-center justify-center"
+                aria-label="Gå till dashboard"
+              >
+                <img src={byggioLogo} alt="Byggio" className="h-8 w-8 object-contain" />
+              </button>
+            )}
+            {/* Desktop: Search */}
             <div className="relative hidden w-64 md:block lg:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
@@ -249,22 +240,47 @@ export function AppLayout() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <Bell className="h-[18px] w-[18px]" />
             </Button>
+            {/* Mobile: Profile avatar in topbar */}
+            {isMobile && (
+              <button
+                onClick={() => navigate("/profile")}
+                className={cn(
+                  "flex items-center justify-center rounded-full p-0.5 transition-all duration-200",
+                  location.pathname === "/profile"
+                    ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                    : ""
+                )}
+              >
+                <Avatar className="h-8 w-8 border border-primary/20">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} alt="Profil" />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                      {userInitial}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </button>
+            )}
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-content px-4 py-6 md:px-6 md:py-8">
+          <div className="mx-auto max-w-content px-3 py-4 pb-20 md:px-6 md:py-8 md:pb-8">
             <RouteTransition>
               <Outlet />
             </RouteTransition>
           </div>
         </main>
       </div>
+
+      {/* Bottom navigation - mobile only */}
+      {isMobile && <BottomNav />}
     </div>
   );
 }

@@ -112,30 +112,30 @@ export default function ProjectView() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit">
             <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Översikt</span>
+            <span className="hidden xs:inline">Översikt</span>
           </TabsTrigger>
-          <TabsTrigger value="ata" className="flex items-center gap-2">
+          <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit">
             <FileEdit className="h-4 w-4" />
-            <span className="hidden sm:inline">ÄTA</span>
+            <span className="hidden xs:inline">ÄTA</span>
           </TabsTrigger>
-          <TabsTrigger value="workorders" className="flex items-center gap-2">
+          <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit">
             <ClipboardList className="h-4 w-4" />
-            <span className="hidden sm:inline">Arbetsorder</span>
+            <span className="hidden xs:inline">Order</span>
           </TabsTrigger>
-          <TabsTrigger value="files" className="flex items-center gap-2">
+          <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit">
             <FolderOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Filer</span>
+            <span className="hidden xs:inline">Filer</span>
           </TabsTrigger>
-          <TabsTrigger value="planning" className="flex items-center gap-2">
+          <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit">
             <CalendarDays className="h-4 w-4" />
-            <span className="hidden sm:inline">Planering</span>
+            <span className="hidden xs:inline">Plan</span>
           </TabsTrigger>
-          <TabsTrigger value="diary" className="flex items-center gap-2">
+          <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit">
             <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Arbetsdagbok</span>
+            <span className="hidden xs:inline">Dagbok</span>
           </TabsTrigger>
         </TabsList>
 

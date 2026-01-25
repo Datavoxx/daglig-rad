@@ -244,14 +244,14 @@ export function InlineDiaryCreator({
   }
 
   return (
-    <Card className="border-primary/20 bg-card/80 backdrop-blur-sm animate-in fade-in-0 slide-in-from-top-2 duration-300">
-      <CardHeader className="pb-4">
+    <Card className="border-primary/20 bg-card/80 backdrop-blur-sm animate-in fade-in-0 slide-in-from-top-2 duration-300 md:max-w-none">
+      <CardHeader className="pb-3 md:pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary" />
             Ny arbetsdagbok
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 touch-target">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -317,19 +317,21 @@ export function InlineDiaryCreator({
           <Button
             variant={isRecording ? "destructive" : "secondary"}
             onClick={toggleRecording}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto touch-target"
             disabled={!isSpeechRecognitionSupported}
           >
             {isRecording ? (
               <>
                 <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
                 <MicOff className="mr-2 h-4 w-4" />
-                Stoppa inspelning
+                <span className="hidden sm:inline">Stoppa inspelning</span>
+                <span className="sm:hidden">Stopp</span>
               </>
             ) : (
               <>
                 <Mic className="mr-2 h-4 w-4" />
-                Spela in (realtid)
+                <span className="hidden sm:inline">Spela in (realtid)</span>
+                <span className="sm:hidden">Spela in</span>
               </>
             )}
           </Button>
@@ -342,11 +344,11 @@ export function InlineDiaryCreator({
         </div>
 
         {/* Generate button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || !transcript.trim()}
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none touch-target"
           >
             {isGenerating ? (
               <>
@@ -356,11 +358,12 @@ export function InlineDiaryCreator({
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generera arbetsdagbok
+                <span className="hidden sm:inline">Generera arbetsdagbok</span>
+                <span className="sm:hidden">Generera</span>
               </>
             )}
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} className="touch-target">
             Avbryt
           </Button>
         </div>
