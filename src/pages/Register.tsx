@@ -94,7 +94,7 @@ export default function Register() {
       navigate("/auth");
     } else {
       toast({ title: "Välkommen till Byggio!" });
-      navigate("/projects");
+      navigate("/dashboard");
     }
   };
 

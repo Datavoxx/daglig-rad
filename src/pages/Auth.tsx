@@ -59,7 +59,7 @@ export default function Auth() {
       });
     } else {
       toast({ title: "Välkommen tillbaka!" });
-      navigate("/projects");
+      navigate("/dashboard");
     }
   };
 

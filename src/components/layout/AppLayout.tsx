@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  Home,
   FolderKanban,
   Settings,
   Search,
@@ -9,6 +10,7 @@ import {
   Calculator,
   Users,
   BookOpen,
+  Landmark,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,12 +38,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
-  { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
+  { label: "Ekonomi", href: "/economy", icon: Landmark, moduleKey: "economy" },
+  { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
 ];
 
 export function AppLayout() {

@@ -1,12 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  Home,
   FolderKanban,
-  FileText,
   ClipboardCheck,
   Calculator,
   Users,
-  Settings,
-  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -19,16 +17,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
-  { label: "Rapporter", href: "/reports", icon: FileText, moduleKey: "reports" },
   { label: "Kontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
-];
-
-const moreItems: NavItem[] = [
-  { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
-  { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
 ];
 
 export function BottomNav() {
