@@ -197,9 +197,21 @@ export function ReportEditor({
     setSaving(true);
 
     try {
+      // Fetch current user ID to ensure RLS policy passes
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Du måste vara inloggad",
+          description: "Logga in för att spara rapporter",
+          variant: "destructive",
+        });
+        setSaving(false);
+        return;
+      }
+
       const reportData = {
         project_id: projectId,
-        user_id: userId || null,
+        user_id: user.id,
         report_date: format(reportDate, "yyyy-MM-dd"),
         headcount: data.crew.headcount,
         roles: data.crew.roles,
