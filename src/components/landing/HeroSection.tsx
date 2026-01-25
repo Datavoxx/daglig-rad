@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import AnimatedAIOrb from "./AnimatedAIOrb";
+import TiltCard from "./TiltCard";
 
 const HeroSection = () => {
   return (
@@ -71,12 +72,10 @@ const HeroSection = () => {
         {/* App preview mockup */}
         <div className="relative max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: "0.4s" }}>
           <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-emerald-500/20 rounded-2xl blur-2xl" />
-          <div 
-            className="relative bg-card rounded-xl border border-border/50 shadow-2xl overflow-hidden"
-            style={{
-              transform: "perspective(1000px) rotateX(5deg)",
-              transformOrigin: "center bottom"
-            }}
+          <TiltCard 
+            className="bg-card rounded-xl border border-border/50 shadow-2xl overflow-hidden"
+            maxTilt={10}
+            glareEnabled={true}
           >
             {/* Browser chrome */}
             <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border/50">
@@ -100,7 +99,7 @@ const HeroSection = () => {
                 <p className="text-muted-foreground text-sm">Dashboard Preview</p>
               </div>
             </div>
-          </div>
+          </TiltCard>
         </div>
 
         {/* Social proof */}
