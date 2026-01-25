@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { generateProjectPdf } from "@/lib/generateProjectPdf";
 import { toast } from "sonner";
+import { InlineDiaryCreator } from "./InlineDiaryCreator";
 
 interface Deviation {
   type: string;
@@ -51,12 +52,14 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     fetchReports();
   }, [projectId]);
 
   const fetchReports = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("daily_reports")
       .select("id, report_date, headcount, total_hours, deviations, ata, notes, work_items, roles, hours_per_person, materials_delivered, materials_missing")
@@ -102,8 +105,10 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
     }
   };
 
-  const handleCreateReport = () => {
-    navigate(`/reports/new?projectId=${projectId}`);
+  const handleReportSaved = (reportId: string) => {
+    setShowCreateForm(false);
+    fetchReports();
+    navigate(`/reports/${reportId}`);
   };
 
   const handleViewReport = (reportId: string) => {
@@ -124,6 +129,18 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
     );
   }
 
+  // Show inline creator form
+  if (showCreateForm) {
+    return (
+      <InlineDiaryCreator
+        projectId={projectId}
+        projectName={projectName}
+        onClose={() => setShowCreateForm(false)}
+        onSaved={handleReportSaved}
+      />
+    );
+  }
+
   if (reports.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -132,11 +149,11 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
         </div>
         <h3 className="text-lg font-medium mb-2">Ingen arbetsdagbok ännu</h3>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Skapa din första dagrapport för att dokumentera arbetet på projektet.
+          Skapa din första arbetsdagbok för att dokumentera arbetet på projektet.
         </p>
-        <Button onClick={handleCreateReport}>
+        <Button onClick={() => setShowCreateForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Ny dagrapport
+          Ny arbetsdagbok
         </Button>
       </div>
     );
@@ -162,9 +179,9 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
             <Download className="h-4 w-4 mr-2" />
             {exporting ? "Exporterar..." : "Ladda ner PDF"}
           </Button>
-          <Button onClick={handleCreateReport}>
+          <Button onClick={() => setShowCreateForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Ny dagrapport
+            Ny arbetsdagbok
           </Button>
         </div>
       </div>
