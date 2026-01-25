@@ -158,12 +158,15 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <TiltCard 
               key={feature.title}
-              maxTilt={8} 
+              maxTilt={10} 
               glareEnabled={true}
-              className="stagger-item"
+              className="stagger-item group"
             >
+              {/* Hover glow effect - matches hero dashboard */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-primary/10 via-primary/5 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              
               <Card 
-                className="group relative overflow-hidden h-full border-border/50 bg-card/50 backdrop-blur-sm"
+                className="relative overflow-hidden h-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-shadow duration-300"
                 style={{ animationDelay: `${index * 75}ms` }}
               >
                 {/* Mockup */}
