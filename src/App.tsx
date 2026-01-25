@@ -14,7 +14,7 @@ import ProjectView from "@/pages/ProjectView";
 import Reports from "@/pages/Reports";
 import ReportNew from "@/pages/ReportNew";
 import ReportView from "@/pages/ReportView";
-import Planning from "@/pages/Planning";
+
 import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import Inspections from "@/pages/Inspections";
@@ -51,7 +51,7 @@ const App = () => {
               <Route path="/reports" element={<ProtectedModuleRoute module="reports"><Reports /></ProtectedModuleRoute>} />
               <Route path="/reports/new" element={<ProtectedModuleRoute module="reports"><ReportNew /></ProtectedModuleRoute>} />
               <Route path="/reports/:id" element={<ProtectedModuleRoute module="reports"><ReportView /></ProtectedModuleRoute>} />
-              <Route path="/planning" element={<ProtectedModuleRoute module="planning"><Planning /></ProtectedModuleRoute>} />
+              
               <Route path="/inspections" element={<ProtectedModuleRoute module="inspections"><Inspections /></ProtectedModuleRoute>} />
               <Route path="/inspections/new" element={<ProtectedModuleRoute module="inspections"><InspectionNew /></ProtectedModuleRoute>} />
               <Route path="/inspections/:id" element={<ProtectedModuleRoute module="inspections"><InspectionView /></ProtectedModuleRoute>} />

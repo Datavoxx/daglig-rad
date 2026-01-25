@@ -7,7 +7,6 @@ import {
   Menu,
   Search,
   Bell,
-  CalendarDays,
   ClipboardCheck,
   Calculator,
   Users,
@@ -40,7 +39,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
   { label: "Dagrapporter", href: "/reports", icon: FileText, moduleKey: "reports" },
-  { label: "Planering", href: "/planning", icon: CalendarDays, moduleKey: "planning" },
   { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
