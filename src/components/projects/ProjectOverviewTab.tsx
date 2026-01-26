@@ -6,14 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Calculator, ExternalLink, Link2, Pencil, Save, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CalendarIcon, Calculator, ExternalLink, Link2, Pencil, Save, X, FileDown, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
+import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
 interface Project {
   id: string;
   name: string;
@@ -45,6 +53,8 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
   const [isEditing, setIsEditing] = useState(false);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [linkedEstimate, setLinkedEstimate] = useState<Estimate | null>(null);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [formData, setFormData] = useState({
     estimate_id: project.estimate_id || "",
     start_date: project.start_date ? parseISO(project.start_date) : undefined as Date | undefined,
@@ -83,6 +93,8 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
 
   const handleSave = async () => {
     setSaving(true);
+    const previousStatus = project.status;
+    const newStatus = formData.status;
     
     const { error } = await supabase
       .from("projects")
@@ -100,8 +112,46 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
       toast({ title: "Projekt uppdaterat" });
       setIsEditing(false);
       onUpdate();
+      
+      // Show completion dialog if status changed to completed
+      if (previousStatus !== "completed" && newStatus === "completed") {
+        setShowCompletionDialog(true);
+      }
     }
     setSaving(false);
+  };
+
+  const handleGenerateCompletePdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      // Fetch all project data
+      const [estimateItemsRes, ataItemsRes, planRes, diaryRes, companyRes] = await Promise.all([
+        project.estimate_id 
+          ? supabase.from("estimate_items").select("*").eq("estimate_id", project.estimate_id).order("sort_order")
+          : Promise.resolve({ data: [] }),
+        supabase.from("project_ata").select("*").eq("project_id", project.id).order("sort_order"),
+        supabase.from("project_plans").select("*").eq("project_id", project.id).maybeSingle(),
+        supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
+        supabase.from("company_settings").select("*").eq("user_id", (await supabase.auth.getUser()).data.user?.id || "").maybeSingle(),
+      ]);
+
+      await generateCompleteProjectPdf({
+        project: project as any,
+        estimate: linkedEstimate as any,
+        estimateItems: (estimateItemsRes.data || []) as any[],
+        ataItems: (ataItemsRes.data || []) as any[],
+        plan: planRes.data as any,
+        diaryReports: (diaryRes.data || []) as any[],
+        companySettings: companyRes.data as any,
+      });
+
+      toast({ title: "Projektrapport nedladdad" });
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      toast({ title: "Kunde inte generera PDF", variant: "destructive" });
+    }
+    setGeneratingPdf(false);
+    setShowCompletionDialog(false);
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -110,7 +160,8 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <>
+      <div className="grid gap-6 md:grid-cols-2">
       {/* Project Info Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -292,7 +343,55 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
             </span>
           </div>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+
+      {/* Completion Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-primary" />
+              Projekt avslutat!
+            </DialogTitle>
+            <DialogDescription>
+              Vill du ladda ner en komplett projektrapport som PDF?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-muted-foreground">
+              PDF:en innehåller:
+            </p>
+            <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+              <li>Offert med alla poster</li>
+              <li>ÄTA-arbeten</li>
+              <li>Projektplanering</li>
+              <li>Alla dagrapporter</li>
+              <li>Ekonomisk sammanfattning</li>
+            </ul>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Hoppa över
+            </Button>
+            <Button onClick={handleGenerateCompletePdf} disabled={generatingPdf}>
+              {generatingPdf ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Genererar...
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Ladda ner PDF
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

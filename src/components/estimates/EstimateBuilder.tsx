@@ -13,7 +13,7 @@ import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Ma
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
-import { IntroductionSection } from "./IntroductionSection";
+
 import { ClosingSection } from "./ClosingSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
@@ -300,14 +300,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         </div>
       </div>
 
-      {/* Introduction section */}
-      <IntroductionSection
-        text={estimate.state.introductionText}
-        onChange={estimate.updateIntroduction}
-      />
-
-      {/* Divider */}
-      <div className="h-px bg-border" />
 
       {/* Scope / Project description */}
       <Card className="border bg-card">
@@ -332,7 +324,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         <CardHeader className="pb-2 pt-3 px-3">
           <div className="flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-medium">Arbete som ingår</CardTitle>
+            <CardTitle className="text-sm font-medium">Tidsplan</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0">
