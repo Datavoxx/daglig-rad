@@ -349,27 +349,34 @@ export function InlineDiaryCreator({
               </div>
             )}
           </div>
-          <Button
-            variant={isRecording ? "destructive" : "secondary"}
-            onClick={toggleRecording}
-            className="w-full sm:w-auto touch-target"
-            disabled={!isSpeechRecognitionSupported}
-          >
-            {isRecording ? (
-              <>
-                <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
-                <MicOff className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Stoppa inspelning</span>
-                <span className="sm:hidden">Stopp</span>
-              </>
-            ) : (
-              <>
-                <Mic className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Spela in (realtid)</span>
-                <span className="sm:hidden">Spela in</span>
-              </>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant={isRecording ? "destructive" : "secondary"}
+              onClick={toggleRecording}
+              className="w-full sm:w-auto touch-target"
+              disabled={!isSpeechRecognitionSupported}
+            >
+              {isRecording ? (
+                <>
+                  <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
+                  <MicOff className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Stoppa inspelning</span>
+                  <span className="sm:hidden">Stopp</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Spela in (realtid)</span>
+                  <span className="sm:hidden">Spela in</span>
+                </>
+              )}
+            </Button>
+            {!isRecording && isSpeechRecognitionSupported && (
+              <p className="text-xs text-muted-foreground text-center">
+                💡 Spara upp till 70% av din tid genom att prata istället för att skriva
+              </p>
             )}
-          </Button>
+          </div>
           {!isSpeechRecognitionSupported && (
             <p className="text-sm text-destructive flex items-center gap-1.5">
               <AlertCircle className="h-4 w-4" />

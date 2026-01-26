@@ -103,6 +103,52 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 - "Ta bort material [namn]" → ta bort från cost_library
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
+    } else if (documentType === "work_order") {
+      systemPrompt = `Du är en assistent som fyller i arbetsorder baserat på svenska röstinstruktioner.
+
+NUVARANDE ARBETSORDER:
+${JSON.stringify(currentData, null, 2)}
+
+Användaren beskriver en arbetsorder med röst. Extrahera relevant information och returnera ett JSON-objekt med följande fält:
+- title: Kort titel för arbetet (obligatoriskt)
+- description: Detaljerad beskrivning av arbetet
+- assigned_to: Namn på personen som ska utföra arbetet (om nämnt)
+- status: "pending", "in_progress", eller "completed" (default: "pending")
+
+EXEMPEL PÅ RÖSTINPUT:
+- "Installera nya fönster i fasaden mot söder, Erik ansvarar" → { "title": "Installera nya fönster", "description": "Installera nya fönster i fasaden mot söder", "assigned_to": "Erik", "status": "pending" }
+- "Byta ut gammal panel i hallen" → { "title": "Byta ut panel", "description": "Byta ut gammal panel i hallen", "status": "pending" }
+
+Svara ENDAST med JSON-objektet.`;
+    } else if (documentType === "ata") {
+      systemPrompt = `Du är en assistent som fyller i ÄTA (ändrings- och tilläggsarbete) baserat på svenska röstinstruktioner.
+
+NUVARANDE ÄTA:
+${JSON.stringify(currentData, null, 2)}
+
+Användaren beskriver ett ändringsarbete med röst. Extrahera relevant information och returnera ett JSON-objekt med följande fält:
+- article: Kategori av arbete ("Arbete", "Bygg", "El", "VVS", "Material", "Målning", "Plattsättning", "Maskin", "Deponi", "Övrigt")
+- description: Beskrivning av arbetet (obligatoriskt)
+- reason: Anledning till ÄTA:n (varför behövs det)
+- unit: Enhet för arbetet ("tim", "st", "m", "m²", "m³", "lpm", "kg", "klump")
+- quantity: Antal (nummer)
+- unit_price: Pris per enhet (nummer)
+- rot_eligible: Om ROT-avdrag gäller (true/false)
+- status: "pending", "approved", eller "rejected" (default: "pending")
+
+EXEMPEL PÅ RÖSTINPUT:
+- "Extra rivningsarbete på 4 timmar á 650 kronor för att åtgärda fuktskada" → { "article": "Arbete", "description": "Extra rivningsarbete för att åtgärda fuktskada", "reason": "Fuktskada upptäcktes vid rivning", "unit": "tim", "quantity": 4, "unit_price": 650, "status": "pending" }
+- "Lägg till 10 kvadratmeter kakelsättning i badrum á 1200 kronor" → { "article": "Plattsättning", "description": "Kakelsättning i badrum", "unit": "m²", "quantity": 10, "unit_price": 1200, "status": "pending" }
+
+Mappa artiklar baserat på typ av arbete:
+- El-arbete, kabeldragning → "El"
+- Rörmokeri, VVS-arbete → "VVS"
+- Målning, tapetsering → "Målning"
+- Kakel, klinker, plattor → "Plattsättning"
+- Snickeri, timmerarbete → "Bygg"
+- Rivning, städning, allmänt → "Arbete"
+
+Svara ENDAST med JSON-objektet.`;
     } else {
       return new Response(
         JSON.stringify({ error: "Okänd dokumenttyp" }),
