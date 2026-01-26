@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import fortnoxLogo from "@/assets/fortnox-logo.png";
 import vismaLogo from "@/assets/visma-logo.png";
+import excelLogo from "@/assets/excel-logo.png";
 
 const IntegrationsSection = () => {
   return (
@@ -8,15 +9,57 @@ const IntegrationsSection = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
-            Kommande
-          </Badge>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
             Kraftfulla integrationer
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Snart kan du koppla Byggio till ditt bokföringssystem för smidig ekonomihantering
+            Importera din befintliga data eller koppla till ditt bokföringssystem
           </p>
+        </div>
+
+        {/* Available now - Excel Import */}
+        <div className="mb-16">
+          <div className="text-center mb-6">
+            <Badge className="bg-primary/10 text-primary border-0">
+              Tillgängligt nu
+            </Badge>
+          </div>
+          <div className="max-w-xl mx-auto">
+            <div className="group relative bg-card rounded-2xl border border-primary/30 p-8 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+              <div className="h-16 mb-6 flex items-center">
+                <img 
+                  src={excelLogo} 
+                  alt="Microsoft Excel" 
+                  className="h-12 object-contain"
+                />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Importera från Excel</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Flytta enkelt din befintliga data till Byggio. Importera direkt från Excel-filer.
+              </p>
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Kunder
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Offerter
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Projekt
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Coming soon - Fortnox & Visma */}
+        <div className="text-center mb-6">
+          <Badge variant="outline" className="border-primary/30 text-primary">
+            Kommande
+          </Badge>
         </div>
 
         {/* Integration cards */}
