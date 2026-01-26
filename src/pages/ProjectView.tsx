@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import ProjectOverviewTab from "@/components/projects/ProjectOverviewTab";
@@ -114,30 +119,60 @@ export default function ProjectView() {
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit">
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden xs:inline">Översikt</span>
-          </TabsTrigger>
-          <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit">
-            <FileEdit className="h-4 w-4" />
-            <span className="hidden xs:inline">ÄTA</span>
-          </TabsTrigger>
-          <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit">
-            <ClipboardList className="h-4 w-4" />
-            <span className="hidden xs:inline">Order</span>
-          </TabsTrigger>
-          <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit">
-            <FolderOpen className="h-4 w-4" />
-            <span className="hidden xs:inline">Filer</span>
-          </TabsTrigger>
-          <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit">
-            <CalendarDays className="h-4 w-4" />
-            <span className="hidden xs:inline">Plan</span>
-          </TabsTrigger>
-          <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit">
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden xs:inline">Dagbok</span>
-          </TabsTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden xs:inline">Översikt</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Översikt</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit">
+                <FileEdit className="h-4 w-4" />
+                <span className="hidden xs:inline">ÄTA</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">ÄTA</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit">
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden xs:inline">Order</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Arbetsorder</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit">
+                <FolderOpen className="h-4 w-4" />
+                <span className="hidden xs:inline">Filer</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Filer</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit">
+                <CalendarDays className="h-4 w-4" />
+                <span className="hidden xs:inline">Plan</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Planering</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden xs:inline">Dagbok</span>
+              </TabsTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Dagbok</TooltipContent>
+          </Tooltip>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
