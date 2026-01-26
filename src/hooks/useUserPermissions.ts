@@ -6,11 +6,11 @@ const ALL_MODULES = [
   "projects",
   "reports", 
   "planning",
-  "inspections",
   "estimates",
   "customers",
   "guide",
-  "settings"
+  "settings",
+  "economy"
 ];
 
 // Default modules for new users (restricted access - no projects)

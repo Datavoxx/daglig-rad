@@ -1,12 +1,21 @@
 import jsPDF from "jspdf";
+import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
 
-export function generateGuidePdf() {
+interface CompanySettings {
+  company_name: string | null;
+  logo_url: string | null;
+}
+
+export async function generateGuidePdf(companySettings?: CompanySettings | null) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
+
+  // Get logo
+  const logoBase64 = await getCompanyLogoBase64(companySettings?.logo_url || null);
 
   // Helper to add new page if needed
   const checkPageBreak = (height: number) => {
@@ -21,10 +30,10 @@ export function generateGuidePdf() {
     checkPageBreak(20);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(34, 139, 87); // Primary green
+    doc.setTextColor(...PDF_COLORS.PRIMARY);
     doc.text(text, margin, y);
     y += 10;
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
   };
@@ -33,6 +42,7 @@ export function generateGuidePdf() {
   const addParagraph = (text: string) => {
     const lines = doc.splitTextToSize(text, contentWidth);
     checkPageBreak(lines.length * 6);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.text(lines, margin, y);
     y += lines.length * 6 + 4;
   };
@@ -43,149 +53,162 @@ export function generateGuidePdf() {
     const bulletWidth = contentWidth - 5;
     const lines = doc.splitTextToSize(text, bulletWidth);
     checkPageBreak(lines.length * 6);
+    doc.setTextColor(...PDF_COLORS.MUTED);
     doc.text("•", margin, y);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.text(lines, bulletMargin, y);
     y += lines.length * 6 + 2;
   };
 
+  // === COVER / HEADER ===
+  
+  // Logo in top left if available
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, "AUTO", margin, y, 40, 20, undefined, "FAST");
+    } catch (e) {
+      console.error("Error adding logo:", e);
+    }
+  }
+
   // Title
-  doc.setFontSize(24);
+  y = 50;
+  doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(34, 139, 87);
+  doc.setTextColor(...PDF_COLORS.PRIMARY);
   doc.text("Byggio Guide", margin, y);
-  y += 10;
-  doc.setFontSize(12);
-  doc.setTextColor(100, 100, 100);
+  
+  y += 12;
+  doc.setFontSize(14);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
-  doc.text("En komplett guide till att använda Byggio", margin, y);
-  y += 20;
+  doc.text("Din kompletta guide till effektiv projekthantering", margin, y);
+  
+  y += 15;
 
   // Divider
-  doc.setDrawColor(34, 139, 87);
+  doc.setDrawColor(...PDF_COLORS.PRIMARY);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
   y += 15;
 
-  // Overview
-  addSectionHeader("Översikt");
+  // === SNABBSTART ===
+  addSectionHeader("🚀 Snabbstart");
   addParagraph(
-    "Byggio är en digital plattform för byggprojekt som hjälper dig att hantera dagrapporter, planering, egenkontroller och kalkyler. Allt på ett ställe, enkelt och digitalt."
+    "Kom igång med Byggio på bara tre enkla steg:"
   );
+  addBullet("Steg 1: Skapa en offert – Använd mallar eller bygg från grunden med AI-stöd");
+  addBullet("Steg 2: Konvertera till projekt – När offerten godkänns, gör den till ett aktivt projekt");
+  addBullet("Steg 3: Dokumentera arbetet – Använd arbetsdagboken för att logga allt som händer");
   y += 6;
 
-  // Dagrapporter
-  addSectionHeader("Dagrapporter");
+  // === PROJEKT & ARBETSDAGBOK ===
+  addSectionHeader("📁 Projekt & Arbetsdagbok");
   addParagraph(
-    "Dagrapporter används för att dokumentera det dagliga arbetet på byggplatsen. Varje rapport innehåller information om bemanning, utfört arbete, avvikelser och material."
+    "Projekt är hjärtat i Byggio. Här samlas all information om dina aktiva jobb – från offert till slutbesiktning. Arbetsdagboken låter dig dokumentera det dagliga arbetet med röst eller text."
   );
-  addBullet("Skapa nya rapporter med röstinspelning eller text");
-  addBullet("AI hjälper till att strukturera informationen automatiskt");
-  addBullet("Exportera rapporter som PDF för arkivering");
-  addBullet("Håll koll på avvikelser och ÄTA");
+  addBullet("Röstinspelning – Prata in din rapport direkt från byggplatsen");
+  addBullet("AI-strukturering – AI organiserar informationen automatiskt");
+  addBullet("PDF-export – Exportera rapporter för arkivering");
+  addBullet("ÄTA-hantering – Dokumentera och spåra alla ändringsarbeten");
   y += 6;
 
-  // Planering
-  addSectionHeader("Planering");
+  // === OFFERTER ===
+  addSectionHeader("💰 Offerter & Kalkyler");
   addParagraph(
-    "Planeringsfunktionen hjälper dig att skapa en grov tidsplan för ditt projekt. Beskriv projektets faser med röst eller text, så genererar AI en visuell Gantt-tidslinje."
+    "Skapa detaljerade offerter snabbt med hjälp av mallar och AI. Beskriv arbetet så beräknas tid och kostnad automatiskt baserat på dina timpriser och materialpriser."
   );
-  addBullet("Beskriv projektets faser och tidsramar");
-  addBullet("AI skapar en visuell tidslinje");
-  addBullet("Redigera och justera faser enkelt");
-  addBullet("Exportera planeringen som PDF");
-  y += 6;
-
-  // Egenkontroller
-  addSectionHeader("Egenkontroller");
-  addParagraph(
-    "Egenkontroller säkerställer kvaliteten i byggprojektet. Använd färdiga mallar eller skapa egna för att systematiskt kontrollera att arbetet utförs enligt krav och standarder."
-  );
-  addBullet("Välj från färdiga kontrollmallar för olika arbetsmoment");
-  addBullet("Markera kontrollpunkter som OK, avvikelse eller ej tillämplig");
-  addBullet("Dokumentera avvikelser med kommentarer");
-  addBullet("Exportera egenkontroller som PDF-protokoll");
-  y += 6;
-
-  // Offerter
-  addSectionHeader("Offerter");
-  addParagraph(
-    "Offertfunktionen låter dig skapa detaljerade kostnadsberäkningar för dina projekt. Använd mallar med fördefinierade arbetsmoment och timpriser för att snabbt ta fram offerter."
-  );
-  addBullet("Skapa och spara egna offertmallar");
+  addBullet("Välj en mall för din projekttyp (t.ex. badrumsrenovering)");
   addBullet("Beskriv mängder med röst eller text");
-  addBullet("AI beräknar timmar och kostnader baserat på mallen");
-  addBullet("Justera påslag och exportera som PDF");
+  addBullet("AI beräknar timmar och kostnader");
+  addBullet("Justera påslag och exportera som professionell PDF");
+  y += 6;
 
-  // New page for template example
+  // New page for more content
   doc.addPage();
   y = margin;
 
-  addSectionHeader("Exempelmall: Badrumsrenovering");
+  // === PLANERING ===
+  addSectionHeader("📅 Planering & Tidslinje");
   addParagraph(
-    "Nedan visas ett exempel på hur en kalkylmall för badrumsrenovering kan se ut. Mallen innehåller typiska arbetsmoment med timuppskattningar."
+    "Skapa visuella tidsplaner för dina projekt. Beskriv projektets faser, så genererar AI en Gantt-tidslinje som du kan exportera och dela med ditt team."
   );
-  y += 4;
-
-  // Table header
-  doc.setFillColor(240, 240, 240);
-  doc.rect(margin, y, contentWidth, 8, "F");
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("WBS", margin + 2, y + 5.5);
-  doc.text("Moment", margin + 20, y + 5.5);
-  doc.text("Enhet", margin + 90, y + 5.5);
-  doc.text("Tim/enh", margin + 115, y + 5.5);
-  doc.text("Resurs", margin + 140, y + 5.5);
-  y += 10;
-
-  // Table rows
-  const templateItems = [
-    { wbs: "1.0", name: "Rivning av befintligt", unit: "m²", hours: 0.9, resource: "Snickare" },
-    { wbs: "2.0", name: "Tätskikt golv", unit: "m²", hours: 0.7, resource: "Snickare" },
-    { wbs: "2.1", name: "Tätskikt vägg", unit: "m²", hours: 0.6, resource: "Snickare" },
-    { wbs: "3.0", name: "Plattsättning golv", unit: "m²", hours: 1.2, resource: "Plattsättare" },
-    { wbs: "3.1", name: "Plattsättning vägg", unit: "m²", hours: 1.0, resource: "Plattsättare" },
-    { wbs: "4.0", name: "VVS-installation", unit: "st", hours: 4.0, resource: "Rörmokare" },
-    { wbs: "5.0", name: "El-installation", unit: "st", hours: 3.0, resource: "Elektriker" },
-    { wbs: "6.0", name: "Fogning", unit: "m²", hours: 0.3, resource: "Plattsättare" },
-    { wbs: "7.0", name: "Montering porslin", unit: "st", hours: 1.5, resource: "Rörmokare" },
-    { wbs: "8.0", name: "Slutbesiktning", unit: "st", hours: 2.0, resource: "Projektledare" },
-  ];
-
-  doc.setFont("helvetica", "normal");
-  templateItems.forEach((item, index) => {
-    if (index % 2 === 0) {
-      doc.setFillColor(250, 250, 250);
-      doc.rect(margin, y - 3, contentWidth, 7, "F");
-    }
-    doc.text(item.wbs, margin + 2, y + 2);
-    doc.text(item.name, margin + 20, y + 2);
-    doc.text(item.unit, margin + 90, y + 2);
-    doc.text(item.hours.toString(), margin + 115, y + 2);
-    doc.text(item.resource, margin + 140, y + 2);
-    y += 7;
-  });
-
-  y += 10;
-  addParagraph(
-    "Med denna mall behöver du bara ange mängderna (t.ex. '8 kvadrat golv, 20 kvadrat vägg'), så beräknar systemet automatiskt tidsåtgång och kostnad baserat på timpriserna i mallen."
-  );
-
-  // Tips section
+  addBullet("Beskriv projektets faser och tidsramar");
+  addBullet("AI skapar en visuell tidslinje");
+  addBullet("Redigera och justera efter behov");
+  addBullet("Exportera som PDF för att dela med teamet");
   y += 6;
-  addSectionHeader("Tips för bästa resultat");
-  addBullet("Var specifik när du beskriver arbetsmoment och mängder");
-  addBullet("Använd röstinspelning för snabbare inmatning");
-  addBullet("Granska alltid AI-genererat innehåll innan du sparar");
-  addBullet("Exportera viktiga dokument som PDF för arkivering");
-  addBullet("Håll dina kalkylmallar uppdaterade med aktuella timpriser");
 
-  // Footer
-  y = pageHeight - 15;
-  doc.setFontSize(9);
-  doc.setTextColor(150, 150, 150);
-  doc.text("Byggio - Byggprojekt, enkelt och digitalt", margin, y);
-  doc.text(new Date().toLocaleDateString("sv-SE"), pageWidth - margin - 20, y);
+  // === KUNDHANTERING ===
+  addSectionHeader("👥 Kundhantering");
+  addParagraph(
+    "Samla all kundinformation på ett ställe. Lägg till kontaktuppgifter, adresser och anteckningar för att hålla ordning på dina kundrelationer."
+  );
+  addBullet("Spara kontaktuppgifter och organisationsnummer");
+  addBullet("Koppla kunder till projekt automatiskt");
+  addBullet("Anteckningar och historik per kund");
+  y += 6;
+
+  // === TIPS ===
+  addSectionHeader("💡 Tips för bästa resultat");
+  addBullet("Använd röstinspelning – snabbaste sättet att dokumentera från fältet");
+  addBullet("Granska AI-genererat innehåll innan du sparar eller skickar");
+  addBullet("Skapa egna mallar för arbetsmoment du ofta återkommer till");
+  addBullet("Dokumentera ÄTA direkt – det sparar tid vid fakturering");
+  addBullet("Exportera viktiga dokument som PDF för säker arkivering");
+  y += 10;
+
+  // === FAQ ===
+  addSectionHeader("❓ Vanliga frågor");
+  
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...PDF_COLORS.DARK);
+  doc.text("Kan jag använda Byggio på mobilen?", margin, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...PDF_COLORS.MUTED);
+  const mobileAnswer = doc.splitTextToSize(
+    "Ja! Byggio är optimerat för mobil användning. Du kan enkelt dokumentera arbete direkt från byggplatsen.",
+    contentWidth
+  );
+  doc.text(mobileAnswer, margin, y);
+  y += mobileAnswer.length * 5 + 8;
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...PDF_COLORS.DARK);
+  doc.text("Hur fungerar AI-funktionerna?", margin, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...PDF_COLORS.MUTED);
+  const aiAnswer = doc.splitTextToSize(
+    "AI hjälper dig att strukturera information automatiskt. Du kan alltid redigera resultatet innan du sparar.",
+    contentWidth
+  );
+  doc.text(aiAnswer, margin, y);
+  y += aiAnswer.length * 5 + 8;
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...PDF_COLORS.DARK);
+  doc.text("Kan jag exportera mina dokument?", margin, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...PDF_COLORS.MUTED);
+  const exportAnswer = doc.splitTextToSize(
+    "Ja, alla dokument kan exporteras som professionella PDF-filer med din företagslogga.",
+    contentWidth
+  );
+  doc.text(exportAnswer, margin, y);
+  y += exportAnswer.length * 5 + 8;
+
+  // Footer on all pages
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_COLORS.MUTED);
+    doc.text("Byggio – Byggprojekt, enkelt och digitalt", margin, pageHeight - 10);
+    doc.text(`Sida ${i} av ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: "right" });
+  }
 
   // Save
   doc.save("byggio-guide.pdf");

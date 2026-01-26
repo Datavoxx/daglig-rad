@@ -180,7 +180,14 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="ata" className="mt-6">
-          <ProjectAtaTab projectId={project.id} />
+          <ProjectAtaTab 
+            projectId={project.id} 
+            projectName={project.name}
+            clientName={project.client_name || undefined}
+            projectAddress={project.address || undefined}
+            projectPostalCode={project.postal_code || undefined}
+            projectCity={project.city || undefined}
+          />
         </TabsContent>
 
         <TabsContent value="workorders" className="mt-6">

@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
+import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
 
 interface EstimateItem {
   quantity: number | null;
@@ -26,6 +27,8 @@ interface WorkOrderData {
   contactEmail?: string;
   // Estimate items
   estimateItems?: EstimateItem[];
+  // Company logo
+  logoUrl?: string | null;
 }
 
 export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
@@ -40,26 +43,33 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
   const margin = 20;
   const contentWidth = pageWidth - 2 * margin;
 
-  // Colors
-  const primaryColor: [number, number, number] = [30, 41, 59];
-  const mutedColor: [number, number, number] = [100, 116, 139];
-  const lightGray: [number, number, number] = [241, 245, 249];
+  // Get logo
+  const logoBase64 = await getCompanyLogoBase64(data.logoUrl || null);
 
   // Header background
-  doc.setFillColor(...lightGray);
+  doc.setFillColor(...PDF_COLORS.LIGHT_GRAY);
   doc.rect(0, 0, pageWidth, 45, "F");
+
+  // Logo in top left
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, "AUTO", margin, 8, 35, 18, undefined, "FAST");
+    } catch (e) {
+      console.error("Error adding logo:", e);
+    }
+  }
 
   // Header title
   doc.setFontSize(22);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
-  doc.text("ARBETSORDER", margin, 22);
+  doc.text("ARBETSORDER", logoBase64 ? margin + 45 : margin, 22);
 
   // Order number
   doc.setFontSize(14);
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
-  doc.text(data.orderNumber, margin, 32);
+  doc.text(data.orderNumber, logoBase64 ? margin + 45 : margin, 32);
 
   // Page info (right side)
   doc.setFontSize(10);
@@ -79,59 +89,59 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
 
   // Left column info
   doc.setFontSize(9);
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   
   doc.text("Projektnr:", leftCol + 3, y + 3);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text(data.orderNumber, leftCol + 25, y + 3);
 
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   doc.text("Ansvarig:", leftCol + 3, y + 12);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text(data.assignedTo || "-", leftCol + 25, y + 12);
 
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   doc.text("Startdatum:", leftCol + 3, y + 21);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text(data.startDate ? format(parseISO(data.startDate), "yyyy-MM-dd", { locale: sv }) : "-", leftCol + 25, y + 21);
 
   if (data.dueDate) {
-    doc.setTextColor(...mutedColor);
+    doc.setTextColor(...PDF_COLORS.MUTED);
     doc.setFont("helvetica", "normal");
     doc.text("Förfaller:", leftCol + 3, y + 30);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.setFont("helvetica", "bold");
     doc.text(format(parseISO(data.dueDate), "yyyy-MM-dd", { locale: sv }), leftCol + 25, y + 30);
   }
 
   // Right column info
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   doc.text("Kund:", rightCol + 3, y + 3);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text(data.clientName || "-", rightCol + 25, y + 3);
 
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   doc.text("Arbetsplats:", rightCol + 3, y + 12);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   const fullAddress = [data.address, data.postalCode, data.city].filter(Boolean).join(", ");
   const addressLines = doc.splitTextToSize(fullAddress || "-", colWidth - 30);
   doc.text(addressLines, rightCol + 25, y + 12);
 
   if (data.contactEmail) {
-    doc.setTextColor(...mutedColor);
+    doc.setTextColor(...PDF_COLORS.MUTED);
     doc.setFont("helvetica", "normal");
     doc.text("Kontakt:", rightCol + 3, y + 21);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.setFont("helvetica", "bold");
     doc.text(data.contactEmail, rightCol + 25, y + 21);
   }
@@ -139,10 +149,10 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
   y += 50;
 
   // Project title section
-  doc.setFillColor(...lightGray);
+  doc.setFillColor(...PDF_COLORS.LIGHT_GRAY);
   doc.rect(margin, y, contentWidth, 12, "F");
   doc.setFontSize(12);
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text(`Projekt: ${data.projectName}`, margin + 4, y + 8);
 
@@ -151,7 +161,7 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
   // Work order title and description
   if (data.title) {
     doc.setFontSize(11);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.setFont("helvetica", "bold");
     doc.text("Arbetsuppgift:", margin, y);
     y += 6;
@@ -163,12 +173,12 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
 
   if (data.description) {
     doc.setFontSize(10);
-    doc.setTextColor(...mutedColor);
+    doc.setTextColor(...PDF_COLORS.MUTED);
     doc.setFont("helvetica", "bold");
     doc.text("Arbetsbeskrivning:", margin, y);
     y += 6;
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...PDF_COLORS.DARK);
     const descLines = doc.splitTextToSize(data.description, contentWidth);
     doc.text(descLines, margin, y);
     y += descLines.length * 5 + 10;
@@ -176,10 +186,10 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
 
   // Estimate items section
   if (data.estimateItems && data.estimateItems.length > 0) {
-    doc.setFillColor(...lightGray);
+    doc.setFillColor(...PDF_COLORS.LIGHT_GRAY);
     doc.rect(margin, y, contentWidth, 10, "F");
     doc.setFontSize(11);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.setFont("helvetica", "bold");
     doc.text("Information från offert:", margin + 4, y + 7);
     y += 15;
@@ -198,9 +208,9 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
       const article = item.article || "";
       const moment = item.moment || "";
       
-      doc.setTextColor(...mutedColor);
+      doc.setTextColor(...PDF_COLORS.MUTED);
       doc.text(`${qty} ${unit}`, margin, y);
-      doc.setTextColor(...primaryColor);
+      doc.setTextColor(...PDF_COLORS.DARK);
       const itemText = article ? `${article} – ${moment}` : moment;
       const itemLines = doc.splitTextToSize(itemText, contentWidth - 25);
       doc.text(itemLines, margin + 25, y);
@@ -218,7 +228,7 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
   doc.line(pageWidth - margin - 50, signatureY, pageWidth - margin, signatureY);
 
   doc.setFontSize(9);
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.setFont("helvetica", "normal");
   doc.text("Signatur", margin, signatureY + 5);
   doc.text("Datum", pageWidth - margin - 50, signatureY + 5);
@@ -226,12 +236,12 @@ export async function generateWorkOrderPdf(data: WorkOrderData): Promise<void> {
   // Footer
   const footerY = pageHeight - 10;
   doc.setFontSize(8);
-  doc.setTextColor(...mutedColor);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.text(`Genererad ${format(new Date(), "yyyy-MM-dd HH:mm", { locale: sv })}`, margin, footerY);
 
   // Status badge (top right of content)
   const statusText = data.status === "completed" ? "Klar" : data.status === "in_progress" ? "Pågående" : "Väntande";
-  const statusColor: [number, number, number] = data.status === "completed" ? [34, 197, 94] : data.status === "in_progress" ? [59, 130, 246] : [148, 163, 184];
+  const statusColor: [number, number, number] = data.status === "completed" ? PDF_COLORS.GREEN : data.status === "in_progress" ? PDF_COLORS.BLUE : [148, 163, 184];
   
   doc.setFillColor(...statusColor);
   doc.roundedRect(pageWidth - margin - 25, 50, 25, 7, 2, 2, "F");

@@ -6,7 +6,6 @@ import {
   Settings,
   Search,
   Bell,
-  ClipboardCheck,
   Calculator,
   Users,
   BookOpen,
@@ -40,7 +39,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
-  { label: "Egenkontroller", href: "/inspections", icon: ClipboardCheck, moduleKey: "inspections" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
