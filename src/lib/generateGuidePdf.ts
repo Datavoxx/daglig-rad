@@ -107,15 +107,15 @@ export async function generateGuidePdf(companySettings?: CompanySettings | null)
   addBullet("Steg 3: Dokumentera arbetet - Anvand arbetsdagboken for att logga allt som hander");
   y += 4;
 
-  // === PROJEKT & ARBETSDAGBOK ===
-  addSectionHeader("PROJEKT & ARBETSDAGBOK");
+  // === PROJEKT - HELA ARBETSFLÖDET ===
+  addSectionHeader("PROJEKT - HELA ARBETSFLÖDET");
   addParagraph(
-    "Projekt ar hjartat i Byggio. Har samlas all information om dina aktiva jobb - fran offert till slutbesiktning. Arbetsdagboken later dig dokumentera det dagliga arbetet med rost eller text."
+    "Projekt ar hjartat i Byggio. Har samlas all information om dina aktiva jobb - fran offert till slutbesiktning. Allt du behover finns samlat i projektets flikar."
   );
-  addBullet("Rostinspelning - Prata in din rapport direkt fran byggplatsen");
-  addBullet("AI-strukturering - AI organiserar informationen automatiskt");
-  addBullet("PDF-export - Exportera rapporter for arkivering");
+  addBullet("Arbetsdagbok - Spela in dagrapporter direkt fran byggplatsen");
+  addBullet("Planering & Tidslinje - Skapa visuella Gantt-tidslinjer for projektet");
   addBullet("ATA-hantering - Dokumentera och spara alla andringsarbeten");
+  addBullet("Arbetsorder & Filer - Skapa order och hantera projektdokument");
   y += 4;
 
   // === OFFERTER ===
@@ -132,17 +132,6 @@ export async function generateGuidePdf(companySettings?: CompanySettings | null)
   // New page for more content
   doc.addPage();
   y = margin;
-
-  // === PLANERING ===
-  addSectionHeader("PLANERING & TIDSLINJE");
-  addParagraph(
-    "Skapa visuella tidsplaner for dina projekt. Beskriv projektets faser, sa genererar AI en Gantt-tidslinje som du kan exportera och dela med ditt team."
-  );
-  addBullet("Beskriv projektets faser och tidsramar");
-  addBullet("AI skapar en visuell tidslinje");
-  addBullet("Redigera och justera efter behov");
-  addBullet("Exportera som PDF for att dela med teamet");
-  y += 4;
 
   // === KUNDHANTERING ===
   addSectionHeader("KUNDHANTERING");
