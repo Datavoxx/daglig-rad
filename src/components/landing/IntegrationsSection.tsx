@@ -23,11 +23,6 @@ const IntegrationsSection = () => {
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {/* Fortnox */}
           <div className="group relative bg-card rounded-2xl border border-border/50 p-8 transition-all duration-300 hover:border-[#3B8230]/50 hover:shadow-lg hover:shadow-[#3B8230]/5">
-            <div className="absolute top-4 right-4">
-              <Badge variant="secondary" className="text-xs">
-                Snart
-              </Badge>
-            </div>
             <div className="h-16 mb-6 flex items-center">
               <img 
                 src={fortnoxLogo} 
@@ -57,11 +52,6 @@ const IntegrationsSection = () => {
 
           {/* Visma */}
           <div className="group relative bg-card rounded-2xl border border-border/50 p-8 transition-all duration-300 hover:border-[#E31937]/50 hover:shadow-lg hover:shadow-[#E31937]/5">
-            <div className="absolute top-4 right-4">
-              <Badge variant="secondary" className="text-xs">
-                Snart
-              </Badge>
-            </div>
             <div className="h-16 mb-6 flex items-center">
               <img 
                 src={vismaLogo} 
