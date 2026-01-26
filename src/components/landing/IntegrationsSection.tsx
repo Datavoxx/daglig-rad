@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import fortnoxLogo from "@/assets/fortnox-logo.png";
 import vismaLogo from "@/assets/visma-logo.png";
-import excelLogo from "@/assets/excel-logo.png";
+import DataMigrationFlow from "./DataMigrationFlow";
 
 const IntegrationsSection = () => {
   return (
@@ -10,49 +10,16 @@ const IntegrationsSection = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Kraftfulla integrationer
+            Flytta din data enkelt
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Importera din befintliga data eller koppla till ditt bokföringssystem
+            Har du ett befintligt system? Exportera din data och importera den till Byggio på några minuter
           </p>
         </div>
 
-        {/* Available now - Excel Import */}
+        {/* Data Migration Flow */}
         <div className="mb-16">
-          <div className="text-center mb-6">
-            <Badge className="bg-primary/10 text-primary border-0">
-              Tillgängligt nu
-            </Badge>
-          </div>
-          <div className="max-w-xl mx-auto">
-            <div className="group relative bg-card rounded-2xl border border-primary/30 p-8 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-              <div className="h-16 mb-6 flex items-center">
-                <img 
-                  src={excelLogo} 
-                  alt="Microsoft Excel" 
-                  className="h-12 object-contain"
-                />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Importera från Excel</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Flytta enkelt din befintliga data till Byggio. Importera direkt från Excel-filer.
-              </p>
-              <ul className="mt-4 space-y-2">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Kunder
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Offerter
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Projekt
-                </li>
-              </ul>
-            </div>
-          </div>
+          <DataMigrationFlow />
         </div>
 
         {/* Coming soon - Fortnox & Visma */}

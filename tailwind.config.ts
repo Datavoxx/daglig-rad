@@ -179,6 +179,20 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
         },
+        "flow-pulse": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "1" },
+        },
+        "data-particle": {
+          "0%": { transform: "translateX(0)", opacity: "0" },
+          "10%": { opacity: "1" },
+          "90%": { opacity: "1" },
+          "100%": { transform: "translateX(100%)", opacity: "0" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -198,6 +212,9 @@ export default {
         "pulse-ring": "pulse-ring 0.4s ease-out",
         "bounce-subtle": "bounce-subtle 0.5s ease-in-out",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "flow-pulse": "flow-pulse 2s ease-in-out infinite",
+        "data-particle": "data-particle 2s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
       },
     },
   },
