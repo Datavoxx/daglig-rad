@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,19 +9,17 @@ import {
   Clock,
   Sparkles,
   Wallet,
-  ArrowRight,
-  BookOpen
+  ArrowRight
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow, subDays, startOfWeek, format, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { formatDistanceToNow, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
-import WeeklyActivityChart from "@/components/dashboard/WeeklyActivityChart";
 
 interface ActivityItem {
   id: string;
-  type: "report" | "estimate" | "inspection";
+  type: "estimate";
   title: string;
   projectName: string;
   date: Date;
@@ -31,21 +29,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
-  const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 10) setGreeting("God morgon");
     else if (hour < 17) setGreeting("Hej");
     else setGreeting("God kväll");
-  }, []);
-
-  // Update current hour every minute for diary reminder
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentHour(new Date().getHours());
-    }, 60000);
-    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -79,13 +68,11 @@ const Dashboard = () => {
       const lastMonthStart = startOfMonth(subMonths(now, 1));
       const lastMonthEnd = endOfMonth(subMonths(now, 1));
       const fourteenDaysAgo = subDays(now, 14);
-      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
       const [
         projectsRes,
         estimatesRes,
         customersRes,
-        reportsThisWeek,
         projectsThisMonth,
         projectsLastMonth,
         estimatesThisMonth,
@@ -100,8 +87,6 @@ const Dashboard = () => {
         supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
         supabase.from("project_estimates").select("id, total_incl_vat").eq("user_id", userData.user.id),
         supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
-        // Reports this week
-        supabase.from("daily_reports").select("id, created_at").eq("user_id", userData.user.id).gte("created_at", weekStart.toISOString()),
         // This month counts
         supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
         supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
@@ -137,18 +122,6 @@ const Dashboard = () => {
         return days.map(d => { cumulative += d; return cumulative; });
       };
 
-      // Weekly report data
-      const weekDays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
-      const reportsPerDay = weekDays.map((day, i) => {
-        const dayDate = new Date(weekStart);
-        dayDate.setDate(dayDate.getDate() + i);
-        const count = reportsThisWeek.data?.filter(r => {
-          const reportDate = new Date(r.created_at || "");
-          return reportDate.toDateString() === dayDate.toDateString();
-        }).length || 0;
-        return { day, value: count };
-      });
-
       return {
         projects: projectsRes.count || 0,
         estimates: estimatesRes.data?.length || 0,
@@ -160,54 +133,27 @@ const Dashboard = () => {
         projectsSparkline: generateSparkline(projectsTrend.data),
         estimatesSparkline: generateSparkline(estimatesTrend.data),
         customersSparkline: generateSparkline(customersTrend.data),
-        reportsPerDay,
-        totalReportsThisWeek: reportsThisWeek.data?.length || 0,
       };
     },
   });
 
-  // Fetch recent activity
+  // Fetch recent activity (estimates only)
   const { data: recentActivity } = useQuery({
     queryKey: ["recent-activity"],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return [];
 
-      const [reportsRes, estimatesRes, inspectionsRes] = await Promise.all([
-        supabase
-          .from("daily_reports")
-          .select("id, created_at, project_id, projects(name)")
-          .eq("user_id", userData.user.id)
-          .order("created_at", { ascending: false })
-          .limit(3),
-        supabase
-          .from("project_estimates")
-          .select("id, updated_at, project_id, projects(name)")
-          .eq("user_id", userData.user.id)
-          .order("updated_at", { ascending: false })
-          .limit(3),
-        supabase
-          .from("inspections")
-          .select("id, created_at, template_name, projects(name)")
-          .eq("user_id", userData.user.id)
-          .order("created_at", { ascending: false })
-          .limit(3),
-      ]);
+      const { data: estimatesRes } = await supabase
+        .from("project_estimates")
+        .select("id, updated_at, project_id, projects!project_estimates_project_id_fkey(name)")
+        .eq("user_id", userData.user.id)
+        .order("updated_at", { ascending: false })
+        .limit(5);
 
       const activities: ActivityItem[] = [];
 
-      reportsRes.data?.forEach((r) => {
-        const project = r.projects as { name: string } | null;
-        activities.push({
-          id: r.id,
-          type: "report",
-          title: "Dagrapport skapad",
-          projectName: project?.name || "Okänt projekt",
-          date: new Date(r.created_at || ""),
-        });
-      });
-
-      estimatesRes.data?.forEach((e) => {
+      estimatesRes?.forEach((e) => {
         const project = e.projects as { name: string } | null;
         activities.push({
           id: e.id,
@@ -218,59 +164,9 @@ const Dashboard = () => {
         });
       });
 
-      inspectionsRes.data?.forEach((i) => {
-        const project = i.projects as { name: string } | null;
-        activities.push({
-          id: i.id,
-          type: "inspection",
-          title: i.template_name || "Egenkontroll",
-          projectName: project?.name || "Okänt projekt",
-          date: new Date(i.created_at),
-        });
-      });
-
-      return activities
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
-        .slice(0, 5);
+      return activities;
     },
   });
-
-  // Fetch active projects that need diary entries today
-  const { data: projectsNeedingDiary } = useQuery({
-    queryKey: ["projects-needing-diary"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-
-      // Fetch active projects
-      const { data: activeProjects } = await supabase
-        .from("projects")
-        .select("id, name")
-        .eq("user_id", userData.user.id)
-        .eq("status", "active");
-
-      if (!activeProjects?.length) return [];
-
-      // Fetch today's diary entries
-      const { data: todaysReports } = await supabase
-        .from("daily_reports")
-        .select("project_id")
-        .eq("user_id", userData.user.id)
-        .eq("report_date", today);
-
-      const projectsWithTodaysDiary = new Set(
-        todaysReports?.map(r => r.project_id) || []
-      );
-
-      // Filter out projects that already have today's diary
-      return activeProjects.filter(p => !projectsWithTodaysDiary.has(p.id));
-    },
-    refetchInterval: 60000, // Refetch every minute
-  });
-
-  const showDiaryReminder = currentHour >= 17 && projectsNeedingDiary && projectsNeedingDiary.length > 0;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -320,35 +216,6 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Diary reminder - only shown after 17:00 for active projects */}
-          {showDiaryReminder && (
-            <div className="flex flex-col gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-amber-600" />
-                <span className="font-medium text-amber-700 dark:text-amber-400 text-sm">
-                  Dags att uppdatera arbetsdagboken
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {projectsNeedingDiary?.slice(0, 3).map(project => (
-                  <Button
-                    key={project.id}
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                    onClick={() => navigate(`/projects/${project.id}?tab=diary`)}
-                  >
-                    {project.name}
-                  </Button>
-                ))}
-                {projectsNeedingDiary && projectsNeedingDiary.length > 3 && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 self-center">
-                    +{projectsNeedingDiary.length - 3} till
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
@@ -394,14 +261,6 @@ const Dashboard = () => {
           delay={240}
         />
       </section>
-
-      {/* Weekly Activity Chart */}
-      {dashboardData && (
-        <WeeklyActivityChart 
-          data={dashboardData.reportsPerDay} 
-          total={dashboardData.totalReportsThisWeek} 
-        />
-      )}
 
       {/* Quick Actions */}
       <section>
@@ -454,9 +313,7 @@ const Dashboard = () => {
                     style={{ animationDelay: `${500 + index * 60}ms` }}
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                      {activity.type === "report" && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
-                      {activity.type === "estimate" && <Calculator className="h-3.5 w-3.5 text-muted-foreground" />}
-                      {activity.type === "inspection" && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
+                      <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
