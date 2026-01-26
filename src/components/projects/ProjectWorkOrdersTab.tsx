@@ -207,9 +207,9 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "in_progress":
-        return <Badge variant="default" className="bg-blue-500">Pågående</Badge>;
+        return <Badge variant="info">Pågående</Badge>;
       case "completed":
-        return <Badge variant="default" className="bg-green-500">Klar</Badge>;
+        return <Badge variant="success">Klar</Badge>;
       default:
         return <Badge variant="secondary">Väntande</Badge>;
     }
