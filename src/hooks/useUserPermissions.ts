@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// All available modules
+// All available modules (excluding removed: inspections, planning, reports)
 const ALL_MODULES = [
+  "dashboard",
   "projects",
-  "reports", 
-  "planning",
   "estimates",
   "customers",
   "guide",
@@ -13,12 +12,8 @@ const ALL_MODULES = [
   "economy"
 ];
 
-// Default modules for new users (restricted access - no projects)
-const DEFAULT_MODULES = [
-  "estimates",
-  "customers",
-  "settings"
-];
+// All users get full access to all modules by default
+const DEFAULT_MODULES = ALL_MODULES;
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
