@@ -4,6 +4,7 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import IntegrationsSection from "@/components/landing/IntegrationsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
+import GuideSection from "@/components/landing/GuideSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
@@ -17,6 +18,7 @@ const Landing = () => {
         <IntegrationsSection />
         <HowItWorksSection />
         <TimeComparisonSection />
+        <GuideSection />
         <CTASection />
       </main>
       <LandingFooter />

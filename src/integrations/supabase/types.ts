@@ -496,6 +496,30 @@ export type Database = {
         }
         Relationships: []
       }
+      guide_leads: {
+        Row: {
+          created_at: string | null
+          downloaded_at: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          downloaded_at?: string | null
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          downloaded_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       inspection_files: {
         Row: {
           checkpoint_index: number | null
