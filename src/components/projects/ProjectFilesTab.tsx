@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FolderOpen, MoreHorizontal, Trash2, Download, FileText, Image, File, Upload } from "lucide-react";
+import { Plus, FolderOpen, MoreHorizontal, Trash2, Download, FileText, File, Upload, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,11 @@ interface ProjectFile {
   created_at: string;
 }
 
+interface PendingFile {
+  file: File;
+  customName: string;
+}
+
 interface ProjectFilesTabProps {
   projectId: string;
 }
@@ -33,6 +38,8 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
   const [uploading, setUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("document");
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -55,9 +62,20 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
     setLoading(false);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
+
+    const filesWithNames = Array.from(selectedFiles).map(file => ({
+      file,
+      customName: file.name.replace(/\.[^/.]+$/, "") // Remove extension for editing
+    }));
+
+    setPendingFiles(filesWithNames);
+  };
+
+  const handleUpload = async () => {
+    if (pendingFiles.length === 0) return;
 
     setUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -67,23 +85,24 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
       return;
     }
 
-    for (const file of Array.from(selectedFiles)) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    for (const pf of pendingFiles) {
+      const fileExt = pf.file.name.split('.').pop();
+      const storagePath = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const displayName = `${pf.customName}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("project-files")
-        .upload(fileName, file);
+        .upload(storagePath, pf.file);
 
       if (uploadError) {
-        toast({ title: `Kunde inte ladda upp ${file.name}`, description: uploadError.message, variant: "destructive" });
+        toast({ title: `Kunde inte ladda upp ${pf.customName}`, description: uploadError.message, variant: "destructive" });
         continue;
       }
 
       // Determine category based on file type
       let category = selectedCategory;
-      if (file.type.startsWith("image/")) {
+      if (pf.file.type.startsWith("image/")) {
         category = "image";
       }
 
@@ -91,15 +110,15 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
       const { error: dbError } = await supabase.from("project_files").insert({
         project_id: projectId,
         user_id: user.id,
-        file_name: file.name,
-        storage_path: fileName,
-        file_type: file.type,
-        file_size: file.size,
+        file_name: displayName,
+        storage_path: storagePath,
+        file_type: pf.file.type,
+        file_size: pf.file.size,
         category,
       });
 
       if (dbError) {
-        toast({ title: `Kunde inte spara ${file.name}`, description: dbError.message, variant: "destructive" });
+        toast({ title: `Kunde inte spara ${pf.customName}`, description: dbError.message, variant: "destructive" });
       }
     }
 
@@ -107,9 +126,20 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
     fetchFiles();
     setUploading(false);
     setDialogOpen(false);
+    setPendingFiles([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updatePendingFileName = (index: number, newName: string) => {
+    setPendingFiles(prev => prev.map((pf, i) => 
+      i === index ? { ...pf, customName: newName } : pf
+    ));
   };
 
   const handleDelete = async (file: ProjectFile) => {
@@ -144,13 +174,15 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
     if (isImage) {
       const { data } = supabase.storage.from("project-files").getPublicUrl(file.storage_path);
       return (
-        <div className="h-10 w-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
+        <div 
+          className="h-10 w-10 rounded-md overflow-hidden bg-muted flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+          onClick={() => setLightboxImage({ url: data.publicUrl, name: file.file_name })}
+        >
           <img 
             src={data.publicUrl} 
             alt={file.file_name}
             className="h-full w-full object-cover"
             onError={(e) => {
-              // Fallback to icon if image fails to load
               e.currentTarget.style.display = 'none';
               e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
               const icon = document.createElement('div');
@@ -202,7 +234,13 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
           <h3 className="text-lg font-medium">Filer & bilagor</h3>
           <p className="text-sm text-muted-foreground">Hantera projektets dokument och bilder</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setPendingFiles([]);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+        }}>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Ladda upp
@@ -234,13 +272,44 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  onChange={handleFileUpload}
+                  onChange={handleFileSelect}
                   disabled={uploading}
                 />
               </div>
+              {pendingFiles.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Döp dina filer</Label>
+                  {pendingFiles.map((pf, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input 
+                        value={pf.customName}
+                        onChange={(e) => updatePendingFileName(index, e.target.value)}
+                        placeholder="Filnamn"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        .{pf.file.name.split('.').pop()}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removePendingFile(index)}
+                        className="h-8 w-8"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Avbryt</Button>
+              {pendingFiles.length > 0 && (
+                <Button onClick={handleUpload} disabled={uploading}>
+                  {uploading ? "Laddar upp..." : "Ladda upp"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -317,6 +386,22 @@ export default function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
           ))}
         </div>
       )}
+
+      {/* Lightbox Dialog */}
+      <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+        <DialogContent className="max-w-4xl p-2">
+          <DialogHeader className="p-2">
+            <DialogTitle className="text-sm font-medium truncate">{lightboxImage?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-2">
+            <img 
+              src={lightboxImage?.url} 
+              alt={lightboxImage?.name}
+              className="max-h-[75vh] w-auto object-contain rounded-lg"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
