@@ -186,22 +186,28 @@ export function CompanyOnboardingWizard({
         // Continue anyway, this is not critical
       }
 
-      // Save company settings with phone as contact_phone
-      const { error } = await supabase.from("company_settings").insert({
-        user_id: userId,
-        company_name: formData.company_name,
-        org_number: formData.org_number || null,
-        address: formData.address,
-        postal_code: formData.postal_code,
-        city: formData.city,
-        phone: formData.phone,
-        email: formData.email,
-        website: formData.website || null,
-        bankgiro: formData.bankgiro || null,
-        logo_url: formData.logo_url,
-        contact_person: userFullName,
-        contact_phone: formData.phone,
-      });
+      // Save company settings with upsert to handle any existing row
+      const { error } = await supabase
+        .from("company_settings")
+        .upsert(
+          {
+            user_id: userId,
+            company_name: formData.company_name,
+            org_number: formData.org_number || null,
+            address: formData.address,
+            postal_code: formData.postal_code,
+            city: formData.city,
+            phone: formData.phone,
+            email: formData.email,
+            website: formData.website || null,
+            bankgiro: formData.bankgiro || null,
+            logo_url: formData.logo_url,
+            contact_person: userFullName,
+            contact_phone: formData.phone,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
 

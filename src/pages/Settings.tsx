@@ -96,12 +96,15 @@ export default function Settings() {
       return;
     }
 
-    // Fetch company settings
-    const { data: companyData } = await supabase
+    // Fetch company settings - order by updated_at to get the most recent if duplicates exist
+    const { data: companyDataArray } = await supabase
       .from("company_settings")
       .select("*")
       .eq("user_id", userData.user.id)
-      .maybeSingle();
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    
+    const companyData = companyDataArray?.[0] ?? null;
 
     if (companyData) {
       setCompanySettings(companyData);
@@ -171,20 +174,17 @@ export default function Settings() {
 
       const newLogoUrl = urlData.publicUrl;
 
-      if (companySettings?.id) {
-        await supabase
-          .from("company_settings")
-          .update({ logo_url: newLogoUrl })
-          .eq("id", companySettings.id);
-      } else {
-        const { data: newSettings, error: insertError } = await supabase
-          .from("company_settings")
-          .insert({ user_id: userData.user.id, logo_url: newLogoUrl })
-          .select()
-          .single();
-        if (insertError) throw insertError;
-        if (newSettings) setCompanySettings(newSettings);
-      }
+      // Use upsert to handle both insert and update cases
+      const { data: newSettings, error: upsertError } = await supabase
+        .from("company_settings")
+        .upsert(
+          { user_id: userData.user.id, logo_url: newLogoUrl, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        )
+        .select()
+        .single();
+      if (upsertError) throw upsertError;
+      if (newSettings) setCompanySettings(newSettings);
 
       setLogoUrl(newLogoUrl);
       toast({ title: "Logotyp uppladdad" });
@@ -240,30 +240,20 @@ export default function Settings() {
 
     setSavingCompany(true);
 
-    const companyData = {
-      ...companyForm,
-      user_id: userData.user.id,
-    };
-
-    let error;
-
-    if (companySettings?.id) {
-      const result = await supabase
-        .from("company_settings")
-        .update(companyData)
-        .eq("id", companySettings.id);
-      error = result.error;
-    } else {
-      const result = await supabase
-        .from("company_settings")
-        .insert(companyData)
-        .select()
-        .single();
-      error = result.error;
-      if (!error && result.data) {
-        setCompanySettings(result.data);
-      }
-    }
+    // Use upsert with onConflict to ensure only one row per user
+    const { data, error } = await supabase
+      .from("company_settings")
+      .upsert(
+        {
+          ...companyForm,
+          user_id: userData.user.id,
+          logo_url: logoUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      )
+      .select()
+      .single();
 
     if (error) {
       toast({
@@ -273,7 +263,9 @@ export default function Settings() {
       });
     } else {
       toast({ title: "Företagsinställningar sparade" });
-      setCompanySettings(prev => prev ? { ...prev, ...companyForm } : { ...companyData, id: "", user_id: userData.user!.id });
+      if (data) {
+        setCompanySettings(data);
+      }
     }
     setSavingCompany(false);
   };
