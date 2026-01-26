@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
 
 interface PlanPhase {
   name: string;
@@ -10,12 +11,18 @@ interface PlanPhase {
   parallel_with?: string | null;
 }
 
+interface CompanySettings {
+  company_name: string | null;
+  logo_url: string | null;
+}
+
 interface PlanningData {
   projectName: string;
   phases: PlanPhase[];
   totalWeeks: number;
   summary?: string;
   startDate?: Date;
+  companySettings?: CompanySettings | null;
 }
 
 // Calculate end date (Friday after X weeks from start)
@@ -35,12 +42,6 @@ const getWeekDateRange = (start: Date, weekNumber: number): string => {
   weekEnd.setDate(weekStart.getDate() + 4); // Friday
   return `${format(weekStart, "d")}-${format(weekEnd, "d/M")}`;
 };
-
-// Colors
-const PRIMARY: [number, number, number] = [13, 148, 136]; // teal-600
-const DARK: [number, number, number] = [30, 41, 59]; // slate-800
-const MUTED: [number, number, number] = [100, 116, 139]; // slate-500
-const WHITE: [number, number, number] = [255, 255, 255];
 
 // Phase colors for Gantt bars
 const phaseColors: Record<string, [number, number, number]> = {
@@ -76,28 +77,48 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
 
+  // Get logo
+  const logoBase64 = await getCompanyLogoBase64(data.companySettings?.logo_url || null);
+
   // === PAGE 1: Cover Page ===
   
   // Background accent
-  doc.setFillColor(...PRIMARY);
+  doc.setFillColor(...PDF_COLORS.PRIMARY);
   doc.rect(0, 0, pageWidth, 8, "F");
   
+  // Logo in top left
+  let yPos = 20;
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, "AUTO", margin, yPos, 40, 20, undefined, "FAST");
+    } catch (e) {
+      console.error("Error adding logo:", e);
+    }
+  }
+  
+  // Company name in top right if available
+  if (data.companySettings?.company_name) {
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_COLORS.MUTED);
+    doc.text(data.companySettings.company_name, pageWidth - margin, yPos + 10, { align: "right" });
+  }
+  
   // Title
-  let yPos = 60;
+  yPos = 60;
   doc.setFontSize(36);
-  doc.setTextColor(...PRIMARY);
+  doc.setTextColor(...PDF_COLORS.PRIMARY);
   doc.text("PROJEKTPLANERING", pageWidth / 2, yPos, { align: "center" });
   
   // Divider
   yPos += 12;
-  doc.setDrawColor(...PRIMARY);
+  doc.setDrawColor(...PDF_COLORS.PRIMARY);
   doc.setLineWidth(0.8);
   doc.line(pageWidth / 2 - 40, yPos, pageWidth / 2 + 40, yPos);
   
   // Project name
   yPos += 20;
   doc.setFontSize(24);
-  doc.setTextColor(...DARK);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.text(data.projectName, pageWidth / 2, yPos, { align: "center" });
   
   // Date range if available
@@ -105,7 +126,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     const endDate = getEndDate(data.startDate, data.totalWeeks);
     yPos += 18;
     doc.setFontSize(14);
-    doc.setTextColor(...PRIMARY);
+    doc.setTextColor(...PDF_COLORS.PRIMARY);
     doc.text(
       `${format(data.startDate, "yyyy-MM-dd")} - ${format(endDate, "yyyy-MM-dd")}`,
       pageWidth / 2,
@@ -117,7 +138,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   // Summary stats
   yPos += 18;
   doc.setFontSize(14);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.text(`Total projekttid: ca ${data.totalWeeks} veckor`, pageWidth / 2, yPos, { align: "center" });
   yPos += 8;
   doc.text(`Antal moment: ${data.phases.length}`, pageWidth / 2, yPos, { align: "center" });
@@ -126,14 +147,14 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   if (data.summary) {
     yPos += 15;
     doc.setFontSize(11);
-    doc.setTextColor(...DARK);
+    doc.setTextColor(...PDF_COLORS.DARK);
     const splitSummary = doc.splitTextToSize(data.summary, pageWidth - margin * 4);
     doc.text(splitSummary, pageWidth / 2, yPos, { align: "center" });
   }
   
   // Footer on cover
   doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.text(
     `Genererad ${format(new Date(), "yyyy-MM-dd")}`,
     pageWidth / 2,
@@ -147,13 +168,13 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   // Header
   yPos = 20;
   doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
+  doc.setTextColor(...PDF_COLORS.PRIMARY);
   doc.text("TIDSLINJE", margin, yPos);
   
   // Subtitle
   yPos += 8;
   doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   doc.text(`${data.projectName} • ${data.totalWeeks} veckor`, margin, yPos);
   
   yPos += 15;
@@ -167,7 +188,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   
   // Week headers with dates
   doc.setFontSize(8);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...PDF_COLORS.MUTED);
   for (let week = 1; week <= data.totalWeeks; week++) {
     const xPos = ganttLeft + (week - 1) * weekWidth;
     doc.text(`V${week}`, xPos + weekWidth / 2, yPos, { align: "center" });
@@ -203,7 +224,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     
     // Phase name
     doc.setFontSize(9);
-    doc.setTextColor(...DARK);
+    doc.setTextColor(...PDF_COLORS.DARK);
     const truncatedName = phase.name.length > 20 ? phase.name.substring(0, 18) + "..." : phase.name;
     doc.text(truncatedName, margin, rowY + rowHeight / 2 + 1);
     
@@ -227,7 +248,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     // Duration text inside bar
     if (barWidth > 12) {
       doc.setFontSize(7);
-      doc.setTextColor(...DARK);
+      doc.setTextColor(...PDF_COLORS.DARK);
       const durationText = `${phase.duration_weeks}v`;
       doc.text(durationText, barX + barWidth / 2, barY + barHeight / 2 + 1.5, { align: "center" });
     }
@@ -252,7 +273,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   }
   
   doc.setFontSize(14);
-  doc.setTextColor(...PRIMARY);
+  doc.setTextColor(...PDF_COLORS.PRIMARY);
   doc.text("MOMENTLISTA", margin, yPos);
   yPos += 8;
   
@@ -268,8 +289,8 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     ]),
     theme: "striped",
     headStyles: {
-      fillColor: PRIMARY,
-      textColor: WHITE,
+      fillColor: PDF_COLORS.PRIMARY,
+      textColor: PDF_COLORS.WHITE,
       fontSize: 9,
       fontStyle: "bold",
     },
@@ -298,7 +319,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
+    doc.setTextColor(...PDF_COLORS.MUTED);
     
     // Timestamp on left
     doc.text(

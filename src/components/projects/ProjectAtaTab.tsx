@@ -43,10 +43,13 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
+  FileDown,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { generateAtaPdf } from "@/lib/generateAtaPdf";
 
 interface Ata {
   id: string;
@@ -69,6 +72,11 @@ interface Ata {
 
 interface ProjectAtaTabProps {
   projectId: string;
+  projectName?: string;
+  clientName?: string;
+  projectAddress?: string;
+  projectPostalCode?: string;
+  projectCity?: string;
 }
 
 const articleCategories = [
@@ -92,7 +100,14 @@ const statusOptions = [
   { value: "rejected", label: "Nekad" },
 ];
 
-export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
+export default function ProjectAtaTab({ 
+  projectId, 
+  projectName = "Projekt", 
+  clientName,
+  projectAddress,
+  projectPostalCode,
+  projectCity 
+}: ProjectAtaTabProps) {
   const [atas, setAtas] = useState<Ata[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -107,6 +122,7 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
     status: "pending",
   });
   const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -275,6 +291,41 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
     return !ata.unit_price || ata.unit_price === 0;
   };
 
+  const handleExportPdf = async () => {
+    if (atas.length === 0) {
+      toast({ title: "Inga ÄTA att exportera", variant: "destructive" });
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      // Fetch company settings for logo
+      const { data: companySettings } = await supabase
+        .from("company_settings")
+        .select("*")
+        .single();
+
+      await generateAtaPdf({
+        ataItems: atas,
+        project: {
+          name: projectName,
+          client_name: clientName || null,
+          address: projectAddress || null,
+          postal_code: projectPostalCode || null,
+          city: projectCity || null,
+        },
+        companySettings,
+      });
+
+      toast({ title: "PDF exporterad" });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({ title: "Kunde inte exportera PDF", variant: "destructive" });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -284,13 +335,24 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
             Hantera ÄTA för projektet – strukturerat som offertposter
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Ny ÄTA
+        <div className="flex items-center gap-2">
+          {atas.length > 0 && (
+            <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
+              {exportingPdf ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="mr-2 h-4 w-4" />
+              )}
+              Exportera PDF
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ny ÄTA
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Ny ÄTA</DialogTitle>
@@ -415,6 +477,7 @@ export default function ProjectAtaTab({ projectId }: ProjectAtaTabProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (

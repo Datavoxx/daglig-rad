@@ -1,6 +1,7 @@
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
+import IntegrationsSection from "@/components/landing/IntegrationsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
 import CTASection from "@/components/landing/CTASection";
@@ -13,6 +14,7 @@ const Landing = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <IntegrationsSection />
         <HowItWorksSection />
         <TimeComparisonSection />
         <CTASection />
