@@ -121,7 +121,7 @@ const features = [
   },
   {
     title: "Tidsplaner som du faktiskt använder",
-    description: "Dra och släpp faser. Dela med kunden. Uppdatera på sekunder – direkt från mobilen.",
+    description: "Se hela projektet visuellt. Dela planeringen med kunden och håll alla uppdaterade.",
     mockup: PlanningMockup,
   },
   {
