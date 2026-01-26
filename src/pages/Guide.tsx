@@ -163,7 +163,7 @@ export default function Guide() {
         </div>
 
         <Accordion type="single" collapsible className="w-full space-y-2">
-          {/* Projects & Diary */}
+          {/* Projects - Complete workflow hub */}
           <AccordionItem value="projects" className="border rounded-lg px-4">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3">
@@ -171,9 +171,9 @@ export default function Guide() {
                   <FolderKanban className="h-5 w-5 text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">Projekt & Arbetsdagbok</p>
+                  <p className="font-medium">Projekt – Hela arbetsflödet</p>
                   <p className="text-sm text-muted-foreground font-normal">
-                    Hantera projekt och dokumentera dagligt arbete
+                    Dagbok, planering, ÄTA och arbetsorder
                   </p>
                 </div>
               </div>
@@ -181,33 +181,24 @@ export default function Guide() {
             <AccordionContent className="pt-4 pb-6">
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Projekt är hjärtat i Byggio. Här samlas all information om dina aktiva jobb – från offert till slutbesiktning.
+                  Projekt är hjärtat i Byggio. Här samlas all information om dina aktiva jobb – från offert till slutbesiktning. Allt du behöver finns samlat i projektets flikar.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                     <Mic className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="font-medium text-sm">Röstinspelning</p>
+                      <p className="font-medium text-sm">Arbetsdagbok</p>
                       <p className="text-xs text-muted-foreground">
-                        Prata in din dagrapport direkt från byggplatsen
+                        Spela in dagrapporter direkt från byggplatsen
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                    <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <CalendarDays className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="font-medium text-sm">AI-strukturering</p>
+                      <p className="font-medium text-sm">Planering & Tidslinje</p>
                       <p className="text-xs text-muted-foreground">
-                        AI organiserar informationen automatiskt
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                    <FileDown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-medium text-sm">PDF-export</p>
-                      <p className="text-xs text-muted-foreground">
-                        Exportera rapporter för arkivering och delning
+                        Skapa visuella Gantt-tidslinjer för projektet
                       </p>
                     </div>
                   </div>
@@ -220,7 +211,19 @@ export default function Guide() {
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileDown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Arbetsorder & Filer</p>
+                      <p className="text-xs text-muted-foreground">
+                        Skapa order och hantera projektdokument
+                      </p>
+                    </div>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/projects")} className="gap-2">
+                  Gå till projekt <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -275,39 +278,6 @@ export default function Guide() {
             </AccordionContent>
           </AccordionItem>
 
-          {/* Planning */}
-          <AccordionItem value="planning" className="border rounded-lg px-4">
-            <AccordionTrigger className="hover:no-underline">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Planering & Tidslinje</p>
-                  <p className="text-sm text-muted-foreground font-normal">
-                    Skapa visuella projektplaner
-                  </p>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4 pb-6">
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Skapa grova tidsplaner för dina projekt. Beskriv projektets faser med röst eller text, så genererar AI en visuell Gantt-tidslinje.
-                </p>
-                <div className="space-y-2">
-                  <p className="font-medium text-sm">Så här fungerar det:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Gå till Planering-fliken i ett projekt</li>
-                    <li>Beskriv projektets faser och ungefärliga tidsramar</li>
-                    <li>AI skapar en visuell tidslinje</li>
-                    <li>Redigera och justera efter behov</li>
-                    <li>Exportera som PDF för att dela med teamet</li>
-                  </ol>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
 
           {/* Customers */}
           <AccordionItem value="customers" className="border rounded-lg px-4">
