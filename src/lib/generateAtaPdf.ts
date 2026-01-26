@@ -108,7 +108,7 @@ export async function generateAtaPdf({
 
   // Title
   doc.setFontSize(22);
-  doc.setTextColor(...PDF_COLORS.PRIMARY);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.setFont("helvetica", "bold");
   doc.text("ÄNDRINGS- OCH TILLÄGGSARBETEN", margin, yPos);
   
@@ -121,7 +121,7 @@ export async function generateAtaPdf({
   yPos += 12;
 
   // Divider
-  doc.setDrawColor(...PDF_COLORS.PRIMARY);
+  doc.setDrawColor(...PDF_COLORS.MUTED);
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
 
@@ -201,7 +201,7 @@ export async function generateAtaPdf({
     ]),
     theme: "striped",
     headStyles: {
-      fillColor: PDF_COLORS.PRIMARY,
+      fillColor: PDF_COLORS.HEADER_BG,
       textColor: PDF_COLORS.WHITE,
       fontSize: 8,
       fontStyle: "bold",
@@ -252,11 +252,11 @@ export async function generateAtaPdf({
     yPos = margin;
   }
 
-  doc.setDrawColor(...PDF_COLORS.PRIMARY);
+  doc.setDrawColor(...PDF_COLORS.MUTED);
   doc.setLineWidth(0.3);
   doc.rect(margin, yPos, contentWidth, 55, "S");
 
-  doc.setFillColor(...PDF_COLORS.PRIMARY);
+  doc.setFillColor(...PDF_COLORS.HEADER_BG);
   doc.rect(margin, yPos, contentWidth, 10, "F");
 
   doc.setFontSize(11);

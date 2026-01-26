@@ -54,11 +54,12 @@ export function addLogoToPdf(
  * Colors commonly used in PDFs
  */
 export const PDF_COLORS = {
-  PRIMARY: [13, 148, 136] as [number, number, number],   // teal-600
-  DARK: [30, 41, 59] as [number, number, number],        // slate-800
+  PRIMARY: [13, 148, 136] as [number, number, number],   // teal-600 (kept for status badges)
+  DARK: [30, 41, 59] as [number, number, number],        // slate-800 - MAIN HEADING COLOR
   MUTED: [100, 116, 139] as [number, number, number],    // slate-500
   WHITE: [255, 255, 255] as [number, number, number],
   LIGHT_GRAY: [241, 245, 249] as [number, number, number], // slate-100
+  HEADER_BG: [51, 65, 85] as [number, number, number],   // slate-700 - TABLE HEADERS
   BLUE: [59, 130, 246] as [number, number, number],      // blue-500
   GREEN: [34, 197, 94] as [number, number, number],      // green-500
   RED: [239, 68, 68] as [number, number, number],        // red-500

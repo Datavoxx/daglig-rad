@@ -83,7 +83,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   // === PAGE 1: Cover Page ===
   
   // Background accent
-  doc.setFillColor(...PDF_COLORS.PRIMARY);
+  doc.setFillColor(...PDF_COLORS.HEADER_BG);
   doc.rect(0, 0, pageWidth, 8, "F");
   
   // Logo in top left
@@ -106,12 +106,12 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   // Title
   yPos = 60;
   doc.setFontSize(36);
-  doc.setTextColor(...PDF_COLORS.PRIMARY);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.text("PROJEKTPLANERING", pageWidth / 2, yPos, { align: "center" });
   
   // Divider
   yPos += 12;
-  doc.setDrawColor(...PDF_COLORS.PRIMARY);
+  doc.setDrawColor(...PDF_COLORS.MUTED);
   doc.setLineWidth(0.8);
   doc.line(pageWidth / 2 - 40, yPos, pageWidth / 2 + 40, yPos);
   
@@ -126,7 +126,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     const endDate = getEndDate(data.startDate, data.totalWeeks);
     yPos += 18;
     doc.setFontSize(14);
-    doc.setTextColor(...PDF_COLORS.PRIMARY);
+    doc.setTextColor(...PDF_COLORS.DARK);
     doc.text(
       `${format(data.startDate, "yyyy-MM-dd")} - ${format(endDate, "yyyy-MM-dd")}`,
       pageWidth / 2,
@@ -168,7 +168,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   // Header
   yPos = 20;
   doc.setFontSize(18);
-  doc.setTextColor(...PDF_COLORS.PRIMARY);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.text("TIDSLINJE", margin, yPos);
   
   // Subtitle
@@ -273,7 +273,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   }
   
   doc.setFontSize(14);
-  doc.setTextColor(...PDF_COLORS.PRIMARY);
+  doc.setTextColor(...PDF_COLORS.DARK);
   doc.text("MOMENTLISTA", margin, yPos);
   yPos += 8;
   
@@ -289,7 +289,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     ]),
     theme: "striped",
     headStyles: {
-      fillColor: PDF_COLORS.PRIMARY,
+      fillColor: PDF_COLORS.HEADER_BG,
       textColor: PDF_COLORS.WHITE,
       fontSize: 9,
       fontStyle: "bold",
