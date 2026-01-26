@@ -5,8 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { CalendarDays, Mic, MicOff, Loader2, Download, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { GanttTimeline } from "@/components/planning/GanttTimeline";
 import { PlanEditor } from "@/components/planning/PlanEditor";
+import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Json } from "@/integrations/supabase/types";
@@ -74,6 +76,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   const [generatedSummary, setGeneratedSummary] = useState("");
   const [startDate, setStartDate] = useState<Date>(getNextMonday(new Date()));
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchPlan();
@@ -389,11 +392,19 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           </div>
         </div>
 
-        <GanttTimeline
-          phases={plan.phases}
-          totalWeeks={plan.total_weeks}
-          startDate={startDate}
-        />
+        {isMobile ? (
+          <PlanningMobileOverview
+            phases={plan.phases}
+            totalWeeks={plan.total_weeks}
+            startDate={startDate}
+          />
+        ) : (
+          <GanttTimeline
+            phases={plan.phases}
+            totalWeeks={plan.total_weeks}
+            startDate={startDate}
+          />
+        )}
       </div>
     );
   }
