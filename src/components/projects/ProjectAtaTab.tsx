@@ -50,6 +50,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { generateAtaPdf } from "@/lib/generateAtaPdf";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 
 interface Ata {
   id: string;
@@ -123,7 +124,42 @@ export default function ProjectAtaTab({
   });
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const { toast } = useToast();
+
+  const handleVoiceInput = async (transcript: string) => {
+    setIsVoiceProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
+        body: {
+          transcript,
+          currentData: formData,
+          documentType: "ata",
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setFormData({
+        article: data.article || formData.article,
+        description: data.description || formData.description,
+        reason: data.reason || formData.reason,
+        unit: data.unit || formData.unit,
+        quantity: data.quantity?.toString() || formData.quantity,
+        unit_price: data.unit_price?.toString() || formData.unit_price,
+        rot_eligible: data.rot_eligible ?? formData.rot_eligible,
+        status: data.status || formData.status,
+      });
+
+      toast({ title: "Fält ifyllda från röstinspelning" });
+    } catch (error) {
+      console.error("Voice input error:", error);
+      toast({ title: "Kunde inte tolka röstinspelning", variant: "destructive" });
+    } finally {
+      setIsVoiceProcessing(false);
+    }
+  };
 
   useEffect(() => {
     fetchAtas();
@@ -361,6 +397,12 @@ export default function ProjectAtaTab({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              {/* Voice input prompt */}
+              <VoicePromptButton
+                onTranscriptComplete={handleVoiceInput}
+                isProcessing={isVoiceProcessing}
+              />
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Artikel</Label>

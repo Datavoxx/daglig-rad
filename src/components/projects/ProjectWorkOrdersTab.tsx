@@ -17,6 +17,7 @@ import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { generateWorkOrderPdf } from "@/lib/generateWorkOrderPdf";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 
 interface WorkOrder {
   id: string;
@@ -49,7 +50,39 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
     status: "pending",
   });
   const [saving, setSaving] = useState(false);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const { toast } = useToast();
+
+  const handleVoiceInput = async (transcript: string) => {
+    setIsVoiceProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
+        body: {
+          transcript,
+          currentData: formData,
+          documentType: "work_order",
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setFormData({
+        title: data.title || formData.title,
+        description: data.description || formData.description,
+        assigned_to: data.assigned_to || formData.assigned_to,
+        due_date: formData.due_date,
+        status: data.status || formData.status,
+      });
+
+      toast({ title: "Fält ifyllda från röstinspelning" });
+    } catch (error) {
+      console.error("Voice input error:", error);
+      toast({ title: "Kunde inte tolka röstinspelning", variant: "destructive" });
+    } finally {
+      setIsVoiceProcessing(false);
+    }
+  };
 
   useEffect(() => {
     fetchWorkOrders();
@@ -237,6 +270,12 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              {/* Voice input prompt */}
+              <VoicePromptButton
+                onTranscriptComplete={handleVoiceInput}
+                isProcessing={isVoiceProcessing}
+              />
+              
               <div className="space-y-2">
                 <Label htmlFor="title">Titel *</Label>
                 <Input

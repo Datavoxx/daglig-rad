@@ -9,7 +9,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2 } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -298,6 +298,24 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Voice control prompt - inline in header area */}
+      <div 
+        className="flex items-center gap-3 p-3 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+        onClick={() => {
+          // Trigger VoiceInputOverlay - we'll use a workaround by setting state
+          const voiceButton = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
+          if (voiceButton) voiceButton.click();
+        }}
+      >
+        <div className="flex items-center gap-2 text-primary">
+          <div className="relative">
+            <Mic className="h-5 w-5" />
+          </div>
+          <span className="font-medium text-sm">Röststyr offerten</span>
+        </div>
+        <span className="text-xs text-muted-foreground">– Spara 60% av din tid</span>
       </div>
 
 
