@@ -10,6 +10,10 @@ import { ProtectedModuleRoute } from "@/components/auth/ProtectedModuleRoute";
 import Auth from "@/pages/Auth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
+import Terms from "@/pages/legal/Terms";
+import Privacy from "@/pages/legal/Privacy";
+import Cookies from "@/pages/legal/Cookies";
+import GDPR from "@/pages/legal/GDPR";
 import Projects from "@/pages/Projects";
 import ProjectView from "@/pages/ProjectView";
 import ReportView from "@/pages/ReportView";
@@ -42,6 +46,10 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
             <Route path="/guide-public" element={<GuidePublic />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/gdpr" element={<GDPR />} />
 
             {/* Protected routes with layout */}
             {/* Protected routes with layout */}
