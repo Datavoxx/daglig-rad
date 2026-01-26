@@ -11,6 +11,7 @@ import {
   BookOpen,
   Landmark,
   LogOut,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +22,18 @@ import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { BottomNav } from "./BottomNav";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface NavItem {
   label: string;
@@ -50,6 +56,7 @@ export function AppLayout() {
   const [userInitial, setUserInitial] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading } = useUserPermissions();
@@ -237,15 +244,108 @@ export function AppLayout() {
         {/* Topbar */}
         <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-sm px-3 md:px-6">
           <div className="flex items-center gap-3">
-            {/* Mobile: Logo */}
+            {/* Mobile: Hamburger menu */}
             {isMobile && (
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="flex h-9 w-9 items-center justify-center"
-                aria-label="Gå till dashboard"
-              >
-                <img src={byggioLogo} alt="Byggio" className="h-8 w-8 object-contain" />
-              </button>
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9"
+                  onClick={() => setMobileMenuOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+                <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Navigation</SheetTitle>
+                  </SheetHeader>
+                  
+                  {/* Logo */}
+                  <button
+                    onClick={() => {
+                      navigate("/dashboard");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-4 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
+                    aria-label="Gå till dashboard"
+                  >
+                    <img src={byggioLogo} alt="Byggio" className="h-12 w-auto object-contain" />
+                  </button>
+
+                  {/* Navigation items */}
+                  <nav className="flex-1 space-y-1 p-3">
+                    {visibleNavItems.map((item) => {
+                      const isActive = location.pathname.startsWith(item.href);
+                      return (
+                        <button
+                          key={item.href}
+                          onClick={() => {
+                            navigate(item.href);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={cn(
+                            "relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          )}
+                        >
+                          <span 
+                            className={cn(
+                              "absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-all duration-200",
+                              isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
+                            )}
+                          />
+                          <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+
+                  {/* Profile */}
+                  <div className="border-t border-sidebar-border p-3">
+                    <button
+                      onClick={() => {
+                        navigate("/profile");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
+                        location.pathname === "/profile"
+                          ? "bg-sidebar-accent"
+                          : "hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <Avatar className="h-8 w-8 border border-primary/20">
+                        {avatarUrl ? (
+                          <AvatarImage src={avatarUrl} alt="Profil" />
+                        ) : (
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                            {userInitial}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span className="text-sm font-medium">Min profil</span>
+                    </button>
+                  </div>
+
+                  {/* Logout */}
+                  <div className="border-t border-sidebar-border p-3">
+                    <button
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        navigate("/auth");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+                    >
+                      <LogOut className="h-5 w-5 shrink-0" />
+                      <span>Logga ut</span>
+                    </button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             )}
             {/* Desktop: Search */}
             <div className="relative hidden w-64 md:block lg:w-80">
@@ -291,16 +391,13 @@ export function AppLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-content px-3 py-4 pb-20 md:px-6 md:py-8 md:pb-8">
+          <div className="mx-auto max-w-content px-3 py-4 md:px-6 md:py-8">
             <RouteTransition>
               <Outlet />
             </RouteTransition>
           </div>
         </main>
       </div>
-
-      {/* Bottom navigation - mobile only */}
-      {isMobile && <BottomNav />}
     </div>
   );
 }
