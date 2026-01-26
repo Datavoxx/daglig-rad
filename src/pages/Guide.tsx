@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -25,17 +26,44 @@ import {
   ArrowRight,
   HelpCircle,
   ChevronRight,
+  PiggyBank,
+  TrendingUp,
 } from "lucide-react";
 import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Guide() {
+  const navigate = useNavigate();
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [companySettings, setCompanySettings] = useState<{
+    company_name: string | null;
+    logo_url: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("company_settings")
+        .select("company_name, logo_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setCompanySettings(data);
+      }
+    };
+
+    fetchCompanySettings();
+  }, []);
 
   const handleDownloadPdf = async () => {
     setDownloadingPdf(true);
     try {
-      generateGuidePdf();
+      await generateGuidePdf(companySettings);
       toast.success("PDF nedladdad");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
@@ -68,7 +96,10 @@ export default function Guide() {
         </div>
         
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <Card 
+            className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/estimates")}
+          >
             <div className="absolute top-3 left-3 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
               1
             </div>
@@ -77,9 +108,12 @@ export default function Guide() {
                 <Calculator className="h-4 w-4 text-primary" />
                 Skapa en offert
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-3">
                 Börja med att skapa en offert. Använd mallar eller bygg från grunden med AI-stöd.
               </p>
+              <Button variant="link" className="p-0 h-auto text-primary" onClick={(e) => { e.stopPropagation(); navigate("/estimates"); }}>
+                Skapa din första offert <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
             </CardContent>
           </Card>
 
@@ -98,7 +132,10 @@ export default function Guide() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
+          <Card 
+            className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/projects")}
+          >
             <div className="absolute top-3 left-3 h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
               3
             </div>
@@ -107,9 +144,12 @@ export default function Guide() {
                 <PenLine className="h-4 w-4 text-primary" />
                 Dokumentera arbetet
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-3">
                 Använd arbetsdagboken för att logga det dagliga arbetet, ÄTA och avvikelser.
               </p>
+              <Button variant="link" className="p-0 h-auto text-primary" onClick={(e) => { e.stopPropagation(); navigate("/projects"); }}>
+                Gå till projekt <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -228,6 +268,9 @@ export default function Guide() {
                     </div>
                   </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/estimates")} className="gap-2">
+                  Skapa offert <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -293,6 +336,61 @@ export default function Guide() {
                   <Badge variant="outline">Anteckningar</Badge>
                   <Badge variant="outline">Koppling till projekt</Badge>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/customers")} className="gap-2">
+                  Hantera kunder <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Economy */}
+          <AccordionItem value="economy" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <PiggyBank className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Ekonomi & Uppföljning</p>
+                  <p className="text-sm text-muted-foreground font-normal">
+                    Följ projektets ekonomi i realtid
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Få en helhetsbild av din verksamhets ekonomi. Se projektöversikter, jämför offererat mot fakturerat och håll koll på ÄTA-belopp.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Projektöversikt</p>
+                      <p className="text-xs text-muted-foreground">
+                        Se alla projekt och deras ekonomiska status
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileText className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">ÄTA-summering</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total översikt över alla ändringsarbeten
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Kommande:</strong> Integrationer med Fortnox och Visma för automatisk synkronisering av fakturor och bokföring.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/economy")} className="gap-2">
+                  Gå till ekonomi <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
             </AccordionContent>
           </AccordionItem>
