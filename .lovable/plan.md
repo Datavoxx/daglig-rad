@@ -1,41 +1,40 @@
 
-## Plan: Ta bort "Vilka är Byggio?" sektionen från Auth-sidan
+## Plan: Lägg till "Tillbaka till startsidan"-knapp på Auth-sidan
 
 ### Översikt
-Ta bort den kollapsibla "Vilka är Byggio?" kortet som visas ovanför inloggningsformuläret på /auth-sidan.
+Lägga till en knapp/länk högst upp på inloggningssidan som tar användaren tillbaka till landing page:n (startsidan).
 
 ---
 
-### Ändringar i `src/pages/Auth.tsx`
+### Ändring i `src/pages/Auth.tsx`
 
-**1. Ta bort oanvända importer (rad 3-4):**
-- `ChevronDown` från lucide-react
-- `Collapsible, CollapsibleContent, CollapsibleTrigger` från ui/collapsible
-- `cn` från lib/utils
-
-**2. Ta bort state (rad 23):**
+**1. Lägg till import för `ArrowLeft`-ikonen (rad 3):**
 ```tsx
-// TA BORT:
-const [aboutOpen, setAboutOpen] = useState(false);
+import { Mail, Lock, Eye, EyeOff, BookOpen, Phone, ArrowLeft } from "lucide-react";
 ```
 
-**3. Ta bort hela "About Byggio" kortet (rad 71-104):**
+**2. Lägg till tillbaka-knappen ovanför login-kortet (efter rad 67):**
+
+Placeras i början av innehålls-div:en, innan Login Card:
+
 ```tsx
-// TA BORT HELA DENNA SEKTION:
-{/* About Byggio */}
-<Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-  <Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
-    ...
-  </Collapsible>
-</Card>
+{/* Tillbaka-knapp */}
+<Link 
+  to="/"
+  className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-2"
+>
+  <ArrowLeft className="h-4 w-4" />
+  <span>Tillbaka till startsidan</span>
+</Link>
 ```
 
 ---
 
 ### Resultat
 
-Inloggningssidan kommer endast visa:
-1. Login-kortet (med logo, formulär, registrera-länk och guide-länk)
-2. Kontaktinformation längst ner
+Inloggningssidan kommer visa:
+1. **NY:** Tillbaka-länk i övre vänstra hörnet
+2. Login-kortet (med logo, formulär, registrera-länk och guide-länk)
+3. Kontaktinformation längst ner
 
-Den kollapsibla "Vilka är Byggio?"-sektionen tas bort helt.
+Knappen leder till `/` (landing page).
