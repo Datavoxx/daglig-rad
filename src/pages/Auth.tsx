@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, BookOpen, Phone } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, BookOpen, Phone, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,6 +65,15 @@ export default function Auth() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/30 via-background to-background" />
       
       <div className="relative z-10 flex flex-col items-center w-full max-w-md gap-4">
+        {/* Tillbaka-knapp */}
+        <Link 
+          to="/"
+          className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Tillbaka till startsidan</span>
+        </Link>
+
         {/* Login Card */}
         <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="text-center">
