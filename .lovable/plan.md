@@ -1,40 +1,120 @@
 
-## Plan: Lägg till "Tillbaka till startsidan"-knapp på Auth-sidan
+
+## Plan: Uppdatera Guide-PDF med Byggio-logga och grönt tema
 
 ### Översikt
-Lägga till en knapp/länk högst upp på inloggningssidan som tar användaren tillbaka till landing page:n (startsidan).
+Uppdatera PDF-generatorn för guiden så att den alltid visar Byggio-loggan i headern och använder Byggios gröna temafärger istället för det nuvarande grå temat.
 
 ---
 
-### Ändring i `src/pages/Auth.tsx`
+### Ändringar i `src/lib/generateGuidePdf.ts`
 
-**1. Lägg till import för `ArrowLeft`-ikonen (rad 3):**
+**1. Importera Byggio-loggan direkt:**
 ```tsx
-import { Mail, Lock, Eye, EyeOff, BookOpen, Phone, ArrowLeft } from "lucide-react";
+import byggioLogo from "@/assets/byggio-logo.png";
 ```
 
-**2. Lägg till tillbaka-knappen ovanför login-kortet (efter rad 67):**
+**2. Lägg till en funktion för att konvertera den importerade loggan till base64:**
+```tsx
+async function getByggioLogoBase64(): Promise<string | null> {
+  try {
+    const response = await fetch(byggioLogo);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    return null;
+  }
+}
+```
 
-Placeras i början av innehålls-div:en, innan Login Card:
+**3. Uppdatera färgtemat till Byggio-grönt:**
+
+Nya färger (baserat på Byggio-loggan):
+| Färg | Gammalt värde | Nytt värde |
+|------|--------------|------------|
+| Header-bar | slate-700 `[51, 65, 85]` | green-700 `[21, 128, 61]` |
+| Rubriker | slate-800 `[30, 41, 59]` | green-800 `[22, 101, 52]` |
+| Sektionsrubriker | slate-800 | green-700 `[21, 128, 61]` |
+
+**4. Lägg till loggan i PDF-headern:**
+
+Istället för att endast visa loggan om `companySettings` finns, hämta alltid Byggio-loggan:
 
 ```tsx
-{/* Tillbaka-knapp */}
-<Link 
-  to="/"
-  className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-2"
->
-  <ArrowLeft className="h-4 w-4" />
-  <span>Tillbaka till startsidan</span>
-</Link>
+// Hämta Byggio-loggan
+const byggioLogoBase64 = await getByggioLogoBase64();
+
+// Lägg till logga i övre vänstra hörnet
+if (byggioLogoBase64) {
+  doc.addImage(byggioLogoBase64, "PNG", margin, 12, 35, 12, undefined, "FAST");
+}
 ```
 
 ---
 
-### Resultat
+### Visuell förändring
 
-Inloggningssidan kommer visa:
-1. **NY:** Tillbaka-länk i övre vänstra hörnet
-2. Login-kortet (med logo, formulär, registrera-länk och guide-länk)
-3. Kontaktinformation längst ner
+**Före:**
+```
+┌──────────────────────────────────────────┐
+│ ▓▓▓▓▓▓▓ GRÅTT HEADER-BAR ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │
+│                                          │
+│ BYGGIO GUIDE (svart text)               │
+│ Din kompletta guide... (grå text)        │
+└──────────────────────────────────────────┘
+```
 
-Knappen leder till `/` (landing page).
+**Efter:**
+```
+┌──────────────────────────────────────────┐
+│ ████████ GRÖNT HEADER-BAR ██████████████ │
+│                                          │
+│ [BYGGIO LOGGA]                          │
+│                                          │
+│ BYGGIO GUIDE (grön text)                │
+│ Din kompletta guide... (grå text)        │
+└──────────────────────────────────────────┘
+```
+
+---
+
+### Teknisk detaljplan
+
+| Rad | Ändring |
+|-----|---------|
+| 1-2 | Lägg till import för `byggioLogo` |
+| 9-20 | Lägg till `getByggioLogoBase64()` hjälpfunktion |
+| 33-34 | Uppdatera färger i `addSectionHeader` till grön |
+| 66 | Ändra header-bar till grön färg |
+| 70-77 | Ändra logik för att alltid visa Byggio-logga |
+| 83 | Uppdatera titelfärg till grön |
+| 215 | Behåll grå footer-text (neutral) |
+
+---
+
+### Nya lokala färgkonstanter
+
+Definiera Byggio-specifika färger i `generateGuidePdf.ts`:
+
+```tsx
+const BYGGIO_COLORS = {
+  GREEN_DARK: [22, 101, 52] as [number, number, number],   // green-800
+  GREEN_PRIMARY: [21, 128, 61] as [number, number, number], // green-700
+  GREEN_LIGHT: [34, 197, 94] as [number, number, number],  // green-500
+};
+```
+
+---
+
+### Slutresultat
+
+- Byggio-loggan visas alltid i PDF-headern
+- Header-baren är grön istället för grå
+- Rubriker använder Byggios gröna tema
+- Professionellt och varumärkeskonsekvent utseende
+
