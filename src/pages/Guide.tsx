@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,39 +31,16 @@ import {
 } from "lucide-react";
 import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+
 
 export default function Guide() {
   const navigate = useNavigate();
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [companySettings, setCompanySettings] = useState<{
-    company_name: string | null;
-    logo_url: string | null;
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchCompanySettings = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("company_settings")
-        .select("company_name, logo_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (data) {
-        setCompanySettings(data);
-      }
-    };
-
-    fetchCompanySettings();
-  }, []);
 
   const handleDownloadPdf = async () => {
     setDownloadingPdf(true);
     try {
-      await generateGuidePdf(companySettings);
+      await generateGuidePdf();
       toast.success("PDF nedladdad");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
