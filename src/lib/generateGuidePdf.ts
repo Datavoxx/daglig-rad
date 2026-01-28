@@ -1,12 +1,32 @@
 import jsPDF from "jspdf";
-import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
+import { PDF_COLORS } from "./pdfUtils";
+import byggioLogo from "@/assets/byggio-logo.png";
 
-interface CompanySettings {
-  company_name: string | null;
-  logo_url: string | null;
+// Byggio brand colors
+const BYGGIO_COLORS = {
+  GREEN_DARK: [22, 101, 52] as [number, number, number],   // green-800
+  GREEN_PRIMARY: [21, 128, 61] as [number, number, number], // green-700
+  GREEN_LIGHT: [34, 197, 94] as [number, number, number],  // green-500
+};
+
+// Helper to convert Byggio logo to base64
+async function getByggioLogoBase64(): Promise<string | null> {
+  try {
+    const response = await fetch(byggioLogo);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error fetching Byggio logo:", error);
+    return null;
+  }
 }
 
-export async function generateGuidePdf(companySettings?: CompanySettings | null) {
+export async function generateGuidePdf() {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -14,8 +34,6 @@ export async function generateGuidePdf(companySettings?: CompanySettings | null)
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  // Get logo
-  const logoBase64 = await getCompanyLogoBase64(companySettings?.logo_url || null);
 
   // Helper to add new page if needed
   const checkPageBreak = (height: number) => {
@@ -30,7 +48,7 @@ export async function generateGuidePdf(companySettings?: CompanySettings | null)
     checkPageBreak(20);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...PDF_COLORS.DARK);
+    doc.setTextColor(...BYGGIO_COLORS.GREEN_PRIMARY);
     doc.text(text, margin, y);
     y += 8;
     doc.setTextColor(...PDF_COLORS.DARK);
@@ -62,25 +80,26 @@ export async function generateGuidePdf(companySettings?: CompanySettings | null)
 
   // === COVER / HEADER ===
   
-  // Header bar
-  doc.setFillColor(...PDF_COLORS.HEADER_BG);
+  // Header bar with Byggio green
+  doc.setFillColor(...BYGGIO_COLORS.GREEN_PRIMARY);
   doc.rect(0, 0, pageWidth, 6, "F");
   
-  // Logo in top left if available
+  // Byggio logo in top left
   y = 16;
-  if (logoBase64) {
+  const byggioLogoBase64 = await getByggioLogoBase64();
+  if (byggioLogoBase64) {
     try {
-      doc.addImage(logoBase64, "AUTO", margin, y, 35, 18, undefined, "FAST");
+      doc.addImage(byggioLogoBase64, "PNG", margin, y, 35, 12, undefined, "FAST");
     } catch (e) {
-      console.error("Error adding logo:", e);
+      console.error("Error adding Byggio logo:", e);
     }
   }
 
-  // Title
+  // Title with Byggio green
   y = 50;
   doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(...PDF_COLORS.DARK);
+  doc.setTextColor(...BYGGIO_COLORS.GREEN_DARK);
   doc.text("BYGGIO GUIDE", margin, y);
   
   y += 10;
