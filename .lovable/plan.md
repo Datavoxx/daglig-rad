@@ -1,94 +1,57 @@
 
 
-## Plan: Lägg till spara-knapp i header (alltid synlig)
+## Plan: Fixa så att Spara-knappen alltid är synlig i StickyTotals
 
-### Översikt
-Lägga till en grön spara-knapp i headersektionen bredvid de befintliga knapparna (tillbaka, förhandsgranska, radera) så att användaren alltid har enkel åtkomst till sparfunktionen oavsett var de scrollat. Den befintliga spara-knappen i StickyTotals längst ner behålls.
+### Problemanalys
+På desktop-vyn när offerten har stora belopp (t.ex. 461 438 kr) växer sifferområdet och trycker ut Spara-knappen utanför den synliga ytan. Detta beror på att:
+1. Vänsterkolumnen med kostnadssummor (`Arb`, `Mat`, `UE`, etc.) kan växa obegränsat
+2. Det finns ingen prioritering för att alltid visa knapparna
+
+### Lösning
+Ändra flex-layouten så att knapparna på höger sida alltid behålls synliga med `shrink-0`, medan vänsterkolumnen krymper vid behov.
 
 ---
 
-### Ändring i `src/components/estimates/EstimateBuilder.tsx`
+### Teknisk ändring i `src/components/estimates/StickyTotals.tsx`
 
-**1. Lägg till import för `Save` och `Loader2` ikoner (rad 12):**
+**Rad 110:** Lägg till `flex-shrink` och `overflow-hidden` på vänsterkolumnen:
 ```tsx
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2 } from "lucide-react";
+<div className="flex items-center gap-4 text-[13px] flex-shrink min-w-0 overflow-hidden">
 ```
 
-**2. Lägg till spara-knapp i header-sektionen (rad 265-300):**
-
-Placera en grön spara-knapp mellan förhandsgranskning-knappen och papperskorgen:
-
+**Rad 139:** Lägg till `flex-shrink-0` på högerkolumnen (knappar):
 ```tsx
-<div className="flex items-center gap-2 shrink-0">
-  {onBack && (
-    <Button variant="ghost" size="sm" onClick={onBack} ...>
-      <ArrowLeft ... />
-    </Button>
-  )}
-  {!isMobile && (
-    <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)} ...>
-      {showPreview ? <EyeOff ... /> : <Eye ... />}
-    </Button>
-  )}
-  
-  {/* NY: Alltid synlig spara-knapp */}
-  <Button
-    size="sm"
-    onClick={handleSaveAsCompleted}
-    disabled={estimate.isSaving}
-    className="h-8"
-  >
-    {estimate.isSaving ? (
-      <Loader2 className="h-4 w-4 animate-spin" />
-    ) : (
-      <Save className="h-4 w-4" />
-    )}
-  </Button>
-
-  {estimate.hasExistingEstimate && (
-    <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(true)} ...>
-      <Trash2 ... />
-    </Button>
-  )}
-</div>
+<div className="flex items-center gap-3 flex-shrink-0">
 ```
 
 ---
 
-### Visuell förändring
+### Visuell effekt
 
-**Före:**
+**Före (problem):**
 ```
-┌─────────────────────────────────────────────────────┐
-│ OFFERT                     DRAFT | OFF-DRAFT       │
-│ Fasadmålning...                   v1 • datum       │
-│                                         [←] [👁] [🗑] │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ Arb: 46 500  Mat: 274 500  UE: 0  Påsl: 48 150...  │
+│ Moms: 92 288  │  461 438 kr  │  Ladda ner  [Spa... │ ← Knappen klipps
+└────────────────────────────────────────────────────┘
 ```
 
-**Efter:**
+**Efter (fix):**
 ```
-┌─────────────────────────────────────────────────────┐
-│ OFFERT                     DRAFT | OFF-DRAFT       │
-│ Fasadmålning...                   v1 • datum       │
-│                                    [←] [👁] [💾] [🗑] │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ Arb: 46 500  Mat: 274 500...  │  461 438 kr  │     │
+│                               │  Ladda ner [Spara] │ ← Knappen alltid synlig
+└────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Teknisk sammanfattning
+### Sammanfattning
 
-| Fil | Ändring |
-|-----|---------|
-| `EstimateBuilder.tsx` rad 12 | Lägg till `Save, Loader2` i lucide-imports |
-| `EstimateBuilder.tsx` rad 289-299 | Lägg till ny spara-knapp före papperskorgen |
+| Fil | Rad | Ändring |
+|-----|-----|---------|
+| `StickyTotals.tsx` | 110 | Lägg till `flex-shrink min-w-0 overflow-hidden` |
+| `StickyTotals.tsx` | 139 | Lägg till `flex-shrink-0` |
 
----
-
-### Resultat
-
-- **Header:** Grön spara-knapp alltid synlig längst upp till höger
-- **StickyTotals:** Befintlig spara-knapp med dropdown-meny behålls längst ner
-- Användaren kan snabbt spara från båda ställena
+Knapparna kommer alltid att vara synliga oavsett hur stora beloppen blir. Om utrymmet inte räcker döljs istället några av kostnadssummorna på vänster sida.
 
