@@ -1,58 +1,56 @@
 
 
-## Plan: Uppdatera Guide-PDF med Byggio-logga och grönt tema
+## Plan: Lägg till spara-knapp i header (alltid synlig)
 
 ### Översikt
-Uppdatera PDF-generatorn för guiden så att den alltid visar Byggio-loggan i headern och använder Byggios gröna temafärger istället för det nuvarande grå temat.
+Lägga till en grön spara-knapp i headersektionen bredvid de befintliga knapparna (tillbaka, förhandsgranska, radera) så att användaren alltid har enkel åtkomst till sparfunktionen oavsett var de scrollat. Den befintliga spara-knappen i StickyTotals längst ner behålls.
 
 ---
 
-### Ändringar i `src/lib/generateGuidePdf.ts`
+### Ändring i `src/components/estimates/EstimateBuilder.tsx`
 
-**1. Importera Byggio-loggan direkt:**
+**1. Lägg till import för `Save` och `Loader2` ikoner (rad 12):**
 ```tsx
-import byggioLogo from "@/assets/byggio-logo.png";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2 } from "lucide-react";
 ```
 
-**2. Lägg till en funktion för att konvertera den importerade loggan till base64:**
-```tsx
-async function getByggioLogoBase64(): Promise<string | null> {
-  try {
-    const response = await fetch(byggioLogo);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    return null;
-  }
-}
-```
+**2. Lägg till spara-knapp i header-sektionen (rad 265-300):**
 
-**3. Uppdatera färgtemat till Byggio-grönt:**
-
-Nya färger (baserat på Byggio-loggan):
-| Färg | Gammalt värde | Nytt värde |
-|------|--------------|------------|
-| Header-bar | slate-700 `[51, 65, 85]` | green-700 `[21, 128, 61]` |
-| Rubriker | slate-800 `[30, 41, 59]` | green-800 `[22, 101, 52]` |
-| Sektionsrubriker | slate-800 | green-700 `[21, 128, 61]` |
-
-**4. Lägg till loggan i PDF-headern:**
-
-Istället för att endast visa loggan om `companySettings` finns, hämta alltid Byggio-loggan:
+Placera en grön spara-knapp mellan förhandsgranskning-knappen och papperskorgen:
 
 ```tsx
-// Hämta Byggio-loggan
-const byggioLogoBase64 = await getByggioLogoBase64();
+<div className="flex items-center gap-2 shrink-0">
+  {onBack && (
+    <Button variant="ghost" size="sm" onClick={onBack} ...>
+      <ArrowLeft ... />
+    </Button>
+  )}
+  {!isMobile && (
+    <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)} ...>
+      {showPreview ? <EyeOff ... /> : <Eye ... />}
+    </Button>
+  )}
+  
+  {/* NY: Alltid synlig spara-knapp */}
+  <Button
+    size="sm"
+    onClick={handleSaveAsCompleted}
+    disabled={estimate.isSaving}
+    className="h-8"
+  >
+    {estimate.isSaving ? (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    ) : (
+      <Save className="h-4 w-4" />
+    )}
+  </Button>
 
-// Lägg till logga i övre vänstra hörnet
-if (byggioLogoBase64) {
-  doc.addImage(byggioLogoBase64, "PNG", margin, 12, 35, 12, undefined, "FAST");
-}
+  {estimate.hasExistingEstimate && (
+    <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(true)} ...>
+      <Trash2 ... />
+    </Button>
+  )}
+</div>
 ```
 
 ---
@@ -61,60 +59,36 @@ if (byggioLogoBase64) {
 
 **Före:**
 ```
-┌──────────────────────────────────────────┐
-│ ▓▓▓▓▓▓▓ GRÅTT HEADER-BAR ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │
-│                                          │
-│ BYGGIO GUIDE (svart text)               │
-│ Din kompletta guide... (grå text)        │
-└──────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ OFFERT                     DRAFT | OFF-DRAFT       │
+│ Fasadmålning...                   v1 • datum       │
+│                                         [←] [👁] [🗑] │
+└─────────────────────────────────────────────────────┘
 ```
 
 **Efter:**
 ```
-┌──────────────────────────────────────────┐
-│ ████████ GRÖNT HEADER-BAR ██████████████ │
-│                                          │
-│ [BYGGIO LOGGA]                          │
-│                                          │
-│ BYGGIO GUIDE (grön text)                │
-│ Din kompletta guide... (grå text)        │
-└──────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ OFFERT                     DRAFT | OFF-DRAFT       │
+│ Fasadmålning...                   v1 • datum       │
+│                                    [←] [👁] [💾] [🗑] │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Teknisk detaljplan
+### Teknisk sammanfattning
 
-| Rad | Ändring |
+| Fil | Ändring |
 |-----|---------|
-| 1-2 | Lägg till import för `byggioLogo` |
-| 9-20 | Lägg till `getByggioLogoBase64()` hjälpfunktion |
-| 33-34 | Uppdatera färger i `addSectionHeader` till grön |
-| 66 | Ändra header-bar till grön färg |
-| 70-77 | Ändra logik för att alltid visa Byggio-logga |
-| 83 | Uppdatera titelfärg till grön |
-| 215 | Behåll grå footer-text (neutral) |
+| `EstimateBuilder.tsx` rad 12 | Lägg till `Save, Loader2` i lucide-imports |
+| `EstimateBuilder.tsx` rad 289-299 | Lägg till ny spara-knapp före papperskorgen |
 
 ---
 
-### Nya lokala färgkonstanter
+### Resultat
 
-Definiera Byggio-specifika färger i `generateGuidePdf.ts`:
-
-```tsx
-const BYGGIO_COLORS = {
-  GREEN_DARK: [22, 101, 52] as [number, number, number],   // green-800
-  GREEN_PRIMARY: [21, 128, 61] as [number, number, number], // green-700
-  GREEN_LIGHT: [34, 197, 94] as [number, number, number],  // green-500
-};
-```
-
----
-
-### Slutresultat
-
-- Byggio-loggan visas alltid i PDF-headern
-- Header-baren är grön istället för grå
-- Rubriker använder Byggios gröna tema
-- Professionellt och varumärkeskonsekvent utseende
+- **Header:** Grön spara-knapp alltid synlig längst upp till höger
+- **StickyTotals:** Befintlig spara-knapp med dropdown-meny behålls längst ner
+- Användaren kan snabbt spara från båda ställena
 
