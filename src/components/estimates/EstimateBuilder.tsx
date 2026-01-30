@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2 } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -62,9 +63,12 @@ interface EstimateBuilderProps {
 
 export function EstimateBuilder({ project, manualData, estimateId, onDelete, onBack }: EstimateBuilderProps) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [showProjectRecommendation, setShowProjectRecommendation] = useState(false);
+  const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
   const [isApplyingVoice, setIsApplyingVoice] = useState(false);
   const hasAutoSaved = useRef(false);
 
@@ -173,9 +177,17 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     setTimeout(() => estimate.save(), 0);
   };
 
-  const handleSaveAsCompleted = () => {
+  const handleSaveAsCompleted = async () => {
     estimate.updateStatus("completed");
-    setTimeout(() => estimate.save(), 0);
+    try {
+      // Small delay to ensure status update is applied
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const newEstimateId = await estimate.saveAsync();
+      setSavedEstimateId(newEstimateId);
+      setShowProjectRecommendation(true);
+    } catch (error) {
+      // Error is handled by the mutation's onError
+    }
   };
 
   const handleDelete = () => {
@@ -519,6 +531,30 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <FolderPlus className="h-5 w-5 text-primary" />
+                Starta projekt?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Offerten är sparad! Vill du direkt skapa ett projekt från denna offert? 
+                Det gör att du snabbt kan börja planera och hantera arbetet.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Inte nu</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  navigate(`/projects?createFrom=${savedEstimateId}`);
+                }}
+              >
+                Skapa projekt
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     );
   }
@@ -567,6 +603,30 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Radera
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5 text-primary" />
+              Starta projekt?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Offerten är sparad! Vill du direkt skapa ett projekt från denna offert? 
+              Det gör att du snabbt kan börja planera och hantera arbetet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Inte nu</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                navigate(`/projects?createFrom=${savedEstimateId}`);
+              }}
+            >
+              Skapa projekt
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

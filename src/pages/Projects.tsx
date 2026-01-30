@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -68,10 +68,26 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Handle createFrom query param for auto-opening dialog
+  useEffect(() => {
+    const createFromId = searchParams.get("createFrom");
+    if (createFromId && !loading && estimates.length > 0) {
+      const estimateExists = estimates.find(e => e.id === createFromId);
+      if (estimateExists) {
+        setSelectedEstimateId(createFromId);
+        setDialogOpen(true);
+        // Clear the query param
+        searchParams.delete("createFrom");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, loading, estimates]);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
