@@ -107,7 +107,7 @@ export function StickyTotals({
   return (
     <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t shadow-lg p-3 -mx-4 -mb-4 mt-4 animate-slide-in-bottom">
       <div className="flex items-center justify-between gap-4 max-w-none">
-        <div className="flex items-center gap-4 text-[13px]">
+        <div className="flex items-center gap-4 text-[13px] flex-shrink min-w-0 overflow-hidden">
           <div className="hidden lg:block">
             <span className="text-muted-foreground">Arb:</span>
             <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(laborCost)}</span>
@@ -136,7 +136,7 @@ export function StickyTotals({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
             <p className="text-[11px] text-muted-foreground transition-opacity duration-200">
               {rotEnabled ? "Att betala (efter ROT)" : "Totalt inkl. moms"}
