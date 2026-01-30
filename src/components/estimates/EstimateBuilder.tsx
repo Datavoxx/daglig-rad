@@ -9,7 +9,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -287,6 +287,19 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
               )}
             </Button>
           )}
+          {/* Always visible save button */}
+          <Button
+            size="sm"
+            onClick={handleSaveAsCompleted}
+            disabled={estimate.isSaving}
+            className="h-8"
+          >
+            {estimate.isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+          </Button>
           {estimate.hasExistingEstimate && (
             <Button
               variant="ghost"
