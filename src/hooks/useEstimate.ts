@@ -564,6 +564,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     
     // Mutations
     save: saveMutation.mutate,
+    saveAsync: saveMutation.mutateAsync,
     isSaving: saveMutation.isPending,
     delete: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
