@@ -12,6 +12,7 @@ import {
   Landmark,
   LogOut,
   Menu,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },

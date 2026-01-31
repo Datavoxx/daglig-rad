@@ -9,7 +9,8 @@ const ALL_MODULES = [
   "customers",
   "guide",
   "settings",
-  "economy"
+  "economy",
+  "time-reporting"
 ];
 
 // All users get full access to all modules by default

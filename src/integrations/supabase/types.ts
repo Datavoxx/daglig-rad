@@ -1421,6 +1421,60 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          billing_type_id: string | null
+          created_at: string | null
+          date: string
+          description: string | null
+          employer_id: string
+          hours: number
+          id: string
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_type_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          employer_id: string
+          hours?: number
+          id?: string
+          project_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_type_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          employer_id?: string
+          hours?: number
+          id?: string
+          project_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_billing_type_id_fkey"
+            columns: ["billing_type_id"]
+            isOneToOne: false
+            referencedRelation: "billing_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           created_at: string | null

@@ -31,6 +31,7 @@ import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
 import Economy from "@/pages/Economy";
 import AcceptInvitation from "@/pages/AcceptInvitation";
+import TimeReporting from "@/pages/TimeReporting";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => {
               <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
               <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
               <Route path="/economy" element={<ProtectedModuleRoute module="economy"><Economy /></ProtectedModuleRoute>} />
+              <Route path="/time-reporting" element={<ProtectedModuleRoute module="time-reporting"><TimeReporting /></ProtectedModuleRoute>} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
