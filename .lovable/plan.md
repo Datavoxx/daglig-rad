@@ -1,59 +1,55 @@
-# Organisations- och Tidsrapporteringssystem
 
-## ✅ Steg 1 - Grunden (KLART)
+## Plan: Använd publicerad URL för inbjudningar
 
-1. ✅ Organisationsnamn tillagt i company_settings
-2. ✅ EmployeeManager förenklad (roll/timpris borttagen från UI)
-3. ✅ Ny tabell billing_types för debiteringstyper
-4. ✅ Ny komponent BillingTypeManager
+### Problem
+Inbjudningslänken skapas med `window.location.origin` vilket ger preview-URL:en som går genom Lovable's infrastruktur och visar en redirect-sida först.
 
----
-
-## ✅ Steg 2 - Inbjudningssystem (KLART)
-
-### Implementerat:
-
-1. ✅ **RESEND_API_KEY** sparad som hemlighet
-2. ✅ **Databas:**
-   - Ny tabell `employee_invitations` för att lagra tokens
-   - Nya kolumner i `employees`: `linked_user_id`, `invitation_status`
-3. ✅ **Edge functions:**
-   - `send-employee-invitation` - Skickar branded e-post via Resend
-   - `validate-invitation` - Validerar token
-   - `accept-invitation` - Skapar konto och aktiverar anställd
-4. ✅ **EmployeeManager:**
-   - Bjud in-knapp (✉️) för varje anställd med e-post
-   - Status-badge: "Ej inbjuden" / "Inbjudan skickad" / "Aktiv"
-5. ✅ **AcceptInvitation.tsx:**
-   - Ny sida på `/accept-invitation`
-   - Validerar token och visar lösenordsformulär
-   - Skapar konto och omdirigerar till inloggning
-
-### E-post design:
-- Byggio-logga (grön #22c55e)
-- Svensk text
-- "Aktivera mitt konto"-knapp
+### Lösning
+Ändra så att inbjudningslänken alltid använder den publicerade URL:en.
 
 ---
 
-## 🔜 Steg 3 - Tidsrapportering (KOMMANDE)
+### Alternativ 1: Hårdkodad produktions-URL (rekommenderat)
 
-### Planerat:
+**Ändringar i `EmployeeManager.tsx`:**
 
-1. **Separat vy för anställda** (`/staff/tidsrapport`)
-   - Enkel tidsrapportering per dag
-   - Koppling till debiteringstyper
-   - Endast tillgång till egna projekt
+Istället för:
+```typescript
+baseUrl: window.location.origin
+```
 
-2. **Roll-baserad routing:**
-   - Admin (ägare) → Fullständig åtkomst
-   - Anställd → Begränsad vy
+Använd:
+```typescript
+baseUrl: "https://daglig-rad.lovable.app"
+```
 
-3. **Databas:**
-   - Ny tabell `time_entries` för tidsregistreringar
-   - Koppling: employee → billing_type → project
+**Fördelar:** Enkelt och direkt. Länken går direkt till appen utan redirect.
 
-4. **Komponenter:**
-   - `StaffTimesheet.tsx` - Huvudvy för anställda
-   - `TimeEntryForm.tsx` - Formulär för att rapportera tid
-   - `StaffLayout.tsx` - Separat layout utan admin-meny
+**Nackdel:** Om du byter domän måste du uppdatera koden.
+
+---
+
+### Alternativ 2: Miljövariabel (mer flexibelt)
+
+Använd `VITE_APP_URL` eller liknande för att kunna konfigurera detta per miljö.
+
+---
+
+### Rekommendation
+
+**Alternativ 1** är enklast och fungerar direkt. Vi ändrar en rad i `EmployeeManager.tsx`:
+
+| Fil | Ändring |
+|-----|---------|
+| `src/components/settings/EmployeeManager.tsx` | Byt `window.location.origin` till `"https://daglig-rad.lovable.app"` |
+
+---
+
+### Resultat
+
+Inbjudningslänken blir:
+```
+https://daglig-rad.lovable.app/accept-invitation?token=abc123...
+```
+
+Användaren klickar och kommer direkt till aktiveringssidan utan mellanliggande redirect.
