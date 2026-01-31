@@ -4,6 +4,7 @@ import {
   FolderKanban,
   Calculator,
   Users,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -18,6 +19,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
 ];

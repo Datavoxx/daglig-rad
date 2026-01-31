@@ -132,6 +132,43 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error updating invitation:", updateInviteError);
     }
 
+    // Copy employer's company_settings to the new employee
+    const { data: employerSettings } = await supabase
+      .from("company_settings")
+      .select("*")
+      .eq("user_id", invitation.invited_by)
+      .single();
+
+    if (employerSettings) {
+      const { id, user_id, created_at, ...settingsToCopy } = employerSettings;
+      const { error: copySettingsError } = await supabase
+        .from("company_settings")
+        .insert({
+          ...settingsToCopy,
+          user_id: userId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (copySettingsError) {
+        console.error("Error copying company settings:", copySettingsError);
+      } else {
+        console.log(`Company settings copied from employer ${invitation.invited_by} to employee ${userId}`);
+      }
+    }
+
+    // Set restricted modules for the employee (override the default full access)
+    const { error: updatePermissionsError } = await supabase
+      .from("user_permissions")
+      .update({ modules: ["dashboard", "projects", "time-reporting"] })
+      .eq("user_id", userId);
+
+    if (updatePermissionsError) {
+      console.error("Error updating permissions:", updatePermissionsError);
+    } else {
+      console.log(`Permissions restricted to dashboard, projects, time-reporting for ${userId}`);
+    }
+
     console.log(`User account created for ${invitation.email}, linked to employee ${invitation.employee_id}`);
 
     return new Response(
