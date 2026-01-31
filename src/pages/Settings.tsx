@@ -10,12 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplateManager } from "@/components/settings/TemplateManager";
 import { EmployeeManager } from "@/components/settings/EmployeeManager";
+import { BillingTypeManager } from "@/components/settings/BillingTypeManager";
 
 interface CompanySettings {
   id?: string;
   user_id: string;
   company_name: string;
   org_number: string;
+  organization_name: string;
   address: string;
   postal_code: string;
   city: string;
@@ -38,6 +40,7 @@ export default function Settings() {
   const [companyForm, setCompanyForm] = useState({
     company_name: "",
     org_number: "",
+    organization_name: "",
     address: "",
     postal_code: "",
     city: "",
@@ -69,6 +72,7 @@ export default function Settings() {
       const hasChanges = 
         companyForm.company_name !== (companySettings.company_name || "") ||
         companyForm.org_number !== (companySettings.org_number || "") ||
+        companyForm.organization_name !== (companySettings.organization_name || "") ||
         companyForm.address !== (companySettings.address || "") ||
         companyForm.postal_code !== (companySettings.postal_code || "") ||
         companyForm.city !== (companySettings.city || "") ||
@@ -111,6 +115,7 @@ export default function Settings() {
       setCompanyForm({
         company_name: companyData.company_name || "",
         org_number: companyData.org_number || "",
+        organization_name: (companyData as any).organization_name || "",
         address: companyData.address || "",
         postal_code: companyData.postal_code || "",
         city: companyData.city || "",
@@ -296,6 +301,7 @@ export default function Settings() {
           <TabsTrigger value="mallar">Mallar</TabsTrigger>
           <TabsTrigger value="foretag">Företag</TabsTrigger>
           <TabsTrigger value="anstallda">Anställda</TabsTrigger>
+          <TabsTrigger value="debiteringstyper">Debiteringstyper</TabsTrigger>
         </TabsList>
 
         {/* Mallar tab */}
@@ -399,7 +405,21 @@ export default function Settings() {
                 </div>
               </div>
 
-              <Separator />
+              {/* Organization name */}
+              <div className="space-y-2">
+                <Label htmlFor="organization_name" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Organisationsnamn
+                </Label>
+                <Input
+                  id="organization_name"
+                  value={companyForm.organization_name}
+                  onChange={(e) => updateCompanyField("organization_name", e.target.value)}
+                  placeholder="Byggföretaget"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Visas för anställda när de loggar in
+                </p>
+              </div>
 
               {/* Address */}
               <div className="space-y-4">
@@ -589,6 +609,11 @@ export default function Settings() {
         {/* Anställda tab */}
         <TabsContent value="anstallda" className="space-y-6">
           <EmployeeManager />
+        </TabsContent>
+
+        {/* Debiteringstyper tab */}
+        <TabsContent value="debiteringstyper" className="space-y-6">
+          <BillingTypeManager />
         </TabsContent>
       </Tabs>
     </div>
