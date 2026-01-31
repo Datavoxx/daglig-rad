@@ -30,6 +30,7 @@ import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
 import Economy from "@/pages/Economy";
+import AcceptInvitation from "@/pages/AcceptInvitation";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
             <Route path="/guide-public" element={<GuidePublic />} />
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />
