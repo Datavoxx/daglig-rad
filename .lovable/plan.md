@@ -1,162 +1,175 @@
 
+## Plan: Organisations- och Tidsrapporteringssystem (Steg 1 - Grunden)
 
-## Plan: Rekommendation att starta projekt efter sparad offert
+### Sammanfattning
 
-### Översikt
-När användaren sparar en offert (markerar som klar) visas en dialog som rekommenderar att starta ett projekt med den offerten. Detta snabbar upp arbetsflödet från offert till projekt.
-
----
-
-### Ändringar i `src/components/estimates/EstimateBuilder.tsx`
-
-**1. Lägg till ny state för rekommendationsdialog (rad ~55):**
-```tsx
-const [showProjectRecommendation, setShowProjectRecommendation] = useState(false);
-const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
-```
-
-**2. Uppdatera `handleSaveAsCompleted` för att visa dialog efter framgångsrik sparning:**
-
-Problemet är att `save()` inte returnerar estimateId direkt. Vi behöver använda `saveMutation.mutateAsync` istället.
-
-Uppdatera useEstimate för att returnera `saveAsync`:
-```tsx
-// I useEstimate.ts
-saveAsync: saveMutation.mutateAsync,
-```
-
-Sedan i `handleSaveAsCompleted`:
-```tsx
-const handleSaveAsCompleted = async () => {
-  estimate.updateStatus("completed");
-  try {
-    const estimateId = await estimate.saveAsync();
-    setSavedEstimateId(estimateId);
-    setShowProjectRecommendation(true);
-  } catch (error) {
-    // Error handled by mutation
-  }
-};
-```
-
-**3. Lägg till import för `useNavigate`:**
-```tsx
-import { useNavigate } from "react-router-dom";
-```
-
-**4. Lägg till navigate-hook:**
-```tsx
-const navigate = useNavigate();
-```
-
-**5. Lägg till rekommendationsdialog:**
-```tsx
-<AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle className="flex items-center gap-2">
-        <FolderPlus className="h-5 w-5 text-primary" />
-        Starta projekt?
-      </AlertDialogTitle>
-      <AlertDialogDescription>
-        Offerten är sparad! Vill du direkt skapa ett projekt från denna offert? 
-        Det gör att du snabbt kan börja planera och hantera arbetet.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Inte nu</AlertDialogCancel>
-      <AlertDialogAction 
-        onClick={() => {
-          navigate(`/projects?createFrom=${savedEstimateId}`);
-        }}
-      >
-        Skapa projekt
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-```
-
-**6. Lägg till import för `FolderPlus`:**
-```tsx
-import { ..., FolderPlus } from "lucide-react";
-```
+Detta är **Steg 1** av ett större system för att hantera anställda med begränsad åtkomst och tidsrapportering. I detta steg bygger vi grunden:
+1. Lägg till organisationsnamn i företagsinställningar
+2. Förenkla anställda-formuläret (ta bort roll/timpris)
+3. Skapa ny flik "Debiteringstyper" för löne-/arbetstyper
 
 ---
 
-### Ändringar i `src/hooks/useEstimate.ts`
+### Del 1: Lägg till Organisationsnamn i Företagsinställningar
 
-**Lägg till `saveAsync` i return-objektet (rad ~566):**
-```tsx
-return {
-  // ...existing
-  save: saveMutation.mutate,
-  saveAsync: saveMutation.mutateAsync, // NY
-  isSaving: saveMutation.isPending,
-  // ...
-};
+**Varför?** Organisationsnamnet används för att identifiera företaget internt och blir viktigt när anställda bjuds in senare.
+
+**Databasändring:**
+```sql
+ALTER TABLE company_settings 
+ADD COLUMN IF NOT EXISTS organization_name text;
 ```
+
+**UI-ändring i Settings.tsx:**
+- Lägg till ett nytt fält "Organisationsnamn" bredvid Företagsnamn
+- Organisationsnamn är det interna namnet som anställda ser
+- Företagsnamn är det som visas på offerter/dokument
 
 ---
 
-### Ändringar i `src/pages/Projects.tsx`
+### Del 2: Förenkla Anställda-formuläret
 
-**1. Lägg till automatisk dialog-öppning vid `createFrom` query-param:**
+**Vad tas bort:**
+- Roll/Titel (flyttas till debiteringstyper vid tidsrapportering)
+- Timpris (hanteras via debiteringstyper)
 
-```tsx
-import { useNavigate, useSearchParams } from "react-router-dom";
+**Vad behålls:**
+- Namn (obligatoriskt)
+- Telefon
+- E-post
 
-// I komponenten:
-const [searchParams, setSearchParams] = useSearchParams();
+**Databasändring:**
+- Kolumnerna `role` och `hourly_rate` behålls i databasen för bakåtkompatibilitet
+- UI:t döljer dem bara
 
-useEffect(() => {
-  const createFromId = searchParams.get("createFrom");
-  if (createFromId && !loading && estimates.length > 0) {
-    const estimateExists = estimates.find(e => e.id === createFromId);
-    if (estimateExists) {
-      setSelectedEstimateId(createFromId);
-      setDialogOpen(true);
-      // Clear the query param
-      searchParams.delete("createFrom");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }
-}, [searchParams, loading, estimates]);
+**UI-ändring i EmployeeManager.tsx:**
+- Ta bort Roll/Titel-fältet från formuläret
+- Ta bort Timpris-fältet från formuläret
+- Ta bort visning av roll i listan
+
+---
+
+### Del 3: Ny flik "Debiteringstyper"
+
+**Inspiration:** Bygglets debiteringstyper med Namn, Förkortning, Pris, Sorteringsordning, Status
+
+**Ny databastabell: `billing_types`**
+```sql
+CREATE TABLE billing_types (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,                    -- Ex: "Ordinarie tid", "Målare", "Bygg"
+  abbreviation text NOT NULL,            -- Ex: "Ord", "Mål", "Bygg"
+  hourly_rate numeric DEFAULT 0,         -- Timpris för denna typ
+  sort_order integer DEFAULT 0,          -- Sorteringsordning
+  is_active boolean DEFAULT true,        -- Aktiv/Inaktiv
+  billing_category text DEFAULT 'work',  -- 'work' eller 'expense'
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- RLS-policies
+ALTER TABLE billing_types ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own billing types"
+  ON billing_types FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own billing types"
+  ON billing_types FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own billing types"
+  ON billing_types FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own billing types"
+  ON billing_types FOR DELETE USING (auth.uid() = user_id);
 ```
+
+**Ny komponent: BillingTypeManager.tsx**
+
+Liknande struktur som EmployeeManager med:
+- Tabell som visar: Namn | Förkortning | Pris | Sortering | Status
+- "Lägg till debiteringstyp"-knapp
+- Dialog för att skapa/redigera debiteringstyp
+- Möjlighet att aktivera/inaktivera (inte radera - för historik)
+
+**UI-ändring i Settings.tsx:**
+- Lägg till ny tab "Debiteringstyper" efter "Anställda"
+
+---
+
+### Filöversikt
+
+| Fil | Ändring |
+|-----|---------|
+| `company_settings` (DB) | Lägg till `organization_name` kolumn |
+| `billing_types` (DB) | Ny tabell för debiteringstyper |
+| `src/pages/Settings.tsx` | Lägg till organisationsnamn-fält + ny tab för debiteringstyper |
+| `src/components/settings/EmployeeManager.tsx` | Ta bort roll och timpris från formulär |
+| `src/components/settings/BillingTypeManager.tsx` | Ny komponent för att hantera debiteringstyper |
 
 ---
 
 ### Visuell förändring
 
-**Efter att användaren klickar Spara:**
+**Inställningar - Flikar (efter):**
 ```
-┌─────────────────────────────────────────────────────┐
-│  📁 Starta projekt?                                │
-│                                                     │
-│  Offerten är sparad! Vill du direkt skapa ett      │
-│  projekt från denna offert? Det gör att du snabbt  │
-│  kan börja planera och hantera arbetet.            │
-│                                                     │
-│                    [Inte nu]  [Skapa projekt]      │
-└─────────────────────────────────────────────────────┘
+[ Mallar ] [ Företag ] [ Anställda ] [ Debiteringstyper ]
+```
+
+**Företagsfliken (ny rad):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ FÖRETAGSNAMN              ORGANISATIONSNUMMER           │
+│ [AB Byggföretaget]        [556677-8899]                 │
+│                                                         │
+│ ORGANISATIONSNAMN (nytt)                                │
+│ [Byggföretaget]           (Visas för anställda)         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Anställda-formulär (förenklat):**
+```
+┌────────────────────────────────────┐
+│ Lägg till anställd                 │
+│                                    │
+│ NAMN *                             │
+│ [Erik Svensson]                    │
+│                                    │
+│ TELEFON           E-POST           │
+│ [070-123 45 67]   [erik@ex.se]     │
+│                                    │
+│         [Avbryt] [Lägg till]       │
+└────────────────────────────────────┘
+```
+
+**Debiteringstyper (ny vy):**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 💰 Debiteringstyper                               [+ Lägg till]             │
+│                                                                             │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │ NAMN           │ FÖRKORTNING │ PRIS   │ SORTERING │ STATUS   │         │ │
+│ ├─────────────────────────────────────────────────────────────────────────┤ │
+│ │ Ordinarie tid  │ Ord         │ 0 kr   │ 1         │ Aktiv    │ ✏️ 🗑️  │ │
+│ │ Målare         │ Mål         │ 550 kr │ 2         │ Aktiv    │ ✏️ 🗑️  │ │
+│ │ Bygg           │ Bygg        │ 550 kr │ 3         │ Aktiv    │ ✏️ 🗑️  │ │
+│ │ Anläggare      │ ANL         │ 550 kr │ 4         │ Aktiv    │ ✏️ 🗑️  │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Sammanfattning
+### Vad som kommer i Steg 2 (nästa omgång)
 
-| Fil | Ändring |
-|-----|---------|
-| `useEstimate.ts` | Lägg till `saveAsync` i return |
-| `EstimateBuilder.tsx` | Ny state, uppdaterad save-handler, ny dialog, imports |
-| `Projects.tsx` | Hantera `createFrom` query-param för att förifyla dialog |
+- Inbjudningssystem via e-post för anställda
+- Separat inloggningsportal för anställda
+- Tidsrapporteringsmodul med lön- och debiteringstyp per rad
+- Koppling mellan anställd-användare och organisation
 
 ---
 
-### Resultat
+### Teknisk sammanfattning
 
-- Efter sparning visas en rekommendation att starta projekt
-- Klickar användaren "Skapa projekt" navigeras de till projektsidan med dialogen förifylld
-- Klickar de "Inte nu" stängs dialogen och de stannar kvar i offerten
-- Smidigare arbetsflöde från försäljning till produktion
+1. **Databas:** 1 ny tabell (`billing_types`), 1 ny kolumn (`organization_name`)
+2. **Nya komponenter:** `BillingTypeManager.tsx`
+3. **Uppdaterade komponenter:** `Settings.tsx`, `EmployeeManager.tsx`
+4. **Inga breaking changes** - befintliga data påverkas ej
 
