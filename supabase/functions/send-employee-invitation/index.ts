@@ -188,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = generateEmailHtml(organizationName, employeeName, inviteUrl);
 
     const { error: emailError } = await resend.emails.send({
-      from: "Byggio <noreply@resend.dev>", // Change to your verified domain
+      from: "Byggio <info@datavoxx.se>",
       to: [employeeEmail],
       subject: `Du har bjudits in till ${organizationName} på Byggio`,
       html: emailHtml,
