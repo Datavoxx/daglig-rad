@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      billing_types: {
+        Row: {
+          abbreviation: string
+          billing_category: string | null
+          created_at: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          abbreviation: string
+          billing_category?: string | null
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          abbreviation?: string
+          billing_category?: string | null
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
@@ -29,6 +68,7 @@ export type Database = {
           logo_url: string | null
           momsregnr: string | null
           org_number: string | null
+          organization_name: string | null
           phone: string | null
           postal_code: string | null
           updated_at: string | null
@@ -49,6 +89,7 @@ export type Database = {
           logo_url?: string | null
           momsregnr?: string | null
           org_number?: string | null
+          organization_name?: string | null
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
@@ -69,6 +110,7 @@ export type Database = {
           logo_url?: string | null
           momsregnr?: string | null
           org_number?: string | null
+          organization_name?: string | null
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null

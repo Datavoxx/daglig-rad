@@ -46,10 +46,8 @@ export function EmployeeManager() {
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    role: "",
     phone: "",
     email: "",
-    hourly_rate: "",
   });
 
   const { data: employees = [], isLoading } = useQuery({
@@ -127,10 +125,8 @@ export function EmployeeManager() {
   const resetForm = () => {
     setFormData({
       name: "",
-      role: "",
       phone: "",
       email: "",
-      hourly_rate: "",
     });
   };
 
@@ -144,10 +140,8 @@ export function EmployeeManager() {
     setCurrentEmployee(employee);
     setFormData({
       name: employee.name,
-      role: employee.role || "",
       phone: employee.phone || "",
       email: employee.email || "",
-      hourly_rate: employee.hourly_rate?.toString() || "",
     });
     setDialogOpen(true);
   };
@@ -171,10 +165,8 @@ export function EmployeeManager() {
 
     saveMutation.mutate({
       name: formData.name.trim(),
-      role: formData.role.trim(),
       phone: formData.phone.trim(),
       email: formData.email.trim(),
-      hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
     });
   };
 
@@ -233,7 +225,6 @@ export function EmployeeManager() {
                     <div>
                       <p className="font-medium text-sm">{employee.name}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {employee.role && <span>{employee.role}</span>}
                         {employee.phone && (
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
@@ -299,16 +290,6 @@ export function EmployeeManager() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Roll/Titel</Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                placeholder="Snickare"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefon</Label>
@@ -329,17 +310,6 @@ export function EmployeeManager() {
                   placeholder="erik@exempel.se"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Timpris (kr)</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                value={formData.hourly_rate}
-                onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                placeholder="450"
-              />
             </div>
           </div>
 
