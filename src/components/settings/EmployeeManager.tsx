@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,6 +43,8 @@ interface Employee {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  linked_user_id: string | null;
+  invitation_status: string | null;
 }
 
 export function EmployeeManager() {
@@ -48,6 +56,24 @@ export function EmployeeManager() {
     name: "",
     phone: "",
     email: "",
+  });
+
+  // Fetch company settings for organization name
+  const { data: companySettings } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return null;
+      
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("organization_name, company_name")
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: employees = [], isLoading } = useQuery({
@@ -122,6 +148,36 @@ export function EmployeeManager() {
     },
   });
 
+  const inviteMutation = useMutation({
+    mutationFn: async (employee: Employee) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not authenticated");
+
+      const organizationName = companySettings?.organization_name || companySettings?.company_name || "Din organisation";
+
+      const { data, error } = await supabase.functions.invoke("send-employee-invitation", {
+        body: {
+          employeeId: employee.id,
+          employeeEmail: employee.email,
+          employeeName: employee.name,
+          organizationName,
+          baseUrl: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Inbjudan skickad!");
+    },
+    onError: (error: Error) => {
+      toast.error("Kunde inte skicka inbjudan", { description: error.message });
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -176,6 +232,25 @@ export function EmployeeManager() {
     }
   };
 
+  const handleInvite = (employee: Employee) => {
+    if (!employee.email) {
+      toast.error("Anställd saknar e-postadress");
+      return;
+    }
+    inviteMutation.mutate(employee);
+  };
+
+  const getInvitationStatusBadge = (employee: Employee) => {
+    switch (employee.invitation_status) {
+      case "accepted":
+        return <Badge variant="success" className="text-xs">Aktiv</Badge>;
+      case "pending":
+        return <Badge variant="warning" className="text-xs">Inbjudan skickad</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs">Ej inbjuden</Badge>;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -223,7 +298,10 @@ export function EmployeeManager() {
                       <User className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{employee.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{employee.name}</p>
+                        {getInvitationStatusBadge(employee)}
+                      </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         {employee.phone && (
                           <span className="flex items-center gap-1">
@@ -241,6 +319,37 @@ export function EmployeeManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleInvite(employee)}
+                          disabled={
+                            !employee.email ||
+                            employee.invitation_status === "pending" ||
+                            employee.invitation_status === "accepted" ||
+                            inviteMutation.isPending
+                          }
+                        >
+                          {inviteMutation.isPending && inviteMutation.variables?.id === employee.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {!employee.email
+                          ? "Lägg till e-post för att bjuda in"
+                          : employee.invitation_status === "accepted"
+                          ? "Redan aktiverad"
+                          : employee.invitation_status === "pending"
+                          ? "Inbjudan redan skickad"
+                          : "Skicka inbjudan"}
+                      </TooltipContent>
+                    </Tooltip>
                     <Button
                       variant="ghost"
                       size="icon"
