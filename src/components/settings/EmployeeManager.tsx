@@ -161,7 +161,7 @@ export function EmployeeManager() {
           employeeEmail: employee.email,
           employeeName: employee.name,
           organizationName,
-          baseUrl: window.location.origin,
+          baseUrl: "https://daglig-rad.lovable.app",
         },
       });
 
