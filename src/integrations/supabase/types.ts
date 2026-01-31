@@ -265,13 +265,59 @@ export type Database = {
           },
         ]
       }
+      employee_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          employee_id: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_name: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          employee_id: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_name?: string | null
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          employee_id?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_name?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_invitations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           created_at: string
           email: string | null
           hourly_rate: number | null
           id: string
+          invitation_status: string | null
           is_active: boolean | null
+          linked_user_id: string | null
           name: string
           phone: string | null
           role: string | null
@@ -283,7 +329,9 @@ export type Database = {
           email?: string | null
           hourly_rate?: number | null
           id?: string
+          invitation_status?: string | null
           is_active?: boolean | null
+          linked_user_id?: string | null
           name: string
           phone?: string | null
           role?: string | null
@@ -295,7 +343,9 @@ export type Database = {
           email?: string | null
           hourly_rate?: number | null
           id?: string
+          invitation_status?: string | null
           is_active?: boolean | null
+          linked_user_id?: string | null
           name?: string
           phone?: string | null
           role?: string | null
