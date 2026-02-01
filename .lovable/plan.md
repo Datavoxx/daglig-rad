@@ -1,138 +1,107 @@
 
 
-## Webhook för Nyregistrerade Konton
+## Lägg till Enter-stöd på alla formulär
 
 ### Översikt
 
-Skicka en webhook-notifiering till n8n varje gång ett nytt konto skapas i Byggio. Detta ger dig realtidsinformation om nya användare.
-
-### Arkitektur
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Register.tsx                                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  1. supabase.auth.signUp() ✓                            │   │
-│  │  2. supabase.auth.signInWithPassword() ✓                │   │
-│  │  3. supabase.functions.invoke("notify-new-account") ◄── │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Edge Function: notify-new-account                              │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  - Ta emot: email, full_name, user_id                   │   │
-│  │  - Skicka POST till n8n webhook                          │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  n8n Webhook                                                    │
-│  https://datavox.app.n8n.cloud/webhook/nytt-konto               │
-└─────────────────────────────────────────────────────────────────┘
-```
+Implementera tangentbords-Enter-stöd på 4 formulär som saknar det. När användaren fyller i uppgifter och trycker Enter ska formuläret sparas/skickas automatiskt utan att behöva klicka med musen.
 
 ### Filer som påverkas
 
-| Fil | Ändring |
-|-----|---------|
-| `supabase/functions/notify-new-account/index.ts` | **NY** - Webhook-notifiering |
-| `supabase/config.toml` | Lägg till notify-new-account function |
-| `src/pages/Register.tsx` | Anropa edge function efter lyckad registrering |
+| Fil | Nuläge | Ändring |
+|-----|--------|---------|
+| `src/components/customers/CustomerFormDialog.tsx` | `onClick` på spara-knapp | Wrap i `<form>` + `onSubmit` |
+| `src/components/invoices/CustomerInvoiceDialog.tsx` | `onClick` på spara-knappar | Wrap i `<form>` + `onSubmit` |
+| `src/components/invoices/VendorInvoiceDialog.tsx` | `onClick` på spara-knapp | Wrap i `<form>` + `onSubmit` |
+| `src/pages/Profile.tsx` | `onClick` på spara-knapp | Wrap i `<form>` + `onSubmit` |
 
-### Teknisk implementation
+### Implementation
 
-#### 1. Ny Edge Function: notify-new-account
+#### 1. CustomerFormDialog.tsx
 
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
-};
-
-const N8N_WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/nytt-konto";
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { email, full_name, user_id } = await req.json();
-
-    const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        full_name,
-        user_id,
-        registered_at: new Date().toISOString(),
-        source: "byggio-web",
-      }),
-    });
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error in notify-new-account:", error);
-    return new Response(JSON.stringify({ success: false }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-});
-```
-
-#### 2. Uppdatera Register.tsx
-
-Efter lyckad inloggning (rad 95-97), lägg till webhook-anrop:
+Wrap formulärinnehållet i en `<form>` och ändra spara-knappen till `type="submit"`:
 
 ```typescript
-// Efter lyckad auto-login
-} else {
-  // Skicka webhook för nytt konto (fire-and-forget)
-  supabase.functions.invoke("notify-new-account", {
-    body: {
-      email,
-      full_name: fullName,
-      user_id: (await supabase.auth.getUser()).data.user?.id,
-    },
-  }).catch(console.error);
+// Före (rad 207-369):
+<div className="space-y-4 py-4">
+  {/* formulärfält */}
+</div>
+<DialogFooter>
+  <Button onClick={handleSave}>Spara</Button>
+</DialogFooter>
 
-  toast({ title: "Välkommen till Byggio!" });
-  navigate("/dashboard");
-}
+// Efter:
+<form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+  <div className="space-y-4 py-4">
+    {/* formulärfält */}
+  </div>
+  <DialogFooter>
+    <Button type="button" variant="outline" onClick={() => handleClose(false)}>
+      Avbryt
+    </Button>
+    <Button type="submit" disabled={saving}>
+      Spara
+    </Button>
+  </DialogFooter>
+</form>
 ```
 
-#### 3. Uppdatera config.toml
+#### 2. CustomerInvoiceDialog.tsx
 
-```toml
-[functions.notify-new-account]
-verify_jwt = false
+Samma mönster - wrap ScrollArea-innehållet och action-knapparna i en `<form>`:
+
+```typescript
+// Ändra så "Spara utkast" blir type="submit" (default action vid Enter)
+<form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate("draft"); }}>
+  <ScrollArea>...</ScrollArea>
+  <div className="flex gap-2">
+    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Avbryt</Button>
+    <Button type="submit">Spara utkast</Button>
+    <Button type="button" onClick={() => saveMutation.mutate("sent")}>Markera som skickad</Button>
+  </div>
+</form>
 ```
 
-### Data som skickas till n8n
+#### 3. VendorInvoiceDialog.tsx
 
-```json
-{
-  "email": "nyanvandare@example.com",
-  "full_name": "Anna Andersson",
-  "user_id": "uuid-xxx",
-  "registered_at": "2026-02-01T21:00:00.000Z",
-  "source": "byggio-web"
-}
+Wrap innehållet i en `<form>` med spara som submit:
+
+```typescript
+<form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }}>
+  <ScrollArea>...</ScrollArea>
+  <div className="flex gap-2">
+    <Button type="button" variant="outline">Avbryt</Button>
+    <Button type="submit">Spara ändringar</Button>
+  </div>
+</form>
 ```
 
-### Fördelar
+#### 4. Profile.tsx
 
-- **Realtidsnotifiering** - Du får veta om nya konton direkt
-- **Fire-and-forget** - Blockerar inte användarupplevelsen
-- **Konsekvent mönster** - Samma arkitektur som error-rapportering
-- **Ingen databasändring** - Allt sker via edge function
+Wrap personlig information-formuläret i en `<form>`:
+
+```typescript
+// Ändra CardContent (rad 268-331) till:
+<form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+  <CardContent className="space-y-6">
+    {/* input fields */}
+    <Button type="submit" disabled={saving || !hasChanges}>
+      Spara ändringar
+    </Button>
+  </CardContent>
+</form>
+```
+
+### Tekniska detaljer
+
+**Mönstret som används:**
+1. Wrap alla input-fält och submit-knappen i ett `<form>`-element
+2. Lägg till `onSubmit={(e) => { e.preventDefault(); handleSave(); }}`
+3. Ändra primär spara-knapp till `type="submit"`
+4. Behåll avbryt/sekundära knappar som `type="button"` för att förhindra oavsiktlig submit
+
+**Fördelar:**
+- Nativt webbläsarbeteende - Enter triggar submit
+- Tillgängligt för tangentbordsnavigation
+- Konsekvent UX genom hela appen
 
