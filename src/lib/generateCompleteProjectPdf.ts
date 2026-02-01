@@ -71,6 +71,16 @@ interface DiaryReport {
   notes: string | null;
 }
 
+interface TimeEntry {
+  id: string;
+  date: string;
+  hours: number;
+  description: string | null;
+  billing_type_name: string | null;
+  salary_type_name: string | null;
+  user_name: string | null;
+}
+
 interface CompanySettings {
   company_name: string | null;
   org_number: string | null;
@@ -89,6 +99,7 @@ interface CompleteProjectPdfOptions {
   ataItems: AtaItem[];
   plan: Plan | null;
   diaryReports: DiaryReport[];
+  timeEntries?: TimeEntry[];
   companySettings: CompanySettings | null;
 }
 
@@ -111,7 +122,7 @@ const formatDate = (dateString: string | null) => {
 };
 
 export async function generateCompleteProjectPdf(options: CompleteProjectPdfOptions) {
-  const { project, estimate, estimateItems, ataItems, plan, diaryReports, companySettings } = options;
+  const { project, estimate, estimateItems, ataItems, plan, diaryReports, timeEntries = [], companySettings } = options;
 
   const doc = new jsPDF();
   let yPos = 20;
@@ -335,11 +346,48 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
     });
 
     // Diary totals
-    const totalHours = diaryReports.reduce((sum, r) => sum + (r.total_hours || 0), 0);
+    const totalDiaryHours = diaryReports.reduce((sum, r) => sum + (r.total_hours || 0), 0);
     yPos = (doc as any).lastAutoTable.finalY + 5;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text(`Totalt arbetade timmar: ${totalHours}`, 14, yPos);
+    doc.text(`Totalt arbetade timmar: ${totalDiaryHours}`, 14, yPos);
+    yPos += 15;
+  }
+
+  // === TIME ENTRIES ===
+  if (timeEntries.length > 0) {
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Tidsrapporter", 14, yPos);
+    yPos += 10;
+
+    const timeData = timeEntries.map((entry) => [
+      formatDate(entry.date),
+      entry.user_name || "-",
+      entry.hours.toFixed(1) + "h",
+      entry.billing_type_name || "-",
+      entry.description || "-",
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Datum", "Personal", "Timmar", "Debiteringstyp", "Beskrivning"]],
+      body: timeData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60] },
+      columnStyles: {
+        4: { cellWidth: 60 },
+      },
+    });
+
+    // Time entries total
+    const totalTimeHours = timeEntries.reduce((sum, e) => sum + e.hours, 0);
+    yPos = (doc as any).lastAutoTable.finalY + 5;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Totalt: ${totalTimeHours.toFixed(1)} timmar`, 14, yPos);
     yPos += 15;
   }
 
