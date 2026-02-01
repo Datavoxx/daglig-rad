@@ -1,32 +1,28 @@
 
 
-## Error Webhook Monitoring för Edge Functions
+## Webhook för Nyregistrerade Konton
 
 ### Översikt
 
-Implementera ett centraliserat error-monitoring-system som skickar en webhook till n8n varje gång ett fel uppstår i någon av edge functions. Detta ger dig realtidsnotifieringar om alla fel i systemet.
+Skicka en webhook-notifiering till n8n varje gång ett nytt konto skapas i Byggio. Detta ger dig realtidsinformation om nya användare.
 
 ### Arkitektur
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  Edge Function (t.ex. generate-report)                         │
+│  Register.tsx                                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  try {                                                   │   │
-│  │    // normal logic                                       │   │
-│  │  } catch (error) {                                       │   │
-│  │    await reportError({ ... })  ◄── Nytt anrop            │   │
-│  │    return Response(500)                                  │   │
-│  │  }                                                       │   │
+│  │  1. supabase.auth.signUp() ✓                            │   │
+│  │  2. supabase.auth.signInWithPassword() ✓                │   │
+│  │  3. supabase.functions.invoke("notify-new-account") ◄── │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Edge Function: report-error                                    │
+│  Edge Function: notify-new-account                              │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  - Ta emot: function_name, error, context               │   │
-│  │  - Logga till console                                    │   │
+│  │  - Ta emot: email, full_name, user_id                   │   │
 │  │  - Skicka POST till n8n webhook                          │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └──────────────────────────┬──────────────────────────────────────┘
@@ -34,11 +30,7 @@ Implementera ett centraliserat error-monitoring-system som skickar en webhook ti
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  n8n Webhook                                                    │
-│  https://datavox.app.n8n.cloud/webhook/error-byggio             │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  - Mottag error data                                     │   │
-│  │  - Skicka notifiering (Slack, email, etc.)              │   │
-│  └─────────────────────────────────────────────────────────┘   │
+│  https://datavox.app.n8n.cloud/webhook/nytt-konto               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -46,47 +38,23 @@ Implementera ett centraliserat error-monitoring-system som skickar en webhook ti
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/report-error/index.ts` | **NY** - Central error-rapportering |
-| `supabase/config.toml` | Lägg till report-error function |
-| `supabase/functions/generate-report/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/transcribe-audio/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/generate-plan/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/prefill-inspection/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/send-employee-invitation/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/extract-vendor-invoice/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/generate-estimate/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/apply-voice-edits/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/apply-estimate-voice-edits/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/apply-full-estimate-voice/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/apply-summary-voice-edits/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/parse-template-voice/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/accept-invitation/index.ts` | Lägg till reportError() anrop |
-| `supabase/functions/validate-invitation/index.ts` | Lägg till reportError() anrop |
+| `supabase/functions/notify-new-account/index.ts` | **NY** - Webhook-notifiering |
+| `supabase/config.toml` | Lägg till notify-new-account function |
+| `src/pages/Register.tsx` | Anropa edge function efter lyckad registrering |
 
-### Implementation
+### Teknisk implementation
 
-#### 1. Ny Edge Function: report-error
-
-Denna funktion tar emot error-information och skickar till n8n:
+#### 1. Ny Edge Function: notify-new-account
 
 ```typescript
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
 };
 
-const N8N_WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/error-byggio";
-
-interface ErrorReport {
-  function_name: string;
-  error_message: string;
-  error_stack?: string;
-  context?: Record<string, unknown>;
-  timestamp: string;
-  severity: "error" | "warning" | "critical";
-}
+const N8N_WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/nytt-konto";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -94,31 +62,25 @@ serve(async (req) => {
   }
 
   try {
-    const errorReport: ErrorReport = await req.json();
+    const { email, full_name, user_id } = await req.json();
 
-    console.log(`[ERROR REPORT] ${errorReport.function_name}: ${errorReport.error_message}`);
-
-    // Skicka till n8n webhook
     const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...errorReport,
-        environment: Deno.env.get("ENVIRONMENT") || "production",
-        project: "byggio",
+        email,
+        full_name,
+        user_id,
+        registered_at: new Date().toISOString(),
+        source: "byggio-web",
       }),
     });
-
-    if (!webhookResponse.ok) {
-      console.error("Failed to send to n8n:", await webhookResponse.text());
-    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    // Vi loggar bara här, ingen rekursiv rapportering
-    console.error("Error in report-error function:", error);
+    console.error("Error in notify-new-account:", error);
     return new Response(JSON.stringify({ success: false }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -127,94 +89,50 @@ serve(async (req) => {
 });
 ```
 
-#### 2. Helper-funktion för varje edge function
+#### 2. Uppdatera Register.tsx
 
-Lägg till denna funktion överst i varje edge function:
+Efter lyckad inloggning (rad 95-97), lägg till webhook-anrop:
 
 ```typescript
-async function reportError(
-  functionName: string, 
-  error: unknown, 
-  context?: Record<string, unknown>
-): Promise<void> {
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-    
-    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({
-        function_name: functionName,
-        error_message: error instanceof Error ? error.message : String(error),
-        error_stack: error instanceof Error ? error.stack : undefined,
-        context,
-        timestamp: new Date().toISOString(),
-        severity: "error",
-      }),
-    });
-  } catch (reportErr) {
-    // Tysta fel här för att inte krascha huvudlogiken
-    console.error("Failed to report error:", reportErr);
-  }
+// Efter lyckad auto-login
+} else {
+  // Skicka webhook för nytt konto (fire-and-forget)
+  supabase.functions.invoke("notify-new-account", {
+    body: {
+      email,
+      full_name: fullName,
+      user_id: (await supabase.auth.getUser()).data.user?.id,
+    },
+  }).catch(console.error);
+
+  toast({ title: "Välkommen till Byggio!" });
+  navigate("/dashboard");
 }
 ```
 
-#### 3. Uppdatera catch-block i alla edge functions
+#### 3. Uppdatera config.toml
 
-Exempel för generate-report:
-
-```typescript
-} catch (error) {
-  console.error("Error in generate-report:", error);
-  
-  // Ny rad: Skicka error till webhook
-  await reportError("generate-report", error, { 
-    transcript_length: transcript?.length,
-    project_id 
-  });
-  
-  return new Response(
-    JSON.stringify({ error: error instanceof Error ? error.message : "Okänt fel" }),
-    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
+```toml
+[functions.notify-new-account]
+verify_jwt = false
 ```
 
 ### Data som skickas till n8n
 
-Varje error-rapport innehåller:
-
 ```json
 {
-  "function_name": "generate-report",
-  "error_message": "AI gateway error: 500",
-  "error_stack": "Error: AI gateway error: 500\n    at ...",
-  "context": {
-    "transcript_length": 1234,
-    "project_id": "uuid-xxx"
-  },
-  "timestamp": "2026-02-01T20:30:00.000Z",
-  "severity": "error",
-  "environment": "production",
-  "project": "byggio"
+  "email": "nyanvandare@example.com",
+  "full_name": "Anna Andersson",
+  "user_id": "uuid-xxx",
+  "registered_at": "2026-02-01T21:00:00.000Z",
+  "source": "byggio-web"
 }
 ```
 
 ### Fördelar
 
-- **Realtidsnotifieringar** - Du får veta om fel direkt
-- **Ingen data i databasen** - Allt skickas till n8n för extern hantering
-- **Minimal overhead** - Fire-and-forget, blockerar inte huvudlogiken
-- **Kontext inkluderad** - Varje fel har relevant metadata för debugging
-- **Centraliserad lösning** - En enda funktion hanterar all rapportering
-
-### Säkerhetshänsyn
-
-- Webhook-URL:en är hårdkodad men kan flyttas till en secret om önskat
-- Inga känsliga användardata inkluderas i error-rapporter (bara metadata)
-- rate-limit errors (429) och payment errors (402) rapporteras också
+- **Realtidsnotifiering** - Du får veta om nya konton direkt
+- **Fire-and-forget** - Blockerar inte användarupplevelsen
+- **Konsekvent mönster** - Samma arkitektur som error-rapportering
+- **Ingen databasändring** - Allt sker via edge function
 
