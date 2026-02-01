@@ -157,135 +157,137 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6 pb-4">
-            {/* Status */}
-            <div className="flex items-center gap-3">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">Ny</SelectItem>
-                  <SelectItem value="reviewed">Granskad</SelectItem>
-                  <SelectItem value="attested">Attesterad</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Basic info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Leverantör *</Label>
-                <Input
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  placeholder="Leverantörsnamn"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Fakturanummer</Label>
-                <Input
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  placeholder="F-12345"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Fakturadatum</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Förfallodatum</Label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Projekt</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj projekt" />
+        <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }}>
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-6 pb-4">
+              {/* Status */}
+              <div className="flex items-center gap-3">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v: any) => setStatus(v)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="new">Ny</SelectItem>
+                    <SelectItem value="reviewed">Granskad</SelectItem>
+                    <SelectItem value="attested">Attesterad</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <Separator />
-
-            {/* Invoice Rows */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">Fakturarader</Label>
-              <InvoiceRowEditor rows={rows} onChange={setRows} />
-            </div>
-
-            <Separator />
-
-            {/* Totals */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Summa exkl. moms</Label>
-                <Input
-                  type="number"
-                  value={totalExVat || ""}
-                  onChange={(e) => setTotalExVat(parseFloat(e.target.value) || 0)}
-                />
+              {/* Basic info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Leverantör *</Label>
+                  <Input
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                    placeholder="Leverantörsnamn"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fakturanummer</Label>
+                  <Input
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    placeholder="F-12345"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Moms</Label>
-                <Input
-                  type="number"
-                  value={vatAmount || ""}
-                  onChange={(e) => setVatAmount(parseFloat(e.target.value) || 0)}
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Fakturadatum</Label>
+                  <Input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Förfallodatum</Label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Projekt</Label>
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj projekt" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Totalt inkl. moms</Label>
-                <Input
-                  type="number"
-                  value={totalIncVat || ""}
-                  onChange={(e) => setTotalIncVat(parseFloat(e.target.value) || 0)}
-                  className="font-semibold"
-                />
+
+              <Separator />
+
+              {/* Invoice Rows */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Fakturarader</Label>
+                <InvoiceRowEditor rows={rows} onChange={setRows} />
+              </div>
+
+              <Separator />
+
+              {/* Totals */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Summa exkl. moms</Label>
+                  <Input
+                    type="number"
+                    value={totalExVat || ""}
+                    onChange={(e) => setTotalExVat(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Moms</Label>
+                  <Input
+                    type="number"
+                    value={vatAmount || ""}
+                    onChange={(e) => setVatAmount(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Totalt inkl. moms</Label>
+                  <Input
+                    type="number"
+                    value={totalIncVat || ""}
+                    onChange={(e) => setTotalIncVat(parseFloat(e.target.value) || 0)}
+                    className="font-semibold"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
-          </Button>
-          {invoice.pdf_storage_path && (
-            <Button variant="outline" onClick={handleViewPdf}>
-              <FileText className="h-4 w-4 mr-2" />
-              Visa PDF
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Avbryt
             </Button>
-          )}
-          <div className="flex-1" />
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 mr-2" />
-            Spara ändringar
-          </Button>
-        </div>
+            {invoice.pdf_storage_path && (
+              <Button type="button" variant="outline" onClick={handleViewPdf}>
+                <FileText className="h-4 w-4 mr-2" />
+                Visa PDF
+              </Button>
+            )}
+            <div className="flex-1" />
+            <Button type="submit" disabled={saveMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              Spara ändringar
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -265,71 +265,73 @@ export default function Profile() {
             <CardTitle className="text-base">Personlig information</CardTitle>
             <CardDescription>Uppdatera dina personuppgifter</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Fullständigt namn
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ditt namn"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    E-postadress
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      value={profile?.email || ""}
+                      disabled
+                      className="pl-10 bg-muted/50 border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Fullständigt namn
+                <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Telefonnummer
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ditt namn"
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="070-123 45 67"
                     className="pl-10"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  E-postadress
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    value={profile?.email || ""}
-                    disabled
-                    className="pl-10 bg-muted/50 border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Telefonnummer
-              </Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="070-123 45 67"
-                  className="pl-10"
-                />
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={saving || !hasChanges} className="gap-2">
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sparar...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Spara ändringar
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} disabled={saving || !hasChanges} className="gap-2">
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sparar...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Spara ändringar
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
+            </CardContent>
+          </form>
         </Card>
       </div>
     </div>
