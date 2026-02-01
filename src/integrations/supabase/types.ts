@@ -1383,9 +1383,9 @@ export type Database = {
         Row: {
           abbreviation: string
           created_at: string | null
-          hourly_cost: number | null
           id: string
           is_active: boolean | null
+          markup_percent: number | null
           name: string
           sort_order: number | null
           updated_at: string | null
@@ -1394,9 +1394,9 @@ export type Database = {
         Insert: {
           abbreviation: string
           created_at?: string | null
-          hourly_cost?: number | null
           id?: string
           is_active?: boolean | null
+          markup_percent?: number | null
           name: string
           sort_order?: number | null
           updated_at?: string | null
@@ -1405,9 +1405,9 @@ export type Database = {
         Update: {
           abbreviation?: string
           created_at?: string | null
-          hourly_cost?: number | null
           id?: string
           is_active?: boolean | null
+          markup_percent?: number | null
           name?: string
           sort_order?: number | null
           updated_at?: string | null
