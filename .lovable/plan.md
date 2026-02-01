@@ -1,107 +1,86 @@
 
 
-## Förbättra Faktura-PDF Footer
+## Fix: Åtgärda överlappning mellan Betalningsinformation och Footer
 
 ### Problem
 
-Nuvarande footer har:
-1. **Trång kolumn 3** - Bankgiro, Momsreg.nr och Org.nr är staplade på varandra
-2. **E-post syns dåligt** - Gömd under telefonnummer i kolumn 2
-3. **Inkonsekvent layout** - Rubriker och värden blandas på ett förvirrande sätt
+Som bilden visar överlappar "OCR/Referens" med footer-kolumnerna (Postadress, Kontakt, etc.). Det saknas tydlig separation och footern är för nära betalningsinformationen.
 
 ### Lösning
 
-Omorganisera footern till en mer lättläst 2-rads layout med tydliga sektioner:
+1. **Ta bort duplicerad information** - Betalningssektionen visar bankgiro som redan finns i footern
+2. **Flytta footern längre ner** - Ge mer utrymme mellan innehåll och footer
+3. **Lägg till tydlig separator-linje** ovanför footern
 
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│                                                                            │
-│ Postadress          Kontakt              Betalning           Organisaton   │
-│ ─────────────────────────────────────────────────────────────────────────  │
-│ JIAAB               Tel: 0707747731      Bankgiro: 142-7137  Org.nr:       │
-│ Gatan 1             E-post:              Momsreg.nr:         5594161894    │
-│ 123 45 Stad         mmagenzy.info@...    SE559416189401      F-skatt: Ja   │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Tekniska ändringar
+### Ändringar
 
 | Fil | Ändring |
 |-----|---------|
-| `src/lib/generateCustomerInvoicePdf.ts` | Uppdatera `drawFooter()` med ny 4-kolumn layout |
+| `src/lib/generateCustomerInvoicePdf.ts` | Ta bort betalningssektionen och förbättra footerns position |
 
-### Ny footerstruktur
+### Ny struktur
 
-**Kolumn 1: Postadress**
-- Företagsnamn
-- Gatuadress
-- Postnummer + Ort
+```text
+┌────────────────────────────────────────────────────────────────┐
+│                                                                │
+│ [Faktura-innehåll]                                             │
+│                                                                │
+│                     Summa exkl. moms        xxx kr             │
+│                     Moms 25%                xxx kr             │
+│                     ┌────────────────────────────┐             │
+│                     │ ATT BETALA        xxx kr   │             │
+│                     └────────────────────────────┘             │
+│                                                                │
+│ Betalvillkor: 30 dagar netto                                   │
+│ OCR/Referens: INV-2026-0001                                    │
+│                                                                │
+│ ═══════════════════════════════════════════════════════════    │  <-- Tydlig separator
+│                                                                │
+│ Postadress     │ Kontakt           │ Betalning     │ Org       │
+│ JIAAB          │ Tel: 0707...      │ Bankgiro:     │ Org.nr:   │
+│ –              │ E-post: mma...    │ 142-7137      │ 5594...   │
+│ –              │                   │ Momsreg.nr:   │ F-skatt:  │
+│                │                   │ SE559...      │ Ja        │
+└────────────────────────────────────────────────────────────────┘
+```
 
-**Kolumn 2: Kontakt**
-- Telefon med "Tel:"-prefix
-- E-post med "E-post:"-prefix
+### Kodjusteringar
 
-**Kolumn 3: Betalning**
-- Bankgiro med label
-- Momsreg.nr med label
+**1. Ta bort duplicerad bankgiro från betalningssektionen**
 
-**Kolumn 4: Organisation**
-- Org.nr med label
-- F-skatt-status
+```typescript
+// Payment info - simplified (bankgiro is now in footer)
+yPos += 30;
+doc.setFontSize(9);
+doc.setFont("helvetica", "normal");
+doc.setTextColor(50, 50, 50);
+doc.text(`Betalvillkor: ${invoice.payment_terms || "30 dagar netto"}`, margin, yPos);
+yPos += 5;
+doc.text(`OCR/Referens: ${invoice.invoice_number}`, margin, yPos);
+```
 
-### Kodjustering
+**2. Flytta footern längre ner och lägg till mer avstånd**
 
 ```typescript
 const drawFooter = () => {
-  const footerY = pageHeight - 28; // Lite mer utrymme
+  const footerY = pageHeight - 22; // Flyttad närmare botten (var 28)
   
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
+  // Separator line above footer
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.5);
   doc.line(margin, footerY, pageWidth - margin, footerY);
   
   const colWidth = (pageWidth - margin * 2) / 4;
-  let y = footerY + 5;
+  let y = footerY + 4;
   
-  // Kolumnrubriker
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "bold");
-  doc.text("Postadress", margin, y);
-  doc.text("Kontakt", margin + colWidth, y);
-  doc.text("Betalning", margin + colWidth * 2, y);
-  doc.text("Organisation", margin + colWidth * 3, y);
-  
-  y += 4;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(60, 60, 60);
-  
-  // Kolumn 1: Postadress
-  doc.text(company?.company_name || "–", margin, y);
-  doc.text(company?.address || "–", margin, y + 3.5);
-  const postalLine = `${company?.postal_code || ""} ${company?.city || ""}`.trim();
-  doc.text(postalLine || "–", margin, y + 7);
-  
-  // Kolumn 2: Kontakt (med tydliga labels)
-  doc.text(`Tel: ${company?.phone || "–"}`, margin + colWidth, y);
-  doc.text(`E-post: ${company?.email || "–"}`, margin + colWidth, y + 3.5);
-  
-  // Kolumn 3: Betalning
-  doc.text(`Bankgiro: ${company?.bankgiro || "–"}`, margin + colWidth * 2, y);
-  doc.text(`Momsreg.nr: ${company?.momsregnr || "–"}`, margin + colWidth * 2, y + 3.5);
-  
-  // Kolumn 4: Organisation
-  doc.text(`Org.nr: ${company?.org_number || "–"}`, margin + colWidth * 3, y);
-  doc.text(`F-skatt: ${company?.f_skatt !== false ? "Ja" : "Nej"}`, margin + colWidth * 3, y + 3.5);
+  // ... resten av footern
 };
 ```
 
-### Förbättringar
+### Resultat
 
-- ✅ **E-post tydligt synlig** med "E-post:"-prefix
-- ✅ **Konsekvent layout** - alla kolumner har samma struktur
-- ✅ **Mindre trångt** - max 2-3 rader per kolumn
-- ✅ **Bättre rubriker** - "Kontakt", "Betalning", "Organisation" istället för att lista värdenamn
-- ✅ **Alla värden har labels** - lättare att förstå vad som är vad
+- ✅ Ingen överlappning mellan betalningsinfo och footer
+- ✅ Bankgiro visas endast en gång (i footern)
+- ✅ Tydlig visuell separation med linje
+- ✅ Footer placerad längre ner för mer utrymme
 
