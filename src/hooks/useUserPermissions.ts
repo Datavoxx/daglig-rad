@@ -10,7 +10,8 @@ const ALL_MODULES = [
   "guide",
   "settings",
   "invoices",
-  "time-reporting"
+  "time-reporting",
+  "attendance"
 ];
 
 // All users get full access to all modules by default
