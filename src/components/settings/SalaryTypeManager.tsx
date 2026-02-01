@@ -32,7 +32,7 @@ interface SalaryType {
   user_id: string;
   name: string;
   abbreviation: string;
-  hourly_cost: number | null;
+  markup_percent: number | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -47,7 +47,7 @@ export function SalaryTypeManager() {
   const [formData, setFormData] = useState({
     name: "",
     abbreviation: "",
-    hourly_cost: "",
+    markup_percent: "",
     sort_order: "",
   });
 
@@ -79,7 +79,7 @@ export function SalaryTypeManager() {
           .update({
             name: salaryType.name,
             abbreviation: salaryType.abbreviation,
-            hourly_cost: salaryType.hourly_cost,
+            markup_percent: salaryType.markup_percent,
             sort_order: salaryType.sort_order,
           })
           .eq("id", currentSalaryType.id);
@@ -89,7 +89,7 @@ export function SalaryTypeManager() {
           user_id: userData.user.id,
           name: salaryType.name,
           abbreviation: salaryType.abbreviation,
-          hourly_cost: salaryType.hourly_cost,
+          markup_percent: salaryType.markup_percent,
           sort_order: salaryType.sort_order,
         });
         if (error) throw error;
@@ -142,7 +142,7 @@ export function SalaryTypeManager() {
     setFormData({
       name: "",
       abbreviation: "",
-      hourly_cost: "",
+      markup_percent: "",
       sort_order: "",
     });
   };
@@ -162,7 +162,7 @@ export function SalaryTypeManager() {
     setFormData({
       name: salaryType.name,
       abbreviation: salaryType.abbreviation,
-      hourly_cost: salaryType.hourly_cost?.toString() || "",
+      markup_percent: salaryType.markup_percent?.toString() || "",
       sort_order: salaryType.sort_order?.toString() || "",
     });
     setDialogOpen(true);
@@ -192,7 +192,7 @@ export function SalaryTypeManager() {
     saveMutation.mutate({
       name: formData.name.trim(),
       abbreviation: formData.abbreviation.trim().toUpperCase(),
-      hourly_cost: formData.hourly_cost ? parseFloat(formData.hourly_cost) : 0,
+      markup_percent: formData.markup_percent ? parseFloat(formData.markup_percent) : 0,
       sort_order: formData.sort_order ? parseInt(formData.sort_order) : 0,
     });
   };
@@ -248,7 +248,7 @@ export function SalaryTypeManager() {
               <div className="grid grid-cols-[1fr_100px_100px_80px_80px_80px] gap-2 p-3 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
                 <div>Namn</div>
                 <div>Förkortning</div>
-                <div className="text-right">Kostnad</div>
+                <div className="text-right">Påslag</div>
                 <div className="text-center">Sortering</div>
                 <div className="text-center">Status</div>
                 <div></div>
@@ -272,7 +272,7 @@ export function SalaryTypeManager() {
                       </Badge>
                     </div>
                     <div className="text-right text-sm">
-                      {salaryType.hourly_cost?.toLocaleString("sv-SE")} kr
+                      {salaryType.markup_percent ?? 0}%
                     </div>
                     <div className="text-center text-sm text-muted-foreground">
                       {salaryType.sort_order}
@@ -356,13 +356,15 @@ export function SalaryTypeManager() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hourly_cost">Personalkostnad (kr/tim)</Label>
+                <Label htmlFor="markup_percent">Påslag (%)</Label>
                 <Input
-                  id="hourly_cost"
+                  id="markup_percent"
                   type="number"
-                  value={formData.hourly_cost}
-                  onChange={(e) => setFormData({ ...formData, hourly_cost: e.target.value })}
-                  placeholder="450"
+                  min="0"
+                  max="100"
+                  value={formData.markup_percent}
+                  onChange={(e) => setFormData({ ...formData, markup_percent: e.target.value })}
+                  placeholder="35"
                 />
               </div>
               <div className="space-y-2">
