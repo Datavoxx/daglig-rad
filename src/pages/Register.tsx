@@ -93,6 +93,19 @@ export default function Register() {
       });
       navigate("/auth");
     } else {
+      // Fire-and-forget webhook notification for new account
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) {
+          supabase.functions.invoke("notify-new-account", {
+            body: {
+              email,
+              full_name: fullName,
+              user_id: data.user.id,
+            },
+          }).catch(console.error);
+        }
+      });
+
       toast({ title: "Välkommen till Byggio!" });
       navigate("/dashboard");
     }
