@@ -1,116 +1,212 @@
 
 
-## Visa timsammanställning per anställd i Inställningar
+## Personalliggare - Svensk lagefterlevnad för byggbranschen
 
-### Vad som ska byggas
+### Bakgrund
 
-Lägga till en sektion i varje anställds rad som visar deras totala arbetade timmar, så att du snabbt kan se en sammanfattning av varje persons arbetsinsats direkt under Inställningar → Anställda.
+**Personalliggare** är ett svenskt lagkrav för byggbranschen där arbetsgivare måste föra register över vilka personer som befinner sig på en arbetsplats vid varje given tidpunkt. Detta ska kunna visas för Skatteverket vid kontroll.
 
-### Design
+**Skillnad mot Tidsrapportering:**
 
-Varje anställd-rad utökas med:
-- **Totalt arbetade timmar** (denna månad + totalt)
-- Visuell indikator som gör det enkelt att se
+| Personalliggare | Tidsrapportering |
+|-----------------|------------------|
+| Lagkrav - exakt in/ut-tid | Intern uppföljning |
+| Inga timberäkningar | Timmar, lön, fakturering |
+| Enkel och ren data | Kopplat till projekt, typer |
+| Redo för myndighetskontroll | Ekonomisk analys |
 
-**Utseende:**
-```
+---
+
+### Databasstruktur
+
+Ny tabell: `attendance_records`
+
+| Kolumn | Typ | Beskrivning |
+|--------|-----|-------------|
+| id | uuid | Primärnyckel |
+| user_id | uuid | Person som checkar in (anställd eller admin) |
+| employer_id | uuid | Arbetsgivare/organisation |
+| project_id | uuid | Arbetsplats/projekt |
+| check_in | timestamptz | Incheckningstid (exakt) |
+| check_out | timestamptz | Utcheckningstid (null = fortfarande på plats) |
+| created_at | timestamptz | Skapad |
+
+**RLS-policyer:**
+- Användare kan se/hantera sina egna poster
+- Arbetsgivare kan se/hantera anställdas poster (via employer_id)
+
+---
+
+### Användargränssnitt
+
+#### Huvudvy: `/attendance`
+
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│ [Avatar] Erik Svensson          [Aktiv]                     │
-│          📞 070-123 45 67  ✉️ erik@mail.se                   │
-│          ⏱️ 24h denna månad • 156h totalt                   │
-│                                      [Bjud in] [✏️] [🗑️]   │
+│  PERSONALLIGGARE                                            │
+│  Elektronisk närvaro för [Projektnamn]                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────┐   ┌─────────────────────────────────┐  │
+│  │  VÄLJ PROJEKT   │   │  PÅ PLATS JUST NU: 3 personer   │  │
+│  │  [▼ Dropdown]   │   │  ─────────────────────────────  │  │
+│  └─────────────────┘   │  ● Erik S. - sedan 07:15        │  │
+│                        │  ● Anna K. - sedan 07:30        │  │
+│  ┌─────────────────┐   │  ● Johan L. - sedan 08:00       │  │
+│  │   CHECKA IN     │   └─────────────────────────────────┘  │
+│  │   [Stor knapp]  │                                        │
+│  └─────────────────┘                                        │
+│                                                             │
+│  ┌─────────────────┐                                        │
+│  │   CHECKA UT     │   Grå om ej incheckad                  │
+│  │   [Stor knapp]  │                                        │
+│  └─────────────────┘                                        │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  HISTORIK (senaste 7 dagar)                                 │
+│  ─────────────────────────────────────────────────────────  │
+│  2026-02-01  Erik S.     07:15 - 16:30                      │
+│  2026-02-01  Anna K.     07:30 - 16:45                      │
+│  2026-01-31  Erik S.     06:45 - 15:30                      │
+│  ...                                                        │
+│                                 [Exportera för kontroll →]  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Teknisk implementation
+#### Flöde
 
-#### 1. Ny query för tidsdata
+1. **Användaren väljer projekt** (arbetsplats)
+2. **Ett klick: Checka in** - sparar aktuell tid + projekt
+3. **Ett klick: Checka ut** - uppdaterar posten med utcheckningstid
+4. **Realtidsvy** visar vem som är på plats just nu (check_out = null)
+5. **Historik** visar de senaste dagarna för dokumentation
 
-Lägg till en useQuery i EmployeeManager.tsx för att hämta sammanlagda timmar per anställd:
+---
 
-```typescript
-const { data: employeeHours = {} } = useQuery({
-  queryKey: ["employee-hours-summary"],
-  queryFn: async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return {};
+### Navigation
 
-    // Hämta alla tidposter för arbetsgivarens anställda
-    const { data: entries, error } = await supabase
-      .from("time_entries")
-      .select("user_id, hours, date")
-      .eq("employer_id", userData.user.id);
-
-    if (error) throw error;
-
-    // Aggregera timmar per user_id
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const hoursByUser: Record<string, { thisMonth: number; total: number }> = {};
-    
-    entries?.forEach(entry => {
-      if (!hoursByUser[entry.user_id]) {
-        hoursByUser[entry.user_id] = { thisMonth: 0, total: 0 };
-      }
-      
-      const entryDate = new Date(entry.date);
-      hoursByUser[entry.user_id].total += Number(entry.hours);
-      
-      if (entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) {
-        hoursByUser[entry.user_id].thisMonth += Number(entry.hours);
-      }
-    });
-
-    return hoursByUser;
-  },
-});
-```
-
-#### 2. Uppdatera Employee-raden
-
-Lägg till en ny rad under kontaktinformationen som visar timmar:
+Lägg till ny navigeringspost i `AppLayout.tsx`:
 
 ```typescript
-import { Clock } from "lucide-react";
-
-// I renderingen för varje anställd:
-const employeeUserId = employee.linked_user_id;
-const hours = employeeUserId ? employeeHours[employeeUserId] : null;
-
-// Under kontaktinfo-raden:
-{hours && (hours.thisMonth > 0 || hours.total > 0) && (
-  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-    <Clock className="h-3 w-3" />
-    <span>{hours.thisMonth}h denna månad</span>
-    <span className="text-muted-foreground/50">•</span>
-    <span>{hours.total}h totalt</span>
-  </div>
-)}
-```
-
-#### 3. Formatering av timmar
-
-Lägg till en hjälpfunktion för snygg formatering:
-
-```typescript
-function formatHours(hours: number): string {
-  if (hours === 0) return "0h";
-  if (Number.isInteger(hours)) return `${hours}h`;
-  return `${hours.toFixed(1)}h`;
+{ 
+  label: "Personalliggare", 
+  href: "/attendance", 
+  icon: ClipboardCheck,  // eller UserCheck 
+  moduleKey: "attendance" 
 }
 ```
 
-### Filer som påverkas
+Placeras logiskt nära "Tidsrapport" men är en separat modul.
 
-| Fil | Ändring |
-|-----|---------|
-| `src/components/settings/EmployeeManager.tsx` | Lägg till query för timdata + visa i UI |
+---
 
-### Fördelar
+### Teknisk implementation
 
-- **Snabb överblick** - Se direkt hur mycket varje anställd arbetat
-- **Trend-indikator** - Månadsdata visar aktuell arbetsbelastning
-- **Ingen extra navigering** - Informationen finns direkt i anställdlistan
+#### 1. Databasmigration
+
+```sql
+CREATE TABLE attendance_records (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  employer_id uuid NOT NULL,
+  project_id uuid NOT NULL REFERENCES projects(id),
+  check_in timestamptz NOT NULL DEFAULT now(),
+  check_out timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own attendance"
+  ON attendance_records FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Employers can view employee attendance"
+  ON attendance_records FOR SELECT
+  USING (auth.uid() = employer_id);
+
+CREATE POLICY "Employers can manage employee attendance"
+  ON attendance_records FOR ALL
+  USING (auth.uid() = employer_id)
+  WITH CHECK (auth.uid() = employer_id);
+
+-- Index för snabba frågor
+CREATE INDEX idx_attendance_project ON attendance_records(project_id);
+CREATE INDEX idx_attendance_employer ON attendance_records(employer_id);
+CREATE INDEX idx_attendance_active ON attendance_records(user_id) 
+  WHERE check_out IS NULL;
+```
+
+#### 2. Nya filer
+
+| Fil | Beskrivning |
+|-----|-------------|
+| `src/pages/Attendance.tsx` | Huvudsida med in/ut-knappar |
+| `src/components/attendance/ActiveWorkers.tsx` | Lista över vem som är på plats |
+| `src/components/attendance/AttendanceHistory.tsx` | Historik-tabell |
+
+#### 3. Uppdatera routing
+
+**App.tsx:**
+```typescript
+import Attendance from "@/pages/Attendance";
+// ...
+<Route path="/attendance" element={
+  <ProtectedModuleRoute module="attendance">
+    <Attendance />
+  </ProtectedModuleRoute>
+} />
+```
+
+#### 4. Uppdatera behörigheter
+
+**useUserPermissions.ts:**
+```typescript
+const ALL_MODULES = [
+  // ... befintliga
+  "attendance"  // NY
+];
+```
+
+**handle_new_user() trigger:**
+```sql
+-- Lägg till 'attendance' i modules-arrayen
+```
+
+---
+
+### Viktiga designprinciper
+
+1. **Enkelhet** - Minimalt med fält, bara det som krävs enligt lag
+2. **Snabbhet** - Ett klick för in, ett klick för ut
+3. **Realtid** - Alltid aktuell vy av vem som är på plats
+4. **Ingen koppling till ekonomi** - Helt separerad från tidsrapportering
+5. **Exporterbart** - Möjlighet att exportera för Skatteverket
+
+---
+
+### Mobilvänlighet
+
+Stora knappar för "Checka in" / "Checka ut" som fungerar bra på mobil direkt på arbetsplatsen.
+
+---
+
+### Sammanfattning av filer som skapas/ändras
+
+**Nya filer:**
+- `src/pages/Attendance.tsx`
+- `src/components/attendance/ActiveWorkers.tsx`
+- `src/components/attendance/AttendanceHistory.tsx`
+
+**Filer som uppdateras:**
+- `src/App.tsx` (ny route)
+- `src/components/layout/AppLayout.tsx` (ny nav-post)
+- `src/hooks/useUserPermissions.ts` (ny modul)
+
+**Databasmigration:**
+- Ny tabell `attendance_records`
+- RLS-policyer
+- Index för prestanda
 
