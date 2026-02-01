@@ -436,52 +436,61 @@ export function CompanyOnboardingWizard({
         <CardContent className="space-y-6">
           {renderStepIndicator()}
           
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (currentStep < 3) {
+                handleNext();
+              } else {
+                handleSubmit();
+              }
+            }}
+          >
+            {currentStep === 1 && renderStep1()}
+            {currentStep === 2 && renderStep2()}
+            {currentStep === 3 && renderStep3()}
 
-          <div className="flex gap-3 pt-4">
-            {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Tillbaka
-              </Button>
-            )}
-            {currentStep < 3 ? (
-              <Button
-                type="button"
-                onClick={handleNext}
-                className="flex-1"
-              >
-                Nästa
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sparar...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Slutför
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
+            <div className="flex gap-3 pt-4">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Tillbaka
+                </Button>
+              )}
+              {currentStep < 3 ? (
+                <Button
+                  type="submit"
+                  className="flex-1"
+                >
+                  Nästa
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sparar...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Slutför
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
