@@ -1,87 +1,13 @@
 
 
-## Plan: Lönetyper + Utökad Tidsrapportering + PDF-integration
+## Implementeringsplan: Lönetyper + Utökad Tidsrapportering + PDF-integration
 
-### Sammanfattning
-Lägga till "Lönetyper" (parallellt med Debiteringstyper), utöka tidsrapporteringen så admin kan registrera tid för sina anställda, och inkludera tidsdata i projektets PDF-sammanställning.
+### Steg 1: Databasmigrering
 
----
-
-### Del 1: Ny Tabell - Lönetyper (salary_types)
-
-En ny tabell som speglar `billing_types` men med personalkostnad istället för timpris.
-
-| Kolumn | Typ | Beskrivning |
-|--------|-----|-------------|
-| id | uuid | Primärnyckel |
-| user_id | uuid | Ägarens ID |
-| name | text | T.ex. "Snickare", "Målare" |
-| abbreviation | text | Förkortning, t.ex. "SNI" |
-| hourly_cost | numeric | Personalkostnad per timme |
-| sort_order | integer | Sortering |
-| is_active | boolean | Om typen är aktiv |
-
-**RLS-policies:** Samma mönster som `billing_types` (CRUD för egen data).
-
----
-
-### Del 2: Uppdatera time_entries
-
-Lägg till kolumn för lönetyp:
-
-| Ny kolumn | Typ | Beskrivning |
-|-----------|-----|-------------|
-| salary_type_id | uuid | Länk till lönetyp |
-
----
-
-### Del 3: Inställningar - Ny flik "Lönetyper"
-
-**Ny komponent:** `src/components/settings/SalaryTypeManager.tsx`
-
-Baseras på `BillingTypeManager.tsx` men med:
-- "Personalkostnad" istället för "Timpris"
-- Samma UI-mönster (tabell med namn, förkortning, kostnad, sortering, status, redigera/ta bort)
-
-**Uppdatera `Settings.tsx`:**
-- Lägg till ny flik "Lönetyper" i TabsList
-
----
-
-### Del 4: Utökad Tidsrapportering
-
-**Uppdatera `TimeReporting.tsx`:**
-
-1. **Lägg till dropdowns för:**
-   - Debiteringstyp (billing_type_id)
-   - Lönetyp (salary_type_id)
-
-2. **Admin kan registrera tid för anställda:**
-   - Ny dropdown "Registrera för" med lista av anställda
-   - Om admin väljer en anställd → använd anställdas `linked_user_id` som `user_id`
-   - Admin behåller sin `employer_id` för att kunna se posten
-
-3. **Visa i listan:**
-   - Debiteringstyp (badge)
-   - Lönetyp (badge)
-   - Vem som registrerade (om det är för annan person)
-
----
-
-### Del 5: PDF-integration
-
-**Uppdatera `generateCompleteProjectPdf.ts`:**
-
-Lägg till ny sektion "Tidsrapporter" med:
-- Datum | Personal | Timmar | Debiteringstyp | Beskrivning
-- Summering: Total tid, total kostnad
-
----
-
-### Databasmigrering
+**Ny migreringsfil:** `supabase/migrations/20260201120000_create_salary_types_and_update_time_entries.sql`
 
 ```sql
--- 1. Skapa salary_types tabell
+-- Skapa salary_types tabell
 CREATE TABLE public.salary_types (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -96,87 +22,264 @@ CREATE TABLE public.salary_types (
 
 ALTER TABLE salary_types ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own salary types" ON salary_types
-  FOR ALL USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+-- RLS-policies
+CREATE POLICY "Users can view own salary types" ON salary_types FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own salary types" ON salary_types FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own salary types" ON salary_types FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own salary types" ON salary_types FOR DELETE USING (auth.uid() = user_id);
 
--- 2. Lägg till salary_type_id i time_entries
-ALTER TABLE time_entries ADD COLUMN salary_type_id UUID;
+-- Lägg till salary_type_id i time_entries
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS salary_type_id UUID REFERENCES salary_types(id);
 ```
 
 ---
 
-### Implementationsordning
+### Steg 2: Ny komponent - SalaryTypeManager
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Steg 1: Databasmigrering                                │
-│ - Skapa salary_types tabell                             │
-│ - Lägg till salary_type_id i time_entries               │
-└────────────────────────┬────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│ Steg 2: SalaryTypeManager komponent                     │
-│ - Kopiera och anpassa från BillingTypeManager           │
-│ - Uppdatera Settings.tsx med ny flik                    │
-└────────────────────────┬────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│ Steg 3: Utöka TimeReporting                             │
-│ - Lägg till val av debiteringstyp + lönetyp             │
-│ - Admin kan välja anställd att registrera för           │
-│ - Visa typer i listan                                   │
-└────────────────────────┬────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│ Steg 4: PDF-integration                                 │
-│ - Uppdatera generateCompleteProjectPdf.ts               │
-│ - Lägg till tidsrapportsektion                          │
-└─────────────────────────────────────────────────────────┘
+**Ny fil:** `src/components/settings/SalaryTypeManager.tsx`
+
+Kopierar strukturen från `BillingTypeManager.tsx` men med:
+- Ikon: `Wallet` istället för `DollarSign`
+- Rubrik: "Lönetyper" och "Hantera personalkostnader per yrkesroll"
+- Kolumn: "Personalkostnad" istället för "Pris"
+- Fält: `hourly_cost` istället för `hourly_rate`
+
+---
+
+### Steg 3: Uppdatera Settings.tsx
+
+Lägg till ny flik "Lönetyper" i TabsList (rad 300-305):
+
+```tsx
+<TabsList className="mb-6">
+  <TabsTrigger value="mallar">Mallar</TabsTrigger>
+  <TabsTrigger value="foretag">Företag</TabsTrigger>
+  <TabsTrigger value="anstallda">Anställda</TabsTrigger>
+  <TabsTrigger value="debiteringstyper">Debiteringstyper</TabsTrigger>
+  <TabsTrigger value="lonetyper">Lönetyper</TabsTrigger>
+</TabsList>
+
+// Ny TabsContent
+<TabsContent value="lonetyper" className="space-y-6">
+  <SalaryTypeManager />
+</TabsContent>
 ```
 
 ---
 
-### Filöversikt
+### Steg 4: Utöka TimeReporting.tsx
+
+**Nya tillstånd:**
+```tsx
+const [selectedBillingType, setSelectedBillingType] = useState<string>("");
+const [selectedSalaryType, setSelectedSalaryType] = useState<string>("");
+const [selectedEmployee, setSelectedEmployee] = useState<string>("self");
+```
+
+**Nya queries:**
+```tsx
+// Hämta billing_types
+const { data: billingTypes = [] } = useQuery({
+  queryKey: ["billing_types"],
+  queryFn: async () => {
+    const ownerId = employerId || user?.id;
+    const { data } = await supabase.from("billing_types").select("*").eq("user_id", ownerId).eq("is_active", true);
+    return data || [];
+  },
+});
+
+// Hämta salary_types  
+const { data: salaryTypes = [] } = useQuery({
+  queryKey: ["salary_types"],
+  queryFn: async () => {
+    const ownerId = employerId || user?.id;
+    const { data } = await supabase.from("salary_types").select("*").eq("user_id", ownerId).eq("is_active", true);
+    return data || [];
+  },
+});
+
+// Hämta anställda (endast för admin/employer)
+const { data: employees = [] } = useQuery({
+  queryKey: ["employees-for-time"],
+  queryFn: async () => {
+    if (employerId) return []; // Anställda får inte registrera för andra
+    const { data } = await supabase.from("employees").select("*").eq("is_active", true);
+    return data || [];
+  },
+});
+```
+
+**Uppdaterad formulär i dialogen:**
+```tsx
+// Registrera för (endast admin)
+{!employerId && employees.length > 0 && (
+  <div className="space-y-2">
+    <Label>Registrera för</Label>
+    <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+      <SelectTrigger>
+        <SelectValue placeholder="Välj person" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="self">Mig själv</SelectItem>
+        {employees.filter(e => e.linked_user_id).map(emp => (
+          <SelectItem key={emp.id} value={emp.linked_user_id}>{emp.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+)}
+
+// Debiteringstyp
+<div className="space-y-2">
+  <Label>Debiteringstyp</Label>
+  <Select value={selectedBillingType} onValueChange={setSelectedBillingType}>
+    <SelectTrigger>
+      <SelectValue placeholder="Välj debiteringstyp" />
+    </SelectTrigger>
+    <SelectContent>
+      {billingTypes.map(bt => (
+        <SelectItem key={bt.id} value={bt.id}>{bt.name} ({bt.abbreviation})</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
+
+// Lönetyp
+<div className="space-y-2">
+  <Label>Lönetyp</Label>
+  <Select value={selectedSalaryType} onValueChange={setSelectedSalaryType}>
+    <SelectTrigger>
+      <SelectValue placeholder="Välj lönetyp" />
+    </SelectTrigger>
+    <SelectContent>
+      {salaryTypes.map(st => (
+        <SelectItem key={st.id} value={st.id}>{st.name} ({st.abbreviation})</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
+```
+
+**Uppdaterad insert:**
+```tsx
+const targetUserId = selectedEmployee === "self" ? user.id : selectedEmployee;
+
+const { error } = await supabase.from("time_entries").insert({
+  user_id: targetUserId,
+  employer_id: employerId || user.id,
+  project_id: selectedProject,
+  date,
+  hours: parseFloat(hours),
+  description: description || null,
+  billing_type_id: selectedBillingType || null,
+  salary_type_id: selectedSalaryType || null,
+});
+```
+
+**Uppdaterad lista med badges:**
+```tsx
+{timeEntries.map((entry) => (
+  <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+    <div className="space-y-1">
+      <div className="font-medium flex items-center gap-2">
+        {entry.projects?.name || "Okänt projekt"}
+        {entry.billing_types?.abbreviation && (
+          <Badge variant="outline" className="text-xs">{entry.billing_types.abbreviation}</Badge>
+        )}
+        {entry.salary_types?.abbreviation && (
+          <Badge variant="secondary" className="text-xs">{entry.salary_types.abbreviation}</Badge>
+        )}
+      </div>
+      <div className="text-sm text-muted-foreground">
+        {format(new Date(entry.date), "d MMMM yyyy", { locale: sv })}
+        {entry.user_id !== user?.id && ` • Registrerad av admin`}
+        {entry.description && ` • ${entry.description}`}
+      </div>
+    </div>
+    ...
+  </div>
+))}
+```
+
+---
+
+### Steg 5: PDF-integration
+
+**Uppdatera gränssnittet i `generateCompleteProjectPdf.ts`:**
+
+```tsx
+interface TimeEntry {
+  id: string;
+  date: string;
+  hours: number;
+  description: string | null;
+  billing_type_name: string | null;
+  salary_type_name: string | null;
+  user_name: string | null;
+}
+
+interface CompleteProjectPdfOptions {
+  // ...befintliga fält
+  timeEntries: TimeEntry[];
+}
+```
+
+**Lägg till ny sektion "Tidsrapporter" (efter diary reports):**
+
+```tsx
+// === TIME ENTRIES ===
+if (timeEntries.length > 0) {
+  checkPageBreak(40);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Tidsrapporter", 14, yPos);
+  yPos += 10;
+
+  const timeData = timeEntries.map((entry) => [
+    formatDate(entry.date),
+    entry.user_name || "-",
+    entry.hours.toFixed(1) + "h",
+    entry.billing_type_name || "-",
+    entry.description || "-",
+  ]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Datum", "Personal", "Timmar", "Debiteringstyp", "Beskrivning"]],
+    body: timeData,
+    theme: "striped",
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [60, 60, 60] },
+  });
+
+  // Summering
+  const totalHours = timeEntries.reduce((sum, e) => sum + e.hours, 0);
+  yPos = (doc as any).lastAutoTable.finalY + 5;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Totalt: ${totalHours.toFixed(1)} timmar`, 14, yPos);
+  yPos += 15;
+}
+```
+
+---
+
+### Sammanfattning av filändringar
 
 | Fil | Ändring |
 |-----|---------|
 | `supabase/migrations/[ny].sql` | Skapa `salary_types`, uppdatera `time_entries` |
 | `src/components/settings/SalaryTypeManager.tsx` | **NY** - Hantera lönetyper |
-| `src/pages/Settings.tsx` | Lägg till "Lönetyper"-flik |
-| `src/pages/TimeReporting.tsx` | Debiteringstyp, lönetyp, anställda-dropdown |
+| `src/pages/Settings.tsx` | Lägg till "Lönetyper"-flik + import |
+| `src/pages/TimeReporting.tsx` | Debiteringstyp, lönetyp, anställda-dropdown, badges |
 | `src/lib/generateCompleteProjectPdf.ts` | Lägg till tidsrapportsektion |
 
 ---
 
-### UI-flöde för Tidsrapportering (efter implementation)
+### Teknisk information
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│  REGISTRERA TID                                         │
-├─────────────────────────────────────────────────────────┤
-│  Registrera för:    [Admin själv ▼]  (anställda lista)  │
-│                                                         │
-│  Projekt:           [Välj projekt ▼]                    │
-│                                                         │
-│  Datum:  [2026-02-01]    Timmar: [8]                   │
-│                                                         │
-│  Debiteringstyp:    [Snickare ▼]                       │
-│  Lönetyp:           [Snickare ▼]                       │
-│                                                         │
-│  Beskrivning:       [________________]                  │
-│                                                         │
-│                              [Spara]                    │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-### Resultat
-
-Efter implementation:
-1. **Inställningar** → Ny flik "Lönetyper" för att hantera personalkostnader
-2. **Tidsrapportering** → Val av debiteringstyp och lönetyp vid registrering
-3. **Admin** → Kan registrera tid för sina anställda
-4. **PDF** → Tidsrapporter inkluderas i projektsammanställning med typer och summor
+- **Databas:** salary_types med RLS-policies matchande billing_types
+- **Foreign key:** time_entries.salary_type_id → salary_types.id
+- **Admin-logik:** Om user saknar `employer_id` i metadata = admin/ägare
+- **PDF:** Hämtar time_entries för projektet och visar i tabell
 
