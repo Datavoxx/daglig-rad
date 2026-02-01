@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TemplateManager } from "@/components/settings/TemplateManager";
 import { EmployeeManager } from "@/components/settings/EmployeeManager";
 import { BillingTypeManager } from "@/components/settings/BillingTypeManager";
+import { SalaryTypeManager } from "@/components/settings/SalaryTypeManager";
 
 interface CompanySettings {
   id?: string;
@@ -302,6 +303,7 @@ export default function Settings() {
           <TabsTrigger value="foretag">Företag</TabsTrigger>
           <TabsTrigger value="anstallda">Anställda</TabsTrigger>
           <TabsTrigger value="debiteringstyper">Debiteringstyper</TabsTrigger>
+          <TabsTrigger value="lonetyper">Lönetyper</TabsTrigger>
         </TabsList>
 
         {/* Mallar tab */}
@@ -614,6 +616,11 @@ export default function Settings() {
         {/* Debiteringstyper tab */}
         <TabsContent value="debiteringstyper" className="space-y-6">
           <BillingTypeManager />
+        </TabsContent>
+
+        {/* Lönetyper tab */}
+        <TabsContent value="lonetyper" className="space-y-6">
+          <SalaryTypeManager />
         </TabsContent>
       </Tabs>
     </div>

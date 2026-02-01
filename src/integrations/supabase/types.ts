@@ -1379,6 +1379,42 @@ export type Database = {
           },
         ]
       }
+      salary_types: {
+        Row: {
+          abbreviation: string
+          created_at: string | null
+          hourly_cost: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string | null
+          hourly_cost?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string | null
+          hourly_cost?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       share_links: {
         Row: {
           created_at: string | null
@@ -1431,6 +1467,7 @@ export type Database = {
           hours: number
           id: string
           project_id: string
+          salary_type_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1443,6 +1480,7 @@ export type Database = {
           hours?: number
           id?: string
           project_id: string
+          salary_type_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1455,6 +1493,7 @@ export type Database = {
           hours?: number
           id?: string
           project_id?: string
+          salary_type_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1471,6 +1510,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_salary_type_id_fkey"
+            columns: ["salary_type_id"]
+            isOneToOne: false
+            referencedRelation: "salary_types"
             referencedColumns: ["id"]
           },
         ]

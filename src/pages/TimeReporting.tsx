@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,9 @@ export default function TimeReporting() {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedBillingType, setSelectedBillingType] = useState<string>("");
+  const [selectedSalaryType, setSelectedSalaryType] = useState<string>("");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("self");
 
   // Get current user
   const { data: user } = useQuery({
@@ -44,6 +48,7 @@ export default function TimeReporting() {
 
   // Get employer_id from user metadata
   const employerId = user?.user_metadata?.employer_id;
+  const isAdmin = !employerId; // User is admin/owner if no employer_id
 
   // Fetch projects - either own projects or employer's projects
   const { data: projects = [] } = useQuery({
@@ -70,6 +75,58 @@ export default function TimeReporting() {
     enabled: !!user,
   });
 
+  // Fetch billing types
+  const { data: billingTypes = [] } = useQuery({
+    queryKey: ["billing-types-for-time", employerId],
+    queryFn: async () => {
+      const ownerId = employerId || user?.id;
+      if (!ownerId) return [];
+      const { data, error } = await supabase
+        .from("billing_types")
+        .select("*")
+        .eq("user_id", ownerId)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch salary types
+  const { data: salaryTypes = [] } = useQuery({
+    queryKey: ["salary-types-for-time", employerId],
+    queryFn: async () => {
+      const ownerId = employerId || user?.id;
+      if (!ownerId) return [];
+      const { data, error } = await supabase
+        .from("salary_types")
+        .select("*")
+        .eq("user_id", ownerId)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch employees (only for admin/owner)
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees-for-time"],
+    queryFn: async () => {
+      if (!isAdmin) return [];
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && isAdmin,
+  });
+
   // Fetch time entries
   const { data: timeEntries = [], isLoading } = useQuery({
     queryKey: ["time-entries"],
@@ -78,7 +135,9 @@ export default function TimeReporting() {
         .from("time_entries")
         .select(`
           *,
-          projects:project_id(name, client_name)
+          projects:project_id(name, client_name),
+          billing_types:billing_type_id(name, abbreviation),
+          salary_types:salary_type_id(name, abbreviation)
         `)
         .order("date", { ascending: false });
       if (error) throw error;
@@ -94,13 +153,18 @@ export default function TimeReporting() {
       if (!selectedProject) throw new Error("Välj ett projekt");
       if (!hours || parseFloat(hours) <= 0) throw new Error("Ange antal timmar");
 
+      // Determine target user_id
+      const targetUserId = selectedEmployee === "self" ? user.id : selectedEmployee;
+
       const { error } = await supabase.from("time_entries").insert({
-        user_id: user.id,
+        user_id: targetUserId,
         employer_id: employerId || user.id,
         project_id: selectedProject,
         date,
         hours: parseFloat(hours),
         description: description || null,
+        billing_type_id: selectedBillingType || null,
+        salary_type_id: selectedSalaryType || null,
       });
 
       if (error) throw error;
@@ -109,9 +173,7 @@ export default function TimeReporting() {
       queryClient.invalidateQueries({ queryKey: ["time-entries"] });
       toast.success("Tid registrerad!");
       setIsDialogOpen(false);
-      setSelectedProject("");
-      setHours("");
-      setDescription("");
+      resetForm();
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -136,6 +198,15 @@ export default function TimeReporting() {
     },
   });
 
+  const resetForm = () => {
+    setSelectedProject("");
+    setHours("");
+    setDescription("");
+    setSelectedBillingType("");
+    setSelectedSalaryType("");
+    setSelectedEmployee("self");
+  };
+
   // Calculate total hours this week
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -143,6 +214,9 @@ export default function TimeReporting() {
   const weeklyHours = timeEntries
     .filter((entry: any) => new Date(entry.date) >= startOfWeek)
     .reduce((sum: number, entry: any) => sum + Number(entry.hours), 0);
+
+  // Get linked employees (those with user accounts)
+  const linkedEmployees = employees.filter((e: any) => e.linked_user_id);
 
   return (
     <div className="space-y-6">
@@ -158,11 +232,31 @@ export default function TimeReporting() {
               Registrera tid
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Registrera arbetad tid</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
+              {/* Register for (admin only) */}
+              {isAdmin && linkedEmployees.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Registrera för</Label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj person" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">Mig själv</SelectItem>
+                      {linkedEmployees.map((emp: any) => (
+                        <SelectItem key={emp.id} value={emp.linked_user_id}>
+                          {emp.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Projekt</Label>
                 <Select value={selectedProject} onValueChange={setSelectedProject}>
@@ -178,6 +272,7 @@ export default function TimeReporting() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Datum</Label>
@@ -199,6 +294,45 @@ export default function TimeReporting() {
                   />
                 </div>
               </div>
+
+              {/* Billing type */}
+              {billingTypes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Debiteringstyp</Label>
+                  <Select value={selectedBillingType} onValueChange={setSelectedBillingType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj debiteringstyp (valfritt)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingTypes.map((bt: any) => (
+                        <SelectItem key={bt.id} value={bt.id}>
+                          {bt.name} ({bt.abbreviation})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Salary type */}
+              {salaryTypes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Lönetyp</Label>
+                  <Select value={selectedSalaryType} onValueChange={setSelectedSalaryType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj lönetyp (valfritt)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salaryTypes.map((st: any) => (
+                        <SelectItem key={st.id} value={st.id}>
+                          {st.name} ({st.abbreviation})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Beskrivning (valfritt)</Label>
                 <Textarea
@@ -259,11 +393,24 @@ export default function TimeReporting() {
                   className="flex items-center justify-between p-3 rounded-lg border bg-card"
                 >
                   <div className="space-y-1">
-                    <div className="font-medium">
+                    <div className="font-medium flex items-center gap-2 flex-wrap">
                       {entry.projects?.name || "Okänt projekt"}
+                      {entry.billing_types?.abbreviation && (
+                        <Badge variant="outline" className="text-xs">
+                          {entry.billing_types.abbreviation}
+                        </Badge>
+                      )}
+                      {entry.salary_types?.abbreviation && (
+                        <Badge variant="secondary" className="text-xs">
+                          {entry.salary_types.abbreviation}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {format(new Date(entry.date), "d MMMM yyyy", { locale: sv })}
+                      {entry.user_id !== user?.id && isAdmin && (
+                        <span className="ml-1">• Registrerad av admin</span>
+                      )}
                       {entry.description && ` • ${entry.description}`}
                     </div>
                   </div>
