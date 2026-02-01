@@ -1,60 +1,101 @@
 
 
-## Åtgärdsplan: Fixa RLS-policy för Admin-registrering av Tid
+## Plan: Förbättrad Dagvy med Poster och Avatarer
 
-### Problemet
+### Vad som ska göras
 
-När en admin försöker registrera tid för en anställd (t.ex. "mahad"), misslyckas det eftersom:
-- RLS-policyn kräver att `auth.uid() = user_id` för INSERT
-- Men koden sätter `user_id` till den anställdes `linked_user_id`
-- Detta bryter mot policyn eftersom admin != anställd
+1. **Klick på dag visar poster** - När man klickar på en dag som har registreringar ska en popover/panel öppnas som visar alla poster för den dagen
+2. **Avatarer för personer** - Visa små avatarer med initialer i dagcellen för att visa vilka som arbetat
+3. **Detaljerad postlista** - Visa varje post med personens namn, projekt, timmar och eventuell beskrivning
 
-### Lösning
+---
 
-Lägg till en ny RLS-policy som tillåter arbetsgivare att skapa tidsposter för sina anställda.
+### Ny design för dagcellen
 
-### Databasändring
-
-```sql
--- Tillåt arbetsgivare att skapa tidsposter för anställda
-CREATE POLICY "Employers can insert time entries for employees"
-  ON time_entries
-  FOR INSERT
-  WITH CHECK (
-    auth.uid() = employer_id
-  );
-
--- Tillåt arbetsgivare att uppdatera tidsposter för anställda  
-CREATE POLICY "Employers can update employee time entries"
-  ON time_entries
-  FOR UPDATE
-  USING (auth.uid() = employer_id);
-
--- Tillåt arbetsgivare att ta bort tidsposter för anställda
-CREATE POLICY "Employers can delete employee time entries"
-  ON time_entries
-  FOR DELETE
-  USING (auth.uid() = employer_id);
+```
+┌────────────────────────┐
+│ 1                  [+] │  ← Dagnummer och lägg till-knapp
+│                        │
+│   15.5h               │  ← Totala timmar
+│   ○ ○                 │  ← Avatarer för personer (max 3 + "...")
+│   2 poster            │  ← Antal poster
+└────────────────────────┘
 ```
 
-### Förklaring
+**Vid klick på cellen:**
+```
+┌─────────────────────────────────┐
+│ 1 februari 2026                 │
+│ ─────────────────────────────── │
+│                                 │
+│ ○ Admin                   7.5h  │
+│   Fasadmålning Marstrand       │
+│   "30min lunch"                │
+│                                 │
+│ ○ Mahad                   8.0h  │
+│   Fasadmålning Marstrand       │
+│                                 │
+│ ─────────────────────────────── │
+│ Totalt: 15.5h                   │
+│          [+ Lägg till tid]      │
+└─────────────────────────────────┘
+```
 
-| Scenario | user_id | employer_id | auth.uid() | Resultat |
-|----------|---------|-------------|------------|----------|
-| Registrera egen tid | admin-id | admin-id | admin-id | OK (befintlig policy) |
-| Admin registrerar för anställd | mahad-id | admin-id | admin-id | OK (ny policy) |
-| Anställd registrerar egen tid | mahad-id | admin-id | mahad-id | OK (befintlig policy) |
+---
 
-### Sammanfattning
+### Tekniska ändringar
 
-| Typ | Beskrivning |
-|-----|-------------|
-| Ny RLS-policy | Arbetsgivare kan INSERT/UPDATE/DELETE tidsposter där `employer_id = auth.uid()` |
-| Koständringar | Inga - koden är redan korrekt |
+#### 1. Uppdatera TimeCalendarView.tsx
 
-### Resultat
+Hämta mer data i queryn:
+```typescript
+// Nuvarande
+.select("id, date, hours, project_id")
 
-- Admin kan registrera tid för sina anställda
-- Anställda kan fortfarande registrera sin egen tid
-- Säkerheten bibehålls - endast arbetsgivaren kan hantera sina anställdas tidsposter
+// Ny
+.select(`
+  id, date, hours, project_id, user_id, description,
+  projects:project_id(name),
+  billing_types:billing_type_id(abbreviation),
+  salary_types:salary_type_id(abbreviation)
+`)
+```
+
+Skicka även employees-data till vyn för att kunna matcha user_id mot namn.
+
+#### 2. Uppdatera DayCell.tsx
+
+- Ta emot `entries` (array av poster) istället för bara `hours` och `entryCount`
+- Ta emot `employees` för namnmatchning
+- Visa avatarer för unika personer
+- Gör hela cellen klickbar för att visa popover med detaljer
+
+#### 3. Ny komponent: DayDetailPopover.tsx
+
+- Visar listan av poster för en specifik dag
+- Varje post visar: avatar, namn, projekt, timmar, beskrivning
+- Summering i botten
+- Knapp för att lägga till ny post
+
+---
+
+### Filändringar
+
+| Fil | Ändring |
+|-----|---------|
+| `TimeCalendarView.tsx` | Utöka query med relations, hämta employees |
+| `WeekView.tsx` | Skicka entries + employees till DayCell |
+| `MonthView.tsx` | Skicka entries + employees till DayCell |
+| `DayCell.tsx` | Visa avatarer, hantera klick för popover |
+| `DayDetailPopover.tsx` (NY) | Visa detaljerad lista för en dag |
+
+---
+
+### UX-förbättringar
+
+1. **Avatarer** - Cirkulära ikoner med initialer och färg baserad på namn
+2. **Staplingsindikator** - Om fler än 3 personer visas "+2" för resten
+3. **Snabb överblick** - Ser direkt vilka som arbetat utan att klicka
+4. **Detaljerad vy** - All information på ett ställe vid klick
+5. **Snabb registrering** - Knapp i popovern för att lägga till tid
 
