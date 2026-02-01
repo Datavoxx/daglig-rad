@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,12 @@ import {
 } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+function formatHours(hours: number): string {
+  if (hours === 0) return "0h";
+  if (Number.isInteger(hours)) return `${hours}h`;
+  return `${hours.toFixed(1)}h`;
+}
 
 interface Employee {
   id: string;
@@ -90,6 +96,42 @@ export function EmployeeManager() {
 
       if (error) throw error;
       return data as Employee[];
+    },
+  });
+
+  const { data: employeeHours = {} } = useQuery({
+    queryKey: ["employee-hours-summary"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return {};
+
+      const { data: entries, error } = await supabase
+        .from("time_entries")
+        .select("user_id, hours, date")
+        .eq("employer_id", userData.user.id);
+
+      if (error) throw error;
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      const hoursByUser: Record<string, { thisMonth: number; total: number }> = {};
+      
+      entries?.forEach(entry => {
+        if (!hoursByUser[entry.user_id]) {
+          hoursByUser[entry.user_id] = { thisMonth: 0, total: 0 };
+        }
+        
+        const entryDate = new Date(entry.date);
+        hoursByUser[entry.user_id].total += Number(entry.hours);
+        
+        if (entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) {
+          hoursByUser[entry.user_id].thisMonth += Number(entry.hours);
+        }
+      });
+
+      return hoursByUser;
     },
   });
 
@@ -316,6 +358,17 @@ export function EmployeeManager() {
                           </span>
                         )}
                       </div>
+                      {(() => {
+                        const hours = employee.linked_user_id ? employeeHours[employee.linked_user_id] : null;
+                        return hours && (hours.thisMonth > 0 || hours.total > 0) ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatHours(hours.thisMonth)} denna månad</span>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span>{formatHours(hours.total)} totalt</span>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
