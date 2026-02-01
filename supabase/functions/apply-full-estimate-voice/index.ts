@@ -116,8 +116,15 @@ Deno.serve(async (req) => {
 OFFERTENS STRUKTUR:
 - introductionText: Inledande text till kunden
 - scope: Projektbeskrivning/omfattning
-- assumptions: Lista med "Arbete som ingår"
+- assumptions: Tidsplan - planerade arbetsmoment och tidsramar (t.ex. "Vecka 1: Rivning", "2 veckor totalt")
 - items: Offertposter med detaljerad information
+
+TIDSPLAN (assumptions):
+- När användaren nämner "tidsplan", "tidplan", "veckor", "dagar", "arbetsmoment i ordning", så ska detta gå till assumptions-arrayen
+- Exempel: "Tidsplan två veckor" → assumptions: ["Totalt 2 veckor"]
+- Exempel: "Vecka ett rivning, vecka två bygge" → assumptions: ["Vecka 1: Rivning", "Vecka 2: Bygge"]
+- Varje punkt i tidsplanen ska vara ett separat element i arrayen
+- Tidsplan-information ska ALDRIG hamna i scope, scope är bara projektbeskrivning
 - addons: Tillval med namn och pris
 - rotEnabled: Om ROT-avdrag är aktiverat (true/false)
 - rotPercent: ROT-procent (vanligtvis 30 eller 50)
@@ -281,8 +288,8 @@ Inledning: "${currentData.introductionText || '(tom)'}"
 
 Projektbeskrivning: "${currentData.scope || '(tom)'}"
 
-Arbete som ingår:
-${currentData.assumptions.length > 0 ? currentData.assumptions.map((a) => `- ${a}`).join('\n') : '(inga punkter)'}
+Tidsplan:
+${currentData.assumptions.length > 0 ? currentData.assumptions.map((a) => `- ${a}`).join('\n') : '(ingen tidsplan)'}
 
 Offertposter:
 ${itemsSummary || '(inga poster)'}

@@ -168,7 +168,7 @@ Om beskrivningen saknar tillräcklig information för att bestämma mängder, re
 Annars returnera JSON:
 {
   "scope": "Sammanfattning av projektet",
-  "assumptions": ["Antaganden baserade på mallen"],
+  "assumptions": ["Vecka 1: Förberedelse och rivning", "Vecka 2: Byggnation"],
   "uncertainties": ["Osäkerheter att beakta"],
   "items": [
     {
@@ -216,7 +216,7 @@ Om beskrivningen är för vag:
 Om beskrivningen är tillräcklig:
 {
   "scope": "Kort sammanfattning av projektets omfattning",
-  "assumptions": ["Antagande 1", "Antagande 2"],
+  "assumptions": ["Uppskattad tid: X veckor", "Moment 1 först, sedan moment 2"],
   "uncertainties": ["Osäkerhet 1", "Osäkerhet 2"],
   "items": [
     {

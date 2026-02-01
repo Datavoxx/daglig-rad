@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const systemPrompt = `Du är en assistent som hjälper till att uppdatera projektbeskrivningar och antaganden för offerter baserat på röstkommandon.
+    const systemPrompt = `Du är en assistent som hjälper till att uppdatera projektbeskrivningar och tidsplaner för offerter baserat på röstkommandon.
 
 Du får:
 1. En transkription av ett röstkommando
@@ -73,16 +73,22 @@ Din uppgift:
 - Tolka vad användaren vill ändra
 - Returnera uppdaterad data
 
+TIDSPLAN (assumptions):
+- När användaren nämner "tidsplan", "tidplan", "veckor", "dagar" ska detta gå till assumptions-arrayen
+- Exempel: "Tidsplan två veckor" → assumptions: ["Totalt 2 veckor"]
+- Exempel: "Vecka ett rivning, vecka två bygge" → assumptions: ["Vecka 1: Rivning", "Vecka 2: Bygge"]
+- Tidsplan-information ska ALDRIG hamna i scope, scope är bara projektbeskrivning
+
 Exempel på kommandon:
 - "Ändra omfattningen till badrumsrenovering i stället"
-- "Lägg till ett antagande om att det finns befintlig stomme"
+- "Tidsplan: två veckor" → assumptions: ["2 veckor"]
 - "Ta bort osäkerheten om el"
-- "Byt ut antagandet om våtrumsmattan till kakel istället"
+- "Vecka ett rivning, vecka två målning" → assumptions: ["Vecka 1: Rivning", "Vecka 2: Målning"]
 
 Returnera ENDAST giltig JSON med denna struktur:
 {
   "scope": "uppdaterad text eller samma som innan",
-  "assumptions": ["array", "med", "antaganden"],
+  "assumptions": ["Vecka 1: Moment A", "Vecka 2: Moment B"],
   "uncertainties": ["array", "med", "osäkerheter"],
   "changes_made": "kort beskrivning av vad du ändrade"
 }`;
@@ -90,8 +96,8 @@ Returnera ENDAST giltig JSON med denna struktur:
     const userPrompt = `Röstkommando: "${transcript}"
 
 Nuvarande data:
-- Omfattning: ${currentData.scope}
-- Antaganden: ${JSON.stringify(currentData.assumptions)}
+- Projektbeskrivning: ${currentData.scope}
+- Tidsplan: ${JSON.stringify(currentData.assumptions)}
 - Osäkerheter: ${JSON.stringify(currentData.uncertainties)}
 
 Tolka kommandot och returnera uppdaterad data.`;
