@@ -55,14 +55,14 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
 
   // Footer function with legally required company information
   const drawFooter = () => {
-    const footerY = pageHeight - 28;
+    const footerY = pageHeight - 22;
     
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.5);
     doc.line(margin, footerY, pageWidth - margin, footerY);
     
     const colWidth = (pageWidth - margin * 2) / 4;
-    let y = footerY + 5;
+    let y = footerY + 4;
     
     // Column headers
     doc.setFontSize(7);
@@ -217,18 +217,11 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
   doc.text("ATT BETALA", totalsX, yPos + 9, { align: "right" });
   doc.text(`${formatNumber(invoice.total_inc_vat)} kr`, valuesX, yPos + 9, { align: "right" });
 
-  // Payment info
+  // Payment info (simplified - bankgiro is in footer)
   yPos += 30;
-  doc.setFontSize(10);
-  doc.text("Betalningsinformation", margin, yPos);
-  yPos += 7;
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(50, 50, 50);
-  if (company?.bankgiro) {
-    doc.text(`Bankgiro: ${company.bankgiro}`, margin, yPos);
-    yPos += 5;
-  }
   doc.text(`Betalvillkor: ${invoice.payment_terms || "30 dagar netto"}`, margin, yPos);
   yPos += 5;
   doc.text(`OCR/Referens: ${invoice.invoice_number}`, margin, yPos);
