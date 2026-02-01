@@ -125,16 +125,45 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
   const handleGenerateCompletePdf = async () => {
     setGeneratingPdf(true);
     try {
-      // Fetch all project data
-      const [estimateItemsRes, ataItemsRes, planRes, diaryRes, companyRes] = await Promise.all([
+      const userId = (await supabase.auth.getUser()).data.user?.id || "";
+      
+      // Fetch all project data including time entries, work orders, files and vendor invoices
+      const [estimateItemsRes, ataItemsRes, planRes, diaryRes, timeEntriesRes, workOrdersRes, filesRes, vendorInvoicesRes, companyRes] = await Promise.all([
         project.estimate_id 
           ? supabase.from("estimate_items").select("*").eq("estimate_id", project.estimate_id).order("sort_order")
           : Promise.resolve({ data: [] }),
         supabase.from("project_ata").select("*").eq("project_id", project.id).order("sort_order"),
         supabase.from("project_plans").select("*").eq("project_id", project.id).maybeSingle(),
         supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
-        supabase.from("company_settings").select("*").eq("user_id", (await supabase.auth.getUser()).data.user?.id || "").maybeSingle(),
+        supabase.from("time_entries")
+          .select(`*, billing_types(name), salary_types(name), profiles(full_name)`)
+          .eq("project_id", project.id)
+          .order("date"),
+        supabase.from("project_work_orders")
+          .select("*")
+          .eq("project_id", project.id)
+          .order("created_at"),
+        supabase.from("project_files")
+          .select("id, file_name, category, created_at")
+          .eq("project_id", project.id)
+          .order("created_at"),
+        supabase.from("vendor_invoices")
+          .select("id, supplier_name, invoice_number, invoice_date, total_inc_vat, status")
+          .eq("project_id", project.id)
+          .order("invoice_date"),
+        supabase.from("company_settings").select("*").eq("user_id", userId).maybeSingle(),
       ]);
+
+      // Transform time entries to include joined names
+      const timeEntries = (timeEntriesRes.data || []).map((entry: any) => ({
+        id: entry.id,
+        date: entry.date,
+        hours: entry.hours,
+        description: entry.description,
+        billing_type_name: entry.billing_types?.name || null,
+        salary_type_name: entry.salary_types?.name || null,
+        user_name: entry.profiles?.full_name || null,
+      }));
 
       await generateCompleteProjectPdf({
         project: project as any,
@@ -143,6 +172,10 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
         ataItems: (ataItemsRes.data || []) as any[],
         plan: planRes.data as any,
         diaryReports: (diaryRes.data || []) as any[],
+        timeEntries,
+        workOrders: (workOrdersRes.data || []) as any[],
+        projectFiles: (filesRes.data || []) as any[],
+        vendorInvoices: (vendorInvoicesRes.data || []) as any[],
         companySettings: companyRes.data as any,
       });
 
@@ -372,6 +405,10 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
               <li>ÄTA-arbeten</li>
               <li>Projektplanering</li>
               <li>Alla dagrapporter</li>
+              <li>Tidsrapporter</li>
+              <li>Arbetsorder</li>
+              <li>Projektfiler & bilagor</li>
+              <li>Leverantörsfakturor</li>
               <li>Ekonomisk sammanfattning</li>
             </ul>
           </div>
