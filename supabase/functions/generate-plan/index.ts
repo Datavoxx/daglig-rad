@@ -5,6 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 interface PlanPhase {
   name: string;
   start_week: number;
@@ -189,6 +218,7 @@ Confidence ska vara mellan 0 och 1 baserat på hur tydlig beskrivningen var.`;
 
   } catch (error) {
     console.error('Error in generate-plan function:', error);
+    await reportError("generate-plan", error, { endpoint: "generate-plan" });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Ett fel uppstod' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

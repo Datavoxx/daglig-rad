@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 interface ExtractedInvoice {
   supplier_name: string;
   invoice_number: string;
@@ -168,6 +197,10 @@ serve(async (req) => {
     // Check final result
     if (!result.success) {
       console.error("All extraction attempts failed:", result.error);
+      await reportError("extract-vendor-invoice", new Error(result.error || "Extraction failed"), { 
+        fileName, 
+        base64Length: pdfBase64.length 
+      });
       return new Response(JSON.stringify({ 
         error: result.error || "Kunde inte extrahera data från fakturan",
         details: "Försök med en tydligare bild eller manuell inmatning"
@@ -189,6 +222,7 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Request processing error:", error);
+    await reportError("extract-vendor-invoice", error, { endpoint: "extract-vendor-invoice" });
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

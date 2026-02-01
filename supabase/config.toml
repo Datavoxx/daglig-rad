@@ -32,3 +32,15 @@ verify_jwt = false
 
 [functions.extract-vendor-invoice]
 verify_jwt = false
+
+[functions.report-error]
+verify_jwt = false
+
+[functions.send-employee-invitation]
+verify_jwt = false
+
+[functions.accept-invitation]
+verify_jwt = false
+
+[functions.validate-invitation]
+verify_jwt = false

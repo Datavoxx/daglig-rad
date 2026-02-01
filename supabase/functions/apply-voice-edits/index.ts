@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -218,6 +247,7 @@ Svara ENDAST med JSON-objektet.`;
 
   } catch (error: any) {
     console.error("apply-voice-edits error:", error);
+    await reportError("apply-voice-edits", error, { endpoint: "apply-voice-edits" });
     return new Response(
       JSON.stringify({ error: error.message || "Kunde inte applicera ändringarna" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
