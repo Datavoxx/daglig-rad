@@ -1,104 +1,107 @@
 
 
-## Uppdatera AI-prompter för att förstå "Tidsplan"
+## Fix: Visa rätt namn för admin/ägare i kalendervyn
 
-### Problemanalys
+### Problemet
 
-**Vad händer nu**: När du säger "Byte av fasad. Tidsplan: två veckor" så hamnar all text i **Projektbeskrivning** istället för att "två veckor" placeras i **Tidsplan**-fältet.
+Tidposter registrerade av dig själv (admin/ägaren) visas som "Okänd" eftersom:
+1. `DayDetailPopover` tar inte emot `currentUserId` som prop
+2. `getUserName()` anropas utan det tredje argumentet
+3. Din `user_id` hittas inte bland `employees.linked_user_id` → fallback till "Okänd"
 
-**Orsak**: AI:n i röststyrningen vet inte att "Tidsplan" i användargränssnittet motsvarar `assumptions`-fältet. Prompten säger fortfarande "Arbete som ingår" och "Antaganden" - gamla namn som inte längre används.
+### Lösning
 
-### Vad som ska ändras
-
-| Fil | Problem | Lösning |
-|-----|---------|---------|
-| `apply-full-estimate-voice/index.ts` | Rad 119: `assumptions: Lista med "Arbete som ingår"` | Ändra till `assumptions: Tidsplan (planerade moment/tidsramar)` |
-| `apply-full-estimate-voice/index.ts` | Rad 284: `Arbete som ingår:` i prompten | Ändra till `Tidsplan:` |
-| `generate-estimate/index.ts` | Rad 171, 219: `assumptions: ["Antaganden"]` | Ändra till tidsplan-relaterade exempel |
-| `apply-summary-voice-edits/index.ts` | Rad 85: `assumptions: ["array med antaganden"]` | Ändra till tidsplan-termer |
+Skicka med aktuell användares ID genom hela komponentkedjan så att posten korrekt identifieras som "Du".
 
 ### Teknisk implementation
 
-#### 1. apply-full-estimate-voice/index.ts
+#### 1. TimeCalendarView.tsx - Hämta aktuell användare
 
-Uppdatera systempromptens strukturbeskrivning (rad 114-125):
-
-```typescript
-// FÖRE:
-// - assumptions: Lista med "Arbete som ingår"
-
-// EFTER:
-// - assumptions: Tidsplan - planerade arbetsmoment och tidsramar (t.ex. "Vecka 1: Rivning", "2 veckor totalt")
-```
-
-Lägg till explicita instruktioner för tidsplan-tolkning:
+Lägg till query för att hämta inloggad användare och skicka ID:t vidare:
 
 ```typescript
-TIDSPLAN (assumptions):
-- När användaren nämner "tidsplan", "tidplan", "veckor", "dagar", "arbetsmoment i ordning", 
-  så ska detta gå till assumptions-arrayen
-- Exempel: "Tidsplan två veckor" → assumptions: ["Totalt 2 veckor"]
-- Exempel: "Vecka ett rivning, vecka två bygge" → assumptions: ["Vecka 1: Rivning", "Vecka 2: Bygge"]
-- Varje punkt i tidsplanen ska vara ett separat element i arrayen
+// Lägg till efter befintliga queries
+const { data: currentUser } = useQuery({
+  queryKey: ["current-user-calendar"],
+  queryFn: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  },
+});
+
+// Skicka till WeekView/MonthView
+<WeekView 
+  currentDate={currentDate} 
+  entries={entries} 
+  employees={employees}
+  currentUserId={currentUser?.id}  // NY
+  onDayClick={onDayClick} 
+/>
 ```
 
-Uppdatera användarpromptens etiketter (rad 284):
+#### 2. WeekView.tsx & MonthView.tsx - Propagera prop
+
+Lägg till `currentUserId` i interface och skicka vidare till DayCell:
 
 ```typescript
-// FÖRE:
-// Arbete som ingår:
-// ${currentData.assumptions...}
+interface WeekViewProps {
+  currentDate: Date;
+  entries: TimeEntryWithDetails[];
+  employees: Employee[];
+  currentUserId?: string;  // NY
+  onDayClick: (date: Date) => void;
+}
 
-// EFTER:
-// Tidsplan:
-// ${currentData.assumptions...}
+// I DayCell-anropet:
+<DayCell
+  ...
+  currentUserId={currentUserId}  // NY
+/>
 ```
 
-#### 2. generate-estimate/index.ts
+#### 3. DayCell.tsx - Propagera till popover
 
-Uppdatera JSON-exemplen (rad 170-172 och 218-220):
+Lägg till prop och skicka till DayDetailPopover:
 
 ```typescript
-// FÖRE:
-"assumptions": ["Antaganden baserade på mallen"],
+interface DayCellProps {
+  ...
+  currentUserId?: string;  // NY
+}
 
-// EFTER:
-"assumptions": ["Vecka 1: Förberedelse och rivning", "Vecka 2: Byggnation"],
-// eller för fallback:
-"assumptions": ["Uppskattad tid: X veckor", "Moment 1 först, sedan moment 2"],
+<DayDetailPopover
+  ...
+  currentUserId={currentUserId}  // NY
+/>
 ```
 
-#### 3. apply-summary-voice-edits/index.ts
+#### 4. DayDetailPopover.tsx - Använd i getUserName
 
-Uppdatera terminologin i prompten (rad 85 och 94):
+Lägg till prop och använd i funktionsanropet:
 
 ```typescript
-// FÖRE:
-"assumptions": ["array", "med", "antaganden"],
-// - Antaganden: ${JSON.stringify(currentData.assumptions)}
+interface DayDetailPopoverProps {
+  ...
+  currentUserId?: string;  // NY
+}
 
-// EFTER:
-"assumptions": ["Vecka 1: Moment A", "Vecka 2: Moment B"],
-// - Tidsplan: ${JSON.stringify(currentData.assumptions)}
+// Anropa med rätt argument:
+const userName = getUserName(entry.user_id, employees, currentUserId);
 ```
-
-### Exempelscenario efter fix
-
-**Röstkommando**: "Byte av fasad. Tidsplan: två veckor."
-
-**Förväntat resultat**:
-- **Projektbeskrivning (scope)**: "Byte av fasad"
-- **Tidsplan (assumptions)**: ["2 veckor"]
 
 ### Filer som påverkas
 
-1. `supabase/functions/apply-full-estimate-voice/index.ts`
-2. `supabase/functions/generate-estimate/index.ts`
-3. `supabase/functions/apply-summary-voice-edits/index.ts`
+| Fil | Ändring |
+|-----|---------|
+| `src/components/time-reporting/TimeCalendarView.tsx` | Hämta currentUser, skicka ID som prop |
+| `src/components/time-reporting/WeekView.tsx` | Lägg till prop, propagera till DayCell |
+| `src/components/time-reporting/MonthView.tsx` | Lägg till prop, propagera till DayCell |
+| `src/components/time-reporting/DayCell.tsx` | Lägg till prop, propagera till popover |
+| `src/components/time-reporting/DayDetailPopover.tsx` | Lägg till prop, använd i getUserName |
 
-### Fördelar
+### Resultat efter fix
 
-- AI:n förstår nu att "Tidsplan" mappas till rätt fält
-- Röstkommandon som "tidsplan två veckor" fungerar korrekt
-- Konsekvent terminologi mellan UI och AI-prompter
+- **Dina egna tidposter** → Visas som "Du"
+- **Anställdas tidposter** → Visas med deras namn (t.ex. "mahad")
+- **Okänt user_id** → Visas som "Okänd" (endast om något är fel)
 
