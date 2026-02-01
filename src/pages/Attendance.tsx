@@ -15,8 +15,25 @@ import { toast } from "sonner";
 import { ActiveWorkers } from "@/components/attendance/ActiveWorkers";
 import { AttendanceHistory } from "@/components/attendance/AttendanceHistory";
 import { QRCodeGenerator } from "@/components/attendance/QRCodeGenerator";
+import { AttendanceEmployeeView } from "@/components/attendance/AttendanceEmployeeView";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 export default function Attendance() {
+  const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+  
+  // Check if user is admin (has settings access) - if not, show simplified view
+  const isAdmin = hasAccess("settings");
+  
+  // If employee (not admin), show simplified view
+  if (!permissionsLoading && !isAdmin) {
+    return <AttendanceEmployeeView />;
+  }
+  
+  // Admin view with full functionality
+  return <AttendanceAdminView />;
+}
+
+function AttendanceAdminView() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const queryClient = useQueryClient();
 

@@ -77,7 +77,8 @@ export function QRCodeGenerator({ projects }: QRCodeGeneratorProps) {
   
   const getScanUrl = () => {
     if (!existingToken || !selectedProjectId) return "";
-    const baseUrl = "https://daglig-rad.lovable.app";
+    // Använd produktions-URL för QR-koder (egen domän)
+    const baseUrl = "https://datavoxx.se";
     return `${baseUrl}/attendance/scan/${selectedProjectId}/${existingToken.token}`;
   };
 

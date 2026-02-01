@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, BookOpen, Phone, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,11 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Get returnTo parameter for post-login redirect
+  const returnTo = searchParams.get("returnTo");
 
   const validateForm = () => {
     try {
@@ -49,14 +53,15 @@ export default function Auth() {
     if (error) {
       toast({
         title: "Inloggning misslyckades",
-        description: error.message === "Invalid login credentials" 
-          ? "Felaktiga inloggningsuppgifter" 
+        description: error.message === "Invalid login credentials"
+          ? "Felaktiga inloggningsuppgifter"
           : error.message,
         variant: "destructive",
       });
     } else {
       toast({ title: "Välkommen tillbaka!" });
-      navigate("/dashboard");
+      // Redirect to returnTo if provided, otherwise dashboard
+      navigate(returnTo || "/dashboard");
     }
   };
 
