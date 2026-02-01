@@ -14,6 +14,7 @@ import { LogIn, LogOut, ClipboardCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ActiveWorkers } from "@/components/attendance/ActiveWorkers";
 import { AttendanceHistory } from "@/components/attendance/AttendanceHistory";
+import { QRCodeGenerator } from "@/components/attendance/QRCodeGenerator";
 
 export default function Attendance() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -231,6 +232,9 @@ export default function Attendance() {
         {/* Active Workers */}
         <ActiveWorkers projectId={selectedProjectId || activeCheckIn?.project_id} />
       </div>
+
+      {/* QR Code Generator */}
+      <QRCodeGenerator projects={projects} />
 
       {/* History */}
       <AttendanceHistory />
