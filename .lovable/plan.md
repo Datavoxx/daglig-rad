@@ -1,212 +1,208 @@
 
 
-## Personalliggare - Svensk lagefterlevnad för byggbranschen
+## QR-kod för Personalliggare - Snabb incheckning på arbetsplatsen
 
-### Bakgrund
+### Vad som ska byggas
 
-**Personalliggare** är ett svenskt lagkrav för byggbranschen där arbetsgivare måste föra register över vilka personer som befinner sig på en arbetsplats vid varje given tidpunkt. Detta ska kunna visas för Skatteverket vid kontroll.
+En QR-kodfunktion som gör det möjligt att checka in/ut på arbetsplatsen genom att bara scanna en kod. Varje projekt får en unik QR-kod som kan skrivas ut och sättas upp på bygget.
 
-**Skillnad mot Tidsrapportering:**
+### Hur det fungerar
 
-| Personalliggare | Tidsrapportering |
-|-----------------|------------------|
-| Lagkrav - exakt in/ut-tid | Intern uppföljning |
-| Inga timberäkningar | Timmar, lön, fakturering |
-| Enkel och ren data | Kopplat till projekt, typer |
-| Redo för myndighetskontroll | Ekonomisk analys |
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  ARBETSPLATS: Villan på Storgatan                           │
+│                                                             │
+│        ┌─────────────────────────┐                          │
+│        │                         │                          │
+│        │     [QR-KOD HÄR]        │  ← Skanna med mobilen    │
+│        │                         │                          │
+│        └─────────────────────────┘                          │
+│                                                             │
+│  Skanna för att checka in/ut                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Flöde för arbetaren:**
+1. Arbetaren anländer till arbetsplatsen
+2. Scannar QR-koden med sin mobil (kameran)
+3. Öppnas i webbläsaren → automatisk incheckning
+4. När hen går hem, scannar igen → automatisk utcheckning
+
+**Flöde för administratören:**
+1. Går till Personalliggare-sidan
+2. Klickar "Visa QR-kod" på ett projekt
+3. Skriver ut och sätter upp vid entrén
 
 ---
 
-### Databasstruktur
+### Teknisk design
 
-Ny tabell: `attendance_records`
+#### Ny publik route
+
+```
+/attendance/scan/:projectId/:token
+```
+
+- **projectId**: vilket projekt det gäller
+- **token**: en unik säkerhetsnyckel per projekt
+
+#### Databasändring
+
+Ny tabell: `attendance_qr_tokens`
 
 | Kolumn | Typ | Beskrivning |
 |--------|-----|-------------|
 | id | uuid | Primärnyckel |
-| user_id | uuid | Person som checkar in (anställd eller admin) |
-| employer_id | uuid | Arbetsgivare/organisation |
-| project_id | uuid | Arbetsplats/projekt |
-| check_in | timestamptz | Incheckningstid (exakt) |
-| check_out | timestamptz | Utcheckningstid (null = fortfarande på plats) |
-| created_at | timestamptz | Skapad |
+| project_id | uuid | Vilket projekt |
+| token | text | Unik kod (32 tecken) |
+| created_by | uuid | Vem som skapade |
+| created_at | timestamptz | När skapad |
 
-**RLS-policyer:**
-- Användare kan se/hantera sina egna poster
-- Arbetsgivare kan se/hantera anställdas poster (via employer_id)
+#### Nya bibliotek
+
+- `qrcode.react` - Generera QR-koder i React (litet, populärt)
 
 ---
 
-### Användargränssnitt
+### Nya komponenter
 
-#### Huvudvy: `/attendance`
+#### 1. QR-kod generator (admin-sida)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  PERSONALLIGGARE                                            │
-│  Elektronisk närvaro för [Projektnamn]                      │
-├─────────────────────────────────────────────────────────────┤
+│  Personalliggare                                            │
 │                                                             │
-│  ┌─────────────────┐   ┌─────────────────────────────────┐  │
-│  │  VÄLJ PROJEKT   │   │  PÅ PLATS JUST NU: 3 personer   │  │
-│  │  [▼ Dropdown]   │   │  ─────────────────────────────  │  │
-│  └─────────────────┘   │  ● Erik S. - sedan 07:15        │  │
-│                        │  ● Anna K. - sedan 07:30        │  │
-│  ┌─────────────────┐   │  ● Johan L. - sedan 08:00       │  │
-│  │   CHECKA IN     │   └─────────────────────────────────┘  │
-│  │   [Stor knapp]  │                                        │
-│  └─────────────────┘                                        │
+│  ┌─────────────────────────────────────────────────────────┐
+│  │ [Välj projekt ▼]            [Skapa QR-kod]              │
+│  └─────────────────────────────────────────────────────────┘
 │                                                             │
-│  ┌─────────────────┐                                        │
-│  │   CHECKA UT     │   Grå om ej incheckad                  │
-│  │   [Stor knapp]  │                                        │
-│  └─────────────────┘                                        │
+│  ┌─────────────────────────────────────────────────────────┐
+│  │               ┌───────────┐                             │
+│  │               │  QR-KOD   │                             │
+│  │               │           │                             │
+│  │               └───────────┘                             │
+│  │                                                         │
+│  │   Villan på Storgatan 15                                │
+│  │   Skanna för att checka in/ut                           │
+│  │                                                         │
+│  │   [🖨️ Skriv ut]  [📋 Kopiera länk]  [🔄 Ny kod]        │
+│  └─────────────────────────────────────────────────────────┘
 │                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  HISTORIK (senaste 7 dagar)                                 │
-│  ─────────────────────────────────────────────────────────  │
-│  2026-02-01  Erik S.     07:15 - 16:30                      │
-│  2026-02-01  Anna K.     07:30 - 16:45                      │
-│  2026-01-31  Erik S.     06:45 - 15:30                      │
-│  ...                                                        │
-│                                 [Exportera för kontroll →]  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### Flöde
+#### 2. Publik scan-sida (för arbetare)
 
-1. **Användaren väljer projekt** (arbetsplats)
-2. **Ett klick: Checka in** - sparar aktuell tid + projekt
-3. **Ett klick: Checka ut** - uppdaterar posten med utcheckningstid
-4. **Realtidsvy** visar vem som är på plats just nu (check_out = null)
-5. **Historik** visar de senaste dagarna för dokumentation
-
----
-
-### Navigation
-
-Lägg till ny navigeringspost i `AppLayout.tsx`:
-
-```typescript
-{ 
-  label: "Personalliggare", 
-  href: "/attendance", 
-  icon: ClipboardCheck,  // eller UserCheck 
-  moduleKey: "attendance" 
-}
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    PERSONALLIGGARE                          │
+│                                                             │
+│            Villan på Storgatan 15, Malmö                    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────────┐
+│  │                                                         │
+│  │   [LOGGA IN FÖR ATT CHECKA IN]                          │
+│  │                                                         │
+│  │   --- ELLER ---                                         │
+│  │                                                         │
+│  │   Skriv ditt namn:                                      │
+│  │   ┌────────────────────────────────────────────────┐    │
+│  │   │ Erik Svensson                                  │    │
+│  │   └────────────────────────────────────────────────┘    │
+│  │                                                         │
+│  │   [CHECKA IN]                                           │
+│  │                                                         │
+│  └─────────────────────────────────────────────────────────┘
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Placeras logiskt nära "Tidsrapport" men är en separat modul.
+**Två alternativ för incheckning:**
+- **Inloggad användare**: Automatisk koppling till deras konto
+- **Gäst**: Ange namn manuellt (för underentreprenörer etc.)
 
 ---
 
-### Teknisk implementation
+### Implementation
 
-#### 1. Databasmigration
+#### Databasmigrering
 
 ```sql
-CREATE TABLE attendance_records (
+-- Tabell för QR-tokens
+CREATE TABLE attendance_qr_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  employer_id uuid NOT NULL,
-  project_id uuid NOT NULL REFERENCES projects(id),
-  check_in timestamptz NOT NULL DEFAULT now(),
-  check_out timestamptz,
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  created_by uuid NOT NULL,
   created_at timestamptz DEFAULT now()
 );
 
+-- Lägg till guest_name i attendance_records för gäster
+ALTER TABLE attendance_records 
+ADD COLUMN guest_name text;
+
 -- RLS
-ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_qr_tokens ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own attendance"
-  ON attendance_records FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can manage own tokens"
+  ON attendance_qr_tokens FOR ALL
+  USING (auth.uid() = created_by)
+  WITH CHECK (auth.uid() = created_by);
 
-CREATE POLICY "Employers can view employee attendance"
-  ON attendance_records FOR SELECT
-  USING (auth.uid() = employer_id);
-
-CREATE POLICY "Employers can manage employee attendance"
-  ON attendance_records FOR ALL
-  USING (auth.uid() = employer_id)
-  WITH CHECK (auth.uid() = employer_id);
-
--- Index för snabba frågor
-CREATE INDEX idx_attendance_project ON attendance_records(project_id);
-CREATE INDEX idx_attendance_employer ON attendance_records(employer_id);
-CREATE INDEX idx_attendance_active ON attendance_records(user_id) 
-  WHERE check_out IS NULL;
+CREATE POLICY "Anyone can view tokens"
+  ON attendance_qr_tokens FOR SELECT
+  USING (true);
 ```
 
-#### 2. Nya filer
+#### Nya filer
 
 | Fil | Beskrivning |
 |-----|-------------|
-| `src/pages/Attendance.tsx` | Huvudsida med in/ut-knappar |
-| `src/components/attendance/ActiveWorkers.tsx` | Lista över vem som är på plats |
-| `src/components/attendance/AttendanceHistory.tsx` | Historik-tabell |
+| `src/pages/AttendanceScan.tsx` | Publik scan-sida |
+| `src/components/attendance/QRCodeGenerator.tsx` | Generera/visa QR-kod |
+| `src/components/attendance/QRCodePrintView.tsx` | Utskriftsvy |
 
-#### 3. Uppdatera routing
+#### Uppdaterade filer
 
-**App.tsx:**
-```typescript
-import Attendance from "@/pages/Attendance";
-// ...
-<Route path="/attendance" element={
-  <ProtectedModuleRoute module="attendance">
-    <Attendance />
-  </ProtectedModuleRoute>
-} />
-```
-
-#### 4. Uppdatera behörigheter
-
-**useUserPermissions.ts:**
-```typescript
-const ALL_MODULES = [
-  // ... befintliga
-  "attendance"  // NY
-];
-```
-
-**handle_new_user() trigger:**
-```sql
--- Lägg till 'attendance' i modules-arrayen
-```
+| Fil | Ändring |
+|-----|---------|
+| `src/pages/Attendance.tsx` | Lägg till QR-kod sektion |
+| `src/App.tsx` | Ny publik route `/attendance/scan/:projectId/:token` |
+| `package.json` | Lägg till `qrcode.react` |
 
 ---
 
-### Viktiga designprinciper
+### Säkerhet
 
-1. **Enkelhet** - Minimalt med fält, bara det som krävs enligt lag
-2. **Snabbhet** - Ett klick för in, ett klick för ut
-3. **Realtid** - Alltid aktuell vy av vem som är på plats
-4. **Ingen koppling till ekonomi** - Helt separerad från tidsrapportering
-5. **Exporterbart** - Möjlighet att exportera för Skatteverket
-
----
-
-### Mobilvänlighet
-
-Stora knappar för "Checka in" / "Checka ut" som fungerar bra på mobil direkt på arbetsplatsen.
+1. **Token-baserad validering**: Endast giltiga tokens fungerar
+2. **Projekt-koppling**: Token är bunden till specifikt projekt
+3. **Kan återkallas**: Admin kan skapa ny token (ogiltigförklarar den gamla)
+4. **Gäster kräver namn**: Manuell inmatning för spårbarhet
 
 ---
 
-### Sammanfattning av filer som skapas/ändras
+### Mobil-optimering
+
+- Stora touch-vänliga knappar
+- Snabb laddning (minimal sida)
+- Tydlig feedback vid in/utcheckning
+- Fungerar i alla webbläsare
+
+---
+
+### Sammanfattning
 
 **Nya filer:**
+- `src/pages/AttendanceScan.tsx`
+- `src/components/attendance/QRCodeGenerator.tsx`
+- `src/components/attendance/QRCodePrintView.tsx`
+
+**Uppdaterade filer:**
 - `src/pages/Attendance.tsx`
-- `src/components/attendance/ActiveWorkers.tsx`
-- `src/components/attendance/AttendanceHistory.tsx`
+- `src/App.tsx`
+- `package.json`
 
-**Filer som uppdateras:**
-- `src/App.tsx` (ny route)
-- `src/components/layout/AppLayout.tsx` (ny nav-post)
-- `src/hooks/useUserPermissions.ts` (ny modul)
-
-**Databasmigration:**
-- Ny tabell `attendance_records`
-- RLS-policyer
-- Index för prestanda
+**Databasändringar:**
+- Ny tabell `attendance_qr_tokens`
+- Nytt fält `guest_name` i `attendance_records`
 
