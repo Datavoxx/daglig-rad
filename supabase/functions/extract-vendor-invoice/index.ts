@@ -2,8 +2,129 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+interface ExtractedInvoice {
+  supplier_name: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string;
+  total_ex_vat: number;
+  vat_amount: number;
+  total_inc_vat: number;
+  rows: Array<{
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    subtotal: number;
+  }>;
+  suggested_project?: string;
+  extractionMethod?: "pdf" | "image_fallback";
+}
+
+interface ExtractionResult {
+  success: boolean;
+  data?: ExtractedInvoice;
+  error?: string;
+}
+
+const extractionPrompt = `Analysera denna leverantörsfaktura. Extrahera följande information och returnera som JSON:
+
+{
+  "supplier_name": "Leverantörens namn",
+  "invoice_number": "Fakturanummer",
+  "invoice_date": "YYYY-MM-DD",
+  "due_date": "YYYY-MM-DD",
+  "total_ex_vat": 0,
+  "vat_amount": 0,
+  "total_inc_vat": 0,
+  "rows": [
+    {"description": "Beskrivning", "quantity": 1, "unit": "st", "unit_price": 0, "subtotal": 0}
+  ],
+  "suggested_project": "Om du hittar projektreferens i fakturan, ange den här"
+}
+
+Svara ENDAST med giltig JSON, ingen annan text.`;
+
+function shouldRetryAsImage(errorMessage: string): boolean {
+  const retryableErrors = [
+    "The document has no pages",
+    "Unable to process PDF",
+    "Invalid document format",
+    "Could not parse document",
+    "INVALID_ARGUMENT",
+    "cannot be processed",
+    "unsupported format"
+  ];
+  return retryableErrors.some(e => errorMessage.toLowerCase().includes(e.toLowerCase()));
+}
+
+async function tryExtract(
+  base64: string,
+  mimeType: string,
+  apiKey: string
+): Promise<ExtractionResult> {
+  console.log(`Extraction attempt: mimeType=${mimeType}, base64Length=${base64.length}`);
+  
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: extractionPrompt },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+            ]
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`AI Gateway error (${response.status}):`, errorText);
+      
+      if (response.status === 429) {
+        return { success: false, error: "För många förfrågningar. Försök igen om en stund." };
+      }
+      if (response.status === 402) {
+        return { success: false, error: "AI-kvot uppnådd. Kontakta support." };
+      }
+      
+      return { success: false, error: errorText };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    
+    console.log("AI response received, parsing JSON...");
+    
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("No valid JSON found in response:", content.substring(0, 200));
+      return { success: false, error: "No valid JSON in AI response" };
+    }
+    
+    const extracted = JSON.parse(jsonMatch[0]) as ExtractedInvoice;
+    console.log("Successfully extracted data:", extracted.supplier_name);
+    
+    return { success: true, data: extracted };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Extraction error:", message);
+    return { success: false, error: message };
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,63 +146,49 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const prompt = `Analysera denna leverantörsfaktura (PDF). Extrahera följande information och returnera som JSON:
+    console.log(`Processing file: ${fileName || "unknown"}, size: ${pdfBase64.length} chars`);
 
-{
-  "supplier_name": "Leverantörens namn",
-  "invoice_number": "Fakturanummer",
-  "invoice_date": "YYYY-MM-DD",
-  "due_date": "YYYY-MM-DD",
-  "total_ex_vat": 0,
-  "vat_amount": 0,
-  "total_inc_vat": 0,
-  "rows": [
-    {"description": "Beskrivning", "quantity": 1, "unit": "st", "unit_price": 0, "subtotal": 0}
-  ],
-  "suggested_project": "Om du hittar projektreferens i fakturan, ange den här"
-}
-
-Svara ENDAST med giltig JSON, ingen annan text.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "user", content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:application/pdf;base64,${pdfBase64}` } }
-          ]}
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("AI Gateway error:", error);
-      throw new Error("AI extraction failed");
+    // Attempt 1: Try direct PDF extraction
+    console.log("Attempt 1: Direct PDF extraction with Gemini Pro...");
+    let result = await tryExtract(pdfBase64, "application/pdf", LOVABLE_API_KEY);
+    
+    // Attempt 2: If PDF failed with retryable error, try as image
+    if (!result.success && result.error && shouldRetryAsImage(result.error)) {
+      console.log("PDF extraction failed with retryable error, trying image fallback...");
+      console.log("Error was:", result.error);
+      
+      result = await tryExtract(pdfBase64, "image/png", LOVABLE_API_KEY);
+      
+      if (result.success && result.data) {
+        result.data.extractionMethod = "image_fallback";
+        console.log("Image fallback succeeded!");
+      }
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    
-    // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No valid JSON in AI response");
+    // Check final result
+    if (!result.success) {
+      console.error("All extraction attempts failed:", result.error);
+      return new Response(JSON.stringify({ 
+        error: result.error || "Kunde inte extrahera data från fakturan",
+        details: "Försök med en tydligare bild eller manuell inmatning"
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    
-    const extracted = JSON.parse(jsonMatch[0]);
 
-    return new Response(JSON.stringify({ extracted }), {
+    // Mark extraction method if not already set
+    if (result.data && !result.data.extractionMethod) {
+      result.data.extractionMethod = "pdf";
+    }
+
+    console.log(`Extraction complete. Method: ${result.data?.extractionMethod}`);
+
+    return new Response(JSON.stringify({ extracted: result.data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Extraction error:", error);
+    console.error("Request processing error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
