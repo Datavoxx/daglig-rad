@@ -1,107 +1,116 @@
 
 
-## Fix: Visa rätt namn för admin/ägare i kalendervyn
+## Visa timsammanställning per anställd i Inställningar
 
-### Problemet
+### Vad som ska byggas
 
-Tidposter registrerade av dig själv (admin/ägaren) visas som "Okänd" eftersom:
-1. `DayDetailPopover` tar inte emot `currentUserId` som prop
-2. `getUserName()` anropas utan det tredje argumentet
-3. Din `user_id` hittas inte bland `employees.linked_user_id` → fallback till "Okänd"
+Lägga till en sektion i varje anställds rad som visar deras totala arbetade timmar, så att du snabbt kan se en sammanfattning av varje persons arbetsinsats direkt under Inställningar → Anställda.
 
-### Lösning
+### Design
 
-Skicka med aktuell användares ID genom hela komponentkedjan så att posten korrekt identifieras som "Du".
+Varje anställd-rad utökas med:
+- **Totalt arbetade timmar** (denna månad + totalt)
+- Visuell indikator som gör det enkelt att se
+
+**Utseende:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Avatar] Erik Svensson          [Aktiv]                     │
+│          📞 070-123 45 67  ✉️ erik@mail.se                   │
+│          ⏱️ 24h denna månad • 156h totalt                   │
+│                                      [Bjud in] [✏️] [🗑️]   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### Teknisk implementation
 
-#### 1. TimeCalendarView.tsx - Hämta aktuell användare
+#### 1. Ny query för tidsdata
 
-Lägg till query för att hämta inloggad användare och skicka ID:t vidare:
+Lägg till en useQuery i EmployeeManager.tsx för att hämta sammanlagda timmar per anställd:
 
 ```typescript
-// Lägg till efter befintliga queries
-const { data: currentUser } = useQuery({
-  queryKey: ["current-user-calendar"],
+const { data: employeeHours = {} } = useQuery({
+  queryKey: ["employee-hours-summary"],
   queryFn: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return {};
+
+    // Hämta alla tidposter för arbetsgivarens anställda
+    const { data: entries, error } = await supabase
+      .from("time_entries")
+      .select("user_id, hours, date")
+      .eq("employer_id", userData.user.id);
+
+    if (error) throw error;
+
+    // Aggregera timmar per user_id
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const hoursByUser: Record<string, { thisMonth: number; total: number }> = {};
+    
+    entries?.forEach(entry => {
+      if (!hoursByUser[entry.user_id]) {
+        hoursByUser[entry.user_id] = { thisMonth: 0, total: 0 };
+      }
+      
+      const entryDate = new Date(entry.date);
+      hoursByUser[entry.user_id].total += Number(entry.hours);
+      
+      if (entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) {
+        hoursByUser[entry.user_id].thisMonth += Number(entry.hours);
+      }
+    });
+
+    return hoursByUser;
   },
 });
-
-// Skicka till WeekView/MonthView
-<WeekView 
-  currentDate={currentDate} 
-  entries={entries} 
-  employees={employees}
-  currentUserId={currentUser?.id}  // NY
-  onDayClick={onDayClick} 
-/>
 ```
 
-#### 2. WeekView.tsx & MonthView.tsx - Propagera prop
+#### 2. Uppdatera Employee-raden
 
-Lägg till `currentUserId` i interface och skicka vidare till DayCell:
+Lägg till en ny rad under kontaktinformationen som visar timmar:
 
 ```typescript
-interface WeekViewProps {
-  currentDate: Date;
-  entries: TimeEntryWithDetails[];
-  employees: Employee[];
-  currentUserId?: string;  // NY
-  onDayClick: (date: Date) => void;
-}
+import { Clock } from "lucide-react";
 
-// I DayCell-anropet:
-<DayCell
-  ...
-  currentUserId={currentUserId}  // NY
-/>
+// I renderingen för varje anställd:
+const employeeUserId = employee.linked_user_id;
+const hours = employeeUserId ? employeeHours[employeeUserId] : null;
+
+// Under kontaktinfo-raden:
+{hours && (hours.thisMonth > 0 || hours.total > 0) && (
+  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+    <Clock className="h-3 w-3" />
+    <span>{hours.thisMonth}h denna månad</span>
+    <span className="text-muted-foreground/50">•</span>
+    <span>{hours.total}h totalt</span>
+  </div>
+)}
 ```
 
-#### 3. DayCell.tsx - Propagera till popover
+#### 3. Formatering av timmar
 
-Lägg till prop och skicka till DayDetailPopover:
-
-```typescript
-interface DayCellProps {
-  ...
-  currentUserId?: string;  // NY
-}
-
-<DayDetailPopover
-  ...
-  currentUserId={currentUserId}  // NY
-/>
-```
-
-#### 4. DayDetailPopover.tsx - Använd i getUserName
-
-Lägg till prop och använd i funktionsanropet:
+Lägg till en hjälpfunktion för snygg formatering:
 
 ```typescript
-interface DayDetailPopoverProps {
-  ...
-  currentUserId?: string;  // NY
+function formatHours(hours: number): string {
+  if (hours === 0) return "0h";
+  if (Number.isInteger(hours)) return `${hours}h`;
+  return `${hours.toFixed(1)}h`;
 }
-
-// Anropa med rätt argument:
-const userName = getUserName(entry.user_id, employees, currentUserId);
 ```
 
 ### Filer som påverkas
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/time-reporting/TimeCalendarView.tsx` | Hämta currentUser, skicka ID som prop |
-| `src/components/time-reporting/WeekView.tsx` | Lägg till prop, propagera till DayCell |
-| `src/components/time-reporting/MonthView.tsx` | Lägg till prop, propagera till DayCell |
-| `src/components/time-reporting/DayCell.tsx` | Lägg till prop, propagera till popover |
-| `src/components/time-reporting/DayDetailPopover.tsx` | Lägg till prop, använd i getUserName |
+| `src/components/settings/EmployeeManager.tsx` | Lägg till query för timdata + visa i UI |
 
-### Resultat efter fix
+### Fördelar
 
-- **Dina egna tidposter** → Visas som "Du"
-- **Anställdas tidposter** → Visas med deras namn (t.ex. "mahad")
-- **Okänt user_id** → Visas som "Okänd" (endast om något är fel)
+- **Snabb överblick** - Se direkt hur mycket varje anställd arbetat
+- **Trend-indikator** - Månadsdata visar aktuell arbetsbelastning
+- **Ingen extra navigering** - Informationen finns direkt i anställdlistan
 
