@@ -187,15 +187,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Set restricted modules for the employee (override the default full access)
+    // Include attendance module for personalliggare access
     const { error: updatePermissionsError } = await supabase
       .from("user_permissions")
-      .update({ modules: ["dashboard", "projects", "time-reporting"] })
+      .update({ modules: ["dashboard", "projects", "time-reporting", "attendance"] })
       .eq("user_id", userId);
 
     if (updatePermissionsError) {
       console.error("Error updating permissions:", updatePermissionsError);
     } else {
-      console.log(`Permissions restricted to dashboard, projects, time-reporting for ${userId}`);
+      console.log(`Permissions restricted to dashboard, projects, time-reporting, attendance for ${userId}`);
     }
 
     console.log(`User account created for ${invitation.email}, linked to employee ${invitation.employee_id}`);

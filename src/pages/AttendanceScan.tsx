@@ -1,26 +1,27 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogIn, LogOut, Loader2, CheckCircle2, XCircle, Building2 } from "lucide-react";
+import { LogIn, LogOut, Loader2, CheckCircle2, XCircle, Building2, User } from "lucide-react";
 import { toast } from "sonner";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 interface Project {
   id: string;
   name: string;
   address: string | null;
   city: string | null;
+  user_id: string;
 }
 
 export default function AttendanceScan() {
   const { projectId, token } = useParams<{ projectId: string; token: string }>();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null);
-  const [guestName, setGuestName] = useState("");
   const [activeCheckIn, setActiveCheckIn] = useState<{ id: string; check_in: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function AttendanceScan() {
         // Fetch project details
         const { data: projectData } = await supabase
           .from("projects")
-          .select("id, name, address, city")
+          .select("id, name, address, city, user_id")
           .eq("id", projectId)
           .single();
 
@@ -91,47 +92,25 @@ export default function AttendanceScan() {
     validateAndFetch();
   }, [projectId, token]);
 
-  const handleCheckIn = async (asGuest: boolean = false) => {
-    if (!project) return;
-    
-    if (asGuest && !guestName.trim()) {
-      toast.error("Ange ditt namn för att checka in");
-      return;
-    }
+  const handleLogin = () => {
+    // Redirect to auth with returnTo parameter
+    const returnPath = `/attendance/scan/${projectId}/${token}`;
+    navigate(`/auth?returnTo=${encodeURIComponent(returnPath)}`);
+  };
+
+  const handleCheckIn = async () => {
+    if (!project || !currentUser) return;
 
     setIsSubmitting(true);
 
     try {
-      // Get project owner for employer_id
-      const { data: projectData } = await supabase
-        .from("projects")
-        .select("user_id")
-        .eq("id", project.id)
-        .single();
-
-      if (!projectData) {
-        toast.error("Kunde inte hitta projektägare");
-        return;
-      }
-
-      const insertData: {
-        user_id: string;
-        employer_id: string;
-        project_id: string;
-        guest_name?: string;
-      } = {
-        user_id: currentUser?.id || projectData.user_id,
-        employer_id: projectData.user_id,
-        project_id: project.id,
-      };
-
-      if (asGuest) {
-        insertData.guest_name = guestName.trim();
-      }
-
       const { error } = await supabase
         .from("attendance_records")
-        .insert(insertData);
+        .insert({
+          user_id: currentUser.id,
+          employer_id: project.user_id,
+          project_id: project.id,
+        });
 
       if (error) throw error;
 
@@ -221,8 +200,13 @@ export default function AttendanceScan() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/30 via-background to-background" />
+      
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center pb-2">
+          <div className="flex justify-center mb-4">
+            <img src={byggioLogo} alt="Byggio" className="h-12" />
+          </div>
           <div className="flex justify-center mb-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Building2 className="h-6 w-6 text-primary" />
@@ -271,36 +255,16 @@ export default function AttendanceScan() {
             </>
           ) : currentUser ? (
             /* Logged in, not checked in */
-            <Button
-              size="lg"
-              className="w-full h-16 text-lg bg-green-600 hover:bg-green-700"
-              onClick={() => handleCheckIn(false)}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              ) : (
-                <LogIn className="h-6 w-6 mr-2" />
-              )}
-              CHECKA IN
-            </Button>
-          ) : (
-            /* Not logged in - guest mode */
             <>
-              <div className="text-center text-sm text-muted-foreground">
-                Ange ditt namn för att checka in
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-sm text-muted-foreground">Inloggad som</p>
+                <p className="font-medium">{currentUser.email}</p>
               </div>
-              <Input
-                placeholder="Ditt namn (t.ex. Erik Svensson)"
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                className="h-14 text-lg text-center"
-              />
               <Button
                 size="lg"
                 className="w-full h-16 text-lg bg-green-600 hover:bg-green-700"
-                onClick={() => handleCheckIn(true)}
-                disabled={isSubmitting || !guestName.trim()}
+                onClick={handleCheckIn}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -308,6 +272,21 @@ export default function AttendanceScan() {
                   <LogIn className="h-6 w-6 mr-2" />
                 )}
                 CHECKA IN
+              </Button>
+            </>
+          ) : (
+            /* Not logged in - require login */
+            <>
+              <div className="text-center text-sm text-muted-foreground py-2">
+                Du behöver logga in för att checka in på arbetsplatsen.
+              </div>
+              <Button
+                size="lg"
+                className="w-full h-16 text-lg"
+                onClick={handleLogin}
+              >
+                <User className="h-6 w-6 mr-2" />
+                LOGGA IN
               </Button>
             </>
           )}
