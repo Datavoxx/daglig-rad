@@ -50,7 +50,66 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
   
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
+
+  // Footer function with legally required company information
+  const drawFooter = () => {
+    const footerY = pageHeight - 25;
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, footerY, pageWidth - margin, footerY);
+    
+    const colWidth = (pageWidth - margin * 2) / 4;
+    let y = footerY + 5;
+    
+    // Headers
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Postadress", margin, y);
+    doc.text("Telefon", margin + colWidth, y);
+    doc.text("Bankgiro", margin + colWidth * 2, y);
+    doc.text("Godkänd för F-skatt", margin + colWidth * 3, y);
+    
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    
+    // Column 1: Postal address
+    doc.text(company?.company_name || "–", margin, y);
+    doc.text(company?.address || "–", margin, y + 3);
+    doc.text(`${company?.postal_code || ""} ${company?.city || ""}`.trim() || "–", margin, y + 6);
+    
+    // Column 2: Phone & Email
+    doc.text(company?.phone || "–", margin + colWidth, y);
+    if (company?.email) {
+      doc.text(company.email, margin + colWidth, y + 3);
+    }
+    
+    // Column 3: Bankgiro + VAT + Org.nr
+    doc.text(company?.bankgiro || "–", margin + colWidth * 2, y);
+    if (company?.momsregnr) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Momsreg.nr", margin + colWidth * 2, y + 5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(company.momsregnr, margin + colWidth * 2, y + 8);
+    }
+    if (company?.org_number) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Org.nr", margin + colWidth * 2, y + 12);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(company.org_number, margin + colWidth * 2, y + 15);
+    }
+    
+    // Column 4: F-skatt status
+    doc.text(company?.f_skatt !== false ? "Ja" : "Nej", margin + colWidth * 3, y);
+  };
 
   const formatNumber = (num: number) => new Intl.NumberFormat("sv-SE").format(Math.round(num));
 
@@ -185,7 +244,11 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
     yPos += 5;
   }
   doc.text(`Betalvillkor: ${invoice.payment_terms || "30 dagar netto"}`, margin, yPos);
-  doc.text(`OCR/Referens: ${invoice.invoice_number}`, margin, yPos + 5);
+  yPos += 5;
+  doc.text(`OCR/Referens: ${invoice.invoice_number}`, margin, yPos);
+
+  // Draw footer with legally required company information
+  drawFooter();
 
   doc.save(`Faktura_${invoice.invoice_number}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
 }
