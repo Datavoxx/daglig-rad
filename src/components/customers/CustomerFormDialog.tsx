@@ -204,179 +204,181 @@ export function CustomerFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Basic fields */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Namn *</Label>
-            <Input
-              id="name"
-              placeholder="Kundens namn"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-            />
-          </div>
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+          <div className="space-y-4 py-4">
+            {/* Basic fields */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Namn *</Label>
+              <Input
+                id="name"
+                placeholder="Kundens namn"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Adress</Label>
-            <AddressAutocomplete
-              id="address"
-              placeholder="Sök adress..."
-              value={formAddress}
-              onChange={setFormAddress}
-              onStructuredChange={setFormAddressData}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Adress</Label>
+              <AddressAutocomplete
+                id="address"
+                placeholder="Sök adress..."
+                value={formAddress}
+                onChange={setFormAddress}
+                onStructuredChange={setFormAddressData}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">E-post</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="kund@example.com"
-              value={formEmail}
-              onChange={(e) => setFormEmail(e.target.value)}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-post</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="kund@example.com"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-3">
-            <Label>Kundtyp</Label>
-            <RadioGroup
-              value={formType}
-              onValueChange={setFormType}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="business" id="business" />
-                <Label htmlFor="business" className="flex items-center gap-2 cursor-pointer font-normal">
-                  <Building2 className="h-4 w-4" />
-                  Företag
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="private" id="private" />
-                <Label htmlFor="private" className="flex items-center gap-2 cursor-pointer font-normal">
-                  <User className="h-4 w-4" />
-                  Privat
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Expandable fields section */}
-          <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                type="button"
-                className="w-full justify-between text-muted-foreground hover:text-foreground"
+            <div className="space-y-3">
+              <Label>Kundtyp</Label>
+              <RadioGroup
+                value={formType}
+                onValueChange={setFormType}
+                className="flex gap-4"
               >
-                {showMoreFields ? "Färre fält" : "Fler fält"}
-                {showMoreFields ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="business" id="business" />
+                  <Label htmlFor="business" className="flex items-center gap-2 cursor-pointer font-normal">
+                    <Building2 className="h-4 w-4" />
+                    Företag
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="private" id="private" />
+                  <Label htmlFor="private" className="flex items-center gap-2 cursor-pointer font-normal">
+                    <User className="h-4 w-4" />
+                    Privat
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Expandable fields section */}
+            <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  className="w-full justify-between text-muted-foreground hover:text-foreground"
+                >
+                  {showMoreFields ? "Färre fält" : "Fler fält"}
+                  {showMoreFields ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerNumber">Kundnummer</Label>
+                    <Input
+                      id="customerNumber"
+                      placeholder="t.ex. C1066"
+                      value={formCustomerNumber}
+                      onChange={(e) => setFormCustomerNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="orgNumber">Org.nr/Pers.nr</Label>
+                    <Input
+                      id="orgNumber"
+                      placeholder="556123-4567"
+                      value={formOrgNumber}
+                      onChange={(e) => setFormOrgNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile">Mobilnummer</Label>
+                    <Input
+                      id="mobile"
+                      type="tel"
+                      placeholder="070-123 45 67"
+                      value={formMobile}
+                      onChange={(e) => setFormMobile(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefon</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="08-123 45 67"
+                      value={formPhone}
+                      onChange={(e) => setFormPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="customerNumber">Kundnummer</Label>
+                  <Label htmlFor="website">Hemsida</Label>
                   <Input
-                    id="customerNumber"
-                    placeholder="t.ex. C1066"
-                    value={formCustomerNumber}
-                    onChange={(e) => setFormCustomerNumber(e.target.value)}
+                    id="website"
+                    type="url"
+                    placeholder="www.example.se"
+                    value={formWebsite}
+                    onChange={(e) => setFormWebsite(e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="orgNumber">Org.nr/Pers.nr</Label>
+                  <Label htmlFor="visitAddress">Besöksadress</Label>
                   <Input
-                    id="orgNumber"
-                    placeholder="556123-4567"
-                    value={formOrgNumber}
-                    onChange={(e) => setFormOrgNumber(e.target.value)}
+                    id="visitAddress"
+                    placeholder="Storgatan 12"
+                    value={formVisitAddress}
+                    onChange={(e) => setFormVisitAddress(e.target.value)}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="mobile">Mobilnummer</Label>
+                  <Label htmlFor="invoiceAddress">Fakturaadress</Label>
                   <Input
-                    id="mobile"
-                    type="tel"
-                    placeholder="070-123 45 67"
-                    value={formMobile}
-                    onChange={(e) => setFormMobile(e.target.value)}
+                    id="invoiceAddress"
+                    placeholder="Fakturavägen 1"
+                    value={formInvoiceAddress}
+                    onChange={(e) => setFormInvoiceAddress(e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefon</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="08-123 45 67"
-                    value={formPhone}
-                    onChange={(e) => setFormPhone(e.target.value)}
+                  <Label htmlFor="notes">Anteckningar</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Övriga anteckningar om kunden..."
+                    value={formNotes}
+                    onChange={(e) => setFormNotes(e.target.value)}
+                    rows={3}
                   />
                 </div>
-              </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="website">Hemsida</Label>
-                <Input
-                  id="website"
-                  type="url"
-                  placeholder="www.example.se"
-                  value={formWebsite}
-                  onChange={(e) => setFormWebsite(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="visitAddress">Besöksadress</Label>
-                <Input
-                  id="visitAddress"
-                  placeholder="Storgatan 12"
-                  value={formVisitAddress}
-                  onChange={(e) => setFormVisitAddress(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="invoiceAddress">Fakturaadress</Label>
-                <Input
-                  id="invoiceAddress"
-                  placeholder="Fakturavägen 1"
-                  value={formInvoiceAddress}
-                  onChange={(e) => setFormInvoiceAddress(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Anteckningar</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Övriga anteckningar om kunden..."
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleClose(false)}>
-            Avbryt
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {isEditing ? "Spara" : "Lägg till"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => handleClose(false)}>
+              Avbryt
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isEditing ? "Spara" : "Lägg till"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

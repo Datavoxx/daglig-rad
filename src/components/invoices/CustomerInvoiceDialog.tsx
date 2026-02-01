@@ -288,157 +288,159 @@ export function CustomerInvoiceDialog({ open, onOpenChange, invoice }: CustomerI
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6 pb-4">
-            {/* Project & Customer Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Projekt</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj projekt (valfritt)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate("draft"); }}>
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-6 pb-4">
+              {/* Project & Customer Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Projekt</Label>
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj projekt (valfritt)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Kund</Label>
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj kund" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Kund</Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj kund" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Import options */}
-            {projectId && !isEditing && (
-              <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="import-estimate"
-                    checked={importFromEstimate}
-                    onCheckedChange={(checked) => setImportFromEstimate(!!checked)}
+              {/* Import options */}
+              {projectId && !isEditing && (
+                <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="import-estimate"
+                      checked={importFromEstimate}
+                      onCheckedChange={(checked) => setImportFromEstimate(!!checked)}
+                    />
+                    <Label htmlFor="import-estimate" className="text-sm cursor-pointer">
+                      Hämta rader från offert
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="import-ata"
+                      checked={importAta}
+                      onCheckedChange={(checked) => setImportAta(!!checked)}
+                    />
+                    <Label htmlFor="import-ata" className="text-sm cursor-pointer">
+                      Inkludera godkända ÄTA
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {/* Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Fakturadatum</Label>
+                  <Input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
                   />
-                  <Label htmlFor="import-estimate" className="text-sm cursor-pointer">
-                    Hämta rader från offert
-                  </Label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="import-ata"
-                    checked={importAta}
-                    onCheckedChange={(checked) => setImportAta(!!checked)}
+                <div className="space-y-2">
+                  <Label>Förfallodatum</Label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
                   />
-                  <Label htmlFor="import-ata" className="text-sm cursor-pointer">
-                    Inkludera godkända ÄTA
-                  </Label>
+                </div>
+                <div className="space-y-2">
+                  <Label>Betalvillkor</Label>
+                  <Input
+                    value={paymentTerms}
+                    onChange={(e) => setPaymentTerms(e.target.value)}
+                    placeholder="30 dagar netto"
+                  />
                 </div>
               </div>
-            )}
 
-            {/* Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Separator />
+
+              {/* Invoice Rows */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Fakturarader</Label>
+                <InvoiceRowEditor rows={rows} onChange={setRows} />
+              </div>
+
+              <Separator />
+
+              {/* Totals */}
+              <div className="flex justify-end">
+                <div className="w-full max-w-xs space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Summa exkl. moms</span>
+                    <span className="font-medium tabular-nums">{formatCurrency(totalExVat)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Moms 25%</span>
+                    <span className="font-medium tabular-nums">{formatCurrency(vatAmount)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between text-base">
+                    <span className="font-semibold">Totalt inkl. moms</span>
+                    <span className="font-bold tabular-nums">{formatCurrency(totalIncVat)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
               <div className="space-y-2">
-                <Label>Fakturadatum</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
+                <Label>Interna anteckningar</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Anteckningar visas inte på fakturan..."
+                  rows={2}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Förfallodatum</Label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Betalvillkor</Label>
-                <Input
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="30 dagar netto"
-                />
-              </div>
             </div>
+          </ScrollArea>
 
-            <Separator />
-
-            {/* Invoice Rows */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">Fakturarader</Label>
-              <InvoiceRowEditor rows={rows} onChange={setRows} />
-            </div>
-
-            <Separator />
-
-            {/* Totals */}
-            <div className="flex justify-end">
-              <div className="w-full max-w-xs space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Summa exkl. moms</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(totalExVat)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Moms 25%</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(vatAmount)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-base">
-                  <span className="font-semibold">Totalt inkl. moms</span>
-                  <span className="font-bold tabular-nums">{formatCurrency(totalIncVat)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label>Interna anteckningar</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anteckningar visas inte på fakturan..."
-                rows={2}
-              />
-            </div>
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Avbryt
+            </Button>
+            <Button type="button" variant="outline" onClick={handleDownloadPdf}>
+              <Download className="h-4 w-4 mr-2" />
+              Ladda ner PDF
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" variant="secondary" disabled={saveMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              Spara utkast
+            </Button>
+            <Button type="button" onClick={() => saveMutation.mutate("sent")} disabled={saveMutation.isPending}>
+              <Send className="h-4 w-4 mr-2" />
+              Markera som skickad
+            </Button>
           </div>
-        </ScrollArea>
-
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
-          </Button>
-          <Button variant="outline" onClick={handleDownloadPdf}>
-            <Download className="h-4 w-4 mr-2" />
-            Ladda ner PDF
-          </Button>
-          <div className="flex-1" />
-          <Button variant="secondary" onClick={() => saveMutation.mutate("draft")} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 mr-2" />
-            Spara utkast
-          </Button>
-          <Button onClick={() => saveMutation.mutate("sent")} disabled={saveMutation.isPending}>
-            <Send className="h-4 w-4 mr-2" />
-            Markera som skickad
-          </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
