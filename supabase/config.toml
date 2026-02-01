@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.apply-full-estimate-voice]
 verify_jwt = false
+
+[functions.extract-vendor-invoice]
+verify_jwt = false
