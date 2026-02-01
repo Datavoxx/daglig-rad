@@ -1,76 +1,60 @@
 
 
-## Implementeringsplan: Ändra Lönetyp till Påslagsprocent
+## Åtgärdsplan: Fixa RLS-policy för Admin-registrering av Tid
 
-### Vad som ändras
+### Problemet
 
-Istället för att ange personalkostnad i kronor per timme, ska lönetypen ange ett **påslag i procent**. Detta gör det enklare att beräkna marginaler och lönsamhet.
+När en admin försöker registrera tid för en anställd (t.ex. "mahad"), misslyckas det eftersom:
+- RLS-policyn kräver att `auth.uid() = user_id` för INSERT
+- Men koden sätter `user_id` till den anställdes `linked_user_id`
+- Detta bryter mot policyn eftersom admin != anställd
 
-**Exempel:**
-- Nuvarande: "Snickare" = 450 kr/tim (absolut kostnad)
-- Ny modell: "Snickare" = 35% (påslag på debiteringsbeloppet)
+### Lösning
 
----
+Lägg till en ny RLS-policy som tillåter arbetsgivare att skapa tidsposter för sina anställda.
 
-### Ändringar
-
-#### 1. Databasmigrering
-
-Byt namn på kolumnen och ändra syfte:
+### Databasändring
 
 ```sql
--- Byt från hourly_cost (kr) till markup_percent (%)
-ALTER TABLE salary_types 
-  RENAME COLUMN hourly_cost TO markup_percent;
+-- Tillåt arbetsgivare att skapa tidsposter för anställda
+CREATE POLICY "Employers can insert time entries for employees"
+  ON time_entries
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = employer_id
+  );
 
--- Sätt standardvärde till rimligt påslag
-COMMENT ON COLUMN salary_types.markup_percent IS 'Personalkostnadspåslag i procent';
+-- Tillåt arbetsgivare att uppdatera tidsposter för anställda  
+CREATE POLICY "Employers can update employee time entries"
+  ON time_entries
+  FOR UPDATE
+  USING (auth.uid() = employer_id);
+
+-- Tillåt arbetsgivare att ta bort tidsposter för anställda
+CREATE POLICY "Employers can delete employee time entries"
+  ON time_entries
+  FOR DELETE
+  USING (auth.uid() = employer_id);
 ```
 
-#### 2. Uppdatera SalaryTypeManager.tsx
+### Förklaring
 
-| Nuvarande | Nytt |
-|-----------|------|
-| Label: "Personalkostnad (kr/tim)" | Label: "Påslag (%)" |
-| Placeholder: "450" | Placeholder: "35" |
-| Visning: "450 kr" | Visning: "35%" |
-| Kolumnrubrik: "Kostnad" | Kolumnrubrik: "Påslag" |
-
-**Formulärändringar:**
-- Ändra input-label från "Personalkostnad (kr/tim)" till "Påslag (%)"
-- Ändra placeholder från "450" till "35"
-- Validera att värdet är mellan 0-100
-
-**Listvisning:**
-- Ändra kolumnrubrik från "Kostnad" till "Påslag"
-- Visa värdet med %-tecken istället för "kr"
-
-#### 3. Uppdatera TypeScript-interface
-
-```typescript
-// Före
-interface SalaryType {
-  hourly_cost: number | null;
-}
-
-// Efter
-interface SalaryType {
-  markup_percent: number | null;
-}
-```
-
----
+| Scenario | user_id | employer_id | auth.uid() | Resultat |
+|----------|---------|-------------|------------|----------|
+| Registrera egen tid | admin-id | admin-id | admin-id | OK (befintlig policy) |
+| Admin registrerar för anställd | mahad-id | admin-id | admin-id | OK (ny policy) |
+| Anställd registrerar egen tid | mahad-id | admin-id | mahad-id | OK (befintlig policy) |
 
 ### Sammanfattning
 
-| Fil | Ändring |
-|-----|---------|
-| `supabase/migrations/[ny].sql` | Byt kolumnnamn `hourly_cost` → `markup_percent` |
-| `src/components/settings/SalaryTypeManager.tsx` | Uppdatera labels, visning och formdata |
+| Typ | Beskrivning |
+|-----|-------------|
+| Ny RLS-policy | Arbetsgivare kan INSERT/UPDATE/DELETE tidsposter där `employer_id = auth.uid()` |
+| Koständringar | Inga - koden är redan korrekt |
 
 ### Resultat
 
-- Lönetyper kommer visa "Snickare - 35%" istället för "Snickare - 450 kr"
-- Gör det lättare att räkna marginaler: Om debiteringstyp är 520 kr/tim och påslag är 35%, kan systemet beräkna att personalkostnaden är ~385 kr/tim
-- Mer flexibelt för olika projekttyper och debiteringsnivåer
+- Admin kan registrera tid för sina anställda
+- Anställda kan fortfarande registrera sin egen tid
+- Säkerheten bibehålls - endast arbetsgivaren kan hantera sina anställdas tidsposter
 
