@@ -55,7 +55,7 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
 
   // Footer function with legally required company information
   const drawFooter = () => {
-    const footerY = pageHeight - 25;
+    const footerY = pageHeight - 28;
     
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
@@ -64,51 +64,37 @@ export async function generateCustomerInvoicePdf(options: GenerateOptions): Prom
     const colWidth = (pageWidth - margin * 2) / 4;
     let y = footerY + 5;
     
-    // Headers
+    // Column headers
     doc.setFontSize(7);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "bold");
     doc.text("Postadress", margin, y);
-    doc.text("Telefon", margin + colWidth, y);
-    doc.text("Bankgiro", margin + colWidth * 2, y);
-    doc.text("Godkänd för F-skatt", margin + colWidth * 3, y);
+    doc.text("Kontakt", margin + colWidth, y);
+    doc.text("Betalning", margin + colWidth * 2, y);
+    doc.text("Organisation", margin + colWidth * 3, y);
     
     y += 4;
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setTextColor(60, 60, 60);
     
     // Column 1: Postal address
     doc.text(company?.company_name || "–", margin, y);
-    doc.text(company?.address || "–", margin, y + 3);
-    doc.text(`${company?.postal_code || ""} ${company?.city || ""}`.trim() || "–", margin, y + 6);
+    doc.text(company?.address || "–", margin, y + 3.5);
+    const postalLine = `${company?.postal_code || ""} ${company?.city || ""}`.trim();
+    doc.text(postalLine || "–", margin, y + 7);
     
-    // Column 2: Phone & Email
-    doc.text(company?.phone || "–", margin + colWidth, y);
-    if (company?.email) {
-      doc.text(company.email, margin + colWidth, y + 3);
-    }
+    // Column 2: Contact (with labels)
+    doc.text(`Tel: ${company?.phone || "–"}`, margin + colWidth, y);
+    doc.text(`E-post: ${company?.email || "–"}`, margin + colWidth, y + 3.5);
     
-    // Column 3: Bankgiro + VAT + Org.nr
-    doc.text(company?.bankgiro || "–", margin + colWidth * 2, y);
-    if (company?.momsregnr) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text("Momsreg.nr", margin + colWidth * 2, y + 5);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text(company.momsregnr, margin + colWidth * 2, y + 8);
-    }
-    if (company?.org_number) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text("Org.nr", margin + colWidth * 2, y + 12);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text(company.org_number, margin + colWidth * 2, y + 15);
-    }
+    // Column 3: Payment
+    doc.text(`Bankgiro: ${company?.bankgiro || "–"}`, margin + colWidth * 2, y);
+    doc.text(`Momsreg.nr: ${company?.momsregnr || "–"}`, margin + colWidth * 2, y + 3.5);
     
-    // Column 4: F-skatt status
-    doc.text(company?.f_skatt !== false ? "Ja" : "Nej", margin + colWidth * 3, y);
+    // Column 4: Organization
+    doc.text(`Org.nr: ${company?.org_number || "–"}`, margin + colWidth * 3, y);
+    doc.text(`F-skatt: ${company?.f_skatt !== false ? "Ja" : "Nej"}`, margin + colWidth * 3, y + 3.5);
   };
 
   const formatNumber = (num: number) => new Intl.NumberFormat("sv-SE").format(Math.round(num));
