@@ -1,22 +1,32 @@
 import { useMemo } from "react";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
-import { sv } from "date-fns/locale";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { DayCell } from "./DayCell";
 
-interface TimeEntry {
+interface TimeEntryWithDetails {
   id: string;
   date: string;
   hours: number;
   project_id: string;
+  user_id: string;
+  description?: string | null;
+  projects?: { name: string } | null;
+  billing_types?: { abbreviation: string } | null;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  linked_user_id: string | null;
 }
 
 interface WeekViewProps {
   currentDate: Date;
-  entries: TimeEntry[];
+  entries: TimeEntryWithDetails[];
+  employees: Employee[];
   onDayClick: (date: Date) => void;
 }
 
-export function WeekView({ currentDate, entries, onDayClick }: WeekViewProps) {
+export function WeekView({ currentDate, entries, employees, onDayClick }: WeekViewProps) {
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -24,24 +34,20 @@ export function WeekView({ currentDate, entries, onDayClick }: WeekViewProps) {
   }, [currentDate]);
 
   const entriesByDate = useMemo(() => {
-    const map: Record<string, { hours: number; count: number }> = {};
+    const map: Record<string, TimeEntryWithDetails[]> = {};
     entries.forEach(entry => {
       const dateKey = entry.date;
       if (!map[dateKey]) {
-        map[dateKey] = { hours: 0, count: 0 };
+        map[dateKey] = [];
       }
-      map[dateKey].hours += Number(entry.hours);
-      map[dateKey].count += 1;
+      map[dateKey].push(entry);
     });
     return map;
   }, [entries]);
 
   const weekTotal = useMemo(() => {
-    return weekDays.reduce((sum, day) => {
-      const dateKey = format(day, "yyyy-MM-dd");
-      return sum + (entriesByDate[dateKey]?.hours || 0);
-    }, 0);
-  }, [weekDays, entriesByDate]);
+    return entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+  }, [entries]);
 
   const dayNames = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
 
@@ -49,7 +55,7 @@ export function WeekView({ currentDate, entries, onDayClick }: WeekViewProps) {
     <div className="space-y-4">
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-2">
-        {dayNames.map((name, i) => (
+        {dayNames.map((name) => (
           <div key={name} className="text-center text-sm font-medium text-muted-foreground py-2">
             {name}
           </div>
@@ -60,14 +66,14 @@ export function WeekView({ currentDate, entries, onDayClick }: WeekViewProps) {
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map(day => {
           const dateKey = format(day, "yyyy-MM-dd");
-          const dayData = entriesByDate[dateKey] || { hours: 0, count: 0 };
+          const dayEntries = entriesByDate[dateKey] || [];
           
           return (
             <DayCell
               key={dateKey}
               date={day}
-              hours={dayData.hours}
-              entryCount={dayData.count}
+              entries={dayEntries}
+              employees={employees}
               onDayClick={onDayClick}
             />
           );

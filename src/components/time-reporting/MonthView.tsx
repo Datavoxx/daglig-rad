@@ -10,20 +10,31 @@ import {
 } from "date-fns";
 import { DayCell } from "./DayCell";
 
-interface TimeEntry {
+interface TimeEntryWithDetails {
   id: string;
   date: string;
   hours: number;
   project_id: string;
+  user_id: string;
+  description?: string | null;
+  projects?: { name: string } | null;
+  billing_types?: { abbreviation: string } | null;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  linked_user_id: string | null;
 }
 
 interface MonthViewProps {
   currentDate: Date;
-  entries: TimeEntry[];
+  entries: TimeEntryWithDetails[];
+  employees: Employee[];
   onDayClick: (date: Date) => void;
 }
 
-export function MonthView({ currentDate, entries, onDayClick }: MonthViewProps) {
+export function MonthView({ currentDate, entries, employees, onDayClick }: MonthViewProps) {
   // Get all days to display (including padding from adjacent months)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -34,14 +45,13 @@ export function MonthView({ currentDate, entries, onDayClick }: MonthViewProps) 
   }, [currentDate]);
 
   const entriesByDate = useMemo(() => {
-    const map: Record<string, { hours: number; count: number }> = {};
+    const map: Record<string, TimeEntryWithDetails[]> = {};
     entries.forEach(entry => {
       const dateKey = entry.date;
       if (!map[dateKey]) {
-        map[dateKey] = { hours: 0, count: 0 };
+        map[dateKey] = [];
       }
-      map[dateKey].hours += Number(entry.hours);
-      map[dateKey].count += 1;
+      map[dateKey].push(entry);
     });
     return map;
   }, [entries]);
@@ -67,15 +77,15 @@ export function MonthView({ currentDate, entries, onDayClick }: MonthViewProps) 
       <div className="grid grid-cols-7 gap-2">
         {calendarDays.map(day => {
           const dateKey = format(day, "yyyy-MM-dd");
-          const dayData = entriesByDate[dateKey] || { hours: 0, count: 0 };
+          const dayEntries = entriesByDate[dateKey] || [];
           const isCurrentMonth = isSameMonth(day, currentDate);
           
           return (
             <DayCell
               key={dateKey}
               date={day}
-              hours={dayData.hours}
-              entryCount={dayData.count}
+              entries={dayEntries}
+              employees={employees}
               onDayClick={onDayClick}
               isCurrentMonth={isCurrentMonth}
             />
