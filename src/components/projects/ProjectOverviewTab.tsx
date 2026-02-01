@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
+import ProjectTimeSection from "@/components/projects/ProjectTimeSection";
 interface Project {
   id: string;
   name: string;
@@ -345,6 +346,9 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
         </CardContent>
         </Card>
       </div>
+
+      {/* Time Reporting Section */}
+      <ProjectTimeSection projectId={project.id} projectName={project.name} />
 
       {/* Completion Dialog */}
       <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Plus, Clock, Calendar, Trash2 } from "lucide-react";
+import { TimeCalendarView } from "@/components/time-reporting/TimeCalendarView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -352,6 +353,14 @@ export default function TimeReporting() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Calendar View */}
+      <TimeCalendarView 
+        onDayClick={(clickedDate) => {
+          setDate(format(clickedDate, "yyyy-MM-dd"));
+          setIsDialogOpen(true);
+        }}
+      />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2">
