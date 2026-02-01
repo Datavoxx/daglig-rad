@@ -7,6 +7,35 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -71,6 +100,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error("Error in validate-invitation:", error);
+    await reportError("validate-invitation", error, { endpoint: "validate-invitation" });
     return new Response(
       JSON.stringify({ valid: false, error: "Ett fel uppstod" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

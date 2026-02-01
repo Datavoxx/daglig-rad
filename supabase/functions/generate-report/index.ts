@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 const systemPrompt = `Du är en svensk platschef-assistent som omvandlar rösttranskriberingar till en strukturerad dagrapport (bygg).
 Du får EN input: ett transkript (svenska) + metadata (datum, projekt-id, användare).
 Du ska returnera ENDAST giltig JSON enligt schema nedan, inga extra ord.
@@ -181,6 +210,7 @@ Transcript (svenska):
     }
   } catch (error) {
     console.error("Error in generate-report:", error);
+    await reportError("generate-report", error, { endpoint: "generate-report" });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Okänt fel" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

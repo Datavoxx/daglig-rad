@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function reportError(
+  functionName: string, 
+  error: unknown, 
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    await fetch(`${supabaseUrl}/functions/v1/report-error`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        function_name: functionName,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+        context,
+        timestamp: new Date().toISOString(),
+        severity: "error",
+      }),
+    });
+  } catch (reportErr) {
+    console.error("Failed to report error:", reportErr);
+  }
+}
+
 interface EstimateItem {
   id: string;
   article?: string;
@@ -402,6 +431,7 @@ Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all d
 
   } catch (error: unknown) {
     console.error("Error in apply-full-estimate-voice:", error);
+    await reportError("apply-full-estimate-voice", error, { endpoint: "apply-full-estimate-voice" });
     const message = error instanceof Error ? error.message : "Ett fel uppstod";
     return new Response(
       JSON.stringify({ error: message }),
