@@ -1,206 +1,76 @@
 
-## Implementeringsplan: Kalendervy för Tidsrapportering + Projektintegrering
 
-### Översikt
-Denna plan täcker tre huvudsakliga förbättringar:
-1. Säkerställa att lönetyp visas i registreringsformuläret
-2. Lägg till kalendervy (vecka/månad) i tidsrapporteringssidan
-3. Lägg till tidsrapporteringssektion i projektvyn
+## Implementeringsplan: Ändra Lönetyp till Påslagsprocent
 
----
+### Vad som ändras
 
-### Del 1: Kontrollera Lönetyper i Formuläret
+Istället för att ange personalkostnad i kronor per timme, ska lönetypen ange ett **påslag i procent**. Detta gör det enklare att beräkna marginaler och lönsamhet.
 
-**Status:** Koden har redan stöd för lönetyper (rad 317-333 i TimeReporting.tsx), men dropdown visas endast om `salaryTypes.length > 0`. Detta betyder att användaren måste skapa lönetyper i Inställningar först.
-
-**Åtgärd:** Ingen kodändring behövs - funktionen finns. Vi kan dock förbättra UX genom att alltid visa dropdown med en tom option.
+**Exempel:**
+- Nuvarande: "Snickare" = 450 kr/tim (absolut kostnad)
+- Ny modell: "Snickare" = 35% (påslag på debiteringsbeloppet)
 
 ---
 
-### Del 2: Kalendervy i Tidsrapportering
+### Ändringar
 
-**Ny komponent:** `src/components/time-reporting/TimeCalendarView.tsx`
+#### 1. Databasmigrering
 
-**Funktionalitet:**
-- Toggle mellan "Vecka" och "Månad" läge
-- Veckoläge: Visar 7 dagar horisontellt (mån-sön) med staplar för timmar per dag
-- Månadsläge: Visar kalendergrid med totala timmar per dag i varje cell
-- Klicka på en dag öppnar modal för att registrera tid för det datumet
-- Summering av totala timmar för vald period
+Byt namn på kolumnen och ändra syfte:
 
-**Designreferens (baserat på Bygglet-stil):**
-```
-+-----------------------------------------------+
-| < Januari 2026              [Vecka] [Månad] > |
-+-----------------------------------------------+
-| Mån    | Tis    | Ons    | Tor    | Fre    |...|
-|--------|--------|--------|--------|--------|
-| 1      | 2      | 3      | 4      | 5      |
-| 8.0h   | 6.5h   | -      | 7.0h   | 8.0h   |
-| [+]    | [+]    | [+]    | [+]    | [+]    |
-|--------|--------|--------|--------|--------|
-| ...fler rader...                             |
-+-----------------------------------------------+
-| Totalt denna månad: 156.5 timmar             |
-+-----------------------------------------------+
+```sql
+-- Byt från hourly_cost (kr) till markup_percent (%)
+ALTER TABLE salary_types 
+  RENAME COLUMN hourly_cost TO markup_percent;
+
+-- Sätt standardvärde till rimligt påslag
+COMMENT ON COLUMN salary_types.markup_percent IS 'Personalkostnadspåslag i procent';
 ```
 
-**Implementation:**
-1. Skapa komponent med vecko/månad-toggle
-2. Hämta time_entries för vald period
-3. Gruppera per datum och summera timmar
-4. Visa i grid-layout med dag-celler
-5. Klick på dag = öppna registreringsformuläret med förifyllt datum
+#### 2. Uppdatera SalaryTypeManager.tsx
 
----
+| Nuvarande | Nytt |
+|-----------|------|
+| Label: "Personalkostnad (kr/tim)" | Label: "Påslag (%)" |
+| Placeholder: "450" | Placeholder: "35" |
+| Visning: "450 kr" | Visning: "35%" |
+| Kolumnrubrik: "Kostnad" | Kolumnrubrik: "Påslag" |
 
-### Del 3: Tidsrapportering i Projektvy
+**Formulärändringar:**
+- Ändra input-label från "Personalkostnad (kr/tim)" till "Påslag (%)"
+- Ändra placeholder från "450" till "35"
+- Validera att värdet är mellan 0-100
 
-**Ny komponent:** `src/components/projects/ProjectTimeSection.tsx`
+**Listvisning:**
+- Ändra kolumnrubrik från "Kostnad" till "Påslag"
+- Visa värdet med %-tecken istället för "kr"
 
-**Placering:** Under "Ekonomisk översikt" i ProjectOverviewTab
+#### 3. Uppdatera TypeScript-interface
 
-**Funktionalitet:**
-- Collapsible sektion med rubrik "Tidsrapportering"
-- Sammanfattning: Totalt antal timmar, antal poster, antal personer
-- Mini-kalendervy som visar senaste 4 veckorna
-- Klicka för att expandera och se detaljerad kalendervy
-- Snabbknapp för att registrera tid (förifyller projekt automatiskt)
-
-**Design:**
-```
-+-----------------------------------------------+
-| Tidsrapportering               [+ Registrera] |
-| Arbetad tid på projektet            [Expand]  |
-+-----------------------------------------------+
-| Totalt: 124.5h | Poster: 18 | Personer: 3     |
-+-----------------------------------------------+
-| v.1  | v.2  | v.3  | v.4  |                   |
-| 32h  | 40h  | 28h  | 24.5h|  (mini-staplar)   |
-+-----------------------------------------------+
-```
-
-**Expanderad vy (Dialog/Sheet):**
-- Full kalendervy filtrerad på detta projekt
-- Lista över alla tidsposter för projektet
-- Möjlighet att redigera/ta bort poster
-
----
-
-### Filstruktur
-
-**Nya filer:**
-```
-src/components/time-reporting/
-  ├── TimeCalendarView.tsx       # Huvudkalenderkomponent
-  ├── WeekView.tsx               # Veckovisning
-  ├── MonthView.tsx              # Månadsvisning
-  └── DayCell.tsx                # Dagcell med timmar
-
-src/components/projects/
-  └── ProjectTimeSection.tsx     # Tidssektion i projektvy
-```
-
-**Ändringar i befintliga filer:**
-```
-src/pages/TimeReporting.tsx      # Lägg till kalendervy ovanför listan
-src/components/projects/ProjectOverviewTab.tsx  # Lägg till TimeSection
-```
-
----
-
-### Teknisk implementation
-
-**TimeCalendarView.tsx:**
 ```typescript
-// State för visningsläge
-const [viewMode, setViewMode] = useState<"week" | "month">("week");
-const [currentDate, setCurrentDate] = useState(new Date());
+// Före
+interface SalaryType {
+  hourly_cost: number | null;
+}
 
-// Query för att hämta entries för perioden
-const { data: entries } = useQuery({
-  queryKey: ["time-entries-calendar", currentDate, viewMode],
-  queryFn: async () => {
-    const start = viewMode === "week" 
-      ? startOfWeek(currentDate, { locale: sv })
-      : startOfMonth(currentDate);
-    const end = viewMode === "week"
-      ? endOfWeek(currentDate, { locale: sv })
-      : endOfMonth(currentDate);
-    
-    return supabase
-      .from("time_entries")
-      .select("*")
-      .gte("date", format(start, "yyyy-MM-dd"))
-      .lte("date", format(end, "yyyy-MM-dd"));
-  }
-});
-
-// Gruppera per datum
-const entriesByDate = useMemo(() => {
-  return entries?.reduce((acc, entry) => {
-    const date = entry.date;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(entry);
-    return acc;
-  }, {} as Record<string, TimeEntry[]>);
-}, [entries]);
-```
-
-**ProjectTimeSection.tsx:**
-```typescript
-// Hämta time_entries för projektet
-const { data: projectTimeEntries } = useQuery({
-  queryKey: ["project-time-entries", projectId],
-  queryFn: async () => {
-    return supabase
-      .from("time_entries")
-      .select(`
-        *,
-        billing_types:billing_type_id(name, abbreviation),
-        salary_types:salary_type_id(name, abbreviation)
-      `)
-      .eq("project_id", projectId)
-      .order("date", { ascending: false });
-  }
-});
-
-// Beräkna statistik
-const stats = useMemo(() => ({
-  totalHours: entries.reduce((sum, e) => sum + Number(e.hours), 0),
-  totalEntries: entries.length,
-  uniqueUsers: new Set(entries.map(e => e.user_id)).size
-}), [entries]);
+// Efter
+interface SalaryType {
+  markup_percent: number | null;
+}
 ```
 
 ---
 
-### Sammanfattning av ändringar
+### Sammanfattning
 
-| Fil | Typ | Beskrivning |
-|-----|-----|-------------|
-| `TimeCalendarView.tsx` | NY | Kalenderkomponent med vecka/månad toggle |
-| `WeekView.tsx` | NY | Veckovisning med dagceller |
-| `MonthView.tsx` | NY | Månadsvisning i grid |
-| `DayCell.tsx` | NY | Återanvändbar dagcell med timvisning |
-| `ProjectTimeSection.tsx` | NY | Tidsrapporteringssektion för projekt |
-| `TimeReporting.tsx` | ÄNDRA | Integrera kalendervy |
-| `ProjectOverviewTab.tsx` | ÄNDRA | Lägg till TimeSection |
+| Fil | Ändring |
+|-----|---------|
+| `supabase/migrations/[ny].sql` | Byt kolumnnamn `hourly_cost` → `markup_percent` |
+| `src/components/settings/SalaryTypeManager.tsx` | Uppdatera labels, visning och formdata |
 
----
+### Resultat
 
-### UX-förbättringar inkluderade
+- Lönetyper kommer visa "Snickare - 35%" istället för "Snickare - 450 kr"
+- Gör det lättare att räkna marginaler: Om debiteringstyp är 520 kr/tim och påslag är 35%, kan systemet beräkna att personalkostnaden är ~385 kr/tim
+- Mer flexibelt för olika projekttyper och debiteringsnivåer
 
-1. **Snabb registrering** - Klicka på dag i kalender → formulär öppnas med datum förifyllt
-2. **Projektkontext** - I projektvyn är projekt automatiskt valt vid registrering
-3. **Visuell överblick** - Färgkodade staplar visar arbetsbelastning per dag
-4. **Responsivt** - Mobilvänlig design med swipe för att byta vecka/månad
-5. **Sammanfattningar** - Totaler synliga utan att behöva scrolla
-
----
-
-### Databeroenden
-
-- Använder befintlig `time_entries` tabell
-- Använder `billing_types` och `salary_types` för metadata
-- Ingen ny databasmigration behövs
