@@ -14,12 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_qr_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          project_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          project_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          project_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_qr_tokens_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           check_in: string
           check_out: string | null
           created_at: string | null
           employer_id: string
+          guest_name: string | null
           id: string
           project_id: string
           user_id: string
@@ -29,6 +62,7 @@ export type Database = {
           check_out?: string | null
           created_at?: string | null
           employer_id: string
+          guest_name?: string | null
           id?: string
           project_id: string
           user_id: string
@@ -38,6 +72,7 @@ export type Database = {
           check_out?: string | null
           created_at?: string | null
           employer_id?: string
+          guest_name?: string | null
           id?: string
           project_id?: string
           user_id?: string

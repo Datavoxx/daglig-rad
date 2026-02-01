@@ -33,6 +33,7 @@ import Invoices from "@/pages/Invoices";
 import AcceptInvitation from "@/pages/AcceptInvitation";
 import TimeReporting from "@/pages/TimeReporting";
 import Attendance from "@/pages/Attendance";
+import AttendanceScan from "@/pages/AttendanceScan";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/gdpr" element={<GDPR />} />
+            <Route path="/attendance/scan/:projectId/:token" element={<AttendanceScan />} />
 
             {/* Protected routes with layout */}
             {/* Protected routes with layout */}
