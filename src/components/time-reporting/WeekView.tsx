@@ -23,10 +23,11 @@ interface WeekViewProps {
   currentDate: Date;
   entries: TimeEntryWithDetails[];
   employees: Employee[];
+  currentUserId?: string;
   onDayClick: (date: Date) => void;
 }
 
-export function WeekView({ currentDate, entries, employees, onDayClick }: WeekViewProps) {
+export function WeekView({ currentDate, entries, employees, currentUserId, onDayClick }: WeekViewProps) {
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -74,6 +75,7 @@ export function WeekView({ currentDate, entries, employees, onDayClick }: WeekVi
               date={day}
               entries={dayEntries}
               employees={employees}
+              currentUserId={currentUserId}
               onDayClick={onDayClick}
             />
           );

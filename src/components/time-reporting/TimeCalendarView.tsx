@@ -43,6 +43,15 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
     };
   }, [currentDate, viewMode]);
 
+  // Fetch current user for name display
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user-calendar"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
   // Fetch time entries for the current period with related data
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["time-entries-calendar", dateRange.start, dateRange.end, projectId],
@@ -155,6 +164,7 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
             currentDate={currentDate} 
             entries={entries} 
             employees={employees}
+            currentUserId={currentUser?.id}
             onDayClick={onDayClick} 
           />
         ) : (
@@ -162,6 +172,7 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
             currentDate={currentDate} 
             entries={entries} 
             employees={employees}
+            currentUserId={currentUser?.id}
             onDayClick={onDayClick} 
           />
         )}

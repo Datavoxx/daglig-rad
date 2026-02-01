@@ -31,6 +31,7 @@ interface DayDetailPopoverProps {
   date: Date;
   entries: TimeEntryWithDetails[];
   employees: Employee[];
+  currentUserId?: string;
   onAddEntry: (date: Date) => void;
   children: React.ReactNode;
 }
@@ -80,7 +81,8 @@ function getUserName(userId: string, employees: Employee[], currentUserId?: stri
 export function DayDetailPopover({ 
   date, 
   entries, 
-  employees, 
+  employees,
+  currentUserId,
   onAddEntry,
   children 
 }: DayDetailPopoverProps) {
@@ -116,7 +118,7 @@ export function DayDetailPopover({
             </p>
           ) : (
             entries.map((entry) => {
-              const userName = getUserName(entry.user_id, employees);
+              const userName = getUserName(entry.user_id, employees, currentUserId);
               return (
                 <div key={entry.id} className="flex items-start gap-3">
                   <Avatar className="h-8 w-8 flex-shrink-0">
