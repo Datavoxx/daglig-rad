@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Plus, Clock, Calendar, Trash2 } from "lucide-react";
 import { TimeCalendarView } from "@/components/time-reporting/TimeCalendarView";
@@ -210,10 +210,9 @@ export default function TimeReporting() {
 
   // Calculate total hours this week
   const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+  const weekStart = startOfWeek(today, { weekStartsOn: 1 });
   const weeklyHours = timeEntries
-    .filter((entry: any) => new Date(entry.date) >= startOfWeek)
+    .filter((entry: any) => new Date(entry.date) >= weekStart)
     .reduce((sum: number, entry: any) => sum + Number(entry.hours), 0);
 
   // Get linked employees (those with user accounts)
