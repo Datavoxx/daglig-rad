@@ -43,13 +43,22 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
     };
   }, [currentDate, viewMode]);
 
-  // Fetch time entries for the current period
+  // Fetch time entries for the current period with related data
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["time-entries-calendar", dateRange.start, dateRange.end, projectId],
     queryFn: async () => {
       let query = supabase
         .from("time_entries")
-        .select("id, date, hours, project_id")
+        .select(`
+          id, 
+          date, 
+          hours, 
+          project_id, 
+          user_id, 
+          description,
+          projects:project_id(name),
+          billing_types:billing_type_id(abbreviation)
+        `)
         .gte("date", format(dateRange.start, "yyyy-MM-dd"))
         .lte("date", format(dateRange.end, "yyyy-MM-dd"));
 
@@ -58,6 +67,19 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
       }
 
       const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch employees for name mapping
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees-for-calendar"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, name, linked_user_id")
+        .eq("is_active", true);
       if (error) throw error;
       return data || [];
     },
@@ -132,12 +154,14 @@ export function TimeCalendarView({ onDayClick, projectId }: TimeCalendarViewProp
           <WeekView 
             currentDate={currentDate} 
             entries={entries} 
+            employees={employees}
             onDayClick={onDayClick} 
           />
         ) : (
           <MonthView 
             currentDate={currentDate} 
             entries={entries} 
+            employees={employees}
             onDayClick={onDayClick} 
           />
         )}
