@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
-import { Plus, Clock, Calendar, Trash2 } from "lucide-react";
+import { Plus, Clock, Calendar, Trash2, Receipt, Wallet } from "lucide-react";
 import { TimeCalendarView } from "@/components/time-reporting/TimeCalendarView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -404,12 +404,14 @@ export default function TimeReporting() {
                     <div className="font-medium flex items-center gap-2 flex-wrap">
                       {entry.projects?.name || "Okänt projekt"}
                       {entry.billing_types?.abbreviation && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs gap-1 border-emerald-500/50 text-emerald-700 dark:text-emerald-400">
+                          <Receipt className="h-3 w-3" />
                           {entry.billing_types.abbreviation}
                         </Badge>
                       )}
                       {entry.salary_types?.abbreviation && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          <Wallet className="h-3 w-3" />
                           {entry.salary_types.abbreviation}
                         </Badge>
                       )}
