@@ -81,6 +81,32 @@ interface TimeEntry {
   user_name: string | null;
 }
 
+interface WorkOrder {
+  id: string;
+  order_number: string | null;
+  title: string;
+  description: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
+  status: string | null;
+}
+
+interface ProjectFile {
+  id: string;
+  file_name: string;
+  category: string | null;
+  created_at: string;
+}
+
+interface VendorInvoice {
+  id: string;
+  supplier_name: string;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  total_inc_vat: number;
+  status: string;
+}
+
 interface CompanySettings {
   company_name: string | null;
   org_number: string | null;
@@ -100,6 +126,9 @@ interface CompleteProjectPdfOptions {
   plan: Plan | null;
   diaryReports: DiaryReport[];
   timeEntries?: TimeEntry[];
+  workOrders?: WorkOrder[];
+  projectFiles?: ProjectFile[];
+  vendorInvoices?: VendorInvoice[];
   companySettings: CompanySettings | null;
 }
 
@@ -122,7 +151,7 @@ const formatDate = (dateString: string | null) => {
 };
 
 export async function generateCompleteProjectPdf(options: CompleteProjectPdfOptions) {
-  const { project, estimate, estimateItems, ataItems, plan, diaryReports, timeEntries = [], companySettings } = options;
+  const { project, estimate, estimateItems, ataItems, plan, diaryReports, timeEntries = [], workOrders = [], projectFiles = [], vendorInvoices = [], companySettings } = options;
 
   const doc = new jsPDF();
   let yPos = 20;
@@ -391,6 +420,97 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
     yPos += 15;
   }
 
+  // === WORK ORDERS ===
+  if (workOrders.length > 0) {
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Arbetsorder", 14, yPos);
+    yPos += 10;
+
+    const workOrderData = workOrders.map((wo) => [
+      wo.order_number || "-",
+      wo.title,
+      wo.assigned_to || "-",
+      formatDate(wo.due_date),
+      wo.status === "completed" ? "Klar" : 
+        wo.status === "in_progress" ? "Pågående" : "Väntande",
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Order-nr", "Titel", "Tilldelad", "Förfaller", "Status"]],
+      body: workOrderData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // === PROJECT FILES ===
+  if (projectFiles.length > 0) {
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Projektfiler & bilagor", 14, yPos);
+    yPos += 10;
+
+    const filesData = projectFiles.map((f) => [
+      f.file_name,
+      f.category === "image" ? "Bild" : 
+        f.category === "attachment" ? "Bilaga" : "Dokument",
+      formatDate(f.created_at),
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Filnamn", "Typ", "Uppladdad"]],
+      body: filesData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // === VENDOR INVOICES ===
+  if (vendorInvoices.length > 0) {
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Leverantörsfakturor", 14, yPos);
+    yPos += 10;
+
+    const vendorData = vendorInvoices.map((inv) => [
+      inv.supplier_name,
+      inv.invoice_number || "-",
+      formatDate(inv.invoice_date),
+      formatCurrency(inv.total_inc_vat),
+      inv.status === "paid" ? "Betald" : 
+        inv.status === "approved" ? "Godkänd" : "Ny",
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Leverantör", "Faktura-nr", "Datum", "Belopp", "Status"]],
+      body: vendorData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60] },
+    });
+
+    // Total leverantörskostnader
+    const vendorTotalSection = vendorInvoices.reduce((sum, inv) => sum + inv.total_inc_vat, 0);
+    yPos = (doc as any).lastAutoTable.finalY + 5;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total leverantörskostnad: ${formatCurrency(vendorTotalSection)}`, 14, yPos);
+    yPos += 15;
+  }
+
   // === ECONOMIC SUMMARY ===
   doc.addPage();
   yPos = 20;
@@ -403,17 +523,22 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
   const ataTotal = ataItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
   const estimateTotal = estimate?.total_incl_vat || 0;
   const grandTotal = estimateTotal + ataTotal;
+  const vendorTotal = vendorInvoices.reduce((sum, inv) => sum + inv.total_inc_vat, 0);
 
-  const economyData = [
+  const economyData: [string, string][] = [
     ["Offertbelopp (inkl. moms)", formatCurrency(estimateTotal)],
     ["ÄTA-arbeten", formatCurrency(ataTotal)],
-    ["Slutsumma", formatCurrency(grandTotal)],
+    ["Slutsumma intäkter", formatCurrency(grandTotal)],
+    ["", ""],
+    ["Leverantörskostnader", formatCurrency(vendorTotal)],
+    ["Bruttoresultat", formatCurrency(grandTotal - vendorTotal)],
   ];
 
   if (project.budget) {
-    const diff = project.budget - grandTotal;
+    economyData.push(["", ""]);
     economyData.push(["Budget", formatCurrency(project.budget)]);
-    economyData.push(["Differens (Budget - Slutsumma)", formatCurrency(diff)]);
+    const diff = project.budget - grandTotal;
+    economyData.push(["Differens (Budget - Intäkter)", formatCurrency(diff)]);
   }
 
   autoTable(doc, {
