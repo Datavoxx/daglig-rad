@@ -77,7 +77,7 @@ export function QRCodeGenerator({ projects }: QRCodeGeneratorProps) {
   
   const getScanUrl = () => {
     if (!existingToken || !selectedProjectId) return "";
-    const baseUrl = window.location.origin;
+    const baseUrl = "https://daglig-rad.lovable.app";
     return `${baseUrl}/attendance/scan/${selectedProjectId}/${existingToken.token}`;
   };
 
