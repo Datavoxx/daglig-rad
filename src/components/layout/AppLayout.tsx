@@ -48,9 +48,9 @@ const navItems: NavItem[] = [
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
   { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
-  { label: "Ekonomi", href: "/economy", icon: Landmark, moduleKey: "economy" },
   { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
 ];
 

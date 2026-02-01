@@ -9,7 +9,7 @@ const ALL_MODULES = [
   "customers",
   "guide",
   "settings",
-  "economy",
+  "invoices",
   "time-reporting"
 ];
 

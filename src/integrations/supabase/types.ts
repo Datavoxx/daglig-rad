@@ -119,6 +119,78 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_invoices: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          due_date: string
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          notes: string | null
+          payment_terms: string | null
+          project_id: string | null
+          rows: Json
+          status: string
+          total_ex_vat: number
+          total_inc_vat: number
+          updated_at: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          rows?: Json
+          status?: string
+          total_ex_vat?: number
+          total_inc_vat?: number
+          updated_at?: string
+          user_id: string
+          vat_amount?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          rows?: Json
+          status?: string
+          total_ex_vat?: number
+          total_inc_vat?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -1604,6 +1676,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendor_invoices: {
+        Row: {
+          ai_extracted: boolean | null
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          original_file_name: string | null
+          pdf_storage_path: string | null
+          project_id: string | null
+          rows: Json
+          status: string
+          supplier_name: string
+          total_ex_vat: number
+          total_inc_vat: number
+          updated_at: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          ai_extracted?: boolean | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          original_file_name?: string | null
+          pdf_storage_path?: string | null
+          project_id?: string | null
+          rows?: Json
+          status?: string
+          supplier_name: string
+          total_ex_vat?: number
+          total_inc_vat?: number
+          updated_at?: string
+          user_id: string
+          vat_amount?: number
+        }
+        Update: {
+          ai_extracted?: boolean | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          original_file_name?: string | null
+          pdf_storage_path?: string | null
+          project_id?: string | null
+          rows?: Json
+          status?: string
+          supplier_name?: string
+          total_ex_vat?: number
+          total_inc_vat?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
