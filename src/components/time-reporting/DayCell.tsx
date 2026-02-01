@@ -26,6 +26,7 @@ interface DayCellProps {
   date: Date;
   entries: TimeEntryWithDetails[];
   employees: Employee[];
+  currentUserId?: string;
   onDayClick: (date: Date) => void;
   isCurrentMonth?: boolean;
   compact?: boolean;
@@ -58,18 +59,22 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function getUserName(userId: string, employees: Employee[]): string {
+function getUserName(userId: string, employees: Employee[], currentUserId?: string): string {
+  if (userId === currentUserId) {
+    return "Du";
+  }
   const employee = employees.find(e => e.linked_user_id === userId);
   if (employee) {
     return employee.name;
   }
-  return "Du";
+  return "Okänd";
 }
 
 export function DayCell({ 
   date, 
   entries,
   employees,
+  currentUserId,
   onDayClick,
   isCurrentMonth = true,
   compact = false
@@ -92,6 +97,7 @@ export function DayCell({
         date={date} 
         entries={entries} 
         employees={employees}
+        currentUserId={currentUserId}
         onAddEntry={onDayClick}
       >
         <button
@@ -109,7 +115,7 @@ export function DayCell({
               {uniqueUserIds.length > 0 && (
                 <div className="flex -space-x-1 mt-0.5">
                   {visibleUserIds.slice(0, 2).map(userId => {
-                    const name = getUserName(userId, employees);
+                    const name = getUserName(userId, employees, currentUserId);
                     return (
                       <Avatar key={userId} className="h-4 w-4 border border-background">
                         <AvatarFallback className={`${getAvatarColor(name)} text-white text-[6px]`}>
@@ -168,7 +174,7 @@ export function DayCell({
             {uniqueUserIds.length > 0 && (
               <div className="flex -space-x-2 mt-1.5">
                 {visibleUserIds.map(userId => {
-                  const name = getUserName(userId, employees);
+                  const name = getUserName(userId, employees, currentUserId);
                   return (
                     <Avatar key={userId} className="h-6 w-6 border-2 border-background">
                       <AvatarFallback className={`${getAvatarColor(name)} text-white text-[8px]`}>
@@ -215,6 +221,7 @@ export function DayCell({
       date={date} 
       entries={entries} 
       employees={employees}
+      currentUserId={currentUserId}
       onAddEntry={onDayClick}
     >
       {cellContent}

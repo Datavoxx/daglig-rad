@@ -31,10 +31,11 @@ interface MonthViewProps {
   currentDate: Date;
   entries: TimeEntryWithDetails[];
   employees: Employee[];
+  currentUserId?: string;
   onDayClick: (date: Date) => void;
 }
 
-export function MonthView({ currentDate, entries, employees, onDayClick }: MonthViewProps) {
+export function MonthView({ currentDate, entries, employees, currentUserId, onDayClick }: MonthViewProps) {
   // Get all days to display (including padding from adjacent months)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -86,6 +87,7 @@ export function MonthView({ currentDate, entries, employees, onDayClick }: Month
               date={day}
               entries={dayEntries}
               employees={employees}
+              currentUserId={currentUserId}
               onDayClick={onDayClick}
               isCurrentMonth={isCurrentMonth}
             />
