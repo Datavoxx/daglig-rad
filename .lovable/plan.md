@@ -1,29 +1,74 @@
-# Plan: Dagrapporter och anställdas åtkomst
 
-## Status: ✅ Implementerat
 
-### Genomförda ändringar
+## Plan: Fixa anställdas navigering - Endast Dagrapporter, Tidsrapport & Personalliggare
 
-#### 1. RLS-uppdatering för `daily_reports`
-- **Migration**: Uppdaterade RLS-policyer för att tillåta anställda att läsa/skriva arbetsgivarens dagrapporter
-- **Ny policy**: `auth.uid() = user_id OR user_id = get_employer_id(auth.uid())`
+### Problem identifierat
 
-#### 2. Employer-logik i ReportEditor.tsx
-- **Ändring**: Vid sparande av rapport kontrolleras om användaren är en anställd
-- **Logik**: Om anställd → använd arbetsgivarens ID som `user_id`
-- **Resultat**: Rapporter sparas korrekt under arbetsgivarens konto
+Anställda ser fortfarande "Projekt"-sidan av två anledningar:
 
-#### 3. Artikelbiblioteket
-- **Status**: Fungerar korrekt - visar artiklar baserat på `user_id = auth.uid()`
-- **Åtgärd**: Användaren behöver lägga till artiklar via Inställningar → Artiklar
+1. **Edge-funktionen `accept-invitation`** använder `UPDATE` för att sätta behörigheter, men det förutsätter att en rad redan finns i `user_permissions`. Om raden inte skapas korrekt av triggern `handle_new_user`, fungerar inte uppdateringen.
 
-### Filer som ändrades
+2. **Fallback vid saknad behörighet** går till `/dashboard` eller första modulen, inte `/daily-reports`.
+
+---
+
+### Ändringar som behövs
+
+#### 1. Uppdatera `accept-invitation` Edge Function
+
+Ändra från `UPDATE` till `UPSERT` för att garantera att behörigheter alltid sätts korrekt:
+
+```typescript
+// Från:
+await supabase
+  .from("user_permissions")
+  .update({ modules: ["attendance", "time-reporting", "daily-reports"] })
+  .eq("user_id", userId);
+
+// Till:
+await supabase
+  .from("user_permissions")
+  .upsert({
+    user_id: userId,
+    modules: ["attendance", "time-reporting", "daily-reports"]
+  }, { onConflict: "user_id" });
+```
+
+#### 2. Uppdatera `ProtectedModuleRoute.tsx`
+
+Ändra fallback-logiken så att anställda hamnar på `/daily-reports`:
+
+```typescript
+// Istället för att gå till /dashboard som default
+// Gå till /daily-reports om det är den första tillgängliga modulen
+const fallback = permissions.includes("daily-reports") 
+  ? "/daily-reports" 
+  : (permissions.length > 0 ? `/${permissions[0]}` : "/dashboard");
+```
+
+#### 3. Uppdatera `useUserPermissions.ts`
+
+Ta bort `dashboard` från de standardmoduler som anställda har - de ska endast ha:
+- `attendance`
+- `time-reporting`
+- `daily-reports`
+
+---
+
+### Filer som ändras
+
 | Fil | Ändring |
 |-----|---------|
-| `supabase/migrations/..._daily_reports_employee_access.sql` | Ny RLS |
-| `src/components/reports/ReportEditor.tsx` | Employer-logik vid insert |
+| `supabase/functions/accept-invitation/index.ts` | UPSERT istället för UPDATE |
+| `src/components/auth/ProtectedModuleRoute.tsx` | Fallback till `/daily-reports` |
+| `src/hooks/useUserPermissions.ts` | Verifiera att logiken är korrekt |
+
+---
 
 ### Resultat
-- ✅ Anställda kan se arbetsgivarens dagrapporter
-- ✅ Anställda kan skapa dagrapporter (kopplas till arbetsgivarens konto)
-- ✅ Navigation begränsad till: Personalliggare, Tidsrapport, Dagrapporter
+
+- Anställda ser **endast**: Dagrapporter, Tidsrapport, Personalliggare
+- Anställda ser **INTE**: Projekt, Hem, Offert, Fakturor, Kunder, Inställningar
+- Om anställd försöker gå till `/projects` → omdirigeras till `/daily-reports`
+- Dagrapporter-sidan låter anställda välja projekt och skriva dagrapporter
+
