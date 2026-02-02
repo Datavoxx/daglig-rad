@@ -82,10 +82,12 @@ export function useUserPermissions() {
 
   // Helper to get the first available module (for navigation fallback)
   const getDefaultRoute = () => {
-    if (permissions.includes("daily-reports")) return "/daily-reports";
+    // Employees go to their dedicated dashboard
+    if (isEmployee) return "/employee-dashboard";
+    // Admins/owners go to the main dashboard
     if (permissions.includes("dashboard")) return "/dashboard";
     if (permissions.length > 0) return `/${permissions[0]}`;
-    return "/daily-reports";
+    return "/employee-dashboard";
   };
 
   return { 
