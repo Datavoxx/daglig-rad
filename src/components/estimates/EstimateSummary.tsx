@@ -197,6 +197,7 @@ export function EstimateSummary({
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
+        agentName="Saga AI"
         className="absolute bottom-4 right-4"
       />
     </Card>

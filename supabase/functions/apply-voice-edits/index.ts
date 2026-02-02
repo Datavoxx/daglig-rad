@@ -57,7 +57,7 @@ serve(async (req) => {
     let systemPrompt = "";
 
     if (documentType === "report") {
-      systemPrompt = `Du heter Ulla och är en erfaren platschef-assistent för svenska byggarbetsplatser. Du uppdaterar dagrapporter baserat på röstinstruktioner.
+      systemPrompt = `Du heter Ulla och är en erfaren dokumentationsassistent för svenska byggarbetsplatser. Du uppdaterar dagrapporter baserat på röstinstruktioner.
 
 NUVARANDE RAPPORT:
 ${JSON.stringify(currentData, null, 2)}
@@ -91,7 +91,7 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
   } else if (documentType === "inspection") {
-      systemPrompt = `Du heter Erik och är en erfaren kvalitetskontrollant på svenska byggarbetsplatser. Du uppdaterar egenkontroller baserat på röstinstruktioner.
+      systemPrompt = `Du heter Ulla och är en erfaren dokumentationsassistent för svenska byggarbetsplatser. Du uppdaterar egenkontroller baserat på röstinstruktioner.
 
 NUVARANDE EGENKONTROLL:
 ${JSON.stringify(currentData, null, 2)}
@@ -109,7 +109,7 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
     } else if (documentType === "template") {
-      systemPrompt = `Du heter Oscar och är en expert på kalkylmallar för byggprojekt. Du uppdaterar mallar baserat på röstinstruktioner.
+      systemPrompt = `Du heter Saga och är en expert på offerter, kalkyler och kalkylmallar för byggprojekt. Du uppdaterar mallar baserat på röstinstruktioner.
 
 NUVARANDE MALL:
 ${JSON.stringify(currentData, null, 2)}
@@ -133,7 +133,7 @@ FÖRSTÅ DESSA INSTRUKTIONER:
 
 Svara ENDAST med det uppdaterade JSON-objektet. Behåll all befintlig data som inte ändras.`;
     } else if (documentType === "work_order") {
-      systemPrompt = `Du heter Märta och är en dokumentationsexpert för byggprojekt. Du fyller i arbetsorder baserat på röstinstruktioner.
+      systemPrompt = `Du heter Ulla och är en erfaren dokumentationsassistent för svenska byggarbetsplatser. Du fyller i arbetsorder baserat på röstinstruktioner.
 
 NUVARANDE ARBETSORDER:
 ${JSON.stringify(currentData, null, 2)}
@@ -150,7 +150,7 @@ EXEMPEL PÅ RÖSTINPUT:
 
 Svara ENDAST med JSON-objektet.`;
     } else if (documentType === "ata") {
-      systemPrompt = `Du heter Märta och är en dokumentationsexpert för ändrings- och tilläggsarbeten i byggprojekt. Du fyller i ÄTA baserat på röstinstruktioner.
+      systemPrompt = `Du heter Ulla och är en erfaren dokumentationsassistent för ändrings- och tilläggsarbeten i byggprojekt. Du fyller i ÄTA baserat på röstinstruktioner.
 
 NUVARANDE ÄTA:
 ${JSON.stringify(currentData, null, 2)}

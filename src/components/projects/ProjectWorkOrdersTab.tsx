@@ -274,7 +274,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
               <VoicePromptButton
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
-                agentName="Märta AI"
+                agentName="Ulla AI"
               />
               
               <div className="space-y-2">

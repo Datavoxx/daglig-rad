@@ -1,5 +1,5 @@
 // Centraliserad konfiguration för AI-agenter i Byggio
-// Varje agent har en unik identitet och personlighet
+// Tre agenter: Saga (Offerter & Mallar), Bo (Planering), Ulla (Dokumentation)
 
 export interface AIAgent {
   name: string;
@@ -9,12 +9,12 @@ export interface AIAgent {
 }
 
 export const AI_AGENTS = {
-  // Saga - Offert & Kalkyl-expert
+  // Saga - Offert & Kalkyl-expert (hanterar även mallar)
   estimate: {
     name: "Saga",
     title: "Saga AI",
     description: "Din kalkylexpert",
-    promptIntro: "Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige.",
+    promptIntro: "Du heter Saga och är en expert på offerter, kalkyler och kalkylmallar för byggprojekt i Sverige.",
   },
 
   // Bo - Planerings-expert
@@ -25,36 +25,12 @@ export const AI_AGENTS = {
     promptIntro: "Du heter Bo och är en expert på byggprojektplanering med lång erfarenhet av att organisera tidplaner.",
   },
 
-  // Ulla - Dagrapport & Arbetsdagbok
+  // Ulla - Dokumentationsassistent (dagrapporter, ÄTA, arbetsorder, egenkontroll)
   diary: {
     name: "Ulla",
     title: "Ulla AI",
-    description: "Din platschef-assistent",
-    promptIntro: "Du heter Ulla och är en erfaren platschef-assistent för svenska byggarbetsplatser.",
-  },
-
-  // Erik - Egenkontroll & Kvalitet
-  inspection: {
-    name: "Erik",
-    title: "Erik AI",
-    description: "Din kvalitetskontrollant",
-    promptIntro: "Du heter Erik och är en erfaren kvalitetskontrollant på svenska byggarbetsplatser.",
-  },
-
-  // Märta - ÄTA & Arbetsorder
-  workOrder: {
-    name: "Märta",
-    title: "Märta AI",
-    description: "Din dokumentationsexpert",
-    promptIntro: "Du heter Märta och är en dokumentationsexpert för ändrings- och tilläggsarbeten i byggprojekt.",
-  },
-
-  // Oscar - Mall-expert
-  template: {
-    name: "Oscar",
-    title: "Oscar AI",
-    description: "Din mallexpert",
-    promptIntro: "Du heter Oscar och är en expert på att skapa och hantera kalkylmallar för byggprojekt.",
+    description: "Din dokumentationsassistent",
+    promptIntro: "Du heter Ulla och är en erfaren dokumentationsassistent för svenska byggarbetsplatser. Du hjälper till med dagrapporter, ÄTA, arbetsorder och egenkontroller.",
   },
 } as const;
 
