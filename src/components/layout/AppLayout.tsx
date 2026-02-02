@@ -44,18 +44,32 @@ interface NavItem {
   moduleKey: string;
 }
 
-const navItems: NavItem[] = [
-  { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
-  { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
-  { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
-  { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
-  { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
-  { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
-  { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
-  { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
-  { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
-  { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
-];
+// Build nav items dynamically based on user role
+const getNavItems = (isEmployee: boolean): NavItem[] => {
+  if (isEmployee) {
+    // Employee navigation - includes "Hem" pointing to employee dashboard
+    return [
+      { label: "Hem", href: "/employee-dashboard", icon: Home, moduleKey: "daily-reports" },
+      { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
+      { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
+      { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+    ];
+  }
+  
+  // Admin/owner navigation
+  return [
+    { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
+    { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+    { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
+    { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
+    { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+    { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+    { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
+    { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
+    { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
+    { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
+  ];
+};
 
 export function AppLayout() {
   const [userInitial, setUserInitial] = useState<string>("");
@@ -64,7 +78,7 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasAccess, loading: permissionsLoading, getDefaultRoute } = useUserPermissions();
+  const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee } = useUserPermissions();
   const isMobile = useIsMobile();
 
   // Live clock - update every second
@@ -108,7 +122,8 @@ export function AppLayout() {
     fetchProfile();
   }, []);
 
-  // Filter nav items based on user permissions
+  // Build nav items dynamically based on user role and filter by permissions
+  const navItems = getNavItems(isEmployee);
   const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
 
   const renderNavButton = (item: NavItem, isActive: boolean) => (

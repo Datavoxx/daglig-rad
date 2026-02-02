@@ -35,6 +35,7 @@ import TimeReporting from "@/pages/TimeReporting";
 import Attendance from "@/pages/Attendance";
 import AttendanceScan from "@/pages/AttendanceScan";
 import DailyReports from "@/pages/DailyReports";
+import EmployeeDashboard from "@/pages/EmployeeDashboard";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => {
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<ProtectedModuleRoute module="dashboard"><Dashboard /></ProtectedModuleRoute>} />
+              <Route path="/employee-dashboard" element={<ProtectedModuleRoute module="daily-reports"><EmployeeDashboard /></ProtectedModuleRoute>} />
               <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
               <Route path="/projects/:id" element={<ProtectedModuleRoute module="projects"><ProjectView /></ProtectedModuleRoute>} />
               <Route path="/reports/:id" element={<ProtectedModuleRoute module="daily-reports"><ReportView /></ProtectedModuleRoute>} />
