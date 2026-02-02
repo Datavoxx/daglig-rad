@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Plus, Calendar, FileText, Loader2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { BookOpen, Plus, Calendar, FileText, Loader2, ClipboardCheck, Clock } from "lucide-react";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
 import { InlineDiaryCreator } from "@/components/projects/InlineDiaryCreator";
+import { EmployeeQuickCard } from "@/components/dashboard/EmployeeQuickCard";
 
 interface Project {
   id: string;
@@ -32,6 +34,66 @@ export default function DailyReports() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Hämta veckans rapporter för snabbkort
+  const { data: weeklyReportsCount } = useQuery({
+    queryKey: ["weekly-reports-count", userId],
+    queryFn: async () => {
+      if (!userId) return 0;
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+      
+      const { count } = await supabase
+        .from("daily_reports")
+        .select("*", { count: "exact", head: true })
+        .gte("report_date", format(weekStart, "yyyy-MM-dd"))
+        .lte("report_date", format(weekEnd, "yyyy-MM-dd"));
+      
+      return count || 0;
+    },
+    enabled: !!userId,
+  });
+
+  // Hämta aktiv incheckning för snabbkort
+  const { data: activeCheckIn } = useQuery({
+    queryKey: ["active-check-in", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      
+      const { data } = await supabase
+        .from("attendance_records")
+        .select("check_in, project_id")
+        .eq("user_id", userId)
+        .is("check_out", null)
+        .order("check_in", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  // Hämta veckans timmar för snabbkort
+  const { data: weeklyHours } = useQuery({
+    queryKey: ["weekly-hours", userId],
+    queryFn: async () => {
+      if (!userId) return 0;
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+      
+      const { data } = await supabase
+        .from("time_entries")
+        .select("hours")
+        .eq("user_id", userId)
+        .gte("date", format(weekStart, "yyyy-MM-dd"))
+        .lte("date", format(weekEnd, "yyyy-MM-dd"));
+      
+      return data?.reduce((sum, entry) => sum + Number(entry.hours), 0) || 0;
+    },
+    enabled: !!userId,
+  });
 
   useEffect(() => {
     fetchProjects();
@@ -50,20 +112,12 @@ export default function DailyReports() {
       return;
     }
 
-    // For employees, get employer ID and fetch their projects
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("linked_user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    setUserId(user.id);
 
-    const employerId = employee?.user_id || user.id;
-
+    // Låt RLS filtrera - den tillåter redan employer's projects via get_employer_id()
     const { data, error } = await supabase
       .from("projects")
       .select("id, name, client_name")
-      .eq("user_id", employerId)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -107,6 +161,11 @@ export default function DailyReports() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-48" />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
         <Skeleton className="h-64 w-full" />
       </div>
     );
@@ -120,7 +179,31 @@ export default function DailyReports() {
           <BookOpen className="h-6 w-6" />
           Dagrapporter
         </h1>
-        <p className="page-subtitle">Skapa och visa dagrapporter för projekt</p>
+        <p className="page-subtitle">Din arbetsöversikt och dagrapporter</p>
+      </div>
+
+      {/* Employee Quick Cards Dashboard */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <EmployeeQuickCard
+          title="Dagrapporter"
+          value={`${weeklyReportsCount ?? 0} denna vecka`}
+          href="/daily-reports"
+          icon={BookOpen}
+        />
+        <EmployeeQuickCard
+          title="Personalliggare"
+          value={activeCheckIn ? "Incheckad" : "Ej incheckad"}
+          subValue={activeCheckIn ? `sedan ${format(parseISO(activeCheckIn.check_in), "HH:mm")}` : undefined}
+          href="/attendance"
+          icon={ClipboardCheck}
+          variant={activeCheckIn ? "success" : "warning"}
+        />
+        <EmployeeQuickCard
+          title="Tidsrapport"
+          value={`${weeklyHours ?? 0}h denna vecka`}
+          href="/time-reporting"
+          icon={Clock}
+        />
       </div>
 
       {/* Project selector */}
@@ -129,18 +212,22 @@ export default function DailyReports() {
           <CardTitle className="text-base">Välj projekt</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-full max-w-md">
-              <SelectValue placeholder="Välj projekt..." />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name} {project.client_name && `- ${project.client_name}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {projects.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Inga projekt tillgängliga</p>
+          ) : (
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Välj projekt..." />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name} {project.client_name && `- ${project.client_name}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardContent>
       </Card>
 
