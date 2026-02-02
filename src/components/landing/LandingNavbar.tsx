@@ -19,7 +19,6 @@ const LandingNavbar = () => {
   const navLinks = [
     { label: "Funktioner", href: "#features" },
     { label: "Hur det fungerar", href: "#how-it-works" },
-    { label: "Priser", href: "#pricing" },
   ];
 
   return (

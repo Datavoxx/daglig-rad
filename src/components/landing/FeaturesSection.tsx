@@ -1,60 +1,10 @@
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Sparkles } from "lucide-react";
 import TiltCard from "./TiltCard";
 
-// Arbetsdagbok Mockup
-const WorkDiaryMockup = () => (
-  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm">
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-xs sm:text-sm font-medium text-foreground">📅 26 januari 2025</span>
-      <Badge variant="success" className="text-[10px] sm:text-xs">Klar</Badge>
-    </div>
-    <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground mb-3">
-      <span>👥 3 pers</span>
-      <span>⏱ 24h</span>
-    </div>
-    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-3">
-      "Rivning av gammalt badrum klar. Började med membran..."
-    </p>
-    <div className="flex gap-2">
-      <Badge variant="warning" className="text-[10px]">1 avvikelse</Badge>
-      <Badge variant="info" className="text-[10px]">ÄTA</Badge>
-    </div>
-  </div>
-);
-
-// Projektplanering Mockup (Mini Gantt)
-const PlanningMockup = () => (
-  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm">
-    <div className="space-y-2 sm:space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] sm:text-xs text-muted-foreground w-16 sm:w-20 truncate">Rivning</span>
-        <div className="flex-1 h-4 sm:h-5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-[40%] bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" />
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] sm:text-xs text-muted-foreground w-16 sm:w-20 truncate">Stomme</span>
-        <div className="flex-1 h-4 sm:h-5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-[60%] ml-[20%] bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full" />
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] sm:text-xs text-muted-foreground w-16 sm:w-20 truncate">Ytskikt</span>
-        <div className="flex-1 h-4 sm:h-5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-[50%] ml-[50%] bg-gradient-to-r from-purple-500 to-purple-600 rounded-full" />
-        </div>
-      </div>
-    </div>
-    <div className="flex justify-between mt-2 sm:mt-3 text-[10px] text-muted-foreground">
-      <span>Jan</span>
-      <span>Feb</span>
-      <span>Mar</span>
-    </div>
-  </div>
-);
-
-// Offerter Mockup (med suddade priser)
+// Offerter Mockup
 const EstimateMockup = () => (
   <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm">
     <div className="flex items-center justify-between mb-3">
@@ -80,34 +30,101 @@ const EstimateMockup = () => (
   </div>
 );
 
-// Kundregister Mockup
-const CustomersMockup = () => (
-  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm">
-    <div className="flex items-center gap-2 mb-3 px-2 py-1.5 bg-muted/50 rounded-md">
-      <span className="text-muted-foreground text-xs">🔍</span>
-      <span className="text-xs text-muted-foreground">Sök kunder...</span>
+// Projekt Mockup (kombinerar dagbok + planering)
+const ProjectMockup = () => (
+  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm space-y-3">
+    {/* Mini dagbok */}
+    <div className="flex items-center justify-between">
+      <span className="text-xs sm:text-sm font-medium text-foreground">📅 Dagbok</span>
+      <Badge variant="success" className="text-[10px]">3 rapporter</Badge>
     </div>
-    <div className="space-y-2">
-      <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100 flex items-center justify-center text-[10px] sm:text-xs text-blue-700">EA</div>
-          <span className="text-xs sm:text-sm text-foreground">Eriksson AB</span>
+    {/* Mini Gantt */}
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground w-14 truncate">Rivning</span>
+        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+          <div className="h-full w-[100%] bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full" />
         </div>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">3 projekt</span>
       </div>
-      <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] sm:text-xs text-emerald-700">SC</div>
-          <span className="text-xs sm:text-sm text-foreground">Sundström & Co</span>
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground w-14 truncate">Stomme</span>
+        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+          <div className="h-full w-[60%] bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" />
         </div>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">1 projekt</span>
       </div>
-      <div className="flex items-center justify-between py-1.5">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-100 flex items-center justify-center text-[10px] sm:text-xs text-purple-700">FN</div>
-          <span className="text-xs sm:text-sm text-foreground">Fastigheter Nordic</span>
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground w-14 truncate">Ytskikt</span>
+        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+          <div className="h-full w-[20%] bg-gradient-to-r from-purple-500 to-purple-600 rounded-full" />
         </div>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">5 projekt</span>
+      </div>
+    </div>
+    <div className="flex gap-2 pt-1">
+      <Badge variant="outline" className="text-[10px]">ÄTA</Badge>
+      <Badge variant="outline" className="text-[10px]">Filer</Badge>
+    </div>
+  </div>
+);
+
+// Fakturering Mockup
+const InvoiceMockup = () => (
+  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm">
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-xs sm:text-sm font-medium text-foreground">FAKTURA #F2025-018</span>
+      <Badge variant="success" className="text-[10px]">Betald</Badge>
+    </div>
+    <div className="space-y-2 text-xs">
+      <div className="flex justify-between items-center py-1.5 border-b border-border/30">
+        <span className="text-muted-foreground">Från offert #2025-038</span>
+        <span className="text-foreground blur-sm select-none">89 500 kr</span>
+      </div>
+      <div className="flex justify-between items-center py-1.5 border-b border-border/30">
+        <span className="text-muted-foreground">Från offert #2025-041</span>
+        <span className="text-foreground blur-sm select-none">156 000 kr</span>
+      </div>
+    </div>
+    <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40">
+      <span className="text-xs text-muted-foreground">Denna månad</span>
+      <span className="text-sm font-medium text-foreground blur-sm select-none">245 500 kr</span>
+    </div>
+  </div>
+);
+
+// AI Mockup
+const AIMockup = () => (
+  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm relative overflow-hidden">
+    {/* Animated gradient background */}
+    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5" />
+    
+    <div className="relative space-y-3">
+      {/* Voice waveform simulation */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <Sparkles className="w-4 h-4 text-primary" />
+        </div>
+        <div className="flex-1 flex items-center gap-0.5">
+          {[3, 5, 8, 12, 8, 15, 10, 6, 9, 14, 7, 4, 11, 8, 5].map((h, i) => (
+            <div 
+              key={i} 
+              className="w-1 bg-primary/60 rounded-full animate-pulse" 
+              style={{ 
+                height: `${h}px`,
+                animationDelay: `${i * 50}ms`
+              }} 
+            />
+          ))}
+        </div>
+      </div>
+      
+      {/* Generated content preview */}
+      <div className="text-xs text-muted-foreground italic">
+        "Vi rev badrummet idag, tre man..."
+      </div>
+      
+      <div className="flex flex-wrap gap-1.5">
+        <Badge variant="secondary" className="text-[10px]">→ Dagrapport</Badge>
+        <Badge variant="secondary" className="text-[10px]">→ Offert</Badge>
+        <Badge variant="secondary" className="text-[10px]">→ Plan</Badge>
       </div>
     </div>
   </div>
@@ -115,24 +132,28 @@ const CustomersMockup = () => (
 
 const features = [
   {
-    title: "Arbetsdagbok på minuter",
-    description: "Spela in vad som hände idag med rösten – appen skriver rapporten åt dig. Perfekt när händerna är smutsiga.",
-    mockup: WorkDiaryMockup,
-  },
-  {
-    title: "Tidsplaner som du faktiskt använder",
-    description: "Se hela projektet visuellt. Dela planeringen med kunden och håll alla uppdaterade.",
-    mockup: PlanningMockup,
-  },
-  {
-    title: "Offerter utan krångel",
-    description: "Beskriv projektet, lägg till poster – få en proffsig offert som kunden kan signera digitalt.",
+    slug: "offerter",
+    title: "Offerter som säljer",
+    description: "Skapa proffsiga offerter på minuter. Kunden signerar digitalt direkt i mobilen.",
     mockup: EstimateMockup,
   },
   {
-    title: "Alla kunder på ett ställe",
-    description: "Sök fram kontaktuppgifter, se projekthistorik och skicka offerter – utan att leta i pappershögar.",
-    mockup: CustomersMockup,
+    slug: "projekt",
+    title: "Projekt under kontroll", 
+    description: "Arbetsdagbok, tidsplaner och all dokumentation samlat. Delbart med kund och team.",
+    mockup: ProjectMockup,
+  },
+  {
+    slug: "fakturering",
+    title: "Fakturering på autopilot",
+    description: "Omvandla godkända offerter till fakturor. Spåra betalningar automatiskt.",
+    mockup: InvoiceMockup,
+  },
+  {
+    slug: "ai",
+    title: "AI som binder ihop allt",
+    description: "Prata in dina anteckningar – AI skapar dokument, offerter och rapporter åt dig.",
+    mockup: AIMockup,
   }
 ];
 
@@ -156,43 +177,53 @@ const FeaturesSection = () => {
         {/* Features grid - 1 column on mobile, 2 on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {features.map((feature, index) => (
-            <TiltCard 
-              key={feature.title}
-              maxTilt={15} 
-              glareEnabled={true}
-              className="stagger-item"
+            <Link 
+              key={feature.slug} 
+              to={`/features/${feature.slug}`}
+              className="block group"
             >
-              <div className="group relative">
-                {/* Hover glow effect - matches hero dashboard */}
-                <div className="absolute -inset-4 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/15 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                
-                <Card 
-                  className="relative h-full border-border/50 bg-card shadow-xl transition-all duration-300 group-hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)]"
-                  style={{ animationDelay: `${index * 75}ms` }}
-                >
-                  {/* Top highlight line - simulates light reflection */}
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-t-xl" />
+              <TiltCard 
+                maxTilt={15} 
+                glareEnabled={true}
+                className="stagger-item h-full"
+              >
+                <div className="relative h-full">
+                  {/* Hover glow effect - matches hero dashboard */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/15 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   
-                  {/* Mockup */}
-                  <div className="p-4 sm:p-6 pb-0">
-                    <feature.mockup />
-                  </div>
+                  <Card 
+                    className="relative h-full border-border/50 bg-card shadow-xl transition-all duration-300 group-hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] group-hover:border-primary/30"
+                    style={{ animationDelay: `${index * 75}ms` }}
+                  >
+                    {/* Top highlight line - simulates light reflection */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-t-xl" />
+                    
+                    {/* Mockup */}
+                    <div className="p-4 sm:p-6 pb-0">
+                      <feature.mockup />
+                    </div>
 
-                  <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
-                    {/* Content */}
-                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                  
-                  {/* Bottom gradient for depth */}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-b-xl" />
-                </Card>
-              </div>
-            </TiltCard>
+                    <CardContent className="p-4 sm:p-6 pt-4 sm:pt-5">
+                      {/* Content */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3 group-hover:text-primary transition-colors">
+                            {feature.title}
+                          </h3>
+                          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                            {feature.description}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
+                      </div>
+                    </CardContent>
+                    
+                    {/* Bottom gradient for depth */}
+                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-b-xl" />
+                  </Card>
+                </div>
+              </TiltCard>
+            </Link>
           ))}
         </div>
       </div>
