@@ -34,6 +34,7 @@ import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { generateInspectionPdf } from "@/lib/generateInspectionPdf";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface Checkpoint {
   id: string;
@@ -460,6 +461,7 @@ export default function InspectionView() {
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
         agentName="Ulla AI"
+        agentAvatar={AI_AGENTS.diary.avatar}
       />
     </div>
   );

@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface Deviation {
   type: string;
@@ -661,6 +662,7 @@ export function ReportEditor({
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
         agentName="Ulla AI"
+        agentAvatar={AI_AGENTS.diary.avatar}
       />
     </div>
   );

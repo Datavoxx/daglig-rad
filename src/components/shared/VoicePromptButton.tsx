@@ -11,6 +11,7 @@ interface VoicePromptButtonProps {
   subtext?: string;
   variant?: "default" | "compact" | "inline";
   agentName?: string;
+  agentAvatar?: string;
 }
 
 export function VoicePromptButton({
@@ -20,6 +21,7 @@ export function VoicePromptButton({
   subtext = "Spara upp till 70% av din tid",
   variant = "default",
   agentName,
+  agentAvatar,
 }: VoicePromptButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -274,7 +276,14 @@ export function VoicePromptButton({
       )}
       onClick={startRecording}
     >
-      <div className="flex flex-col items-center gap-2 text-center">
+      <div className="flex flex-col items-center gap-3 text-center">
+        {agentAvatar && (
+          <img 
+            src={agentAvatar} 
+            alt={agentName || "AI"} 
+            className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+          />
+        )}
         <div className="flex items-center gap-2 text-primary">
           <div className="relative">
             <Mic className="h-5 w-5" />

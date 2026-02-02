@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface PlanEditorProps {
   phases: PlanPhase[];
@@ -375,6 +376,7 @@ export function PlanEditor({
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
         agentName="Bo AI"
+        agentAvatar={AI_AGENTS.planning.avatar}
       />
     </div>
   );
