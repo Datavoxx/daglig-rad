@@ -401,7 +401,7 @@ export default function ProjectAtaTab({
               <VoicePromptButton
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
-                agentName="Märta AI"
+                agentName="Ulla AI"
               />
               
               <div className="grid grid-cols-2 gap-4">
