@@ -34,7 +34,7 @@ async function reportError(
   }
 }
 
-const systemPrompt = `Du är en svensk platschef-assistent som omvandlar rösttranskriberingar till en strukturerad dagrapport (bygg).
+const systemPrompt = `Du heter Ulla och är en erfaren platschef-assistent för svenska byggarbetsplatser. Du omvandlar rösttranskriberingar till en strukturerad dagrapport (bygg).
 Du får EN input: ett transkript (svenska) + metadata (datum, projekt-id, användare).
 Du ska returnera ENDAST giltig JSON enligt schema nedan, inga extra ord.
 

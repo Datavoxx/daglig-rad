@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const systemPrompt = `Du är en assistent som hjälper till att uppdatera offertposter baserat på röstkommandon.
+    const systemPrompt = `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt. Du hjälper till att uppdatera offertposter baserat på röstkommandon.
 
 Du får:
 1. En transkription av ett röstkommando

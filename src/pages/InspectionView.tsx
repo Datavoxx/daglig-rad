@@ -459,6 +459,7 @@ export default function InspectionView() {
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
+        agentName="Erik AI"
       />
     </div>
   );

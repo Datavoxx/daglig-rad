@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
         .map((item: CostLibraryItem) => `- ${item.name}: ${item.price} kr/${item.unit}`)
         .join("\n");
 
-      systemPrompt = `Du är en expert på offerter för byggprojekt. Du ska skapa en offert baserad på en MALL och användarens mängdbeskrivning.
+      systemPrompt = `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige. Du ska skapa en offert baserad på en MALL och användarens mängdbeskrivning.
 
 MALL: ${template.name}
 ${template.description || ""}
@@ -190,7 +190,7 @@ Svara ENDAST med JSON, ingen annan text.`;
 
     } else {
       // Fallback without template (legacy behavior)
-      systemPrompt = `Du är en expert på att skapa projektkalkyler för byggbranschen i Sverige. Din uppgift är att:
+      systemPrompt = `Du heter Saga och är en expert på att skapa projektkalkyler för byggbranschen i Sverige. Din uppgift är att:
 1. Analysera användarens beskrivning
 2. Identifiera alla arbetsmoment, material och underentreprenörer
 3. Skapa en strukturerad kalkyl

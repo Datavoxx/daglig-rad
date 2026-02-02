@@ -8,12 +8,14 @@ interface VoiceInputOverlayProps {
   onTranscriptComplete: (transcript: string) => Promise<void>;
   isProcessing?: boolean;
   className?: string;
+  agentName?: string;
 }
 
 export function VoiceInputOverlay({
   onTranscriptComplete,
   isProcessing = false,
   className,
+  agentName,
 }: VoiceInputOverlayProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -94,7 +96,8 @@ export function VoiceInputOverlay({
     recognitionRef.current = recognition;
     recognition.start();
     setIsRecording(true);
-    toast.success("Spela in dina ändringar...");
+    const recordingMessage = agentName ? `${agentName} lyssnar...` : "Spela in dina ändringar...";
+    toast.success(recordingMessage);
   };
 
   const stopRecording = () => {

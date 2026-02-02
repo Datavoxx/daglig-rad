@@ -10,6 +10,7 @@ interface VoicePromptButtonProps {
   className?: string;
   subtext?: string;
   variant?: "default" | "compact" | "inline";
+  agentName?: string;
 }
 
 export function VoicePromptButton({
@@ -18,6 +19,7 @@ export function VoicePromptButton({
   className,
   subtext = "Spara upp till 70% av din tid",
   variant = "default",
+  agentName,
 }: VoicePromptButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -234,9 +236,12 @@ export function VoicePromptButton({
         {isProcessing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Mic className="h-4 w-4" />
+          <>
+            <Mic className="h-4 w-4" />
+            {agentName && <Sparkles className="h-3 w-3 ml-0.5" />}
+          </>
         )}
-        Spela in
+        {agentName ? `Låt ${agentName} hjälpa dig` : "Spela in"}
       </Button>
     );
   }
@@ -275,7 +280,9 @@ export function VoicePromptButton({
             <Mic className="h-5 w-5" />
             <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-primary/70" />
           </div>
-          <span className="font-medium">Spela in</span>
+          <span className="font-medium">
+            {agentName ? `Låt ${agentName} hjälpa dig` : "Spela in"}
+          </span>
         </div>
         <span className="text-xs text-muted-foreground">{subtext}</span>
       </div>
