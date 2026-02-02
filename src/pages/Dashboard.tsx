@@ -32,6 +32,8 @@ interface AttendanceRecord {
   guest_name: string | null;
   project_id: string;
   projects?: { name: string } | null;
+  profile_name?: string | null;
+  profile_email?: string | null;
 }
 
 interface UpcomingDeadline {
@@ -107,7 +109,7 @@ const Dashboard = () => {
         // Active workers
         supabase
           .from("attendance_records")
-          .select("id, user_id, check_in, guest_name, project_id, projects(name)")
+          .select("id, user_id, check_in, check_out, guest_name, project_id, projects(name)")
           .eq("employer_id", userData.user.id)
           .is("check_out", null),
         // Hours this week
@@ -157,6 +159,26 @@ const Dashboard = () => {
           .eq("employer_id", userData.user.id)
           .gte("date", fourteenDaysAgo.toISOString().split('T')[0]),
       ]);
+
+      // Fetch profile data for active workers
+      const userIds = activeWorkersRes.data?.map(r => r.user_id).filter(Boolean) || [];
+      let profileMap = new Map<string, { full_name: string | null; email: string | null }>();
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", userIds);
+        
+        profileMap = new Map(profiles?.map(p => [p.id, { full_name: p.full_name, email: p.email }]) || []);
+      }
+
+      // Enrich workers with profile data
+      const enrichedWorkers: AttendanceRecord[] = (activeWorkersRes.data || []).map(worker => ({
+        ...worker,
+        profile_name: profileMap.get(worker.user_id)?.full_name || null,
+        profile_email: profileMap.get(worker.user_id)?.email || null,
+      }));
 
       // Calculate total hours this week
       const totalHoursThisWeek = hoursThisWeekRes.data?.reduce((sum, e) => sum + (e.hours || 0), 0) || 0;
@@ -212,7 +234,7 @@ const Dashboard = () => {
       });
 
       return {
-        activeWorkers: (activeWorkersRes.data as AttendanceRecord[]) || [],
+        activeWorkers: enrichedWorkers,
         totalHoursThisWeek,
         activeProjects: activeProjectsRes.count || 0,
         overdueInvoices: overdueInvoicesRes.data?.length || 0,
@@ -368,6 +390,16 @@ const Dashboard = () => {
               <div className="space-y-3">
                 {dashboardData.activeWorkers.slice(0, 5).map((worker, index) => {
                   const project = worker.projects as { name: string } | null;
+                  const displayName = worker.guest_name 
+                    || worker.profile_name 
+                    || worker.profile_email?.split("@")[0] 
+                    || "Okänd";
+                  const initials = displayName.split(" ")
+                    .map(n => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2) || "??";
+                  
                   return (
                     <div 
                       key={worker.id} 
@@ -377,14 +409,14 @@ const Dashboard = () => {
                       <div className="relative">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-emerald-500/10 text-emerald-600 text-xs">
-                            {worker.guest_name?.substring(0, 2).toUpperCase() || "??"}
+                            {initials}
                           </AvatarFallback>
                         </Avatar>
                         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {worker.guest_name || "Anonym"}
+                          {displayName}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {project?.name || "Okänt projekt"}
