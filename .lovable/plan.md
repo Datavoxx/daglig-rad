@@ -1,178 +1,245 @@
 
 
-## Plan: Separat Employee Dashboard + Säkerställ automatiskt uppsättning för nya organisationer
+## Plan: Uppdatera Landing Page med nya funktioner och klickbara detaljsidor
 
 ### Sammanfattning
 
-Du vill ha:
-1. **Separat dashboard-sida för anställda** med tre moduler: Dagrapporter, Personalliggare, Tidsrapport
-2. **Individuella KPIs** - varje anställd ser endast sin egen data
-3. **Säkerställa att nya organisationer automatiskt får rätt uppsättning**
+Du vill:
+1. **Ta bort "Priser"** från navigeringen och landing page
+2. **Ändra FeaturesSection** till fyra nya kategorier:
+   - Offert (1st)
+   - Projekt (2nd) - innehåller arbetsdagbok och tidsplaner  
+   - Fakturering (3rd)
+   - AI-integration (4th) - "Bind ihop allting med AI"
+3. **Gör varje feature klickbar** - leder till en detaljerad sida med snygg design
 
 ---
 
-### Del 1: Skapa EmployeeDashboard.tsx
+### Ändringar
 
-En ny sida som ersätter den vanliga dashboarden för anställda.
+#### 1. Ta bort "Priser" från navigering
 
-**Layout och innehåll:**
+**Fil: `src/components/landing/LandingNavbar.tsx`**
 
+Uppdatera navLinks från:
+```typescript
+const navLinks = [
+  { label: "Funktioner", href: "#features" },
+  { label: "Hur det fungerar", href: "#how-it-works" },
+  { label: "Priser", href: "#pricing" },  // ← Ta bort
+];
+```
+
+Till:
+```typescript
+const navLinks = [
+  { label: "Funktioner", href: "#features" },
+  { label: "Hur det fungerar", href: "#how-it-works" },
+];
+```
+
+---
+
+#### 2. Ta bort PricingSection från Landing.tsx
+
+**Fil: `src/pages/Landing.tsx`**
+
+Ta bort import och användning av PricingSection (om den finns). Notera att jag ser att den inte finns i nuvarande Landing.tsx, så detta är redan klart.
+
+---
+
+#### 3. Omdesigna FeaturesSection med nya kategorier
+
+**Fil: `src/components/landing/FeaturesSection.tsx`**
+
+**Nya features (4 st):**
+
+| Order | Titel | Beskrivning | Mockup |
+|-------|-------|-------------|--------|
+| 1 | Offerter | Skapa proffsiga offerter snabbt med AI-stöd. Kunden signerar digitalt. | Offert-mockup (befintlig) |
+| 2 | Projekthantering | Arbetsdagbok, tidsplaner och dokumentation samlat på ett ställe. | Kombinerad mockup med dagbok + Gantt |
+| 3 | Fakturering | Omvandla godkända offerter till fakturor. Spåra betalningar automatiskt. | Ny faktura-mockup |
+| 4 | AI som binder ihop allt | Prata in dina anteckningar - AI skapar dokument, offerter och planer åt dig. | AI-orb med text |
+
+**Klickbart:**
+Varje kort får en `onClick` eller `Link` som navigerar till `/features/[slug]` för att visa en detaljerad sida.
+
+---
+
+#### 4. Skapa Feature-detaljsidor
+
+**Nya filer:**
+- `src/pages/features/FeatureDetail.tsx` - Dynamisk sida som visar feature-detaljer
+- `src/pages/features/estimatesFeature.tsx` (eller hårdkoda i FeatureDetail)
+
+**Alternativ approach (enklare):**
+En enda `FeatureDetail.tsx` med route `/features/:slug` som läser slug och visar rätt innehåll baserat på feature.
+
+**Design för detaljsida:**
 ```
 +------------------------------------------+
-|  Hej, [Namn]!                             |
-|  Din arbetsöversikt                       |
+| ← Tillbaka till start                    |
++------------------------------------------+
+
++------------------------------------------+
+| [Ikon/Mockup]                            |
+|                                          |
+| Rubrik: Offerter utan krångel            |
+| Underrubrik: Skapa proffsiga offerter... |
 +------------------------------------------+
 
 +-------------+  +-------------+  +-------------+
-| Dagrapporter|  |Personalligg.|  | Tidsrapport |
-| 3 rapporter |  | Incheckad   |  | 32h denna   |
-| denna veckan|  | sedan 08:15 |  | vecka       |
-| [Öppna →]   |  | [Öppna →]   |  | [Öppna →]   |
+| Feature 1   |  | Feature 2   |  | Feature 3   |
+| Röstinspeln.|  | Digital sign|  | Spåra status|
 +-------------+  +-------------+  +-------------+
 
 +------------------------------------------+
-| Din veckostatistik                        |
-| • Dagrapporter: 3 st                      |
-| • Arbetade timmar: 32h                    |
-| • Checkat in: 5 av 5 dagar                |
+| [Stor mockup / screenshot]               |
++------------------------------------------+
+
++------------------------------------------+
+| CTA: Kom igång gratis →                   |
 +------------------------------------------+
 ```
 
-**Individuella KPIs (endast användarens egen data):**
-- Dagrapporter denna vecka (count från `daily_reports` där `user_id = auth.uid()`)
-- Personalliggare-status (aktiv incheckning från `attendance_records` där `user_id = auth.uid()`)
-- Tidsrapport timmar denna vecka (summa från `time_entries` där `user_id = auth.uid()`)
+---
+
+#### 5. Routing
+
+**Fil: `src/App.tsx`**
+
+Lägg till nya routes:
+```typescript
+<Route path="/features/:slug" element={<FeatureDetail />} />
+```
 
 ---
 
-### Del 2: Uppdatera DailyReports.tsx
-
-Ta bort dashboard-korten från DailyReports-sidan (de ska vara på dashboarden istället). DailyReports blir en ren "skapa/lista dagrapporter"-sida.
-
----
-
-### Del 3: Routing och navigation
-
-**App.tsx:**
-- Lägg till ny route `/employee-dashboard` som pekar på `EmployeeDashboard`
-- Skydda med `ProtectedModuleRoute module="daily-reports"` (anställda har alltid denna modul)
-
-**useUserPermissions.ts:**
-- Uppdatera `getDefaultRoute()` så att anställda automatiskt skickas till `/employee-dashboard`
-- Admins skickas fortfarande till `/dashboard`
-
-**AppLayout.tsx:**
-- Logo-klick för anställda → `/employee-dashboard`
-- Logo-klick för admins → `/dashboard`
-
-**Navigationsmenyn:**
-Anställda ser "Hem" som leder till `/employee-dashboard`
-
----
-
-### Del 4: Säkerställa automatiskt uppsättning för nya organisationer
-
-**Nuläge (fungerar redan):**
-1. `accept-invitation` Edge Function sätter redan rätt behörigheter för nya anställda:
-   - `modules: ["attendance", "time-reporting", "daily-reports"]`
-2. Database-migrering har redan uppdaterat befintliga anställdas behörigheter
-3. `useUserPermissions` har redan hard-restriction som alltid ger anställda endast dessa moduler
-
-**Ingen ytterligare åtgärd krävs** - systemet är redan konfigurerat för att automatiskt ge nya anställda rätt setup.
-
----
-
-### Filer som ändras
+### Filer som skapas/ändras
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/EmployeeDashboard.tsx` | **NY FIL** - Dashboard för anställda med tre modulkort och individuella KPIs |
-| `src/pages/DailyReports.tsx` | Ta bort dashboard-korten (EmployeeQuickCard), behåll endast projekt-väljare och rapportlista |
-| `src/App.tsx` | Lägg till route för `/employee-dashboard` |
-| `src/hooks/useUserPermissions.ts` | Uppdatera `getDefaultRoute()` att returnera `/employee-dashboard` för anställda |
-| `src/components/layout/AppLayout.tsx` | Uppdatera navigationen så att anställda ser "Hem" som pekar på employee-dashboard |
+| `src/components/landing/LandingNavbar.tsx` | Ta bort "Priser" från navLinks |
+| `src/components/landing/FeaturesSection.tsx` | Nya features: Offert, Projekt, Fakturering, AI. Gör korten klickbara |
+| `src/pages/features/FeatureDetail.tsx` | **NY FIL** - Detaljsida för varje feature |
+| `src/App.tsx` | Lägg till route `/features/:slug` |
+
+---
+
+### Detaljerad design för varje feature
+
+#### 1. Offerter
+- **Kort-titel:** "Offerter som säljer"
+- **Kort-beskrivning:** "Skapa proffsiga offerter på minuter. Kunden signerar digitalt direkt i mobilen."
+- **Detaljsida:** 
+  - Hero med offert-mockup (större)
+  - Sub-features: Röstinspelning, Digital signering, Automatisk uppföljning
+  - Screenshots/mockups
+  - CTA
+
+#### 2. Projekthantering
+- **Kort-titel:** "Projekt under kontroll"
+- **Kort-beskrivning:** "Arbetsdagbok, tidsplaner och all dokumentation samlat. Delbart med kund och team."
+- **Detaljsida:**
+  - Hero med kombinerad dagbok + Gantt mockup
+  - Sub-features: Dagrapporter med röst, Visuella tidsplaner, ÄTA-hantering, Delning
+  - Screenshots
+  - CTA
+
+#### 3. Fakturering
+- **Kort-titel:** "Fakturering på autopilot"
+- **Kort-beskrivning:** "Omvandla godkända offerter till fakturor. Spåra betalningar automatiskt."
+- **Detaljsida:**
+  - Hero med faktura-mockup
+  - Sub-features: Automatisk konvertering, Betalningsspårning, Integration med bokföring
+  - CTA
+
+#### 4. AI-integration
+- **Kort-titel:** "AI som binder ihop allt"
+- **Kort-beskrivning:** "Prata in dina anteckningar – AI skapar dokument, offerter och rapporter åt dig automatiskt."
+- **Detaljsida:**
+  - Hero med AnimatedAIOrb
+  - Sub-features: Röst-till-text, Automatisk strukturering, Smart sammanfattning
+  - Demo-sektion
+  - CTA
+
+---
+
+### Nya Mockups att skapa
+
+1. **ProjektMockup** - Kombinerar WorkDiaryMockup + PlanningMockup i en snygg layout
+2. **InvoiceMockup** - Ny faktura-stil mockup
+3. **AIMockup** - AnimatedAIOrb med omgivande text/effekter
 
 ---
 
 ### Teknisk implementation
 
-**EmployeeDashboard.tsx (ny fil):**
+**FeaturesSection.tsx - Uppdaterad features array:**
 
 ```typescript
-// Hämtar KPIs endast för den inloggade användaren (eq user_id = auth.uid())
-const { data: weeklyReports } = useQuery({
-  queryKey: ["my-weekly-reports"],
-  queryFn: async () => {
-    const { count } = await supabase
-      .from("daily_reports")
-      .select("*", { count: "exact", head: true })
-      .gte("report_date", weekStart)
-      .lte("report_date", weekEnd);
-    return count || 0;
+const features = [
+  {
+    slug: "offerter",
+    title: "Offerter som säljer",
+    description: "Skapa proffsiga offerter på minuter. Kunden signerar digitalt direkt i mobilen.",
+    mockup: EstimateMockup,
+  },
+  {
+    slug: "projekt",
+    title: "Projekt under kontroll", 
+    description: "Arbetsdagbok, tidsplaner och all dokumentation samlat. Delbart med kund och team.",
+    mockup: ProjectMockup,  // NY: Kombinerar dagbok + planering
+  },
+  {
+    slug: "fakturering",
+    title: "Fakturering på autopilot",
+    description: "Omvandla godkända offerter till fakturor. Spåra betalningar automatiskt.",
+    mockup: InvoiceMockup,  // NY
+  },
+  {
+    slug: "ai",
+    title: "AI som binder ihop allt",
+    description: "Prata in dina anteckningar – AI skapar dokument, offerter och rapporter åt dig.",
+    mockup: AIMockup,  // NY
   }
-});
-
-const { data: activeCheckIn } = useQuery({
-  queryKey: ["my-active-checkin"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("attendance_records")
-      .select("check_in")
-      .is("check_out", null)
-      .order("check_in", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data;
-  }
-});
-
-const { data: weeklyHours } = useQuery({
-  queryKey: ["my-weekly-hours"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("time_entries")
-      .select("hours")
-      .gte("date", weekStart)
-      .lte("date", weekEnd);
-    return data?.reduce((sum, e) => sum + Number(e.hours), 0) || 0;
-  }
-});
+];
 ```
 
-**Navigationsuppdatering:**
+**Klickbart kort:**
+```tsx
+<Link to={`/features/${feature.slug}`}>
+  <TiltCard>
+    {/* Befintlig kortdesign */}
+  </TiltCard>
+</Link>
+```
 
-```typescript
-// I useUserPermissions.ts - getDefaultRoute()
-const getDefaultRoute = () => {
-  if (isEmployee) return "/employee-dashboard";  // Anställda → employee dashboard
-  if (permissions.includes("dashboard")) return "/dashboard";  // Admins → admin dashboard
-  if (permissions.length > 0) return `/${permissions[0]}`;
-  return "/employee-dashboard";
+**FeatureDetail.tsx:**
+```tsx
+const featureData = {
+  offerter: {
+    title: "Offerter utan krångel",
+    heroDescription: "...",
+    subFeatures: [...],
+    mockup: EstimateMockup,
+  },
+  projekt: { ... },
+  fakturering: { ... },
+  ai: { ... },
 };
 
-// I navItems (AppLayout.tsx) - visa "Hem" för anställda också
-{ label: "Hem", href: isEmployee ? "/employee-dashboard" : "/dashboard", icon: Home, moduleKey: "daily-reports" }
+// Använd useParams() för att hämta slug
+const { slug } = useParams();
+const feature = featureData[slug];
 ```
 
 ---
 
-### Resultat efter implementation
+### Resultat
 
-1. **Anställda loggar in** → hamnar på `/employee-dashboard`
-2. **Employee dashboard visar**:
-   - Tre klickbara modulkort (Dagrapporter, Personalliggare, Tidsrapport)
-   - Individuella KPIs (endast deras egen data)
-3. **Klicka på "Dagrapporter"** → går till `/daily-reports` där de kan välja projekt och skapa rapporter
-4. **Klicka på "Personalliggare"** → går till `/attendance` för in/utcheckning
-5. **Klicka på "Tidsrapport"** → går till `/time-reporting` för tidsregistrering
-6. **Admins** fortsätter att se sin vanliga dashboard med alla KPIs och full åtkomst
-7. **Nya anställda** får automatiskt rätt uppsättning via `accept-invitation`
-
----
-
-### Säkerhet
-
-- RLS på `daily_reports`, `attendance_records`, `time_entries` säkerställer att anställda endast ser sin egen data
-- `useUserPermissions` hard-restriction säkerställer att anställda aldrig får tillgång till projekt/offerter/fakturor
-- Inga ändringar behövs i backend - allt är redan korrekt konfigurerat
+1. **Navigering:** Endast "Funktioner" och "Hur det fungerar"
+2. **Features-sektion:** 4 klickbara kort (Offert, Projekt, Fakturering, AI)
+3. **Detaljsidor:** Premium design med hero, sub-features och CTA för varje feature
+4. **Konsekvent design:** Samma TiltCard-stil och animationer på alla ställen
 
