@@ -373,14 +373,17 @@ export function InlineDiaryCreator({
               )}
             </Button>
             {!isRecording && isSpeechRecognitionSupported && (
-              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
+              <div className="flex items-center gap-4 p-4 mt-2 bg-primary/5 border border-dashed border-primary/30 rounded-lg">
                 <img 
                   src={AI_AGENTS.diary.avatar} 
                   alt="Ulla AI" 
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
                 />
-                💡 Låt <strong>Ulla AI</strong> spara upp till 70% av din tid genom att prata istället för att skriva
-              </p>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-primary">Låt Ulla AI hjälpa dig</span>
+                  <span className="text-xs text-muted-foreground">Spara 70% av din tid genom att prata</span>
+                </div>
+              </div>
             )}
           </div>
           {!isSpeechRecognitionSupported && (

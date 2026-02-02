@@ -344,20 +344,25 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
 
       {/* Voice control prompt - inline in header area */}
       <div 
-        className="flex items-center gap-3 p-3 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+        className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
         onClick={() => {
           // Trigger VoiceInputOverlay - we'll use a workaround by setting state
           const voiceButton = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
           if (voiceButton) voiceButton.click();
         }}
       >
-        <div className="flex items-center gap-2 text-primary">
-          <div className="relative">
+        <img 
+          src={AI_AGENTS.estimate.avatar}
+          alt="Saga AI"
+          className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
+        />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-primary">
             <Mic className="h-5 w-5" />
+            <span className="font-medium">Låt Saga AI hjälpa dig</span>
           </div>
-          <span className="font-medium text-sm">Låt Saga AI hjälpa dig</span>
+          <span className="text-sm text-muted-foreground">Spara 60% av din tid</span>
         </div>
-        <span className="text-xs text-muted-foreground">– Spara 60% av din tid</span>
       </div>
 
 
