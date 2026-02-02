@@ -291,65 +291,40 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Dagens Prioriteter - Compact Alert Bar */}
-      <section className="rounded-xl border border-border/40 bg-card/50 p-4">
-        {/* Priority alerts */}
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          {dashboardData?.overdueInvoices && dashboardData.overdueInvoices > 0 && (
-            <button
-              onClick={() => navigate("/invoices")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-            >
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                {dashboardData.overdueInvoices} förfallna ({formatCurrency(dashboardData.overdueTotal)})
-              </span>
-            </button>
-          )}
-          {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
-            <button
-              onClick={() => navigate("/invoices")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
-            >
-              <Receipt className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                {dashboardData.draftInvoices} utkast att skicka
-              </span>
-            </button>
-          )}
-          {dashboardData?.activeWorkers && dashboardData.activeWorkers.length > 0 && (
-            <button
-              onClick={() => navigate("/attendance")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-            >
-              <UserCheck className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                {dashboardData.activeWorkers.length} på plats nu
-              </span>
-            </button>
-          )}
-          {(!dashboardData?.overdueInvoices && !dashboardData?.draftInvoices && (!dashboardData?.activeWorkers || dashboardData.activeWorkers.length === 0)) && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Sparkles className="h-4 w-4" />
-              <span className="text-sm font-medium">Allt under kontroll idag!</span>
+      {/* Hero Section - Compact */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-5 md:p-6">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-primary/8 blur-2xl" />
+        
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse-subtle" />
+              <span className="text-xs font-medium text-primary">Dashboard</span>
             </div>
-          )}
-        </div>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              {greeting}{userName ? `, ${userName}` : ""}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Här är din översikt för idag
+            </p>
+          </div>
 
-        {/* Quick actions - compact */}
-        <div className="flex flex-wrap gap-2">
-          {quickActions.map((action) => (
-            <Button
-              key={action.title}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate(action.href)}
-            >
-              <action.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{action.title}</span>
-            </Button>
-          ))}
+          {/* Quick action buttons */}
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((action) => (
+              <Button
+                key={action.title}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate(action.href)}
+              >
+                <action.icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{action.title}</span>
+              </Button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -528,6 +503,33 @@ const Dashboard = () => {
         </Card>
       </section>
 
+      {/* Draft invoices alert */}
+      {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+        <Card 
+          className="border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors"
+          onClick={() => navigate("/invoices")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-amber-500/10 p-2">
+                <Receipt className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {dashboardData.draftInvoices} utkast{dashboardData.draftInvoices > 1 ? "" : ""} att skicka
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Totalt värde: {formatCurrency(dashboardData.draftTotal)}
+                </p>
+              </div>
+              <Button variant="outline" size="sm">
+                Granska
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Additional KPIs - Secondary metrics */}
       <section>

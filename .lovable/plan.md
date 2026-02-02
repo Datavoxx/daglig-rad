@@ -1,92 +1,85 @@
 
 
-## Plan: Kompakt Hero med Dagens Prioriteter
+## Plan: Visa riktigt namn istället för "Anonym" på dashboarden
 
-### Nuvarande Problem
-Hero-sektionen tar upp mycket plats med en dekorativ hälsning ("Hej, Omar!") som inte ger actionable information. Snabbknapparna replikerar sidomenyn.
+### Problem
 
-### Ny Design: "Dagens Prioriteter"
+Dashboarden visar "Anonym" för personal på plats, men Attendance-sidan visar rätt namn ("omar abdullahi").
 
-Ersätt den nuvarande hero-sektionen med en kompakt, alert-fokuserad header:
+**Orsak:** Dashboarden läser bara `guest_name` från `attendance_records`, men detta fält är `null` när en inloggad användare checkar in. Attendance-sidan hämtar däremot namnet från `profiles`-tabellen via `user_id`.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  ⚠️ Förfallna: 2 fakturor (32 500 kr)    📝 Utkast: 3 att skicka   │
-│                                                                     │
-│  [Ny offert] [Registrera tid] [Nytt projekt] [Ny faktura]          │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### Lösning
 
-### Teknisk Implementation
+Uppdatera Dashboard så att den, precis som ActiveWorkers-komponenten, hämtar användarnamn från `profiles`-tabellen.
+
+---
+
+### Teknisk implementation
 
 **Fil: `src/pages/Dashboard.tsx`**
 
-1. **Ersätt hero-sektionen (rad 294-329)** med en kompakt alert-bar:
-   - Ta bort gradient-bakgrund och dekorativa element
-   - Visa 2-3 prioriterade alerts horisontellt
-   - Behåll snabbknappar i en minimal rad
-
-2. **Alert-prioritering:**
-   | Prioritet | Alert | Villkor |
-   |-----------|-------|---------|
-   | 1 (röd) | Förfallna fakturor | `overdueInvoices > 0` |
-   | 2 (amber) | Fakturautkast | `draftInvoices > 0` |
-   | 3 (emerald) | Personal på plats | Alltid (info) |
-
-3. **Ny struktur:**
-```tsx
-<section className="rounded-xl border bg-card/50 p-4">
-  {/* Alert chips */}
-  <div className="flex flex-wrap items-center gap-3 mb-3">
-    {dashboardData?.overdueInvoices > 0 && (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-600">
-        <AlertCircle className="h-4 w-4" />
-        <span className="text-sm font-medium">
-          {overdueInvoices} förfallna ({formatCurrency(overdueTotal)})
-        </span>
-      </div>
-    )}
-    {dashboardData?.draftInvoices > 0 && (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600">
-        <Receipt className="h-4 w-4" />
-        <span className="text-sm font-medium">
-          {draftInvoices} utkast att skicka
-        </span>
-      </div>
-    )}
-    {dashboardData?.activeWorkers.length > 0 && (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600">
-        <UserCheck className="h-4 w-4" />
-        <span className="text-sm font-medium">
-          {activeWorkers.length} på plats nu
-        </span>
-      </div>
-    )}
-  </div>
-  
-  {/* Quick actions - mer kompakt */}
-  <div className="flex flex-wrap gap-2">
-    {quickActions.map(...)}
-  </div>
-</section>
+1. **Utöka AttendanceRecord interface:**
+```typescript
+interface AttendanceRecord {
+  id: string;
+  user_id: string;
+  check_in: string;
+  check_out: string | null;
+  guest_name: string | null;
+  project_id: string;
+  projects?: { name: string } | null;
+  // NYA FÄLT:
+  profile_name?: string | null;
+  profile_email?: string | null;
+}
 ```
 
-4. **Ta bort duplicerad alert-sektion:**
-   - Den nuvarande "Draft invoices alert" (rad 471-490) kan tas bort eftersom informationen nu visas i hero-sektionen
+2. **Hämta profildata efter attendance-query:**
+```typescript
+// Efter att ha hämtat activeWorkersRes...
+const userIds = activeWorkersRes.data?.map(r => r.user_id) || [];
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, full_name, email")
+  .in("id", userIds);
 
-### Visuell Jämförelse
+const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-| Före | Efter |
-|------|-------|
-| Stor gradient med hälsning | Kompakt alert-bar |
-| "Hej, Omar! 👋" | Actionable data direkt |
-| Dekorativa blur-cirklar | Ren, fokuserad design |
-| ~120px höjd | ~80px höjd |
+// Mappa ihop med profildata
+const enrichedWorkers = activeWorkersRes.data?.map(worker => ({
+  ...worker,
+  profile_name: profileMap.get(worker.user_id)?.full_name || null,
+  profile_email: profileMap.get(worker.user_id)?.email || null,
+}));
+```
+
+3. **Uppdatera display-logik:**
+```typescript
+// I render:
+const displayName = worker.guest_name 
+  || worker.profile_name 
+  || worker.profile_email?.split("@")[0] 
+  || "Okänd";
+
+const initials = displayName.split(" ")
+  .map(n => n[0])
+  .join("")
+  .toUpperCase()
+  .slice(0, 2);
+```
+
+---
 
 ### Resultat
 
-- **Snabbare överblick:** Se problem direkt utan att scrolla
-- **Mer kompakt:** Sparar vertikal plats för viktigare data
-- **Actionable:** Varje alert är klickbar och leder till rätt vy
-- **Responsiv:** Chips wrappar snyggt på mobil
+| Före | Efter |
+|------|-------|
+| "Anonym" | "omar abdullahi" |
+| "??" som avatar | "OA" som avatar |
+
+Dashboarden kommer nu visa samma namn som Attendance-sidan genom att:
+1. Först försöka använda `guest_name` (för gäster utan konto)
+2. Fallback till `full_name` från profilen
+3. Fallback till email-prefix
+4. Sista fallback: "Okänd"
 
