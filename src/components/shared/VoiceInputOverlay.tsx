@@ -9,6 +9,7 @@ interface VoiceInputOverlayProps {
   isProcessing?: boolean;
   className?: string;
   agentName?: string;
+  agentAvatar?: string;
 }
 
 export function VoiceInputOverlay({
@@ -16,6 +17,7 @@ export function VoiceInputOverlay({
   isProcessing = false,
   className,
   agentName,
+  agentAvatar,
 }: VoiceInputOverlayProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -147,7 +149,16 @@ export function VoiceInputOverlay({
       <div className={cn("fixed bottom-6 right-6 z-50 max-w-md", className)}>
         <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Bekräfta röstkommando</span>
+            <div className="flex items-center gap-2">
+              {agentAvatar && (
+                <img 
+                  src={agentAvatar} 
+                  alt={agentName || "AI"} 
+                  className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                />
+              )}
+              <span className="text-sm font-medium">Bekräfta röstkommando</span>
+            </div>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelConfirmation}>
               <X className="h-4 w-4" />
             </Button>
@@ -196,11 +207,18 @@ export function VoiceInputOverlay({
         <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              {agentAvatar && (
+                <img 
+                  src={agentAvatar} 
+                  alt={agentName || "AI"} 
+                  className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                />
+              )}
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
               </span>
-              <span className="text-sm font-medium">Spelar in...</span>
+              <span className="text-sm font-medium">{agentName ? `${agentName.replace(" AI", "")} lyssnar...` : "Spelar in..."}</span>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelRecording}>
               <X className="h-4 w-4" />

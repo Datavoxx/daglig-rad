@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ReportEditor } from "@/components/reports/ReportEditor";
 import { AtaFollowUpDialog } from "./AtaFollowUpDialog";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface AtaItem {
   reason: string;
@@ -372,7 +373,12 @@ export function InlineDiaryCreator({
               )}
             </Button>
             {!isRecording && isSpeechRecognitionSupported && (
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
+                <img 
+                  src={AI_AGENTS.diary.avatar} 
+                  alt="Ulla AI" 
+                  className="w-5 h-5 rounded-full object-cover"
+                />
                 💡 Låt <strong>Ulla AI</strong> spara upp till 70% av din tid genom att prata istället för att skriva
               </p>
             )}

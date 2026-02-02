@@ -18,6 +18,7 @@ import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { generateWorkOrderPdf } from "@/lib/generateWorkOrderPdf";
 import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface WorkOrder {
   id: string;
@@ -275,6 +276,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
                 agentName="Ulla AI"
+                agentAvatar={AI_AGENTS.diary.avatar}
               />
               
               <div className="space-y-2">

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface EstimateSummaryProps {
   scope: string;
@@ -198,6 +199,7 @@ export function EstimateSummary({
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
         agentName="Saga AI"
+        agentAvatar={AI_AGENTS.estimate.avatar}
         className="absolute bottom-4 right-4"
       />
     </Card>

@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { generateAtaPdf } from "@/lib/generateAtaPdf";
 import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
+import { AI_AGENTS } from "@/config/aiAgents";
 
 interface Ata {
   id: string;
@@ -402,6 +403,7 @@ export default function ProjectAtaTab({
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
                 agentName="Ulla AI"
+                agentAvatar={AI_AGENTS.diary.avatar}
               />
               
               <div className="grid grid-cols-2 gap-4">

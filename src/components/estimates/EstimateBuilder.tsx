@@ -25,6 +25,7 @@ import { QuotePreviewSheet } from "./QuotePreviewSheet";
 import { ArticleLibrarySection } from "./ArticleLibrarySection";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
+import { AI_AGENTS } from "@/config/aiAgents";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -620,6 +621,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
+        agentName="Saga AI"
+        agentAvatar={AI_AGENTS.estimate.avatar}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
