@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { MapPin, User, UserCheck } from "lucide-react";
+import { ChevronRight, MapPin, User, UserCheck } from "lucide-react";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -81,6 +81,15 @@ export function EstimateHeader({
 
         <div className="text-right shrink-0">
           <div className="flex items-center gap-2 justify-end">
+            {status === "draft" && onStatusChange && (
+              <button
+                onClick={handleBadgeClick}
+                className="text-[11px] text-primary hover:text-primary/80 transition-colors flex items-center gap-0.5 animate-pulse"
+              >
+                <span>Redo?</span>
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
