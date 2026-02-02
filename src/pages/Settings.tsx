@@ -299,13 +299,13 @@ export default function Settings() {
 
       {/* Tabs */}
       <Tabs defaultValue="mallar" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="mallar">Mallar</TabsTrigger>
-          <TabsTrigger value="foretag">Företag</TabsTrigger>
-          <TabsTrigger value="anstallda">Anställda</TabsTrigger>
-          <TabsTrigger value="debiteringstyper">Debiteringstyper</TabsTrigger>
-          <TabsTrigger value="lonetyper">Lönetyper</TabsTrigger>
-          <TabsTrigger value="artiklar">Artiklar</TabsTrigger>
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
+          <TabsTrigger value="mallar" className="shrink-0">Mallar</TabsTrigger>
+          <TabsTrigger value="foretag" className="shrink-0">Företag</TabsTrigger>
+          <TabsTrigger value="anstallda" className="shrink-0">Anställda</TabsTrigger>
+          <TabsTrigger value="debiteringstyper" className="shrink-0">Deb.typer</TabsTrigger>
+          <TabsTrigger value="lonetyper" className="shrink-0">Lönetyper</TabsTrigger>
+          <TabsTrigger value="artiklar" className="shrink-0">Artiklar</TabsTrigger>
         </TabsList>
 
         {/* Mallar tab */}

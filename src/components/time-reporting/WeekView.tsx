@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { DayCell } from "./DayCell";
+import { MobileDayList } from "./MobileDayList";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TimeEntryWithDetails {
   id: string;
@@ -28,6 +30,8 @@ interface WeekViewProps {
 }
 
 export function WeekView({ currentDate, entries, employees, currentUserId, onDayClick }: WeekViewProps) {
+  const isMobile = useIsMobile();
+  
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -52,6 +56,22 @@ export function WeekView({ currentDate, entries, employees, currentUserId, onDay
 
   const dayNames = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
 
+  // Mobile view - list layout
+  if (isMobile) {
+    return (
+      <MobileDayList
+        days={weekDays}
+        entriesByDate={entriesByDate}
+        employees={employees}
+        currentUserId={currentUserId}
+        onDayClick={onDayClick}
+        totalLabel="Totalt denna vecka"
+        totalHours={weekTotal}
+      />
+    );
+  }
+
+  // Desktop view - grid layout
   return (
     <div className="space-y-4">
       {/* Day headers */}

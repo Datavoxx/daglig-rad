@@ -9,6 +9,8 @@ import {
   isSameMonth 
 } from "date-fns";
 import { DayCell } from "./DayCell";
+import { MobileDayList } from "./MobileDayList";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TimeEntryWithDetails {
   id: string;
@@ -36,6 +38,8 @@ interface MonthViewProps {
 }
 
 export function MonthView({ currentDate, entries, employees, currentUserId, onDayClick }: MonthViewProps) {
+  const isMobile = useIsMobile();
+
   // Get all days to display (including padding from adjacent months)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -43,6 +47,13 @@ export function MonthView({ currentDate, entries, employees, currentUserId, onDa
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  }, [currentDate]);
+
+  // For mobile, only show days in the current month
+  const monthDays = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    return eachDayOfInterval({ start: monthStart, end: monthEnd });
   }, [currentDate]);
 
   const entriesByDate = useMemo(() => {
@@ -63,6 +74,22 @@ export function MonthView({ currentDate, entries, employees, currentUserId, onDa
 
   const dayNames = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
 
+  // Mobile view - list layout (only current month days)
+  if (isMobile) {
+    return (
+      <MobileDayList
+        days={monthDays}
+        entriesByDate={entriesByDate}
+        employees={employees}
+        currentUserId={currentUserId}
+        onDayClick={onDayClick}
+        totalLabel="Totalt denna månad"
+        totalHours={monthTotal}
+      />
+    );
+  }
+
+  // Desktop view - calendar grid
   return (
     <div className="space-y-4">
       {/* Day headers */}
