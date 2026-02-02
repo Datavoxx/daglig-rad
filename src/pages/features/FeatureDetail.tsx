@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Check, Mic, FileSignature, Clock, Calendar, FileText, AlertTriangle, Share2, ArrowRightLeft, CreditCard, BarChart3, Sparkles, Wand2, FileOutput } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -159,33 +160,81 @@ const ProjectLargeMockup = () => (
   <div className="bg-card rounded-xl border border-border/60 p-6 shadow-2xl max-w-lg mx-auto">
     <div className="flex items-center justify-between mb-6">
       <span className="text-lg font-semibold text-foreground">🏗️ Villarenovering Andersson</span>
-      <Badge variant="outline">Pågående</Badge>
+      <Badge variant="outline">V1-V8</Badge>
     </div>
-    {/* Timeline */}
-    <div className="space-y-3 mb-6">
+    
+    {/* Week headers */}
+    <div className="flex gap-1 text-[10px] text-muted-foreground pl-20 mb-2">
+      <span className="flex-1 text-center">V1</span>
+      <span className="flex-1 text-center">V2</span>
+      <span className="flex-1 text-center">V3</span>
+      <span className="flex-1 text-center">V4</span>
+      <span className="flex-1 text-center">V5</span>
+      <span className="flex-1 text-center">V6</span>
+      <span className="flex-1 text-center">V7</span>
+      <span className="flex-1 text-center">V8</span>
+    </div>
+    
+    {/* Gantt Timeline */}
+    <div className="space-y-2 mb-6">
+      {/* Rivning: V1 */}
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground w-20">Rivning</span>
-        <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-end pr-2">
-            <span className="text-[10px] text-white font-medium">100%</span>
-          </div>
+        <div className="flex-1 flex gap-1">
+          <div className="flex-1 h-5 bg-emerald-500 rounded" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
         </div>
       </div>
+      {/* Stomme: V2-V4 */}
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground w-20">Stomme</span>
-        <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-[65%] bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-end pr-2">
-            <span className="text-[10px] text-white font-medium">65%</span>
-          </div>
+        <div className="flex-1 flex gap-1">
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-blue-500 rounded-l" />
+          <div className="flex-1 h-5 bg-blue-500" />
+          <div className="flex-1 h-5 bg-blue-500 rounded-r" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
         </div>
       </div>
+      {/* El & VVS: V3-V5 */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground w-20">El & VVS</span>
+        <div className="flex-1 flex gap-1">
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-amber-500 rounded-l" />
+          <div className="flex-1 h-5 bg-amber-500" />
+          <div className="flex-1 h-5 bg-amber-500 rounded-r" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+        </div>
+      </div>
+      {/* Ytskikt: V5-V8 */}
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground w-20">Ytskikt</span>
-        <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-          <div className="h-full w-[20%] bg-gradient-to-r from-purple-500 to-purple-600 rounded-full" />
+        <div className="flex-1 flex gap-1">
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-transparent" />
+          <div className="flex-1 h-5 bg-purple-500 rounded-l" />
+          <div className="flex-1 h-5 bg-purple-500" />
+          <div className="flex-1 h-5 bg-purple-500" />
+          <div className="flex-1 h-5 bg-purple-500 rounded-r" />
         </div>
       </div>
     </div>
+    
     {/* Recent activity */}
     <div className="border-t border-border pt-4">
       <span className="text-sm font-medium text-foreground">Senaste aktivitet</span>
@@ -297,6 +346,11 @@ const mockupComponents: Record<string, React.FC> = {
 
 const FeatureDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  
+  // Scroll to top when page loads or slug changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
   
   if (!slug || !featureData[slug]) {
     return <Navigate to="/" replace />;
