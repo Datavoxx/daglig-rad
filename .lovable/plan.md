@@ -1,103 +1,156 @@
 
+## Plan: Komplett mobilfix för Offert-modulen
 
-## Plan: Åtgärda högt prioriterade mobilproblem
-
-### 1. Tidsrapportering - Kalendervy för mobil
+### Sammanfattning
+Fixa alla mobilproblem i Offert-modulen: offertlistan, header-knappar, EstimateBuilder-header och förhandsgranskningen.
 
 ---
 
-**Problem**
+### 1. Offertlista - Ny mobiloptimerad kortlayout
 
-Den nuvarande 7-kolumns grid-layouten (`grid-cols-7`) resulterar i extremt smala celler (~40px bred) på mobila skärmar. Detta gör kalendern oanvändbar.
+**Fil:** `src/pages/Estimates.tsx`
 
-**Lösning**
+**Problem:** Den nuvarande raden försöker visa för mycket på en rad - projektnamn, kundnamn, datum, offertnummer, badge och delete-knapp.
 
-Skapa en alternativ **listbaserad vy** för mobil som visar dagarna vertikalt istället för i ett rutnät. På desktop behålls den befintliga kalendervyn.
+**Lösning:** Skapa en mobilspecifik kortlayout som visar information på flera rader.
 
-**Ny mobil layout:**
-
-```
-┌────────────────────────────────────────┐
-│  Måndag 3 feb                    8.0h  │
-│  ├─ Du: 4h på Projekt A                │
-│  └─ Erik: 4h på Projekt B              │
-├────────────────────────────────────────┤
-│  Tisdag 4 feb                    6.5h  │
-│  └─ Du: 6.5h på Projekt C              │
-├────────────────────────────────────────┤
-│  Onsdag 5 feb                      -   │
-│  Ingen tid registrerad            [+]  │
-└────────────────────────────────────────┘
-```
-
-**Tekniska ändringar:**
-
-| Fil | Ändring |
-|-----|---------|
-| `src/components/time-reporting/MobileDayList.tsx` | **NY FIL** - Listbaserad dagvy för mobil |
-| `src/components/time-reporting/WeekView.tsx` | Använd `useIsMobile()` för att välja mellan grid och lista |
-| `src/components/time-reporting/MonthView.tsx` | Samma logik - lista på mobil |
-
-**Kod för MobileDayList.tsx:**
+**Ändringar (rad 269-392):**
 
 ```tsx
-// Visar varje dag som ett expanderbart kort
-// Med tydliga touch-targets (minst 44x44px)
-// Inkluderar "+" knapp för att lägga till tid
+// Lägg till useIsMobile hook
+import { useIsMobile } from "@/hooks/use-mobile";
 
-<div className="space-y-2">
-  {days.map(day => (
-    <div 
-      key={day.dateKey}
-      className="p-4 border rounded-lg bg-card"
-      onClick={() => onDayClick(day.date)}
-    >
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="font-medium">{format(day.date, "EEEE d MMM", { locale: sv })}</div>
-          <div className="text-sm text-muted-foreground">
-            {day.entries.length} poster
+// I komponenten:
+const isMobile = useIsMobile();
+
+// Ändra header-sektionen (rad 271-284):
+<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight">Offert</h1>
+    <p className="text-muted-foreground text-sm">Skapa och hantera offerter</p>
+  </div>
+  <div className="flex items-center gap-2">
+    <EstimateImportDialog ... />
+    <Button onClick={() => setShowWizard(true)} size={isMobile ? "sm" : "default"}>
+      <Plus className="h-4 w-4 mr-1" />
+      {isMobile ? "Ny" : "Ny offert"}
+    </Button>
+  </div>
+</div>
+
+// Ändra offertlistan (rad 304-371) till kortlayout på mobil:
+{isMobile ? (
+  // MOBIL: Vertikal kortlayout
+  <div className="space-y-3">
+    {filteredEstimates.map((estimate) => (
+      <div
+        key={estimate.id}
+        onClick={() => handleSelectEstimate(estimate)}
+        className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-base">{getEstimateName(estimate)}</p>
+            {getClientName(estimate) && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {getClientName(estimate)}
+              </p>
+            )}
           </div>
+          <Badge variant={...}>{...}</Badge>
         </div>
-        <div className="text-xl font-bold text-primary">
-          {day.totalHours.toFixed(1)}h
+        <div className="flex items-center justify-between mt-3 pt-2 border-t">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {estimate.offer_number && <span>{estimate.offer_number}</span>}
+            <span>•</span>
+            <span>{format(new Date(estimate.updated_at), "d MMM", { locale: sv })}</span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={...}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
-      {/* Expanderad lista med avatarer och projekt */}
-    </div>
-  ))}
-</div>
+    ))}
+  </div>
+) : (
+  // DESKTOP: Befintlig radlayout
+  ...
+)}
 ```
 
-**Ändringar i WeekView.tsx:**
+---
+
+### 2. EstimateHeader - Mobiloptimerad layout
+
+**Fil:** `src/components/estimates/EstimateHeader.tsx`
+
+**Problem:** Header-layouten försöker visa för mycket på en rad på mobil. Status badge, offertnummer och version hamnar på samma rad.
+
+**Lösning:** Stackad layout på mobil med tydlig hierarki.
+
+**Ändringar (rad 58-176):**
 
 ```tsx
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MobileDayList } from "./MobileDayList";
 
-export function WeekView({ ... }) {
+export function EstimateHeader({ ... }) {
   const isMobile = useIsMobile();
   
-  // Befintlig logik...
-
-  if (isMobile) {
-    return (
-      <MobileDayList 
-        days={weekDays}
-        entriesByDate={entriesByDate}
-        employees={employees}
-        currentUserId={currentUserId}
-        onDayClick={onDayClick}
-        totalLabel="Totalt denna vecka"
-        totalHours={weekTotal}
-      />
-    );
-  }
-
-  // Returnera befintlig desktop-vy
+  // ...existing code...
+  
   return (
-    <div className="space-y-4">
-      {/* Befintlig grid-layout */}
+    <div className="space-y-2">
+      {/* Top row: Title area */}
+      <div className={cn(
+        "gap-3",
+        isMobile ? "space-y-2" : "flex items-start justify-between"
+      )}>
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Offert
+            </span>
+            <Badge 
+              variant={status === "draft" ? "secondary" : "default"}
+              className={cn(
+                status === "completed" && "bg-green-600 hover:bg-green-700",
+                "cursor-pointer"
+              )}
+              onClick={handleBadgeClick}
+            >
+              {status === "draft" ? "DRAFT" : "KLAR"}
+            </Badge>
+          </div>
+          {isEditable ? (
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => onProjectNameChange?.(e.target.value)}
+              placeholder="Projektnamn..."
+              className="w-full text-xl font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1"
+            />
+          ) : (
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              {projectName}
+            </h1>
+          )}
+        </div>
+
+        {/* Meta info - stacked on mobile */}
+        <div className={cn(
+          "text-sm",
+          isMobile ? "flex items-center gap-2 flex-wrap" : "text-right shrink-0"
+        )}>
+          <span className="font-medium text-foreground tabular-nums">
+            {displayOfferNumber}
+          </span>
+          <span className="text-muted-foreground">
+            v{version} • {displayDate}
+          </span>
+        </div>
+      </div>
+      
+      {/* ... rest of component */}
     </div>
   );
 }
@@ -105,89 +158,194 @@ export function WeekView({ ... }) {
 
 ---
 
-### 2. Inställningar - Horisontellt scrollande flikar
+### 3. QuotePreviewSheet - Fullbredd och responsiv tabell
+
+**Fil:** `src/components/estimates/QuotePreviewSheet.tsx`
+
+**Problem:** 
+- Sheeten är för smal för att visa hela offertinnehållet
+- Tabellen klipps av på höger sida
+
+**Lösning:** 
+- Gör sheeten fullbredd på mobil (`w-full max-w-none`)
+- Skala ner PDF-förhandsgranskningen för att passa skärmen
+- Använd horisontell scroll för tabellen
+
+**Ändringar (rad 115-322):**
+
+```tsx
+import { useIsMobile } from "@/hooks/use-mobile";
+
+export function QuotePreviewSheet({ ... }) {
+  const isMobile = useIsMobile();
+  
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent 
+        side="right" 
+        className={cn(
+          "p-0",
+          isMobile ? "w-full max-w-none" : "w-full sm:max-w-2xl"
+        )}
+      >
+        {/* ... SheetHeader stays same */}
+        
+        <ScrollArea className="h-[calc(100vh-100px)]">
+          {/* Main quote page with responsive scaling */}
+          <div 
+            className={cn(
+              "bg-white text-black p-6 min-h-[297mm] relative",
+              isMobile && "text-sm"
+            )}
+            style={isMobile ? { fontSize: '12px' } : undefined}
+          >
+            {/* Responsive table wrapper */}
+            <div className={cn(
+              "mb-6",
+              isMobile && "overflow-x-auto -mx-6 px-6"
+            )}>
+              <table className="w-full text-sm border-collapse min-w-[500px]">
+                {/* ... table content */}
+              </table>
+            </div>
+            
+            {/* Footer - responsiv grid */}
+            <div className="absolute bottom-8 left-6 right-6 border-t border-gray-300 pt-4">
+              <div className={cn(
+                "gap-4 text-xs text-gray-600",
+                isMobile ? "grid grid-cols-2" : "grid grid-cols-4"
+              )}>
+                {/* ... footer content */}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
+```
 
 ---
 
-**Problem**
+### 4. EstimateBuilder header - Kompakt mobilversion
 
-`TabsList` i Settings-sidan har 6 flikar (Mallar, Företag, Anställda, Debiteringstyper, Lönetyper, Artiklar) men saknar `overflow-x-auto`. På mobil klipps flik-texten och överlappar.
+**Fil:** `src/components/estimates/EstimateBuilder.tsx`
 
-**Lösning**
+**Problem:** Header-sektionen med knappar (Tillbaka, Eye, Save, Delete) tar för mycket plats och knappar syns inte.
 
-Lägg till horisontell scrollning på `TabsList` och förkorta flik-texterna för mobil.
+**Lösning:** Kompaktare header med knappar i en rad som alltid är synlig.
 
-**Visuellt före:**
+**Ändringar (rad 276-343):**
 
+```tsx
+// Uppdaterad header-sektion för mobil
+<div className={cn(
+  "gap-3",
+  isMobile ? "flex flex-col" : "flex items-start justify-between gap-4"
+)}>
+  {/* Title section */}
+  <EstimateHeader
+    projectName={displayProjectName}
+    clientName={displayClientName}
+    address={displayAddress}
+    // ... props
+  />
+  
+  {/* Action buttons - always visible on mobile */}
+  <div className={cn(
+    "flex items-center gap-2",
+    isMobile ? "justify-between w-full pb-2 border-b" : "shrink-0"
+  )}>
+    {onBack && (
+      <Button variant="ghost" size="sm" onClick={onBack}>
+        <ArrowLeft className="h-4 w-4" />
+        {isMobile && <span className="ml-1">Tillbaka</span>}
+      </Button>
+    )}
+    <div className="flex items-center gap-1">
+      {!isMobile && (
+        <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)}>
+          {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      )}
+      <Button size="sm" onClick={handleSaveAsDraft} disabled={estimate.isSaving}>
+        {estimate.isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+      </Button>
+      {estimate.hasExistingEstimate && (
+        <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(true)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  </div>
+</div>
 ```
-│Mallar│Företag│Anställda│Debiteri... (klippt)
+
+---
+
+### 5. AI-avatar på mobil - Responsiv storlek
+
+**Fil:** `src/components/estimates/EstimateBuilder.tsx` (rad 354-357)
+
+**Problem:** Avataren är för stor på mobil (`w-32 h-32` = 128px).
+
+**Lösning:** Responsiv storlek.
+
+```tsx
+<img 
+  src={AI_AGENTS.estimate.avatar}
+  alt="Saga AI"
+  className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
+/>
 ```
 
-**Visuellt efter:**
+---
 
-```
-│Mallar│Företag│Anställda│ → (scrollbar indikation)
-                          ← Deb.typer│Lönetyper│Artiklar
-```
-
-**Tekniska ändringar:**
+### Sammanfattning av filer som ändras
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/Settings.tsx` (rad 302) | Lägg till `overflow-x-auto`, `flex-nowrap` och `justify-start` |
+| `src/pages/Estimates.tsx` | Ny mobiloptimerad kortlayout för offertlistan, kortare header-text |
+| `src/components/estimates/EstimateHeader.tsx` | Responsiv stackad layout på mobil |
+| `src/components/estimates/QuotePreviewSheet.tsx` | Fullbredd på mobil, scrollbar tabell |
+| `src/components/estimates/EstimateBuilder.tsx` | Kompaktare header, responsiv avatar-storlek |
 
-**Kod (rad 301-309):**
+---
 
-```tsx
-// FÖRE
-<TabsList className="mb-6">
-  <TabsTrigger value="mallar">Mallar</TabsTrigger>
-  <TabsTrigger value="foretag">Företag</TabsTrigger>
-  ...
-</TabsList>
+### Visuellt resultat
 
-// EFTER
-<TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
-  <TabsTrigger value="mallar" className="shrink-0">Mallar</TabsTrigger>
-  <TabsTrigger value="foretag" className="shrink-0">Företag</TabsTrigger>
-  <TabsTrigger value="anstallda" className="shrink-0">Anställda</TabsTrigger>
-  <TabsTrigger value="debiteringstyper" className="shrink-0">Deb.typer</TabsTrigger>
-  <TabsTrigger value="lonetyper" className="shrink-0">Lönetyper</TabsTrigger>
-  <TabsTrigger value="artiklar" className="shrink-0">Artiklar</TabsTrigger>
-</TabsList>
+**Offertlista - FÖRE:**
+```
+│📄 Vinterv...  2  D1179 [Klar] 🗑│
+│              feb.              │
+│              2026              │
 ```
 
-**Nyckelklasser:**
+**Offertlista - EFTER:**
+```
+┌────────────────────────────────┐
+│ Vinterrenovering          [Klar]│
+│ Bengt Karlsson                  │
+├─────────────────────────────────┤
+│ D1179 • 2 feb           🗑      │
+└────────────────────────────────┘
+```
 
-| Klass | Funktion |
-|-------|----------|
-| `overflow-x-auto` | Aktiverar horisontell scrollning |
-| `flex-nowrap` | Förhindrar att flikar radbryts |
-| `justify-start` | Vänsterjusterar flikarna |
-| `shrink-0` | Förhindrar att individuella flikar krymper |
+**EstimateBuilder Header - EFTER:**
+```
+┌────────────────────────────────────────┐
+│ ← Tillbaka              💾  🗑        │
+├────────────────────────────────────────┤
+│ OFFERT [KLAR]                          │
+│ Tony-test                              │
+│ OFF-2026-0028 • v1 • 3 feb 2026        │
+│ 👤 Adam Miakhil                        │
+│ 📍 Jan Waldenströms gata 214           │
+└────────────────────────────────────────┘
+```
 
-**Förkortade etiketter:**
-
-| Nuvarande | Förkortad |
-|-----------|-----------|
-| Debiteringstyper | Deb.typer |
-
----
-
-### Sammanfattning av filer
-
-| Fil | Typ | Beskrivning |
-|-----|-----|-------------|
-| `src/components/time-reporting/MobileDayList.tsx` | **NY** | Listbaserad mobil-vy för tidsrapportering |
-| `src/components/time-reporting/WeekView.tsx` | Ändrad | Villkorlig rendering baserat på `useIsMobile()` |
-| `src/components/time-reporting/MonthView.tsx` | Ändrad | Samma villkorliga rendering |
-| `src/pages/Settings.tsx` | Ändrad | Scrollbara flikar med `overflow-x-auto` |
-
----
-
-### Prioriteringsordning
-
-1. **Settings-flikar** (5 min) - Enkel CSS-ändring
-2. **MobileDayList komponent** (20 min) - Ny komponent
-3. **WeekView/MonthView integration** (10 min) - Villkorlig rendering
-
+**Förhandsgranskning - EFTER:**
+- Fullbredd sheet
+- Horisontellt scrollbar tabell
+- All text synlig
