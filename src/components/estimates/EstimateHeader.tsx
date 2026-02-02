@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { ChevronRight, MapPin, User, UserCheck } from "lucide-react";
+import { MapPin, User, UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -82,13 +83,14 @@ export function EstimateHeader({
         <div className="text-right shrink-0">
           <div className="flex items-center gap-2 justify-end">
             {status === "draft" && onStatusChange && (
-              <button
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={handleBadgeClick}
-                className="text-[11px] text-primary hover:text-primary/80 transition-colors flex items-center gap-0.5 animate-pulse"
+                className="h-7 text-xs px-3"
               >
-                <span>Redo?</span>
-                <ChevronRight className="h-3 w-3" />
-              </button>
+                Starta projekt
+              </Button>
             )}
             <TooltipProvider>
               <Tooltip>
