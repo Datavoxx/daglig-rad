@@ -1,158 +1,218 @@
 
 
-## Plan: Mobilvy för offertförhandsgranskning och totalsummor
+## Plan: Mobiloptimering av Projektvy-flikarna
 
-### Sammanfattning
+### Analys av mobilproblem
 
-Fixa två problem:
-1. **Förhandsgranskningen** - Lägg till CSS-skalning så hela offerten syns på mobilskärmen
-2. **StickyTotals** - Visa nedbrytningen (Arb, Mat, UE, Påsl) även på mobil
+Jag har granskat alla sex projektflikar (Översikt, ÄTA, Arbetsorder, Filer, Planering, Dagbok) samt hittat problemet med dubbla tillbaka-knappar i Offerter.
 
 ---
 
-### 1. QuotePreviewSheet - Skalad förhandsgranskning
+### 1. Dubbla tillbaka-knappar i Offerter
 
-**Fil:** `src/components/estimates/QuotePreviewSheet.tsx`
+**Fil:** `src/pages/Estimates.tsx`
 
-**Problem:** Offertinnehållet är för stort för att passa på en mobilskärm. Användaren kan varken se hela offerten eller zooma ut.
+**Problem:** När en offert öppnas i manuellt läge finns det:
+1. En "Tillbaka"-knapp i `Estimates.tsx` (rad 252-259)
+2. En "Tillbaka"-knapp i `EstimateBuilder.tsx` (rad 284-295 för mobil)
 
-**Lösning:** Använd CSS `transform: scale()` för att skala ner hela offert-containern på mobil så att hela dokumentet passar i viewport. Detta ger en "zoomed out"-effekt.
+Båda har samma `handleBack`/`onBack` funktion, så användaren ser två identiska knappar.
 
-**Teknisk implementation:**
+**Lösning:** Ta bort den yttre "Tillbaka"-knappen i `Estimates.tsx` när EstimateBuilder renderas, eftersom EstimateBuilder redan hanterar sin egen tillbaka-knapp internt via `onBack`-prop.
 
-```tsx
-// Lägg till en wrapper med scale-transformation på mobil
-<ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-100px)]">
-  {/* Scaled container for mobile */}
-  <div className={cn(
-    "origin-top-left",
-    isMobile && "transform scale-[0.6] w-[166%]" // 1/0.6 = 166%
-  )}>
-    {/* PAGE 1 - Main Quote */}
-    <div className={cn(
-      "bg-white text-black min-h-[297mm] relative",
-      isMobile ? "p-6" : "p-8" // Mer padding när skalad
-    )}>
-      {/* ... befintligt innehåll utan textsize-ändringar ... */}
-    </div>
-    
-    {/* PAGE 2 & 3 ... */}
-  </div>
-</ScrollArea>
-```
-
-**Visuellt resultat på mobil:**
-
-```
-┌─────────────────────────────────────┐
-│ Förhandsgranska             [X]    │
-│ Så här ser offerten ut             │
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ [LOGO]              Offert     │ │
-│ │                     Nr: OFF-... │ │
-│ │                                 │ │
-│ │ VÅR REFERENS        KUND       │ │
-│ │ isak 0707747731     Adam M     │ │
-│ │ Datum: 2026-02-03   Jan Wald...│ │
-│ │                                 │ │
-│ │ Projekt: tony-test             │ │
-│ │                                 │ │
-│ │ Beskr | Antal | Enhet | Summa  │ │
-│ │ ───────────────────────────────│ │
-│ │ Fasad | 520   | h     | 260000 │ │
-│ │ ...                            │ │
-│ └─────────────────────────────────┘ │
-│         ↓ Scrolla för mer ↓        │
-└─────────────────────────────────────┘
-```
-
-**Förklaring av skalningen:**
-- `scale-[0.6]` = 60% av originalstorlek
-- `w-[166%]` = 100/0.6 ≈ 166% kompenserar för skalningen så contentet fyller hela bredden
-- `origin-top-left` = skalningen utgår från övre vänstra hörnet
-
----
-
-### 2. StickyTotals - Visa nedbrytning på mobil
-
-**Fil:** `src/components/estimates/StickyTotals.tsx`
-
-**Problem:** Mobilvyn visar bara totalsumman och knappar. Nedbrytningen (Arb, Mat, UE, Påsl) döljs med `hidden lg:block`.
-
-**Lösning:** Lägg till en kompakt nedbrytningsrad ovanför totalen på mobil.
-
-**Ändring i mobilsektionen (rad 61-110):**
+**Ändring (rad 249-268):**
 
 ```tsx
-if (isMobile) {
+// FÖRE - har en extra Tillbaka-knapp
+if (manualStarted && manualData) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50">
-      {/* NY: Breakdown row för mobil */}
-      <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1 text-[11px] text-muted-foreground border-b">
-        <div className="flex items-center gap-3">
-          <span>Arb: <span className="font-medium text-foreground">{formatNumber(laborCost)}</span></span>
-          <span>Mat: <span className="font-medium text-foreground">{formatNumber(materialCost)}</span></span>
-          <span>UE: <span className="font-medium text-foreground">{formatNumber(subcontractorCost)}</span></span>
-          <span>Påsl: <span className="font-medium text-foreground">{formatNumber(markup)}</span></span>
-        </div>
-      </div>
-      
-      {/* Befintlig total + knappar */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <div>
-          <p className="text-xs text-muted-foreground">Totalt inkl. moms</p>
-          <p className="text-xl font-bold text-primary">
-            {formatNumber(hasAnyDeduction ? amountToPay : totalInclVat)} kr
-          </p>
-          {/* ... */}
-        </div>
-        {/* Knappar... */}
-      </div>
+    <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
+      <Button variant="ghost" size="sm" onClick={handleBack}>
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Tillbaka
+      </Button>
+      <EstimateBuilder ... onBack={handleBack} />
+    </div>
+  );
+}
+
+// EFTER - ingen dubblett
+if (manualStarted && manualData) {
+  return (
+    <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
+      <EstimateBuilder
+        manualData={manualData}
+        estimateId={selectedEstimateId}
+        onDelete={handleBack}
+        onBack={handleBack}
+      />
     </div>
   );
 }
 ```
 
-**Visuellt resultat:**
+Samma fix behövs för `showWizard`-blocket.
 
-```
-FÖRE (bara total):
-┌────────────────────────────────────────┐
-│ Totalt inkl. moms           [👁] [⬇] [💾▼]│
-│ 461 438 kr                             │
-└────────────────────────────────────────┘
+---
 
-EFTER (med nedbrytning):
-┌────────────────────────────────────────┐
-│ Arb: 46 500  Mat: 274 500  UE: 0  Påsl: 48 150 │
-├────────────────────────────────────────┤
-│ Totalt inkl. moms           [👁] [⬇] [💾▼]│
-│ 461 438 kr                             │
-└────────────────────────────────────────┘
+### 2. Översikt-fliken
+
+**Fil:** `src/components/projects/ProjectOverviewTab.tsx`
+
+**Status:** ✅ Bra! Redan responsiv med `md:grid-cols-2`.
+
+**Mindre förbättringar:**
+- EconomicOverviewCard har varningstexter som kan vara svårlästa på mobil. Lägg till responsiva textstorlekar.
+
+---
+
+### 3. ÄTA-fliken
+
+**Fil:** `src/components/projects/ProjectAtaTab.tsx`
+
+**Problem:** Tabellen med ÄTA-poster (`<Table>`) är för bred för mobil. Kolumner (Artikel, Beskrivning, Enhet, Antal, À-pris, Summa, Status, ROT, Åtgärder) klipps av.
+
+**Lösning:** 
+1. Lägg till horisontell scroll på tabellen: `<div className="overflow-x-auto">`
+2. Alternativt: Kortlayout på mobil (som vi gjorde för offertlistan)
+
+**Ändring:**
+
+```tsx
+// Lägg till wrapper runt Table
+<div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+  <Table className="min-w-[800px]">
+    ...
+  </Table>
+</div>
 ```
+
+Kortare kolumnrubriker på mobil:
+- "Beskrivning" → "Besk."
+- "À-pris" → behålls
+- "Åtgärder" → ikon utan text
+
+---
+
+### 4. Arbetsorder-fliken
+
+**Fil:** `src/components/projects/ProjectWorkOrdersTab.tsx`
+
+**Status:** ✅ Bra! Använder redan kort (`<Card>`) som fungerar bra på mobil.
+
+**Mindre problem:**
+- Åtgärdsknappar (Download, More) döljs med `opacity-0 group-hover:opacity-100`. På mobil finns ingen hover. 
+
+**Lösning:** Visa knappar alltid på mobil.
+
+```tsx
+<Button
+  variant="ghost"
+  size="icon"
+  className="opacity-0 group-hover:opacity-100 md:group-hover:opacity-100 opacity-100 md:opacity-0 transition-opacity"
+  onClick={() => handleDownloadPdf(order)}
+>
+```
+
+Eller enklare: Ta bort opacity-logiken helt och visa alltid.
+
+---
+
+### 5. Filer-fliken
+
+**Fil:** `src/components/projects/ProjectFilesTab.tsx`
+
+**Status:** ✅ Bra! Kortbaserad layout fungerar.
+
+**Problem:** Samma som Arbetsorder - hover-baserade knappar funkar inte på mobil.
+
+**Lösning:** Visa Download/More-knappar alltid på mobil.
+
+---
+
+### 6. Planering-fliken
+
+**Fil:** `src/components/projects/ProjectPlanningTab.tsx`
+
+**Problem:** 
+1. Gantt-tidslinjen (`GanttTimeline`) har `min-w-[600px]` men kan fortfarande vara trång på mobil
+2. Bo AI-avataren (`w-32 h-32`) är för stor på mobil
+
+**Lösning:**
+1. Använd `PlanningMobileOverview` istället för `GanttTimeline` på mobil (komponenten finns redan!)
+2. Minska AI-avataren på mobil till `w-16 h-16`
+
+**Ändring i ProjectPlanningTab.tsx (rad 370-422):**
+
+```tsx
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
+
+// I view state:
+if (viewState === "view" && plan) {
+  const isMobile = useIsMobile();
+  
+  return (
+    <div className="space-y-4">
+      {/* ... header ... */}
+      
+      {isMobile ? (
+        <PlanningMobileOverview
+          phases={plan.phases}
+          totalWeeks={plan.total_weeks}
+          startDate={startDate}
+        />
+      ) : (
+        <GanttTimeline
+          phases={plan.phases}
+          totalWeeks={plan.total_weeks}
+          startDate={startDate}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+**AI-avatar (rad 302-306):**
+
+```tsx
+<img 
+  src={AI_AGENTS.planning.avatar}
+  alt="Bo AI"
+  className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
+/>
+```
+
+---
+
+### 7. Dagbok-fliken
+
+**Fil:** `src/components/projects/ProjectDiaryTab.tsx`
+
+**Status:** ✅ Bra! Redan mobiloptimerad med:
+- Responsiv header: `flex-col sm:flex-row`
+- Kort med `flex-col sm:flex-row` layout
+- Responsiva summary-kort: `grid-cols-2 sm:grid-cols-4`
 
 ---
 
 ### Sammanfattning av ändringar
 
-| Fil | Ändring |
-|-----|---------|
-| `src/components/estimates/QuotePreviewSheet.tsx` | CSS scale-transformation för att zooma ut offerten på mobil |
-| `src/components/estimates/StickyTotals.tsx` | Visa Arb/Mat/UE/Påsl-nedbrytning även på mobil |
+| Fil | Problem | Lösning |
+|-----|---------|---------|
+| `src/pages/Estimates.tsx` | Dubbla tillbaka-knappar | Ta bort yttre knapp |
+| `src/components/projects/ProjectAtaTab.tsx` | Tabell för bred | Horisontell scroll + min-width |
+| `src/components/projects/ProjectWorkOrdersTab.tsx` | Hover-knappar | Visa alltid på mobil |
+| `src/components/projects/ProjectFilesTab.tsx` | Hover-knappar | Visa alltid på mobil |
+| `src/components/projects/ProjectPlanningTab.tsx` | Gantt för liten + stor avatar | Använd mobil-vy + minska avatar |
 
 ---
 
-### Tekniska detaljer
+### Prioritering
 
-**Scale-transformation:**
-- Vi använder `scale(0.6)` för att minska storleken till 60%
-- `w-[166%]` kompenserar så att innehållet fortfarande fyller hela bredden
-- Användaren kan fortfarande scrolla vertikalt för att se alla sidor
-- Ingen information döljs - allt är synligt, bara mindre
-
-**StickyTotals höjd:**
-- Före: ~68px
-- Efter: ~100px (med extra rad för breakdown)
-- Fortfarande kompakt nog för att inte ta för mycket skärmyta
+1. **Kritiskt:** Dubbla tillbaka-knappar i Offerter (enkelt fix)
+2. **Högt:** Planering - använd mobilvy (PlanningMobileOverview finns redan)
+3. **Medium:** ÄTA-tabellen - horisontell scroll
+4. **Lågt:** Hover-knappar i Arbetsorder/Filer (fungerar fortfarande via dropdown)
 
