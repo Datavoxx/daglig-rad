@@ -1,140 +1,101 @@
 
-## Plan: Separera Spara och Markera som Klar
+
+## Plan: Lägg till "Redo?"-prompt bredvid DRAFT-badge
 
 ### Problem
 
-Just nu gör spara-knappen i headern två saker samtidigt:
-1. Sparar offerten
-2. Markerar den som "Klar" och visar "Starta projekt"-dialogen
-
-Du vill:
-1. **Spara-knappen** ska ENDAST spara som draft
-2. **Klicka på DRAFT/KLAR-badgen** för att ändra status
-3. **"Starta projekt"-dialogen** ska ENDAST visas när man aktivt markerar som klar
+Även om DRAFT-badgen nu är klickbar för att ändra status, är det inte uppenbart för användaren. Du vill ha en visuell hint som uppmuntrar användaren att markera offerten som klar.
 
 ---
 
 ### Lösning
 
-#### 1. Ändra Spara-knappen (header)
+Lägg till en liten klickbar text bredvid DRAFT-badgen som fungerar som en uppmaning. Texten visas endast när status är "draft" och försvinner när offerten är markerad som klar.
 
-**Fil: `src/components/estimates/EstimateBuilder.tsx`**
+---
 
-```typescript
-// FÖRE (rad 305-316)
-<Button
-  size="sm"
-  onClick={handleSaveAsCompleted}  // <- Markerar som klar
-  ...
->
+### Design
 
-// EFTER
-<Button
-  size="sm"
-  onClick={handleSaveAsDraft}  // <- Sparar endast som draft
-  ...
->
+**Visuellt utseende:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│  OFFERT                      Redo? DRAFT OFF-DRAFT  │
+│  Projektnamn                       v1 • 2 feb 2026  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-#### 2. Gör Badge klickbar för statusändring
+- **"Redo?"** visas som en liten klickbar text i en accentfärg (primary/orange)
+- Texten har en hover-effekt och pil som pekar mot badgen
+- När man klickar på "Redo?" triggas samma funktion som att klicka på badgen
+- När status är "KLAR" försvinner prompten helt
+
+---
+
+### Teknisk implementation
 
 **Fil: `src/components/estimates/EstimateHeader.tsx`**
 
-Lägg till en `onStatusChange` prop och gör badgen klickbar:
+Lägg till den klickbara prompten precis före Badge-komponenten:
 
 ```typescript
-interface EstimateHeaderProps {
-  // ... existing props
-  onStatusChange?: (newStatus: "draft" | "completed") => void;
-}
-
-// I render:
-<Badge 
-  variant={status === "draft" ? "secondary" : "default"}
-  className={cn(
-    status === "completed" ? "bg-green-600 hover:bg-green-600" : "",
-    onStatusChange && "cursor-pointer hover:opacity-80 transition-opacity"
+<div className="flex items-center gap-2 justify-end">
+  {/* Prompt som endast visas för draft-status */}
+  {status === "draft" && onStatusChange && (
+    <button
+      onClick={handleBadgeClick}
+      className="text-[11px] text-primary hover:text-primary/80 transition-colors flex items-center gap-0.5 animate-pulse"
+    >
+      <span>Redo?</span>
+      <ChevronRight className="h-3 w-3" />
+    </button>
   )}
-  onClick={() => {
-    if (onStatusChange) {
-      // Toggle: draft -> completed, completed -> draft
-      onStatusChange(status === "draft" ? "completed" : "draft");
-    }
-  }}
->
-  {status === "draft" ? "DRAFT" : "KLAR"}
-</Badge>
-```
-
-#### 3. Hantera statusändring i EstimateBuilder
-
-Skapa en ny handler som triggar "Starta projekt"-dialogen endast vid status -> completed:
-
-```typescript
-const handleStatusChange = async (newStatus: "draft" | "completed") => {
-  if (newStatus === "completed") {
-    // Markera som klar och visa dialog
-    await handleSaveAsCompleted();
-  } else {
-    // Tillbaka till draft
-    estimate.updateStatus("draft");
-    estimate.save();
-    toast.success("Status ändrad till draft");
-  }
-};
-
-// I EstimateHeader:
-<EstimateHeader
-  ...
-  onStatusChange={handleStatusChange}
-/>
+  
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge ...>
+          {status === "draft" ? "DRAFT" : "KLAR"}
+        </Badge>
+      </TooltipTrigger>
+      ...
+    </Tooltip>
+  </TooltipProvider>
+  
+  <span className="text-[13px] font-medium">
+    {displayOfferNumber}
+  </span>
+</div>
 ```
 
 ---
 
-### Visuell förändring
+### Alternativa texter
 
-| Element | Före | Efter |
-|---------|------|-------|
-| Spara-knapp (header) | Sparar + markerar som klar | Sparar endast som draft |
-| DRAFT/KLAR badge | Endast visuell | Klickbar - ändrar status |
-| StickyTotals dropdown | Har båda alternativen | Behålls oförändrad |
-
----
-
-### Användarflöde (efter ändring)
-
-1. **Jobba med offert** -> Klicka Spara -> Sparas som draft
-2. **Färdig med offert** -> Klicka på "DRAFT"-badgen
-3. **Status ändras till "KLAR"** -> "Starta projekt"-dialog visas
-4. **Vill ångra?** -> Klicka på "KLAR"-badgen -> Tillbaka till draft
+Beroende på vad som känns bäst kan vi använda:
+- **"Redo?"** - Kort och snabbt
+- **"Markera klar →"** - Mer beskrivande  
+- **"Klar att skicka?"** - Kontextuellt
+- **"Godkänd?"** - Om fokus är på kundgodkännande
 
 ---
 
-### Filer som ändras
+### Fil som ändras
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | Ändra header-knapp till draft + lägg till statusChange handler |
-| `src/components/estimates/EstimateHeader.tsx` | Lägg till `onStatusChange` prop och klickbar badge |
+| `src/components/estimates/EstimateHeader.tsx` | Lägg till klickbar "Redo?"-prompt före badge |
 
 ---
 
-### Tooltip för tydlighet
+### Resultat
 
-Lägg till en tooltip på badgen som förklarar funktionen:
+| Status | Före | Efter |
+|--------|------|-------|
+| Draft | `DRAFT  OFF-DRAFT` | `Redo? → DRAFT  OFF-DRAFT` |
+| Klar | `KLAR  OFF-001` | `KLAR  OFF-001` (ingen prompt) |
 
-```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Badge ...>
-        {status === "draft" ? "DRAFT" : "KLAR"}
-      </Badge>
-    </TooltipTrigger>
-    <TooltipContent>
-      <p>{status === "draft" ? "Klicka för att markera som klar" : "Klicka för att ändra till draft"}</p>
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
+Prompten ger användaren en tydlig visuell signal om att de kan markera offerten som klar, utan att ta för mycket plats eller vara störande.
+
