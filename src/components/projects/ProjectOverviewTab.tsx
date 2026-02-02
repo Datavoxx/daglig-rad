@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CalendarIcon, Calculator, ExternalLink, Link2, Pencil, Save, X, FileDown, Loader2 } from "lucide-react";
+import { CalendarIcon, ExternalLink, Link2, Pencil, Save, X, FileDown, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
 import ProjectTimeSection from "@/components/projects/ProjectTimeSection";
+import { EconomicOverviewCard } from "@/components/projects/EconomicOverviewCard";
+
 interface Project {
   id: string;
   name: string;
@@ -344,40 +346,11 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
         </CardContent>
       </Card>
 
-      {/* Budget Summary Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Ekonomisk översikt
-          </CardTitle>
-          <CardDescription>Budget och offertbelopp</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center py-2 border-b">
-            <span className="text-sm text-muted-foreground">Offertbelopp</span>
-            <span className="font-medium">{formatCurrency(linkedEstimate?.total_incl_vat || null)}</span>
-          </div>
-          <div className="flex justify-between items-center py-2 border-b">
-            <span className="text-sm text-muted-foreground">Budget</span>
-            <span className="font-medium">{formatCurrency(project.budget)}</span>
-          </div>
-          <div className="flex justify-between items-center py-2">
-            <span className="text-sm text-muted-foreground">Differens</span>
-            <span className={cn(
-              "font-medium",
-              project.budget && linkedEstimate?.total_incl_vat && project.budget < linkedEstimate.total_incl_vat
-                ? "text-destructive"
-                : "text-green-600"
-            )}>
-              {project.budget && linkedEstimate?.total_incl_vat
-                ? formatCurrency(project.budget - linkedEstimate.total_incl_vat)
-                : "-"
-              }
-            </span>
-          </div>
-        </CardContent>
-        </Card>
+      {/* Economic Overview Card - replaces old budget card */}
+      <EconomicOverviewCard 
+        projectId={project.id} 
+        quoteTotal={linkedEstimate?.total_incl_vat || null} 
+      />
       </div>
 
       {/* Time Reporting Section */}

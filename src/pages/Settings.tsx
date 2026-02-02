@@ -12,6 +12,7 @@ import { TemplateManager } from "@/components/settings/TemplateManager";
 import { EmployeeManager } from "@/components/settings/EmployeeManager";
 import { BillingTypeManager } from "@/components/settings/BillingTypeManager";
 import { SalaryTypeManager } from "@/components/settings/SalaryTypeManager";
+import { ArticleManager } from "@/components/settings/ArticleManager";
 
 interface CompanySettings {
   id?: string;
@@ -304,6 +305,7 @@ export default function Settings() {
           <TabsTrigger value="anstallda">Anställda</TabsTrigger>
           <TabsTrigger value="debiteringstyper">Debiteringstyper</TabsTrigger>
           <TabsTrigger value="lonetyper">Lönetyper</TabsTrigger>
+          <TabsTrigger value="artiklar">Artiklar</TabsTrigger>
         </TabsList>
 
         {/* Mallar tab */}
@@ -621,6 +623,11 @@ export default function Settings() {
         {/* Lönetyper tab */}
         <TabsContent value="lonetyper" className="space-y-6">
           <SalaryTypeManager />
+        </TabsContent>
+
+        {/* Artiklar tab */}
+        <TabsContent value="artiklar" className="space-y-6">
+          <ArticleManager />
         </TabsContent>
       </Tabs>
     </div>

@@ -47,6 +47,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
   { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
   { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },

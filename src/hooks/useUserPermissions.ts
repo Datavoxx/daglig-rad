@@ -11,7 +11,8 @@ const ALL_MODULES = [
   "settings",
   "invoices",
   "time-reporting",
-  "attendance"
+  "attendance",
+  "daily-reports"
 ];
 
 // All users get full access to all modules by default

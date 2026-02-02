@@ -22,6 +22,7 @@ import { TaxDeductionPanel } from "./TaxDeductionPanel";
 import { StickyTotals } from "./StickyTotals";
 import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
+import { ArticleLibrarySection } from "./ArticleLibrarySection";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import {
@@ -387,6 +388,14 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
 
       {/* Divider */}
       <div className="h-px bg-border" />
+
+      {/* Article Library Section */}
+      <ArticleLibrarySection 
+        onAddArticles={(newItems) => {
+          const updatedItems = [...estimate.state.items, ...newItems];
+          estimate.updateItems(updatedItems);
+        }}
+      />
 
       {/* Estimate items table */}
       <section className="space-y-2">
