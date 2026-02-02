@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
   TooltipContent,
@@ -43,6 +44,7 @@ export function EstimateHeader({
   onAddressChange,
   onStatusChange,
 }: EstimateHeaderProps) {
+  const isMobile = useIsMobile();
   const displayDate = createdAt
     ? format(new Date(createdAt), "d MMM yyyy", { locale: sv })
     : format(new Date(), "d MMM yyyy", { locale: sv });
@@ -56,42 +58,17 @@ export function EstimateHeader({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 flex-1 min-w-0">
       {/* Top row: Title and meta */}
-      <div className="flex items-start justify-between gap-3">
+      <div className={cn(
+        "gap-3",
+        isMobile ? "space-y-2" : "flex items-start justify-between"
+      )}>
         <div className="space-y-0.5 min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Offert
             </span>
-          </div>
-          {isEditable ? (
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange?.(e.target.value)}
-              placeholder="Projektnamn..."
-              className="w-full text-lg font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50"
-            />
-          ) : (
-            <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
-              {projectName}
-            </h1>
-          )}
-        </div>
-
-        <div className="text-right shrink-0">
-          <div className="flex items-center gap-2 justify-end">
-            {status === "draft" && onStatusChange && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleBadgeClick}
-                className="h-7 text-xs px-3"
-              >
-                Starta projekt
-              </Button>
-            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -113,13 +90,43 @@ export function EstimateHeader({
                 )}
               </Tooltip>
             </TooltipProvider>
-            <span className="text-[13px] font-medium text-foreground tabular-nums">
-              {displayOfferNumber}
-            </span>
           </div>
-          <div className="text-[11px] text-muted-foreground">
+          {isEditable ? (
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => onProjectNameChange?.(e.target.value)}
+              placeholder="Projektnamn..."
+              className="w-full text-lg md:text-xl font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50"
+            />
+          ) : (
+            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+              {projectName}
+            </h1>
+          )}
+        </div>
+
+        {/* Meta info - stacked on mobile */}
+        <div className={cn(
+          "text-sm",
+          isMobile ? "flex items-center gap-2 flex-wrap" : "text-right shrink-0"
+        )}>
+          <span className="font-medium text-foreground tabular-nums">
+            {displayOfferNumber}
+          </span>
+          <span className="text-muted-foreground">
             v{version} • {displayDate}
-          </div>
+          </span>
+          {!isMobile && status === "draft" && onStatusChange && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBadgeClick}
+              className="h-7 text-xs px-3 ml-2"
+            >
+              Starta projekt
+            </Button>
+          )}
         </div>
       </div>
 

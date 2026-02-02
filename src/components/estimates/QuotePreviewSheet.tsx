@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 interface CompanyInfo {
   company_name?: string;
   org_number?: string;
@@ -70,6 +71,7 @@ export function QuotePreviewSheet({
   validDays = 30,
   onRefresh,
 }: QuotePreviewSheetProps) {
+  const isMobile = useIsMobile();
   const today = new Date();
   const validUntil = addDays(today, validDays);
 
@@ -114,32 +116,41 @@ export function QuotePreviewSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
-        <SheetHeader className="p-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <FileText className="h-5 w-5 text-primary" />
+      <SheetContent 
+        side="right" 
+        className={cn(
+          "p-0",
+          isMobile ? "w-full max-w-none" : "w-full sm:max-w-2xl"
+        )}
+      >
+        <SheetHeader className="p-4 md:p-6 pb-4 border-b">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               </div>
-              <div>
-                <SheetTitle>Förhandsgranska offert</SheetTitle>
-                <SheetDescription>
-                  Så här ser offerten ut för kunden
+              <div className="min-w-0">
+                <SheetTitle className="text-base md:text-lg">Förhandsgranska</SheetTitle>
+                <SheetDescription className="text-xs md:text-sm truncate">
+                  Så här ser offerten ut
                 </SheetDescription>
               </div>
             </div>
             {onRefresh && (
-              <Button variant="outline" size="sm" onClick={onRefresh}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Uppdatera
+              <Button variant="outline" size="sm" onClick={onRefresh} className="shrink-0">
+                <RefreshCw className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Uppdatera</span>}
               </Button>
             )}
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-100px)]">
+        <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-100px)]">
           {/* ============ PAGE 1 - Main Quote ============ */}
-          <div className="bg-white text-black p-8 min-h-[297mm] relative">
+          <div className={cn(
+            "bg-white text-black min-h-[297mm] relative",
+            isMobile ? "p-4 text-xs" : "p-8"
+          )}>
             {/* Header with logo and offer title */}
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -158,22 +169,25 @@ export function QuotePreviewSheet({
             </div>
 
             {/* Reference and customer info */}
-            <div className="grid grid-cols-2 gap-8 mb-8 border-t border-b border-gray-300 py-4">
+            <div className={cn(
+              "gap-4 md:gap-8 mb-6 md:mb-8 border-t border-b border-gray-300 py-3 md:py-4",
+              isMobile ? "grid grid-cols-1 space-y-3" : "grid grid-cols-2"
+            )}>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Vår referens</p>
-                <p className="font-medium text-black">
+                <p className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-1">Vår referens</p>
+                <p className="font-medium text-black text-sm md:text-base">
                   {company?.contact_person || "–"}
                   {company?.contact_phone && ` ${company.contact_phone}`}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-xs md:text-sm text-gray-600 mt-1 md:mt-2">
                   Datum: {format(today, "yyyy-MM-dd")}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Kund</p>
-                <p className="font-medium text-black">{project?.client_name || "–"}</p>
+                <p className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-1">Kund</p>
+                <p className="font-medium text-black text-sm md:text-base">{project?.client_name || "–"}</p>
                 {customerAddressLines.map((line, idx) => (
-                  <p key={idx} className="text-sm text-gray-600">{line}</p>
+                  <p key={idx} className="text-xs md:text-sm text-gray-600">{line}</p>
                 ))}
               </div>
             </div>
@@ -209,15 +223,21 @@ export function QuotePreviewSheet({
             )}
 
             {/* Price table */}
-            <div className="mb-6">
-              <table className="w-full text-sm border-collapse">
+            <div className={cn(
+              "mb-6",
+              isMobile && "overflow-x-auto -mx-4 px-4"
+            )}>
+              <table className={cn(
+                "w-full border-collapse",
+                isMobile ? "text-[11px] min-w-[400px]" : "text-sm"
+              )}>
                 <thead>
                   <tr className="border-b-2 border-gray-400">
                     <th className="text-left py-2 font-bold text-black">Beskrivning</th>
-                    <th className="text-right py-2 font-bold text-black w-20">Antal</th>
-                    <th className="text-right py-2 font-bold text-black w-16">Enhet</th>
-                    <th className="text-right py-2 font-bold text-black w-24">À-pris</th>
-                    <th className="text-right py-2 font-bold text-black w-24">Summa</th>
+                    <th className={cn("text-right py-2 font-bold text-black", isMobile ? "w-12" : "w-20")}>Antal</th>
+                    <th className={cn("text-right py-2 font-bold text-black", isMobile ? "w-10" : "w-16")}>Enhet</th>
+                    <th className={cn("text-right py-2 font-bold text-black", isMobile ? "w-16" : "w-24")}>À-pris</th>
+                    <th className={cn("text-right py-2 font-bold text-black", isMobile ? "w-16" : "w-24")}>Summa</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,10 +296,16 @@ export function QuotePreviewSheet({
                         </td>
                       </tr>
                       <tr className="bg-gray-100">
-                        <td colSpan={4} className="py-3 text-right font-bold text-black text-lg">
+                        <td colSpan={4} className={cn(
+                          "py-3 text-right font-bold text-black",
+                          isMobile ? "text-sm" : "text-lg"
+                        )}>
                           Att betala
                         </td>
-                        <td className="py-3 text-right font-bold text-black text-lg">
+                        <td className={cn(
+                          "py-3 text-right font-bold text-black",
+                          isMobile ? "text-sm" : "text-lg"
+                        )}>
                           {formatCurrency(amountToPay)}
                         </td>
                       </tr>
@@ -290,8 +316,14 @@ export function QuotePreviewSheet({
             </div>
 
             {/* Footer */}
-            <div className="absolute bottom-8 left-8 right-8 border-t border-gray-300 pt-4">
-              <div className="grid grid-cols-4 gap-4 text-xs text-gray-600">
+            <div className={cn(
+              "border-t border-gray-300 pt-3 md:pt-4 mt-8",
+              isMobile ? "relative" : "absolute bottom-8 left-8 right-8"
+            )}>
+              <div className={cn(
+                "gap-3 md:gap-4 text-[10px] md:text-xs text-gray-600",
+                isMobile ? "grid grid-cols-2" : "grid grid-cols-4"
+              )}>
                 <div>
                   <p className="font-medium text-black">Postadress</p>
                   <p>{company?.company_name || "–"}</p>
@@ -313,11 +345,11 @@ export function QuotePreviewSheet({
                   )}
                 </div>
                 <div>
-                  <p className="font-medium text-black">Godkänd för F-skatt</p>
+                  <p className="font-medium text-black">F-skatt</p>
                   <p>{company?.f_skatt !== false ? "Ja" : "Nej"}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 text-right mt-2">Sida 1 (3)</p>
+              <p className="text-[10px] md:text-xs text-gray-400 text-right mt-2">Sida 1 (3)</p>
             </div>
           </div>
 

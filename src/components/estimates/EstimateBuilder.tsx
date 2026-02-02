@@ -11,6 +11,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
@@ -274,8 +275,53 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   // Editor content
   const editorContent = (
     <div className="space-y-4 p-4 pb-28">
-      {/* Header section */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Header section - Mobile: stacked with action bar on top */}
+      <div className={cn(
+        "gap-3",
+        isMobile ? "flex flex-col" : "flex items-start justify-between gap-4"
+      )}>
+        {/* Action buttons - visible on top for mobile */}
+        {isMobile && (
+          <div className="flex items-center justify-between w-full pb-2 border-b border-border">
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBack}
+                className="text-muted-foreground hover:text-foreground -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                <span>Tillbaka</span>
+              </Button>
+            )}
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                onClick={handleSaveAsDraft}
+                disabled={estimate.isSaving}
+                className="h-8"
+              >
+                {estimate.isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+              {estimate.hasExistingEstimate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Title section */}
         <EstimateHeader
           projectName={displayProjectName}
           clientName={displayClientName}
@@ -291,18 +337,20 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           onAddressChange={estimate.updateManualAddress}
           onStatusChange={handleStatusChange}
         />
-        <div className="flex items-center gap-2 shrink-0">
-          {onBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
-          {!isMobile && (
+
+        {/* Desktop action buttons */}
+        {!isMobile && (
+          <div className="flex items-center gap-2 shrink-0">
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBack}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -315,31 +363,30 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 <Eye className="h-4 w-4" />
               )}
             </Button>
-          )}
-          {/* Always visible save button - saves as draft only */}
-          <Button
-            size="sm"
-            onClick={handleSaveAsDraft}
-            disabled={estimate.isSaving}
-            className="h-8"
-          >
-            {estimate.isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-          </Button>
-          {estimate.hasExistingEstimate && (
             <Button
-              variant="ghost"
               size="sm"
-              onClick={() => setDeleteDialogOpen(true)}
-              className="text-muted-foreground hover:text-destructive"
+              onClick={handleSaveAsDraft}
+              disabled={estimate.isSaving}
+              className="h-8"
             >
-              <Trash2 className="h-4 w-4" />
+              {estimate.isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
             </Button>
-          )}
-        </div>
+            {estimate.hasExistingEstimate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Voice control prompt - inline in header area */}
@@ -354,7 +401,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         <img 
           src={AI_AGENTS.estimate.avatar}
           alt="Saga AI"
-          className="w-32 h-32 object-contain drop-shadow-lg"
+          className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
         />
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-primary">
