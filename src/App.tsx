@@ -37,6 +37,7 @@ import AttendanceScan from "@/pages/AttendanceScan";
 import DailyReports from "@/pages/DailyReports";
 import EmployeeDashboard from "@/pages/EmployeeDashboard";
 import FeatureDetail from "@/pages/features/FeatureDetail";
+import AgentDetail from "@/pages/ai/AgentDetail";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => {
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/gdpr" element={<GDPR />} />
             <Route path="/features/:slug" element={<FeatureDetail />} />
+            <Route path="/ai/:slug" element={<AgentDetail />} />
             <Route path="/attendance/scan/:projectId/:token" element={<AttendanceScan />} />
 
             {/* Protected routes with layout */}
