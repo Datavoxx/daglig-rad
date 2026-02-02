@@ -3,6 +3,13 @@ import { sv } from "date-fns/locale";
 import { MapPin, User, UserCheck } from "lucide-react";
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EstimateHeaderProps {
   projectName: string;
@@ -17,6 +24,7 @@ interface EstimateHeaderProps {
   onProjectNameChange?: (name: string) => void;
   onClientNameChange?: (name: string) => void;
   onAddressChange?: (address: string) => void;
+  onStatusChange?: (newStatus: "draft" | "completed") => void;
 }
 
 export function EstimateHeader({
@@ -32,12 +40,19 @@ export function EstimateHeader({
   onProjectNameChange,
   onClientNameChange,
   onAddressChange,
+  onStatusChange,
 }: EstimateHeaderProps) {
   const displayDate = createdAt
     ? format(new Date(createdAt), "d MMM yyyy", { locale: sv })
     : format(new Date(), "d MMM yyyy", { locale: sv });
 
   const displayOfferNumber = offerNumber || "OFF-DRAFT";
+
+  const handleBadgeClick = () => {
+    if (onStatusChange) {
+      onStatusChange(status === "draft" ? "completed" : "draft");
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -66,12 +81,27 @@ export function EstimateHeader({
 
         <div className="text-right shrink-0">
           <div className="flex items-center gap-2 justify-end">
-            <Badge 
-              variant={status === "draft" ? "secondary" : "default"}
-              className={status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
-            >
-              {status === "draft" ? "DRAFT" : "KLAR"}
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant={status === "draft" ? "secondary" : "default"}
+                    className={cn(
+                      status === "completed" ? "bg-green-600 hover:bg-green-700" : "",
+                      onStatusChange && "cursor-pointer hover:opacity-80 transition-opacity"
+                    )}
+                    onClick={handleBadgeClick}
+                  >
+                    {status === "draft" ? "DRAFT" : "KLAR"}
+                  </Badge>
+                </TooltipTrigger>
+                {onStatusChange && (
+                  <TooltipContent>
+                    <p>{status === "draft" ? "Klicka för att markera som klar" : "Klicka för att ändra till utkast"}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
             <span className="text-[13px] font-medium text-foreground tabular-nums">
               {displayOfferNumber}
             </span>
