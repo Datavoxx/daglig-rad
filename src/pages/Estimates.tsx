@@ -23,6 +23,7 @@ import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { EstimateWizard } from "@/components/estimates/EstimateWizard";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -39,6 +40,7 @@ interface SavedEstimate {
 }
 
 export default function Estimates() {
+  const isMobile = useIsMobile();
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
@@ -267,18 +269,18 @@ export default function Estimates() {
   }
 
   return (
-    <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
+    <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Offert</h1>
-          <p className="text-muted-foreground">Skapa och hantera projektofferter</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Offert</h1>
+          <p className="text-muted-foreground text-sm">Skapa och hantera offerter</p>
         </div>
         <div className="flex items-center gap-2">
           <EstimateImportDialog onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["saved-estimates"] })} />
-          <Button onClick={() => setShowWizard(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ny offert
+          <Button onClick={() => setShowWizard(true)} size={isMobile ? "sm" : "default"}>
+            <Plus className="h-4 w-4 mr-1" />
+            {isMobile ? "Ny" : "Ny offert"}
           </Button>
         </div>
       </div>
@@ -301,75 +303,147 @@ export default function Estimates() {
 
             <TabsContent value={activeTab} className="mt-0">
               {filteredEstimates && filteredEstimates.length > 0 ? (
-                <div className="space-y-2">
-                  {filteredEstimates.map((estimate) => (
-                    <div
-                      key={estimate.id}
-                      onClick={() => handleSelectEstimate(estimate)}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{getEstimateName(estimate)}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                isMobile ? (
+                  // MOBILE: Card layout
+                  <div className="space-y-3">
+                    {filteredEstimates.map((estimate) => (
+                      <div
+                        key={estimate.id}
+                        onClick={() => handleSelectEstimate(estimate)}
+                        className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-base leading-tight">{getEstimateName(estimate)}</p>
                             {getClientName(estimate) && (
+                              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                                {getClientName(estimate)}
+                              </p>
+                            )}
+                          </div>
+                          <Badge 
+                            variant={estimate.status === "draft" ? "secondary" : "default"}
+                            className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+                          >
+                            {estimate.status === "draft" ? "Draft" : "Klar"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {estimate.offer_number && (
                               <>
-                                <User className="h-3 w-3" />
-                                <span className="truncate max-w-[150px]">{getClientName(estimate)}</span>
+                                <span className="tabular-nums">{estimate.offer_number}</span>
+                                <span>•</span>
                               </>
                             )}
-                            <Calendar className="h-3 w-3 ml-1" />
-                            <span>{format(new Date(estimate.updated_at), "d MMM yyyy", { locale: sv })}</span>
+                            <span>{format(new Date(estimate.updated_at), "d MMM", { locale: sv })}</span>
                           </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Ta bort offert?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Offerten "{getEstimateName(estimate)}" kommer att tas bort permanent. 
+                                  Detta kan inte ångras.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteEstimate(estimate.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Ta bort
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {estimate.offer_number && (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {estimate.offer_number}
-                          </span>
-                        )}
-                        <Badge 
-                          variant={estimate.status === "draft" ? "secondary" : "default"}
-                          className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
-                        >
-                          {estimate.status === "draft" ? "Draft" : "Klar"}
-                        </Badge>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Ta bort offert?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Offerten "{getEstimateName(estimate)}" kommer att tas bort permanent. 
-                                Detta kan inte ångras.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteEstimate(estimate.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    ))}
+                  </div>
+                ) : (
+                  // DESKTOP: Row layout
+                  <div className="space-y-2">
+                    {filteredEstimates.map((estimate) => (
+                      <div
+                        key={estimate.id}
+                        onClick={() => handleSelectEstimate(estimate)}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{getEstimateName(estimate)}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {getClientName(estimate) && (
+                                <>
+                                  <User className="h-3 w-3" />
+                                  <span className="truncate max-w-[150px]">{getClientName(estimate)}</span>
+                                </>
+                              )}
+                              <Calendar className="h-3 w-3 ml-1" />
+                              <span>{format(new Date(estimate.updated_at), "d MMM yyyy", { locale: sv })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {estimate.offer_number && (
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {estimate.offer_number}
+                            </span>
+                          )}
+                          <Badge 
+                            variant={estimate.status === "draft" ? "secondary" : "default"}
+                            className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+                          >
+                            {estimate.status === "draft" ? "Draft" : "Klar"}
+                          </Badge>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                Ta bort
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Ta bort offert?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Offerten "{getEstimateName(estimate)}" kommer att tas bort permanent. 
+                                  Detta kan inte ångras.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteEstimate(estimate.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Ta bort
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
