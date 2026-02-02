@@ -6,7 +6,9 @@ import { CalendarDays, Mic, MicOff, Loader2, Download, Pencil, Trash2, Sparkles 
 import { AI_AGENTS } from "@/config/aiAgents";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { GanttTimeline } from "@/components/planning/GanttTimeline";
+import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
 import { PlanEditor } from "@/components/planning/PlanEditor";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -302,7 +304,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           <img 
             src={AI_AGENTS.planning.avatar}
             alt="Bo AI"
-            className="w-32 h-32 object-contain drop-shadow-lg"
+            className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
           />
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-primary">
@@ -367,15 +369,17 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   }
 
   // View state
+  const isMobile = useIsMobile();
+  
   if (viewState === "view" && plan) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-lg font-medium">Projektplanering</h3>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
               <Download className="mr-2 h-4 w-4" />
-              PDF
+              <span className="hidden sm:inline">PDF</span>
             </Button>
             <Button
               variant="outline"
@@ -389,13 +393,13 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
               }}
             >
               <Pencil className="mr-2 h-4 w-4" />
-              Redigera
+              <span className="hidden sm:inline">Redigera</span>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Ta bort
+                  <Trash2 className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Ta bort</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -414,11 +418,19 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           </div>
         </div>
 
-        <GanttTimeline
-          phases={plan.phases}
-          totalWeeks={plan.total_weeks}
-          startDate={startDate}
-        />
+        {isMobile ? (
+          <PlanningMobileOverview
+            phases={plan.phases}
+            totalWeeks={plan.total_weeks}
+            startDate={startDate}
+          />
+        ) : (
+          <GanttTimeline
+            phases={plan.phases}
+            totalWeeks={plan.total_weeks}
+            startDate={startDate}
+          />
+        )}
       </div>
     );
   }

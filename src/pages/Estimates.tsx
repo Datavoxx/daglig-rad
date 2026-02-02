@@ -224,19 +224,10 @@ export default function Estimates() {
     }
   };
 
-  // Show wizard
+  // Show wizard - wizard handles its own back/cancel
   if (showWizard) {
     return (
-      <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowWizard(false)}
-          className="text-muted-foreground hover:text-foreground -ml-2 -mt-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Tillbaka
-        </Button>
+      <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
         <EstimateWizard
           onComplete={handleWizardComplete}
           onCancel={() => setShowWizard(false)}
@@ -246,18 +237,10 @@ export default function Estimates() {
   }
 
   // Show builder
+  // Show builder - no outer back button since EstimateBuilder has its own
   if (manualStarted && manualData) {
     return (
-      <div className="page-transition p-6 max-w-6xl mx-auto space-y-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleBack}
-          className="text-muted-foreground hover:text-foreground -ml-2 -mt-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Tillbaka
-        </Button>
+      <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
         <EstimateBuilder
           manualData={manualData}
           estimateId={selectedEstimateId}
