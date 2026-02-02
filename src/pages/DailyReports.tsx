@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Plus, Calendar, FileText, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
+import { InlineDiaryCreator } from "@/components/projects/InlineDiaryCreator";
 
 interface Project {
   id: string;
@@ -30,6 +31,7 @@ export default function DailyReports() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -89,6 +91,18 @@ export default function DailyReports() {
     setLoadingReports(false);
   };
 
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+  const handleReportSaved = (reportId: string) => {
+    setShowCreator(false);
+    // Refresh the reports list
+    if (selectedProjectId) {
+      fetchReports(selectedProjectId);
+    }
+    // Optionally navigate to the report
+    navigate(`/reports/${reportId}`);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -130,23 +144,38 @@ export default function DailyReports() {
         </CardContent>
       </Card>
 
+      {/* Inline creator or create button */}
+      {selectedProjectId && selectedProject && (
+        <>
+          {showCreator ? (
+            <InlineDiaryCreator
+              projectId={selectedProjectId}
+              projectName={selectedProject.name}
+              onClose={() => setShowCreator(false)}
+              onSaved={handleReportSaved}
+            />
+          ) : (
+            <Button
+              onClick={() => setShowCreator(true)}
+              className="w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Skapa ny dagrapport
+            </Button>
+          )}
+        </>
+      )}
+
       {/* Reports list */}
       {selectedProjectId && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardHeader className="pb-3">
             <div>
               <CardTitle className="text-base">Rapporter</CardTitle>
               <CardDescription>
                 {reports.length} dagrapporter för detta projekt
               </CardDescription>
             </div>
-            <Button
-              size="sm"
-              onClick={() => navigate(`/projects/${selectedProjectId}?tab=diary`)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ny rapport
-            </Button>
           </CardHeader>
           <CardContent>
             {loadingReports ? (

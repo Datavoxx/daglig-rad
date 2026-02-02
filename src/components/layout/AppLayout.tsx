@@ -64,7 +64,7 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasAccess, loading: permissionsLoading } = useUserPermissions();
+  const { hasAccess, loading: permissionsLoading, getDefaultRoute } = useUserPermissions();
   const isMobile = useIsMobile();
 
   // Live clock - update every second
@@ -179,9 +179,9 @@ export function AppLayout() {
       >
         {/* Brand - clickable logo */}
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(getDefaultRoute())}
           className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-1 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
-          aria-label="Gå till dashboard"
+          aria-label="Gå till hem"
         >
           <img src={byggioLogo} alt="Byggio" className="w-full h-full object-contain hover:scale-105 transition-transform" />
         </button>
@@ -268,11 +268,11 @@ export function AppLayout() {
                   {/* Logo */}
                   <button
                     onClick={() => {
-                      navigate("/dashboard");
+                      navigate(getDefaultRoute());
                       setMobileMenuOpen(false);
                     }}
                     className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-4 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
-                    aria-label="Gå till dashboard"
+                    aria-label="Gå till hem"
                   >
                     <img src={byggioLogo} alt="Byggio" className="h-12 w-auto object-contain" />
                   </button>

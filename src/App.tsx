@@ -61,10 +61,10 @@ const App = () => {
             {/* Protected routes with layout */}
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<ProtectedModuleRoute module="dashboard"><Dashboard /></ProtectedModuleRoute>} />
               <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
               <Route path="/projects/:id" element={<ProtectedModuleRoute module="projects"><ProjectView /></ProtectedModuleRoute>} />
-              <Route path="/reports/:id" element={<ProtectedModuleRoute module="reports"><ReportView /></ProtectedModuleRoute>} />
+              <Route path="/reports/:id" element={<ProtectedModuleRoute module="daily-reports"><ReportView /></ProtectedModuleRoute>} />
               
               <Route path="/inspections" element={<ProtectedModuleRoute module="inspections"><Inspections /></ProtectedModuleRoute>} />
               <Route path="/inspections/new" element={<ProtectedModuleRoute module="inspections"><InspectionNew /></ProtectedModuleRoute>} />
