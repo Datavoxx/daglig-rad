@@ -1,85 +1,140 @@
 
-
-## Plan: Visa riktigt namn istället för "Anonym" på dashboarden
+## Plan: Separera Spara och Markera som Klar
 
 ### Problem
 
-Dashboarden visar "Anonym" för personal på plats, men Attendance-sidan visar rätt namn ("omar abdullahi").
+Just nu gör spara-knappen i headern två saker samtidigt:
+1. Sparar offerten
+2. Markerar den som "Klar" och visar "Starta projekt"-dialogen
 
-**Orsak:** Dashboarden läser bara `guest_name` från `attendance_records`, men detta fält är `null` när en inloggad användare checkar in. Attendance-sidan hämtar däremot namnet från `profiles`-tabellen via `user_id`.
+Du vill:
+1. **Spara-knappen** ska ENDAST spara som draft
+2. **Klicka på DRAFT/KLAR-badgen** för att ändra status
+3. **"Starta projekt"-dialogen** ska ENDAST visas när man aktivt markerar som klar
+
+---
 
 ### Lösning
 
-Uppdatera Dashboard så att den, precis som ActiveWorkers-komponenten, hämtar användarnamn från `profiles`-tabellen.
+#### 1. Ändra Spara-knappen (header)
 
----
+**Fil: `src/components/estimates/EstimateBuilder.tsx`**
 
-### Teknisk implementation
-
-**Fil: `src/pages/Dashboard.tsx`**
-
-1. **Utöka AttendanceRecord interface:**
 ```typescript
-interface AttendanceRecord {
-  id: string;
-  user_id: string;
-  check_in: string;
-  check_out: string | null;
-  guest_name: string | null;
-  project_id: string;
-  projects?: { name: string } | null;
-  // NYA FÄLT:
-  profile_name?: string | null;
-  profile_email?: string | null;
+// FÖRE (rad 305-316)
+<Button
+  size="sm"
+  onClick={handleSaveAsCompleted}  // <- Markerar som klar
+  ...
+>
+
+// EFTER
+<Button
+  size="sm"
+  onClick={handleSaveAsDraft}  // <- Sparar endast som draft
+  ...
+>
+```
+
+#### 2. Gör Badge klickbar för statusändring
+
+**Fil: `src/components/estimates/EstimateHeader.tsx`**
+
+Lägg till en `onStatusChange` prop och gör badgen klickbar:
+
+```typescript
+interface EstimateHeaderProps {
+  // ... existing props
+  onStatusChange?: (newStatus: "draft" | "completed") => void;
 }
-```
 
-2. **Hämta profildata efter attendance-query:**
-```typescript
-// Efter att ha hämtat activeWorkersRes...
-const userIds = activeWorkersRes.data?.map(r => r.user_id) || [];
-const { data: profiles } = await supabase
-  .from("profiles")
-  .select("id, full_name, email")
-  .in("id", userIds);
-
-const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-// Mappa ihop med profildata
-const enrichedWorkers = activeWorkersRes.data?.map(worker => ({
-  ...worker,
-  profile_name: profileMap.get(worker.user_id)?.full_name || null,
-  profile_email: profileMap.get(worker.user_id)?.email || null,
-}));
-```
-
-3. **Uppdatera display-logik:**
-```typescript
 // I render:
-const displayName = worker.guest_name 
-  || worker.profile_name 
-  || worker.profile_email?.split("@")[0] 
-  || "Okänd";
+<Badge 
+  variant={status === "draft" ? "secondary" : "default"}
+  className={cn(
+    status === "completed" ? "bg-green-600 hover:bg-green-600" : "",
+    onStatusChange && "cursor-pointer hover:opacity-80 transition-opacity"
+  )}
+  onClick={() => {
+    if (onStatusChange) {
+      // Toggle: draft -> completed, completed -> draft
+      onStatusChange(status === "draft" ? "completed" : "draft");
+    }
+  }}
+>
+  {status === "draft" ? "DRAFT" : "KLAR"}
+</Badge>
+```
 
-const initials = displayName.split(" ")
-  .map(n => n[0])
-  .join("")
-  .toUpperCase()
-  .slice(0, 2);
+#### 3. Hantera statusändring i EstimateBuilder
+
+Skapa en ny handler som triggar "Starta projekt"-dialogen endast vid status -> completed:
+
+```typescript
+const handleStatusChange = async (newStatus: "draft" | "completed") => {
+  if (newStatus === "completed") {
+    // Markera som klar och visa dialog
+    await handleSaveAsCompleted();
+  } else {
+    // Tillbaka till draft
+    estimate.updateStatus("draft");
+    estimate.save();
+    toast.success("Status ändrad till draft");
+  }
+};
+
+// I EstimateHeader:
+<EstimateHeader
+  ...
+  onStatusChange={handleStatusChange}
+/>
 ```
 
 ---
 
-### Resultat
+### Visuell förändring
 
-| Före | Efter |
-|------|-------|
-| "Anonym" | "omar abdullahi" |
-| "??" som avatar | "OA" som avatar |
+| Element | Före | Efter |
+|---------|------|-------|
+| Spara-knapp (header) | Sparar + markerar som klar | Sparar endast som draft |
+| DRAFT/KLAR badge | Endast visuell | Klickbar - ändrar status |
+| StickyTotals dropdown | Har båda alternativen | Behålls oförändrad |
 
-Dashboarden kommer nu visa samma namn som Attendance-sidan genom att:
-1. Först försöka använda `guest_name` (för gäster utan konto)
-2. Fallback till `full_name` från profilen
-3. Fallback till email-prefix
-4. Sista fallback: "Okänd"
+---
 
+### Användarflöde (efter ändring)
+
+1. **Jobba med offert** -> Klicka Spara -> Sparas som draft
+2. **Färdig med offert** -> Klicka på "DRAFT"-badgen
+3. **Status ändras till "KLAR"** -> "Starta projekt"-dialog visas
+4. **Vill ångra?** -> Klicka på "KLAR"-badgen -> Tillbaka till draft
+
+---
+
+### Filer som ändras
+
+| Fil | Ändring |
+|-----|---------|
+| `src/components/estimates/EstimateBuilder.tsx` | Ändra header-knapp till draft + lägg till statusChange handler |
+| `src/components/estimates/EstimateHeader.tsx` | Lägg till `onStatusChange` prop och klickbar badge |
+
+---
+
+### Tooltip för tydlighet
+
+Lägg till en tooltip på badgen som förklarar funktionen:
+
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Badge ...>
+        {status === "draft" ? "DRAFT" : "KLAR"}
+      </Badge>
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>{status === "draft" ? "Klicka för att markera som klar" : "Klicka för att ändra till draft"}</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
