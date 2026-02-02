@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// All available modules (excluding removed: inspections, planning, reports)
+// All available modules for admins/owners
 const ALL_MODULES = [
   "dashboard",
   "projects",
@@ -15,11 +15,13 @@ const ALL_MODULES = [
   "daily-reports"
 ];
 
-// All users get full access to all modules by default
-const DEFAULT_MODULES = ALL_MODULES;
+// Strictly limited modules for employees - NEVER includes dashboard or projects
+const EMPLOYEE_MODULES = ["attendance", "time-reporting", "daily-reports"];
+
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEmployee, setIsEmployee] = useState(false);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -30,6 +32,23 @@ export function useUserPermissions() {
           return;
         }
 
+        // First check if user is an employee (linked via employees table)
+        const { data: employeeData } = await supabase
+          .from("employees")
+          .select("id, user_id")
+          .eq("linked_user_id", user.id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        // If user is an employee, ALWAYS use restricted modules regardless of DB
+        if (employeeData) {
+          setIsEmployee(true);
+          setPermissions(EMPLOYEE_MODULES);
+          setLoading(false);
+          return;
+        }
+
+        // For non-employees, fetch from user_permissions table
         const { data, error } = await supabase
           .from("user_permissions")
           .select("modules")
@@ -38,17 +57,19 @@ export function useUserPermissions() {
 
         if (error) {
           console.error("Error fetching permissions:", error);
-          // On error, give access to all modules
-          setPermissions(ALL_MODULES);
+          // On error for non-employees, give safe fallback (empty)
+          // This prevents accidental full access
+          setPermissions([]);
         } else if (!data || !data.modules || data.modules.length === 0) {
-          // No permissions set = use default restricted modules
-          setPermissions(DEFAULT_MODULES);
+          // No permissions set = use all modules for non-employees (admins/owners)
+          setPermissions(ALL_MODULES);
         } else {
           setPermissions(data.modules);
         }
       } catch (err) {
         console.error("Error in fetchPermissions:", err);
-        setPermissions(ALL_MODULES);
+        // Safe fallback on error
+        setPermissions([]);
       } finally {
         setLoading(false);
       }
@@ -59,5 +80,20 @@ export function useUserPermissions() {
 
   const hasAccess = (module: string) => permissions.includes(module);
 
-  return { permissions, loading, hasAccess, allModules: ALL_MODULES };
+  // Helper to get the first available module (for navigation fallback)
+  const getDefaultRoute = () => {
+    if (permissions.includes("daily-reports")) return "/daily-reports";
+    if (permissions.includes("dashboard")) return "/dashboard";
+    if (permissions.length > 0) return `/${permissions[0]}`;
+    return "/daily-reports";
+  };
+
+  return { 
+    permissions, 
+    loading, 
+    hasAccess, 
+    allModules: ALL_MODULES,
+    isEmployee,
+    getDefaultRoute
+  };
 }
