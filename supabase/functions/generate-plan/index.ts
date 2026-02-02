@@ -74,7 +74,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `Du är en expert på byggprojektplanering. Din uppgift är att tolka en fri beskrivning av ett byggprojekt och skapa en strukturerad tidsplan.
+    const systemPrompt = `Du heter Bo och är en expert på byggprojektplanering med lång erfarenhet av att organisera tidplaner. Din uppgift är att tolka en fri beskrivning av ett byggprojekt och skapa en strukturerad tidsplan.
 
 KVALITETSKRAV - MYCKET VIKTIGT:
 - Om beskrivningen är för vag eller saknar konkret information om VAD som ska göras, returnera ett objekt med needs_more_info: true

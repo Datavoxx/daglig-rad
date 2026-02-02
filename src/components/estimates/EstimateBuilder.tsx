@@ -354,7 +354,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           <div className="relative">
             <Mic className="h-5 w-5" />
           </div>
-          <span className="font-medium text-sm">Röststyr offerten</span>
+          <span className="font-medium text-sm">Låt Saga AI hjälpa dig</span>
         </div>
         <span className="text-xs text-muted-foreground">– Spara 60% av din tid</span>
       </div>

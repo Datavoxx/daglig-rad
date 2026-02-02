@@ -660,6 +660,7 @@ export function ReportEditor({
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
+        agentName="Ulla AI"
       />
     </div>
   );

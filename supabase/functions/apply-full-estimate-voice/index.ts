@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       return "Arbete";
     };
 
-    const systemPrompt = `Du är en assistent som hjälper till att fylla i och uppdatera offerter baserat på röstkommandon på svenska.
+    const systemPrompt = `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige. Du hjälper användare att fylla i och uppdatera offerter baserat på röstkommandon på svenska.
 
 OFFERTENS STRUKTUR:
 - introductionText: Inledande text till kunden

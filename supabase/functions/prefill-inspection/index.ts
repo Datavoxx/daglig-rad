@@ -71,7 +71,7 @@ serve(async (req) => {
       `${i + 1}. [ID: ${cp.id}] ${cp.text}${cp.required ? ' (OBLIGATORISK)' : ''}`
     ).join('\n');
 
-    const systemPrompt = `Du är en erfaren kvalitetskontrollant på en svensk byggarbetsplats. Din uppgift är att analysera ett transkript från en inspektion och matcha det mot en lista med kontrollpunkter.
+    const systemPrompt = `Du heter Erik och är en erfaren kvalitetskontrollant på svenska byggarbetsplatser. Din uppgift är att analysera ett transkript från en inspektion och matcha det mot en lista med kontrollpunkter.
 
 NUMMER-REFERENSER:
 Användaren refererar ofta till kontrollpunkter med nummer. Matcha dessa till kontrollpunktens ordning i listan:

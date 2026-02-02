@@ -373,7 +373,7 @@ export function InlineDiaryCreator({
             </Button>
             {!isRecording && isSpeechRecognitionSupported && (
               <p className="text-xs text-muted-foreground text-center">
-                💡 Spara upp till 70% av din tid genom att prata istället för att skriva
+                💡 Låt <strong>Ulla AI</strong> spara upp till 70% av din tid genom att prata istället för att skriva
               </p>
             )}
           </div>

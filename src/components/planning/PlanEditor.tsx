@@ -374,6 +374,7 @@ export function PlanEditor({
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
+        agentName="Bo AI"
       />
     </div>
   );
