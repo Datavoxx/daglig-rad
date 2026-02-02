@@ -1,13 +1,13 @@
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
+import AIAgentsSection from "@/components/landing/AIAgentsSection";
 import IntegrationsSection from "@/components/landing/IntegrationsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
 import GuideSection from "@/components/landing/GuideSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
-
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -15,6 +15,7 @@ const Landing = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <AIAgentsSection />
         <IntegrationsSection />
         <HowItWorksSection />
         <TimeComparisonSection />
