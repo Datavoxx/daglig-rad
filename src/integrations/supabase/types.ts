@@ -1093,6 +1093,8 @@ export type Database = {
           project_id: string | null
           rot_enabled: boolean | null
           rot_percent: number | null
+          rut_enabled: boolean | null
+          rut_percent: number | null
           scope: string | null
           status: string
           subcontractor_cost: number | null
@@ -1129,6 +1131,8 @@ export type Database = {
           project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
+          rut_enabled?: boolean | null
+          rut_percent?: number | null
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
@@ -1165,6 +1169,8 @@ export type Database = {
           project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
+          rut_enabled?: boolean | null
+          rut_percent?: number | null
           scope?: string | null
           status?: string
           subcontractor_cost?: number | null
