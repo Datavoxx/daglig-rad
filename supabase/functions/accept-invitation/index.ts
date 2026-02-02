@@ -189,13 +189,20 @@ const handler = async (req: Request): Promise<Response> => {
     // Set restricted modules for the employee (override the default full access)
     // Employees only get: attendance (personalliggare), time-reporting, daily-reports
     // They do NOT get access to projects, estimates, customers, invoices, settings, etc.
-    const { error: updatePermissionsError } = await supabase
+    // Use UPSERT to ensure permissions are always set correctly even if row doesn't exist
+    const { error: upsertPermissionsError } = await supabase
       .from("user_permissions")
-      .update({ modules: ["attendance", "time-reporting", "daily-reports"] })
-      .eq("user_id", userId);
+      .upsert(
+        {
+          user_id: userId,
+          modules: ["attendance", "time-reporting", "daily-reports"],
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
 
-    if (updatePermissionsError) {
-      console.error("Error updating permissions:", updatePermissionsError);
+    if (upsertPermissionsError) {
+      console.error("Error upserting permissions:", upsertPermissionsError);
     } else {
       console.log(`Permissions restricted to attendance, time-reporting, daily-reports for ${userId}`);
     }

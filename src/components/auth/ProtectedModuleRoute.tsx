@@ -31,8 +31,12 @@ export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteP
   }
 
   if (!canAccess) {
-    // Redirect to dashboard or first available module
-    const fallback = permissions.length > 0 ? `/${permissions[0]}` : "/dashboard";
+    // Redirect to daily-reports for employees, or first available module
+    const fallback = permissions.includes("daily-reports")
+      ? "/daily-reports"
+      : permissions.length > 0
+        ? `/${permissions[0]}`
+        : "/dashboard";
     return <Navigate to={fallback} replace />;
   }
 
