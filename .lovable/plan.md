@@ -1,152 +1,157 @@
 
 
-## Plan: Uppdatera avatarer till transparenta versioner utan cirkulär ram
+## Plan: Större avatarer och lägg till Bo i projektplanering
 
 ### Sammanfattning
 
-Jag ersätter de gamla avatarbilderna med de nya transparenta versionerna och tar bort den cirkulära stilen (`rounded-full` + `border`) så att figurerna visas fritt utan ram.
+1. **Lägga till Bo i projektplanering** (input-state) - för närvarande saknas helt
+2. **Göra figurerna större** utan att göra rutorna större
 
 ---
 
-### Bildmappning
+### Svar på din fråga
 
-| Agent | Ny bild (transparent bakgrund) |
-|-------|--------------------------------|
-| **Ulla** | `ChatGPT_Image_2_feb._2026_23_21_37-removebg-preview.png` |
-| **Saga** | `ChatGPT_Image_2_feb._2026_23_21_44-removebg-preview.png` |
-| **Bo** | `ChatGPT_Image_2_feb._2026_23_21_47-removebg-preview.png` |
+**Ja, det går absolut att göra figuren större utan att göra rutan större!**
+
+Eftersom bilderna nu har transparent bakgrund och använder `object-contain`, kan vi enkelt öka storleken från `w-24 h-24` (96px) till t.ex. `w-32 h-32` (128px) utan att påverka rutans dimensioner. Rutan har `p-4` padding som inte behöver ändras.
 
 ---
 
 ### Tekniska ändringar
 
-#### 1. Ersätt bildfilerna
+#### 1. Lägg till Bo i ProjectPlanningTab.tsx (input-state)
 
-Kopiera de nya transparenta bilderna till `src/assets/`:
+**Fil:** `src/components/projects/ProjectPlanningTab.tsx`
 
-| Befintlig fil | Ersätts med |
-|---------------|-------------|
-| `src/assets/ulla-avatar.png` | `ChatGPT_Image_2_feb._2026_23_21_37-removebg-preview.png` |
-| `src/assets/saga-avatar.png` | `ChatGPT_Image_2_feb._2026_23_21_44-removebg-preview.png` |
-| `src/assets/bo-avatar.png` | `ChatGPT_Image_2_feb._2026_23_21_47-removebg-preview.png` |
-
-#### 2. Ta bort cirkulär styling
-
-**Fil: `src/components/shared/VoicePromptButton.tsx` (rad 281-285)**
+I input-state (rad 288-314) saknas Bo helt. Vi lägger till en prominent VoicePromptButton-liknande sektion med Bo:
 
 ```tsx
-// FÖRE
-className="w-20 h-20 rounded-full object-cover border-2 border-primary/30 shadow-md"
+// Import AI_AGENTS
+import { AI_AGENTS } from "@/config/aiAgents";
 
-// EFTER - Ingen rounded-full, ingen border, behåll skugga
+// I input-state, lägg till Bo-prompt före Textarea:
+<div 
+  className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+  onClick={startRecording}
+>
+  <img 
+    src={AI_AGENTS.planning.avatar}
+    alt="Bo AI"
+    className="w-32 h-32 object-contain drop-shadow-lg"
+  />
+  <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-2 text-primary">
+      <Mic className="h-5 w-5" />
+      <span className="font-medium">Låt Bo AI hjälpa dig</span>
+    </div>
+    <span className="text-sm text-muted-foreground">Beskriv planen med rösten</span>
+  </div>
+</div>
+```
+
+#### 2. Öka avatarstorleken i VoicePromptButton.tsx
+
+**Fil:** `src/components/shared/VoicePromptButton.tsx` (rad 284)
+
+```tsx
+// Före
 className="w-24 h-24 object-contain drop-shadow-lg"
+
+// Efter (större figur, samma ruta)
+className="w-32 h-32 object-contain drop-shadow-lg"
 ```
 
-**Fil: `src/components/shared/VoiceInputOverlay.tsx` (rad 154-158, 211-215)**
+#### 3. Öka avatarstorleken i EstimateBuilder.tsx
+
+**Fil:** `src/components/estimates/EstimateBuilder.tsx` (rad 357)
 
 ```tsx
-// FÖRE
-className="w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-md"
-
-// EFTER
-className="w-16 h-16 object-contain drop-shadow-md"
-```
-
-**Fil: `src/components/projects/InlineDiaryCreator.tsx` (rad 377-380)**
-
-```tsx
-// FÖRE
-className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
-
-// EFTER
+// Före
 className="w-20 h-20 object-contain drop-shadow-lg"
+
+// Efter
+className="w-32 h-32 object-contain drop-shadow-lg"
 ```
 
-**Fil: `src/components/estimates/EstimateBuilder.tsx` (rad 354-357)**
+#### 4. Öka avatarstorleken i PlanEditor.tsx
+
+**Fil:** `src/components/planning/PlanEditor.tsx` (rad 376)
 
 ```tsx
-// FÖRE
-className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
-
-// EFTER
+// Före
 className="w-20 h-20 object-contain drop-shadow-lg"
+
+// Efter
+className="w-32 h-32 object-contain drop-shadow-lg"
 ```
 
-**Fil: `src/components/planning/PlanEditor.tsx` (rad 373-376)**
+#### 5. Öka avatarstorleken i InlineDiaryCreator.tsx
+
+**Fil:** `src/components/projects/InlineDiaryCreator.tsx` (rad 380)
 
 ```tsx
-// FÖRE
-className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
-
-// EFTER
+// Före
 className="w-20 h-20 object-contain drop-shadow-lg"
+
+// Efter
+className="w-32 h-32 object-contain drop-shadow-lg"
 ```
 
 ---
 
-### Styling-ändring sammanfattning
-
-| Klass | Före | Efter |
-|-------|------|-------|
-| `rounded-full` | Ja | **Nej** (tas bort) |
-| `border-2 border-primary/30` | Ja | **Nej** (tas bort) |
-| `object-cover` | Ja | **object-contain** (behåll proportioner) |
-| `shadow-md` | Ja | **drop-shadow-lg** (skugga direkt på figuren) |
-
-### Storleksjustering
-
-Med transparenta bilder bör storlekarna vara lite större för att figurerna ska synas ordentligt:
+### Storleksändring sammanfattning
 
 | Komponent | Före | Efter |
 |-----------|------|-------|
-| VoicePromptButton (default) | `w-20 h-20` | `w-24 h-24` |
-| VoiceInputOverlay | `w-14 h-14` | `w-16 h-16` |
-| InlineDiaryCreator | `w-16 h-16` | `w-20 h-20` |
-| EstimateBuilder | `w-16 h-16` | `w-20 h-20` |
-| PlanEditor | `w-16 h-16` | `w-20 h-20` |
-
----
-
-### Visuellt resultat
-
-**Före:**
-```
-┌─────────────────────────────────────────────┐
-│         ╭────────────╮                      │
-│         │   ┌────┐   │  ← Cirkulär ram     │
-│         │   │SAGA│   │                      │
-│         │   └────┘   │                      │
-│         ╰────────────╯                      │
-│  🎤✨ Låt Saga AI hjälpa dig               │
-└─────────────────────────────────────────────┘
-```
-
-**Efter:**
-```
-┌─────────────────────────────────────────────┐
-│                                             │
-│           ☆                                 │
-│         ┌───┐                               │
-│         │   │  ← Fri figur utan ram        │
-│         │♀ │     med drop-shadow           │
-│         └─┬─┘                               │
-│          ╱ ╲                                │
-│  🎤✨ Låt Saga AI hjälpa dig               │
-└─────────────────────────────────────────────┘
-```
+| VoicePromptButton (default) | `w-24 h-24` (96px) | `w-32 h-32` (128px) |
+| EstimateBuilder | `w-20 h-20` (80px) | `w-32 h-32` (128px) |
+| PlanEditor | `w-20 h-20` (80px) | `w-32 h-32` (128px) |
+| InlineDiaryCreator | `w-20 h-20` (80px) | `w-32 h-32` (128px) |
+| ProjectPlanningTab (NY) | Saknas | `w-32 h-32` (128px) |
 
 ---
 
 ### Filer som ändras
 
-| Fil | Typ |
-|-----|-----|
-| `src/assets/saga-avatar.png` | Ersätts med ny transparent bild |
-| `src/assets/bo-avatar.png` | Ersätts med ny transparent bild |
-| `src/assets/ulla-avatar.png` | Ersätts med ny transparent bild |
-| `src/components/shared/VoicePromptButton.tsx` | Ta bort rounded-full, border |
-| `src/components/shared/VoiceInputOverlay.tsx` | Ta bort rounded-full, border (2 ställen) |
-| `src/components/projects/InlineDiaryCreator.tsx` | Ta bort rounded-full, border |
-| `src/components/estimates/EstimateBuilder.tsx` | Ta bort rounded-full, border |
-| `src/components/planning/PlanEditor.tsx` | Ta bort rounded-full, border |
+| Fil | Ändring |
+|-----|---------|
+| `src/components/projects/ProjectPlanningTab.tsx` | Lägg till Bo-avatar i input-state |
+| `src/components/shared/VoicePromptButton.tsx` | Öka avatar från w-24 till w-32 |
+| `src/components/estimates/EstimateBuilder.tsx` | Öka avatar från w-20 till w-32 |
+| `src/components/planning/PlanEditor.tsx` | Öka avatar från w-20 till w-32 |
+| `src/components/projects/InlineDiaryCreator.tsx` | Öka avatar från w-20 till w-32 |
+
+---
+
+### Visuellt resultat
+
+**Projektplanering (input) - FÖRE:**
+```
+┌─────────────────────────────────────────────┐
+│  Beskriv projektet                   Avbryt │
+│  ┌───────────────────────────────────────┐  │
+│  │ Textarea...                           │  │
+│  └───────────────────────────────────────┘  │
+│  [🎤 Spela in]  [Generera plan]             │
+└─────────────────────────────────────────────┘
+```
+
+**Projektplanering (input) - EFTER:**
+```
+┌─────────────────────────────────────────────┐
+│  Beskriv projektet                   Avbryt │
+│                                             │
+│  ┌─────────────────────────────────────────┐│
+│  │  ╭────────╮                             ││
+│  │  │   BO   │  🎤 Låt Bo AI hjälpa dig    ││
+│  │  │ AVATAR │  Beskriv planen med rösten  ││
+│  │  ╰────────╯                             ││
+│  └─────────────────────────────────────────┘│
+│                                             │
+│  ┌───────────────────────────────────────┐  │
+│  │ Textarea...                           │  │
+│  └───────────────────────────────────────┘  │
+│  [🎤 Spela in]  [Generera plan]             │
+└─────────────────────────────────────────────┘
+```
 
