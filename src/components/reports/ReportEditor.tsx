@@ -209,9 +209,20 @@ export function ReportEditor({
         return;
       }
 
+      // Check if user is an employee and get employer ID
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("user_id")
+        .eq("linked_user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      // Use employer ID if employee, otherwise use own ID
+      const effectiveUserId = employee?.user_id || user.id;
+
       const reportData = {
         project_id: projectId,
-        user_id: user.id,
+        user_id: effectiveUserId,
         report_date: format(reportDate, "yyyy-MM-dd"),
         headcount: data.crew.headcount,
         roles: data.crew.roles,
