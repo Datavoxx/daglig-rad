@@ -1,166 +1,215 @@
 
 
-## Plan: Fixa Projekt-mockups och Scroll-till-toppen
+## Plan: Lägg till formulär för bokföringsintegrations-intresse
 
 ### Sammanfattning
 
 Du vill:
-1. **Byta ut progress bars (%)** mot en **tidsplan/Gantt-stil** - visa veckor och när saker sker, inte procent
-2. **Fixa scroll-problemet** - när man klickar på ett feature-kort ska man hamna högst upp på detaljsidan
-
----
-
-### Problem 1: Progress bars ska bli tidsplan
-
-**Nuvarande design (FEL):**
-```
-Rivning   [████████████████████] 100%
-Stomme    [████████████░░░░░░░░]  65%
-Ytskikt   [███░░░░░░░░░░░░░░░░░]  20%
-```
-
-**Ny design (RÄTT - Gantt-stil):**
-```
-         V1    V2    V3    V4    V5    V6
-Rivning  [████]
-Stomme         [████████]
-Ytskikt                    [██████████]
-```
-
----
-
-### Filer som ändras
-
-| Fil | Ändring |
-|-----|---------|
-| `src/components/landing/FeaturesSection.tsx` | Ändra `ProjectMockup` till Gantt-stil |
-| `src/pages/features/FeatureDetail.tsx` | 1. Ändra `ProjectLargeMockup` till Gantt-stil 2. Lägg till `useEffect` för `window.scrollTo(0, 0)` |
+1. **Lägga till ett formulär** under Fortnox/Visma-sektionen på Bokföringsfliken
+2. **Formuläret ska innehålla:**
+   - Val av program: Fortnox, Visma, eller Annat
+   - Telefonnummer (enda textfältet)
+3. **När man skickar formuläret:**
+   - Hämtar namn och email från inloggad användare automatiskt
+   - Skickar till webhook: `https://datavox.app.n8n.cloud/webhook/bokforing`
 
 ---
 
 ### Teknisk implementation
 
-#### 1. Ny ProjectMockup (mini-Gantt för FeaturesSection)
+#### 1. Skapa Edge Function för webhook
+
+**Ny fil: `supabase/functions/request-accounting-integration/index.ts`**
+
+En edge function som:
+- Tar emot: `email`, `full_name`, `phone`, `program`
+- Skickar till n8n webhook
+- Hanterar CORS
 
 ```typescript
-const ProjectMockup = () => (
-  <div className="bg-background rounded-lg border border-border/60 p-3 sm:p-4 shadow-sm space-y-3">
-    {/* Header */}
-    <div className="flex items-center justify-between">
-      <span className="text-xs sm:text-sm font-medium text-foreground">🏗️ Villarenovering</span>
-      <Badge variant="outline" className="text-[10px]">V1-V6</Badge>
-    </div>
-    
-    {/* Week headers */}
-    <div className="flex gap-0.5 text-[8px] text-muted-foreground pl-14">
-      <span className="flex-1 text-center">V1</span>
-      <span className="flex-1 text-center">V2</span>
-      <span className="flex-1 text-center">V3</span>
-      <span className="flex-1 text-center">V4</span>
-      <span className="flex-1 text-center">V5</span>
-      <span className="flex-1 text-center">V6</span>
-    </div>
-    
-    {/* Gantt bars */}
-    <div className="space-y-1.5">
-      {/* Rivning: V1 */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground w-12 truncate">Rivning</span>
-        <div className="flex-1 flex gap-0.5">
-          <div className="flex-1 h-3 bg-emerald-500 rounded" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-        </div>
-      </div>
-      {/* Stomme: V2-V3 */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground w-12 truncate">Stomme</span>
-        <div className="flex-1 flex gap-0.5">
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-blue-500 rounded-l" />
-          <div className="flex-1 h-3 bg-blue-500 rounded-r" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-        </div>
-      </div>
-      {/* Ytskikt: V4-V6 */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground w-12 truncate">Ytskikt</span>
-        <div className="flex-1 flex gap-0.5">
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-transparent" />
-          <div className="flex-1 h-3 bg-purple-500 rounded-l" />
-          <div className="flex-1 h-3 bg-purple-500" />
-          <div className="flex-1 h-3 bg-purple-500 rounded-r" />
-        </div>
-      </div>
-    </div>
-    
-    {/* Tags */}
-    <div className="flex gap-2 pt-1">
-      <Badge variant="outline" className="text-[10px]">Dagbok</Badge>
-      <Badge variant="outline" className="text-[10px]">ÄTA</Badge>
-    </div>
-  </div>
-);
+const N8N_WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/bokforing";
+
+// Skickar till webhook:
+{
+  email: "user@example.com",
+  full_name: "Användarens Namn",
+  phone: "+46701234567",
+  program: "fortnox" | "visma" | "annat",
+  requested_at: "2026-02-02T..."
+}
 ```
 
-#### 2. Ny ProjectLargeMockup (större Gantt för FeatureDetail)
+#### 2. Uppdatera Invoices.tsx
 
-Samma koncept men större och med mer detaljer:
-- Fler veckor (V1-V8)
-- Fasnamn synliga
-- Visuell "nu"-markering
-- Senaste aktivitet-sektion behålls
+Lägg till under Fortnox/Visma-korten:
 
-#### 3. Scroll till toppen
+**Nytt formulär-sektion:**
+```
++------------------------------------------+
+| 🔔 Intresseanmälan                        |
+|                                          |
+| Välj program:                            |
+| ○ Fortnox  ○ Visma  ○ Annat              |
+|                                          |
+| Telefonnummer                            |
+| [+46 70 123 45 67                     ]  |
+|                                          |
+| [ Skicka intresseanmälan ]               |
++------------------------------------------+
+```
 
-Lägg till `useEffect` i `FeatureDetail.tsx`:
+**Implementation:**
+- Använd `RadioGroup` för programval
+- `Input` för telefonnummer
+- `Button` för skicka
+- Hämta användarinfo från Supabase auth
+- Visa toast vid framgång/fel
+
+---
+
+### Filer som skapas/ändras
+
+| Fil | Ändring |
+|-----|---------|
+| `supabase/functions/request-accounting-integration/index.ts` | **NY** - Edge function för n8n webhook |
+| `supabase/config.toml` | Lägg till ny function config |
+| `src/pages/Invoices.tsx` | Lägg till intresseanmälan-formulär |
+
+---
+
+### Design för formuläret
+
+Formuläret placeras efter de två integrationskorten och innan footer-texten:
 
 ```typescript
-import { useEffect } from "react";
+// State
+const [selectedProgram, setSelectedProgram] = useState<string>("fortnox");
+const [phone, setPhone] = useState("");
+const [isSubmitting, setIsSubmitting] = useState(false);
 
-const FeatureDetail = () => {
-  const { slug } = useParams<{ slug: string }>();
-  
-  // Scroll to top when page loads
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [slug]);
-  
-  // ... resten av komponenten
+// Hämta användarinfo
+const { data: { user } } = await supabase.auth.getUser();
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("full_name")
+  .eq("id", user.id)
+  .single();
+
+// Skicka till edge function
+const handleSubmit = async () => {
+  await supabase.functions.invoke("request-accounting-integration", {
+    body: {
+      email: user.email,
+      full_name: profile.full_name,
+      phone,
+      program: selectedProgram,
+    }
+  });
+  toast.success("Din intresseanmälan har skickats!");
 };
+```
+
+**UI:**
+```tsx
+<div className="bg-card rounded-2xl border p-8 max-w-xl mx-auto">
+  <h3 className="text-lg font-semibold mb-4">
+    🔔 Intresseanmälan för bokföringsintegration
+  </h3>
+  
+  <RadioGroup value={selectedProgram} onValueChange={setSelectedProgram}>
+    <div className="flex items-center space-x-2">
+      <RadioGroupItem value="fortnox" id="fortnox" />
+      <Label htmlFor="fortnox">Fortnox</Label>
+    </div>
+    <div className="flex items-center space-x-2">
+      <RadioGroupItem value="visma" id="visma" />
+      <Label htmlFor="visma">Visma</Label>
+    </div>
+    <div className="flex items-center space-x-2">
+      <RadioGroupItem value="annat" id="annat" />
+      <Label htmlFor="annat">Annat program</Label>
+    </div>
+  </RadioGroup>
+  
+  <Input
+    type="tel"
+    placeholder="+46 70 123 45 67"
+    value={phone}
+    onChange={(e) => setPhone(e.target.value)}
+  />
+  
+  <Button onClick={handleSubmit} disabled={!phone || isSubmitting}>
+    Skicka intresseanmälan
+  </Button>
+</div>
+```
+
+---
+
+### Edge Function
+
+**`supabase/functions/request-accounting-integration/index.ts`:**
+
+```typescript
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const N8N_WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/bokforing";
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { email, full_name, phone, program } = await req.json();
+
+    console.log(`[ACCOUNTING REQUEST] ${email} wants ${program}`);
+
+    const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        full_name,
+        phone,
+        program,
+        requested_at: new Date().toISOString(),
+        source: "byggio-web",
+      }),
+    });
+
+    if (!webhookResponse.ok) {
+      console.error("Failed to send to n8n:", await webhookResponse.text());
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return new Response(JSON.stringify({ success: false }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
 ```
 
 ---
 
 ### Resultat
 
-1. **Projekt-mockups** visar nu en riktig **tidsplan/Gantt** med veckor och faser som sträcker sig över tid
-2. **Klicka på feature-kort** → hamnar alltid **högst upp** på detaljsidan
-3. **Tillbaka-knappen** fungerar som vanligt
+1. Användare på /invoices → Bokföringsfliken
+2. Ser Fortnox + Visma-kort (som förut)
+3. Under korten: nytt intresseanmälan-formulär
+4. Väljer program (Fortnox/Visma/Annat)
+5. Skriver telefonnummer
+6. Klickar "Skicka"
+7. Edge function hämtar deras namn/email och skickar till n8n webhook
+8. Toast bekräftar att förfrågan skickats
 
----
-
-### Visuell jämförelse
-
-**Före (Progress bars):**
-```
-Rivning   [████████] 100%
-Stomme    [█████░░░]  65%
-```
-
-**Efter (Gantt-tidslinje):**
-```
-          V1  V2  V3  V4  V5  V6
-Rivning   [██]
-Stomme        [████]
-Ytskikt             [██████]
-```
-
-Gantt-stilen matchar hur tidsplaner faktiskt ser ut i appen och visar **när** saker sker, inte **hur långt** de kommit.
