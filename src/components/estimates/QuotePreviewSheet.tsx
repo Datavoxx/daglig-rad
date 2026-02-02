@@ -146,10 +146,15 @@ export function QuotePreviewSheet({
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-100px)]">
+          {/* Scaled container for mobile - zooms out to show entire quote */}
+          <div className={cn(
+            "origin-top-left",
+            isMobile && "transform scale-[0.55] w-[182%]"
+          )}>
           {/* ============ PAGE 1 - Main Quote ============ */}
           <div className={cn(
             "bg-white text-black min-h-[297mm] relative",
-            isMobile ? "p-4 text-xs" : "p-8"
+            isMobile ? "p-6" : "p-8"
           )}>
             {/* Header with logo and offer title */}
             <div className="flex justify-between items-start mb-6">
@@ -521,6 +526,7 @@ export function QuotePreviewSheet({
               <p className="text-xs text-gray-400 text-right mt-2">Sida 3 (3)</p>
             </div>
           </div>
+          </div>{/* End of scaled container */}
         </ScrollArea>
       </SheetContent>
     </Sheet>

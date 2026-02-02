@@ -60,18 +60,27 @@ export function StickyTotals({
   // Mobile: simplified view with just total and buttons
   if (isMobile) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg p-4 z-50">
-      <div className="flex items-center justify-between gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50">
+        {/* Breakdown row for mobile */}
+        <div className="flex items-center gap-3 px-4 pt-3 pb-1 text-[11px] text-muted-foreground border-b overflow-x-auto">
+          <span className="whitespace-nowrap">Arb: <span className="font-medium text-foreground tabular-nums">{formatNumber(laborCost)}</span></span>
+          <span className="whitespace-nowrap">Mat: <span className="font-medium text-foreground tabular-nums">{formatNumber(materialCost)}</span></span>
+          <span className="whitespace-nowrap">UE: <span className="font-medium text-foreground tabular-nums">{formatNumber(subcontractorCost)}</span></span>
+          <span className="whitespace-nowrap">Påsl: <span className="font-medium text-foreground tabular-nums">{formatNumber(markup)}</span></span>
+          <span className="whitespace-nowrap">Moms: <span className="font-medium text-foreground tabular-nums">{formatNumber(vat)}</span></span>
+        </div>
+        
+        {/* Total + buttons */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="text-xs text-muted-foreground">Totalt inkl. moms</p>
-            <p className="text-xl font-bold text-primary">
+            <p className="text-xs text-muted-foreground">
+              {hasAnyDeduction 
+                ? `Att betala (efter ${rotEnabled && rutEnabled ? "ROT/RUT" : rotEnabled ? "ROT" : "RUT"})` 
+                : "Totalt inkl. moms"}
+            </p>
+            <p className="text-xl font-bold text-primary tabular-nums">
               {formatNumber(hasAnyDeduction ? amountToPay : totalInclVat)} kr
             </p>
-            {hasAnyDeduction && (
-              <p className="text-xs text-muted-foreground">
-                Efter {rotEnabled && rutEnabled ? "ROT/RUT" : rotEnabled ? "ROT" : "RUT"}-avdrag
-              </p>
-            )}
           </div>
           <div className="flex gap-2">
             {onPreview && (
