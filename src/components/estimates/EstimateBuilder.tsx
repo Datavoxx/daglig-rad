@@ -177,6 +177,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const handleSaveAsDraft = () => {
     estimate.updateStatus("draft");
     setTimeout(() => estimate.save(), 0);
+    toast.success("Offert sparad som utkast");
   };
 
   const handleSaveAsCompleted = async () => {
@@ -189,6 +190,18 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       setShowProjectRecommendation(true);
     } catch (error) {
       // Error is handled by the mutation's onError
+    }
+  };
+
+  const handleStatusChange = async (newStatus: "draft" | "completed") => {
+    if (newStatus === "completed") {
+      // Mark as complete and show project recommendation
+      await handleSaveAsCompleted();
+    } else {
+      // Change back to draft
+      estimate.updateStatus("draft");
+      estimate.save();
+      toast.success("Status ändrad till utkast");
     }
   };
 
@@ -275,6 +288,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           onProjectNameChange={estimate.updateManualProjectName}
           onClientNameChange={estimate.updateManualClientName}
           onAddressChange={estimate.updateManualAddress}
+          onStatusChange={handleStatusChange}
         />
         <div className="flex items-center gap-2 shrink-0">
           {onBack && (
@@ -301,10 +315,10 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
               )}
             </Button>
           )}
-          {/* Always visible save button */}
+          {/* Always visible save button - saves as draft only */}
           <Button
             size="sm"
-            onClick={handleSaveAsCompleted}
+            onClick={handleSaveAsDraft}
             disabled={estimate.isSaving}
             className="h-8"
           >
