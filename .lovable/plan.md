@@ -1,87 +1,84 @@
 
 
-## Plan: Employee Dashboard med tre moduler + fixa projekt-dropdown
+## Plan: Separat Employee Dashboard + Säkerställ automatiskt uppsättning för nya organisationer
 
 ### Sammanfattning
 
 Du vill ha:
-1. En **employee dashboard** som ersätter den vanliga dashboard-vyn för anställda, med tre kompakta moduler: Dagrapporter, Personalliggare, Tidsrapport
-2. Fixa **projekt-dropdown** i Dagrapporter så den visar arbetsgivarens projekt
+1. **Separat dashboard-sida för anställda** med tre moduler: Dagrapporter, Personalliggare, Tidsrapport
+2. **Individuella KPIs** - varje anställd ser endast sin egen data
+3. **Säkerställa att nya organisationer automatiskt får rätt uppsättning**
 
 ---
 
-### Problem identifierat: Projekt-dropdown är tom
+### Del 1: Skapa EmployeeDashboard.tsx
 
-I `DailyReports.tsx` hämtas projekt med en explicit `.eq("user_id", employerId)` filter, men koden hämtar först `employerId` via en separat lookup till `employees`-tabellen. 
+En ny sida som ersätter den vanliga dashboarden för anställda.
 
-Problemet: Denna lookup använder inte korrekt logik och krockar med hur RLS redan fungerar. `AttendanceEmployeeView.tsx` fungerar eftersom den **inte** gör någon explicit filter - den låter RLS-policyn filtrera automatiskt.
+**Layout och innehåll:**
 
-**Lösning:** Ta bort den explicita `user_id`-filtern och låt RLS göra jobbet (precis som `AttendanceEmployeeView.tsx` gör).
-
----
-
-### Ändringar
-
-#### 1. Fixa DailyReports.tsx - Projekthämtning
-
-Ändra från:
-```typescript
-const employerId = employee?.user_id || user.id;
-const { data, error } = await supabase
-  .from("projects")
-  .select("id, name, client_name")
-  .eq("user_id", employerId)  // <-- Ta bort denna filter
-```
-
-Till:
-```typescript
-const { data, error } = await supabase
-  .from("projects")
-  .select("id, name, client_name")
-  .order("created_at", { ascending: false });
-// RLS hanterar redan filtrering baserat på get_employer_id(auth.uid())
-```
-
-#### 2. Skapa EmployeeDashboard.tsx
-
-En ny sida för anställda som visar tre kort/moduler:
-- **Dagrapporter**: Snabbknapp för att gå till dagrapporter + senaste rapport
-- **Personalliggare**: Visa aktuell in/ut-status + snabbknapp
-- **Tidsrapport**: Veckans timmar + snabbknapp
-
-Layout:
 ```
 +------------------------------------------+
-|  Hej, [Namn]! 👋                          |
-|  Din arbetsöversikt för idag              |
+|  Hej, [Namn]!                             |
+|  Din arbetsöversikt                       |
 +------------------------------------------+
 
 +-------------+  +-------------+  +-------------+
-| 📋          |  | ✓           |  | ⏱           |
 | Dagrapporter|  |Personalligg.|  | Tidsrapport |
 | 3 rapporter |  | Incheckad   |  | 32h denna   |
 | denna veckan|  | sedan 08:15 |  | vecka       |
 | [Öppna →]   |  | [Öppna →]   |  | [Öppna →]   |
 +-------------+  +-------------+  +-------------+
+
++------------------------------------------+
+| Din veckostatistik                        |
+| • Dagrapporter: 3 st                      |
+| • Arbetade timmar: 32h                    |
+| • Checkat in: 5 av 5 dagar                |
++------------------------------------------+
 ```
 
-#### 3. Uppdatera routing i App.tsx
-
-Lägg till route för `/employee-dashboard` alternativt använd `/daily-reports` som startvy (redan implementerat).
-
-**Alternativ approach:** Istället för en separat dashboard-sida kan vi göra `/daily-reports` till en mer komplett "hem"-vy för anställda genom att lägga till snabbkort överst.
+**Individuella KPIs (endast användarens egen data):**
+- Dagrapporter denna vecka (count från `daily_reports` där `user_id = auth.uid()`)
+- Personalliggare-status (aktiv incheckning från `attendance_records` där `user_id = auth.uid()`)
+- Tidsrapport timmar denna vecka (summa från `time_entries` där `user_id = auth.uid()`)
 
 ---
 
-### Rekommenderad approach: Bygg ut DailyReports som employee "hem"
+### Del 2: Uppdatera DailyReports.tsx
 
-Istället för att skapa en helt ny dashboard-sida, bygger vi ut `DailyReports.tsx` till att fungera som anställdas hem-vy med:
+Ta bort dashboard-korten från DailyReports-sidan (de ska vara på dashboarden istället). DailyReports blir en ren "skapa/lista dagrapporter"-sida.
 
-1. **Överst**: Tre snabbkort (Dagrapporter, Personalliggare, Tidsrapport) med snabbstatus
-2. **Under**: Projektval och dagrapport-skapande (som redan finns)
-3. **Längst ner**: Lista med senaste dagrapporter
+---
 
-Detta är enklare och håller navigeringen konsekvent.
+### Del 3: Routing och navigation
+
+**App.tsx:**
+- Lägg till ny route `/employee-dashboard` som pekar på `EmployeeDashboard`
+- Skydda med `ProtectedModuleRoute module="daily-reports"` (anställda har alltid denna modul)
+
+**useUserPermissions.ts:**
+- Uppdatera `getDefaultRoute()` så att anställda automatiskt skickas till `/employee-dashboard`
+- Admins skickas fortfarande till `/dashboard`
+
+**AppLayout.tsx:**
+- Logo-klick för anställda → `/employee-dashboard`
+- Logo-klick för admins → `/dashboard`
+
+**Navigationsmenyn:**
+Anställda ser "Hem" som leder till `/employee-dashboard`
+
+---
+
+### Del 4: Säkerställa automatiskt uppsättning för nya organisationer
+
+**Nuläge (fungerar redan):**
+1. `accept-invitation` Edge Function sätter redan rätt behörigheter för nya anställda:
+   - `modules: ["attendance", "time-reporting", "daily-reports"]`
+2. Database-migrering har redan uppdaterat befintliga anställdas behörigheter
+3. `useUserPermissions` har redan hard-restriction som alltid ger anställda endast dessa moduler
+
+**Ingen ytterligare åtgärd krävs** - systemet är redan konfigurerat för att automatiskt ge nya anställda rätt setup.
 
 ---
 
@@ -89,84 +86,93 @@ Detta är enklare och håller navigeringen konsekvent.
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/DailyReports.tsx` | 1. Ta bort explicit `user_id`-filter vid projekthämtning (låt RLS filtrera) 2. Lägg till tre snabbkort överst med status för varje modul |
+| `src/pages/EmployeeDashboard.tsx` | **NY FIL** - Dashboard för anställda med tre modulkort och individuella KPIs |
+| `src/pages/DailyReports.tsx` | Ta bort dashboard-korten (EmployeeQuickCard), behåll endast projekt-väljare och rapportlista |
+| `src/App.tsx` | Lägg till route för `/employee-dashboard` |
+| `src/hooks/useUserPermissions.ts` | Uppdatera `getDefaultRoute()` att returnera `/employee-dashboard` för anställda |
+| `src/components/layout/AppLayout.tsx` | Uppdatera navigationen så att anställda ser "Hem" som pekar på employee-dashboard |
 
 ---
 
 ### Teknisk implementation
 
-**Projekthämtning (fix):**
+**EmployeeDashboard.tsx (ny fil):**
+
 ```typescript
-const fetchProjects = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    setLoading(false);
-    return;
-  }
-
-  // Låt RLS filtrera - den tillåter redan employer's projects via get_employer_id()
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name, client_name")
-    .order("created_at", { ascending: false });
-
-  if (!error && data) {
-    setProjects(data);
-    if (data.length > 0) {
-      setSelectedProjectId(data[0].id);
-    }
-  }
-  setLoading(false);
-};
-```
-
-**Snabbkort-sektion (ny):**
-```typescript
-// Hämta snabbdata för varje modul
-const { data: weeklyTimeData } = useQuery({
-  queryKey: ["employee-weekly-time"],
+// Hämtar KPIs endast för den inloggade användaren (eq user_id = auth.uid())
+const { data: weeklyReports } = useQuery({
+  queryKey: ["my-weekly-reports"],
   queryFn: async () => {
-    // Hämta veckans timmar
+    const { count } = await supabase
+      .from("daily_reports")
+      .select("*", { count: "exact", head: true })
+      .gte("report_date", weekStart)
+      .lte("report_date", weekEnd);
+    return count || 0;
   }
 });
 
 const { data: activeCheckIn } = useQuery({
-  queryKey: ["active-check-in"],
+  queryKey: ["my-active-checkin"],
   queryFn: async () => {
-    // Hämta aktiv incheckning
+    const { data } = await supabase
+      .from("attendance_records")
+      .select("check_in")
+      .is("check_out", null)
+      .order("check_in", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data;
   }
 });
 
-// Rendera tre kort överst
-<div className="grid gap-4 grid-cols-3">
-  <QuickCard 
-    title="Dagrapporter" 
-    value="3 denna vecka" 
-    href="/daily-reports" 
-    icon={BookOpen}
-  />
-  <QuickCard 
-    title="Personalliggare" 
-    value={activeCheckIn ? "Incheckad" : "Ej incheckad"} 
-    href="/attendance" 
-    icon={ClipboardCheck}
-  />
-  <QuickCard 
-    title="Tidsrapport" 
-    value={`${weeklyHours}h denna vecka`} 
-    href="/time-reporting" 
-    icon={Clock}
-  />
-</div>
+const { data: weeklyHours } = useQuery({
+  queryKey: ["my-weekly-hours"],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from("time_entries")
+      .select("hours")
+      .gte("date", weekStart)
+      .lte("date", weekEnd);
+    return data?.reduce((sum, e) => sum + Number(e.hours), 0) || 0;
+  }
+});
+```
+
+**Navigationsuppdatering:**
+
+```typescript
+// I useUserPermissions.ts - getDefaultRoute()
+const getDefaultRoute = () => {
+  if (isEmployee) return "/employee-dashboard";  // Anställda → employee dashboard
+  if (permissions.includes("dashboard")) return "/dashboard";  // Admins → admin dashboard
+  if (permissions.length > 0) return `/${permissions[0]}`;
+  return "/employee-dashboard";
+};
+
+// I navItems (AppLayout.tsx) - visa "Hem" för anställda också
+{ label: "Hem", href: isEmployee ? "/employee-dashboard" : "/dashboard", icon: Home, moduleKey: "daily-reports" }
 ```
 
 ---
 
-### Resultat
+### Resultat efter implementation
 
-Efter implementation:
-1. ✅ Projekt-dropdown visar alla arbetsgivarens projekt
-2. ✅ Anställda ser tre snabbkort överst på Dagrapporter-sidan
-3. ✅ Varje kort visar aktuell status och leder till respektive modul
-4. ✅ Dagrapporter är fortfarande standardvyn/hem för anställda
+1. **Anställda loggar in** → hamnar på `/employee-dashboard`
+2. **Employee dashboard visar**:
+   - Tre klickbara modulkort (Dagrapporter, Personalliggare, Tidsrapport)
+   - Individuella KPIs (endast deras egen data)
+3. **Klicka på "Dagrapporter"** → går till `/daily-reports` där de kan välja projekt och skapa rapporter
+4. **Klicka på "Personalliggare"** → går till `/attendance` för in/utcheckning
+5. **Klicka på "Tidsrapport"** → går till `/time-reporting` för tidsregistrering
+6. **Admins** fortsätter att se sin vanliga dashboard med alla KPIs och full åtkomst
+7. **Nya anställda** får automatiskt rätt uppsättning via `accept-invitation`
+
+---
+
+### Säkerhet
+
+- RLS på `daily_reports`, `attendance_records`, `time_entries` säkerställer att anställda endast ser sin egen data
+- `useUserPermissions` hard-restriction säkerställer att anställda aldrig får tillgång till projekt/offerter/fakturor
+- Inga ändringar behövs i backend - allt är redan korrekt konfigurerat
 
