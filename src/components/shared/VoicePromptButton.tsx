@@ -276,12 +276,12 @@ export function VoicePromptButton({
       )}
       onClick={startRecording}
     >
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex flex-col items-center gap-4 text-center">
         {agentAvatar && (
           <img 
             src={agentAvatar} 
             alt={agentName || "AI"} 
-            className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+            className="w-20 h-20 rounded-full object-cover border-2 border-primary/30 shadow-md"
           />
         )}
         <div className="flex items-center gap-2 text-primary">

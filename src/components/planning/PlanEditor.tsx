@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon } from "lucide-react";
+import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanPhase } from "./GanttTimeline";
 import { format, addWeeks, addDays } from "date-fns";
@@ -360,6 +360,28 @@ export function PlanEditor({
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Voice prompt with Bo avatar */}
+      <div 
+        className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+        onClick={() => {
+          const voiceButton = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
+          if (voiceButton) voiceButton.click();
+        }}
+      >
+        <img 
+          src={AI_AGENTS.planning.avatar}
+          alt="Bo AI"
+          className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
+        />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-primary">
+            <Mic className="h-5 w-5" />
+            <span className="font-medium">Låt Bo AI hjälpa dig</span>
+          </div>
+          <span className="text-sm text-muted-foreground">Beskriv ändringar med rösten</span>
+        </div>
       </div>
 
       {/* Actions */}

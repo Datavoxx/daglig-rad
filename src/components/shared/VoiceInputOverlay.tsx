@@ -149,12 +149,12 @@ export function VoiceInputOverlay({
       <div className={cn("fixed bottom-6 right-6 z-50 max-w-md", className)}>
         <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {agentAvatar && (
                 <img 
                   src={agentAvatar} 
                   alt={agentName || "AI"} 
-                  className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-md"
                 />
               )}
               <span className="text-sm font-medium">Bekräfta röstkommando</span>
@@ -206,12 +206,12 @@ export function VoiceInputOverlay({
       <div className={cn("fixed bottom-6 right-6 z-50 max-w-md", className)}>
         <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {agentAvatar && (
                 <img 
                   src={agentAvatar} 
                   alt={agentName || "AI"} 
-                  className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-md"
                 />
               )}
               <span className="relative flex h-3 w-3">
