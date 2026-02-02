@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Mic, MicOff, Loader2, Download, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Mic, MicOff, Loader2, Download, Pencil, Trash2, Sparkles } from "lucide-react";
+import { AI_AGENTS } from "@/config/aiAgents";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { GanttTimeline } from "@/components/planning/GanttTimeline";
@@ -292,6 +293,30 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           <h3 className="text-lg font-medium">Beskriv projektet</h3>
           <Button variant="ghost" onClick={() => setViewState("empty")}>Avbryt</Button>
         </div>
+        
+        {/* Bo AI prompt */}
+        <div 
+          className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+          onClick={isRecording ? stopRecording : startRecording}
+        >
+          <img 
+            src={AI_AGENTS.planning.avatar}
+            alt="Bo AI"
+            className="w-32 h-32 object-contain drop-shadow-lg"
+          />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-primary">
+              <Mic className="h-5 w-5" />
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">Låt Bo AI hjälpa dig</span>
+            </div>
+            <span className="text-sm text-muted-foreground">Beskriv planen med rösten</span>
+            {isRecording && (
+              <span className="text-xs text-destructive animate-pulse">● Spelar in...</span>
+            )}
+          </div>
+        </div>
+
         <Textarea
           placeholder="Beskriv projektets faser, t.ex. 'Rivning 2 veckor, sedan stomme och grundarbete 4 veckor...'"
           value={transcript}
