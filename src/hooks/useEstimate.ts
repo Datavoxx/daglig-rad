@@ -26,6 +26,8 @@ export interface EstimateState {
   markupPercent: number;
   rotEnabled: boolean;
   rotPercent: number;
+  rutEnabled: boolean;
+  rutPercent: number;
   transcript: string;
   status: "draft" | "completed";
   // Manual mode fields
@@ -53,6 +55,8 @@ const initialState: EstimateState = {
   markupPercent: 0,
   rotEnabled: false,
   rotPercent: 30,
+  rutEnabled: false,
+  rutPercent: 50,
   transcript: "",
   status: "draft",
   manualProjectName: "",
@@ -175,6 +179,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
           uncertainty: item.uncertainty || "medium",
           sort_order: item.sort_order,
           rot_eligible: item.rot_eligible ?? false,
+          rut_eligible: item.rut_eligible ?? false,
         })),
         addons: existingEstimate.addons.map((addon: any) => ({
           id: addon.id,
@@ -187,6 +192,8 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         markupPercent: Number(existingEstimate.markup_percent) || 15,
         rotEnabled: existingEstimate.rot_enabled || false,
         rotPercent: Number(existingEstimate.rot_percent) || 30,
+        rutEnabled: (existingEstimate as any).rut_enabled || false,
+        rutPercent: Number((existingEstimate as any).rut_percent) || 50,
         transcript: existingEstimate.original_transcript || "",
         status: (existingEstimate.status as "draft" | "completed") || "draft",
         // Preserve manual fields from existing estimate if available
@@ -208,6 +215,11 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     }
   }, [existingEstimate, projectId, isManualMode, manualData]);
 
+  // Tax deduction limits (2026)
+  const ROT_MAX = 50000;
+  const RUT_MAX = 75000;
+  const COMBINED_MAX = 75000;
+
   // Calculate totals
   const calculateTotals = useCallback(() => {
     const laborCost = state.items
@@ -217,6 +229,11 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     // ROT-eligible labor cost (only items marked as rot_eligible)
     const rotEligibleLaborCost = state.items
       .filter((item) => item.type === "labor" && item.rot_eligible)
+      .reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    
+    // RUT-eligible labor cost (only items marked as rut_eligible)
+    const rutEligibleLaborCost = state.items
+      .filter((item) => item.type === "labor" && (item as any).rut_eligible)
       .reduce((sum, item) => sum + (item.subtotal || 0), 0);
     
     const materialCost = state.items
@@ -237,14 +254,24 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     const vat = totalExclVat * 0.25;
     const totalInclVat = totalExclVat + vat;
 
-    // ROT on ROT-eligible labor with VAT
+    // ROT calculation with cap
     const rotEligibleLaborWithVat = rotEligibleLaborCost * 1.25;
-    const rotAmount = state.rotEnabled ? rotEligibleLaborWithVat * (state.rotPercent / 100) : 0;
-    const amountToPay = totalInclVat - rotAmount;
+    const rotAmountRaw = state.rotEnabled ? rotEligibleLaborWithVat * (state.rotPercent / 100) : 0;
+    const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
+    
+    // RUT calculation with cap (always 50%)
+    const rutEligibleLaborWithVat = rutEligibleLaborCost * 1.25;
+    const rutAmountRaw = state.rutEnabled ? rutEligibleLaborWithVat * 0.5 : 0;
+    const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
+    
+    // Combined cap
+    const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
+    const amountToPay = totalInclVat - combinedDeduction;
 
     return {
       laborCost,
       rotEligibleLaborCost,
+      rutEligibleLaborCost,
       materialCost,
       subcontractorCost,
       addonsCost,
@@ -254,23 +281,11 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       vat,
       totalInclVat,
       rotAmount,
+      rutAmount,
+      combinedDeduction,
       amountToPay,
     };
-
-    return {
-      laborCost,
-      materialCost,
-      subcontractorCost,
-      addonsCost,
-      subtotal,
-      markup,
-      totalExclVat,
-      vat,
-      totalInclVat,
-      rotAmount,
-      amountToPay,
-    };
-  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent]);
+  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled]);
 
   // Update functions
   const updateScope = useCallback((scope: string) => {
@@ -334,6 +349,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       ...prev,
       rotEnabled: enabled,
       rotPercent: percent ?? prev.rotPercent,
+    }));
+  }, []);
+
+  const updateRut = useCallback((enabled: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      rutEnabled: enabled,
     }));
   }, []);
 
@@ -418,6 +440,8 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         original_transcript: state.transcript,
         rot_enabled: state.rotEnabled,
         rot_percent: state.rotPercent,
+        rut_enabled: state.rutEnabled,
+        rut_percent: state.rutPercent,
         version: existing ? (existing.version || 1) : 1,
         status: state.status,
         // Manual mode fields
@@ -554,6 +578,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     removeAddon,
     updateMarkup,
     updateRot,
+    updateRut,
     updateTemplateId,
     updateManualProjectName,
     updateManualClientName,

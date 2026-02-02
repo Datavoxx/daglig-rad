@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home, EyeOff } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home, Sparkles, EyeOff } from "lucide-react";
 import { EstimateItemsImportDialog, type ParsedEstimateItem } from "./EstimateItemsImportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -70,6 +70,7 @@ export interface EstimateItem {
   uncertainty: "low" | "medium" | "high";
   sort_order: number;
   rot_eligible: boolean;
+  rut_eligible: boolean;
 }
 
 interface EstimateTableProps {
@@ -77,6 +78,7 @@ interface EstimateTableProps {
   onItemsChange: (items: EstimateItem[]) => void;
   readOnly?: boolean;
   rotEnabled?: boolean;
+  rutEnabled?: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -103,7 +105,7 @@ const UNCERTAINTY_LABELS: Record<string, string> = {
   high: "Hög osäkerhet",
 };
 
-export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabled = false }: EstimateTableProps) {
+export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabled = false, rutEnabled = false }: EstimateTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [focusedCell, setFocusedCell] = useState<{ id: string; field: string } | null>(null);
@@ -160,6 +162,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       uncertainty: "medium",
       sort_order: items.length,
       rot_eligible: rotEnabled, // Default to enabled when ROT is on
+      rut_eligible: rutEnabled, // Default to enabled when RUT is on
     };
     onItemsChange([...items, newItem]);
     
@@ -399,15 +402,21 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
     );
   }
 
+  // Determine column count based on active deductions
+  const hasDeductions = rotEnabled || rutEnabled;
+  const deductionColumns = (rotEnabled ? 1 : 0) + (rutEnabled ? 1 : 0);
+  
   // Desktop: Modern borderless table with Notion-style inline editing
   return (
     <div className="space-y-0.5">
       {/* Header row */}
       <div className={cn(
         "grid gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider",
-        rotEnabled 
-          ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
-          : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]"
+        deductionColumns === 2 
+          ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_32px_28px]"
+          : deductionColumns === 1
+            ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
+            : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]"
       )}>
         <div></div>
         <div>Artikel</div>
@@ -442,6 +451,20 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
             </Tooltip>
           </TooltipProvider>
         )}
+        {rutEnabled && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-center">
+                  <Sparkles className="h-3 w-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                RUT-avdrag
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <div></div>
       </div>
 
@@ -456,12 +479,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
             onDragEnd={handleDragEnd}
             className={cn(
               "grid gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
-              rotEnabled 
-                ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
-                : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]",
+              deductionColumns === 2 
+                ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_32px_28px]"
+                : deductionColumns === 1
+                  ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_32px_28px]"
+                  : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_80px_28px]",
               draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
               focusedCell?.id === item.id && "bg-muted/50 shadow-sm",
-              item.rot_eligible && rotEnabled && "bg-primary/5",
+              (item.rot_eligible && rotEnabled) || (item.rut_eligible && rutEnabled) ? "bg-primary/5" : "",
               item.show_only_total && "bg-muted/30"
             )}
             style={{ animationDelay: `${index * 30}ms` }}
@@ -627,7 +652,29 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                   <Checkbox
                     checked={item.rot_eligible}
                     onCheckedChange={(checked) => 
-                      !readOnly && updateItem(item.id, { rot_eligible: !!checked })
+                      !readOnly && onItemsChange(items.map(i => 
+                        i.id === item.id ? { ...i, rot_eligible: !!checked, rut_eligible: checked ? false : i.rut_eligible } : i
+                      ))
+                    }
+                    disabled={readOnly}
+                    className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground/50">–</span>
+                )}
+              </div>
+            )}
+
+            {/* RUT checkbox - only for labor rows when RUT is enabled */}
+            {rutEnabled && (
+              <div className="flex items-center justify-center">
+                {item.type === "labor" ? (
+                  <Checkbox
+                    checked={item.rut_eligible}
+                    onCheckedChange={(checked) => 
+                      !readOnly && onItemsChange(items.map(i => 
+                        i.id === item.id ? { ...i, rut_eligible: !!checked, rot_eligible: checked ? false : i.rot_eligible } : i
+                      ))
                     }
                     disabled={readOnly}
                     className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
@@ -683,6 +730,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 uncertainty: "medium" as const,
                 sort_order: mode === "replace" ? index : items.length + index,
                 rot_eligible: rotEnabled,
+                rut_eligible: rutEnabled,
               }));
               
               if (mode === "replace") {

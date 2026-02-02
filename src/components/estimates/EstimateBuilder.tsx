@@ -18,7 +18,7 @@ import { EstimateHeader } from "./EstimateHeader";
 import { ClosingSection } from "./ClosingSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
-import { RotPanel } from "./RotPanel";
+import { TaxDeductionPanel } from "./TaxDeductionPanel";
 import { StickyTotals } from "./StickyTotals";
 import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
@@ -164,6 +164,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         markupPercent: estimate.state.markupPercent,
         rotEnabled: estimate.state.rotEnabled,
         rotPercent: estimate.state.rotPercent,
+        rutEnabled: estimate.state.rutEnabled,
       });
       toast.success("Offert nedladdad");
     } catch (error) {
@@ -399,6 +400,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           items={estimate.state.items}
           onItemsChange={estimate.updateItems}
           rotEnabled={estimate.state.rotEnabled}
+          rutEnabled={estimate.state.rutEnabled}
         />
       </section>
 
@@ -416,14 +418,16 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       {/* Divider */}
       <div className="h-px bg-border" />
 
-      {/* ROT panel */}
-      <RotPanel
-        enabled={estimate.state.rotEnabled}
-        percent={estimate.state.rotPercent}
-        laborCost={estimate.totals.laborCost}
+      {/* Tax deduction panel (ROT/RUT) */}
+      <TaxDeductionPanel
+        rotEnabled={estimate.state.rotEnabled}
+        rotPercent={estimate.state.rotPercent}
         rotEligibleLaborCost={estimate.totals.rotEligibleLaborCost}
-        onToggle={(enabled) => estimate.updateRot(enabled)}
-        onPercentChange={(percent) => estimate.updateRot(estimate.state.rotEnabled, percent)}
+        onRotToggle={(enabled) => estimate.updateRot(enabled)}
+        rutEnabled={estimate.state.rutEnabled}
+        rutEligibleLaborCost={estimate.totals.rutEligibleLaborCost}
+        onRutToggle={(enabled) => estimate.updateRut(enabled)}
+        totalLaborCost={estimate.totals.laborCost}
       />
 
       {/* Divider */}
@@ -445,8 +449,11 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         vat={estimate.totals.vat}
         totalInclVat={estimate.totals.totalInclVat}
         rotAmount={estimate.totals.rotAmount}
+        rutAmount={estimate.totals.rutAmount}
+        combinedDeduction={estimate.totals.combinedDeduction}
         amountToPay={estimate.totals.amountToPay}
         rotEnabled={estimate.state.rotEnabled}
+        rutEnabled={estimate.state.rutEnabled}
         status={estimate.state.status}
         onSaveAsDraft={handleSaveAsDraft}
         onSaveAsCompleted={handleSaveAsCompleted}

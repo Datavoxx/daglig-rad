@@ -17,8 +17,11 @@ interface StickyTotalsProps {
   vat: number;
   totalInclVat: number;
   rotAmount: number;
+  rutAmount?: number;
+  combinedDeduction?: number;
   amountToPay: number;
   rotEnabled: boolean;
+  rutEnabled?: boolean;
   status: "draft" | "completed";
   onSaveAsDraft: () => void;
   onSaveAsCompleted: () => void;
@@ -36,8 +39,11 @@ export function StickyTotals({
   vat,
   totalInclVat,
   rotAmount,
+  rutAmount = 0,
+  combinedDeduction = 0,
   amountToPay,
   rotEnabled,
+  rutEnabled = false,
   status,
   onSaveAsDraft,
   onSaveAsCompleted,
@@ -46,6 +52,7 @@ export function StickyTotals({
   isSaving = false,
 }: StickyTotalsProps) {
   const isMobile = useIsMobile();
+  const hasAnyDeduction = rotEnabled || rutEnabled;
 
   const formatNumber = (num: number) =>
     new Intl.NumberFormat("sv-SE").format(Math.round(num));
@@ -54,15 +61,15 @@ export function StickyTotals({
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg p-4 z-50">
-        <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground">Totalt inkl. moms</p>
             <p className="text-xl font-bold text-primary">
-              {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
+              {formatNumber(hasAnyDeduction ? amountToPay : totalInclVat)} kr
             </p>
-            {rotEnabled && (
+            {hasAnyDeduction && (
               <p className="text-xs text-muted-foreground">
-                Efter ROT-avdrag
+                Efter {rotEnabled && rutEnabled ? "ROT/RUT" : rotEnabled ? "ROT" : "RUT"}-avdrag
               </p>
             )}
           </div>
@@ -139,10 +146,12 @@ export function StickyTotals({
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
             <p className="text-[11px] text-muted-foreground transition-opacity duration-200">
-              {rotEnabled ? "Att betala (efter ROT)" : "Totalt inkl. moms"}
+              {hasAnyDeduction 
+                ? `Att betala (efter ${rotEnabled && rutEnabled ? "ROT/RUT" : rotEnabled ? "ROT" : "RUT"})` 
+                : "Totalt inkl. moms"}
             </p>
             <p className="text-xl font-bold text-primary tabular-nums number-animate">
-              {formatNumber(rotEnabled ? amountToPay : totalInclVat)} kr
+              {formatNumber(hasAnyDeduction ? amountToPay : totalInclVat)} kr
             </p>
           </div>
           <div className="flex gap-1.5">

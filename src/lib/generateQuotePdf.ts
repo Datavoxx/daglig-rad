@@ -36,6 +36,7 @@ interface QuoteItem {
   unit_price: number;
   subtotal: number;
   rot_eligible?: boolean;
+  rut_eligible?: boolean;
 }
 
 interface QuoteData {
@@ -54,6 +55,7 @@ interface QuoteData {
   markupPercent: number;
   rotEnabled: boolean;
   rotPercent: number;
+  rutEnabled?: boolean;
   paymentTerms?: string;
 }
 
@@ -75,6 +77,11 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     return new Intl.NumberFormat("sv-SE").format(Math.round(num));
   };
 
+  // Tax deduction limits (2026)
+  const ROT_MAX = 50000;
+  const RUT_MAX = 75000;
+  const COMBINED_MAX = 75000;
+
   // Calculate totals
   const subtotal = data.laborCost + data.materialCost + data.subcontractorCost;
   const markup = subtotal * (data.markupPercent / 100);
@@ -87,8 +94,22 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     .filter((item) => item.type === "labor" && item.rot_eligible)
     .reduce((sum, item) => sum + item.subtotal, 0);
   const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
-  const rotAmount = data.rotEnabled ? rotEligibleWithVat * (data.rotPercent / 100) : 0;
-  const amountToPay = totalInclVat - rotAmount;
+  const rotAmountRaw = data.rotEnabled ? rotEligibleWithVat * (data.rotPercent / 100) : 0;
+  const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
+  
+  // RUT calculation - use rut_eligible items only
+  const rutEligibleLaborCost = data.items
+    .filter((item) => item.type === "labor" && item.rut_eligible)
+    .reduce((sum, item) => sum + item.subtotal, 0);
+  const rutEligibleWithVat = rutEligibleLaborCost * 1.25;
+  const rutAmountRaw = data.rutEnabled ? rutEligibleWithVat * 0.5 : 0;
+  const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
+  
+  // Combined deduction with cap
+  const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
+  const amountToPay = totalInclVat - combinedDeduction;
+  
+  const hasAnyDeduction = data.rotEnabled || data.rutEnabled;
 
   // Helper to draw footer on each page
   const drawFooter = (pageNum: number, totalPages: number) => {
@@ -369,15 +390,25 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.text("Totalt inkl. moms", totalsX, yPos + 3, { align: "right" });
   doc.text(`${formatNumber(totalInclVat)} kr`, valuesX, yPos + 3, { align: "right" });
   
-  if (data.rotEnabled) {
+  if (hasAnyDeduction) {
     yPos += 10;
     doc.setFontSize(9);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(100, 100, 100);
-    doc.text(`* ${data.rotPercent}% ROT-avdrag inkl moms`, totalsX, yPos, { align: "right" });
-    doc.text(`-${formatNumber(rotAmount)} kr`, valuesX, yPos, { align: "right" });
     
-    yPos += 8;
+    if (data.rotEnabled && rotAmount > 0) {
+      doc.text(`* ${data.rotPercent}% ROT-avdrag inkl moms`, totalsX, yPos, { align: "right" });
+      doc.text(`-${formatNumber(rotAmount)} kr`, valuesX, yPos, { align: "right" });
+      yPos += 5;
+    }
+    
+    if (data.rutEnabled && rutAmount > 0) {
+      doc.text(`* 50% RUT-avdrag inkl moms`, totalsX, yPos, { align: "right" });
+      doc.text(`-${formatNumber(rutAmount)} kr`, valuesX, yPos, { align: "right" });
+      yPos += 5;
+    }
+    
+    yPos += 3;
     doc.setFillColor(240, 240, 240);
     doc.roundedRect(totalsX - 50, yPos - 4, 110, 12, 2, 2, "F");
     
@@ -585,22 +616,22 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
 
   yPos += 12;
 
-  // ROT
-  if (data.rotEnabled) {
+  // ROT/RUT
+  if (data.rotEnabled || data.rutEnabled) {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("ROT", margin, yPos);
+    doc.text("ROT/RUT-avdrag", margin, yPos);
     yPos += 6;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50, 50, 50);
-    const rotText = doc.splitTextToSize(
-      "För fullständig information om hur ROT-avdraget fungerar hänvisar vi till Skatteverkets hemsida www.skatteverket.se. Kunden ansvarar för att kraven för ROT-avdrag uppfylls.",
+    const taxText = doc.splitTextToSize(
+      "För fullständig information om hur ROT- och RUT-avdragen fungerar hänvisar vi till Skatteverkets hemsida www.skatteverket.se. Kunden ansvarar för att kraven för avdrag uppfylls. ROT-avdrag är max 50 000 kr per person/år. RUT-avdrag är max 75 000 kr per person/år. Kombinerat max 75 000 kr per person/år.",
       pageWidth - margin * 2
     );
-    doc.text(rotText, margin, yPos);
-    yPos += rotText.length * 4 + 8;
+    doc.text(taxText, margin, yPos);
+    yPos += taxText.length * 4 + 8;
   }
 
   // Personuppgifter
