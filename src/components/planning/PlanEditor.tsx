@@ -373,7 +373,7 @@ export function PlanEditor({
         <img 
           src={AI_AGENTS.planning.avatar}
           alt="Bo AI"
-          className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
+          className="w-20 h-20 object-contain drop-shadow-lg"
         />
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-primary">

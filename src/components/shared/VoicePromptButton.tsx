@@ -278,10 +278,10 @@ export function VoicePromptButton({
     >
       <div className="flex flex-col items-center gap-4 text-center">
         {agentAvatar && (
-          <img 
+        <img 
             src={agentAvatar} 
             alt={agentName || "AI"} 
-            className="w-20 h-20 rounded-full object-cover border-2 border-primary/30 shadow-md"
+            className="w-24 h-24 object-contain drop-shadow-lg"
           />
         )}
         <div className="flex items-center gap-2 text-primary">

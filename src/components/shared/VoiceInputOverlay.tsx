@@ -154,7 +154,7 @@ export function VoiceInputOverlay({
                 <img 
                   src={agentAvatar} 
                   alt={agentName || "AI"} 
-                  className="w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-md"
+                  className="w-16 h-16 object-contain drop-shadow-md"
                 />
               )}
               <span className="text-sm font-medium">Bekräfta röstkommando</span>
@@ -211,7 +211,7 @@ export function VoiceInputOverlay({
                 <img 
                   src={agentAvatar} 
                   alt={agentName || "AI"} 
-                  className="w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-md"
+                  className="w-16 h-16 object-contain drop-shadow-md"
                 />
               )}
               <span className="relative flex h-3 w-3">

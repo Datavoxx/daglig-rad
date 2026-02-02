@@ -377,7 +377,7 @@ export function InlineDiaryCreator({
                 <img 
                   src={AI_AGENTS.diary.avatar} 
                   alt="Ulla AI" 
-                  className="w-16 h-16 rounded-full object-cover border-2 border-primary/30 shadow-md"
+                  className="w-20 h-20 object-contain drop-shadow-lg"
                 />
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-medium text-primary">Låt Ulla AI hjälpa dig</span>
