@@ -1,153 +1,142 @@
 
-## Plan: Lägg till AI-agentavatarer
+## Plan: Större avatarer och förbättrad synlighet för AI-agenter
 
 ### Sammanfattning
 
-Jag lägger till de tre uppladdade avatarbilderna (Saga, Bo, Ulla) i röstinspelningskomponenterna så att användaren ser vem som hjälper dem.
+Gör avatarbilderna betydligt större och mer synliga i alla röstinspelningskomponenter, samt lägg till Bo på projektöversikten.
 
-### Bildmappning
+---
 
-| Agent | Bild | Identifiering |
-|-------|------|---------------|
-| **Saga AI** | `ChatGPT_Image_2_feb._2026_23_21_44.png` | Blond, miniräknare + offertblad |
-| **Bo AI** | `ChatGPT_Image_2_feb._2026_23_21_47.png` | Pojke med ritningar |
-| **Ulla AI** | `ChatGPT_Image_2_feb._2026_23_21_37.png` | Tjej med surfplatta |
+### Problem identifierade
+
+| Plats | Problem | Nuvarande storlek |
+|-------|---------|-------------------|
+| VoicePromptButton (default) | Avatar för liten | `w-12 h-12` (48px) |
+| VoiceInputOverlay (inspelning) | Avatar för liten | `w-8 h-8` (32px) |
+| InlineDiaryCreator (tiptext) | Avatar för liten | `w-5 h-5` (20px) |
+| EstimateBuilder (prompt) | Ingen avatar visas | Saknas helt |
+| PlanEditor ("Spela in" knapp) | Ingen avatar synlig | Bara i overlay |
+| ProjectOverviewTab | Inget röstinmatning | Saknas helt |
+
+---
+
+### Nya storlekar
+
+| Komponent | Nuvarande | Ny storlek |
+|-----------|-----------|------------|
+| VoicePromptButton (default variant) | `w-12 h-12` | `w-20 h-20` (80px) |
+| VoiceInputOverlay (inspelning) | `w-8 h-8` | `w-14 h-14` (56px) |
+| InlineDiaryCreator (tiptext) | `w-5 h-5` | `w-10 h-10` (40px) |
+| EstimateBuilder (inline prompt) | Saknas | `w-16 h-16` (64px) |
 
 ---
 
 ### Tekniska ändringar
 
-#### 1. Kopiera bilder till assets-mappen
+#### 1. VoicePromptButton.tsx
 
-Flytta bilderna till `src/assets/` med tydliga namn:
-- `src/assets/saga-avatar.png`
-- `src/assets/bo-avatar.png`
-- `src/assets/ulla-avatar.png`
-
-#### 2. Uppdatera agent-konfigurationen
-
-**Fil: `src/config/aiAgents.ts`**
-
-Lägg till `avatar`-property för varje agent:
-
-```typescript
-import sagaAvatar from "@/assets/saga-avatar.png";
-import boAvatar from "@/assets/bo-avatar.png";
-import ullaAvatar from "@/assets/ulla-avatar.png";
-
-export interface AIAgent {
-  name: string;
-  title: string;
-  description: string;
-  promptIntro: string;
-  avatar: string;  // NY
-}
-
-export const AI_AGENTS = {
-  estimate: {
-    name: "Saga",
-    title: "Saga AI",
-    description: "Din kalkylexpert",
-    promptIntro: "...",
-    avatar: sagaAvatar,
-  },
-  planning: {
-    name: "Bo",
-    title: "Bo AI",
-    description: "Din projektplanerare",
-    promptIntro: "...",
-    avatar: boAvatar,
-  },
-  diary: {
-    name: "Ulla",
-    title: "Ulla AI",
-    description: "Din dokumentationsassistent",
-    promptIntro: "...",
-    avatar: ullaAvatar,
-  },
-} as const;
-```
-
-#### 3. Uppdatera VoicePromptButton
-
-**Fil: `src/components/shared/VoicePromptButton.tsx`**
-
-Lägg till `agentAvatar`-prop och visa avatar:
-
-```typescript
-interface VoicePromptButtonProps {
-  // ... befintliga props
-  agentAvatar?: string;  // NY
-}
-```
-
-Visa avatar i default-varianten:
-
+**Default variant (rad 279-297):**
 ```tsx
-// I default-varianten (rad 269-290)
-<div className="flex flex-col items-center gap-2 text-center">
-  {agentAvatar && (
-    <img 
-      src={agentAvatar} 
-      alt={agentName || "AI"} 
-      className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
-    />
-  )}
-  <div className="flex items-center gap-2 text-primary">
-    ...
+// Före
+<img className="w-12 h-12 rounded-full object-cover..." />
+
+// Efter
+<img className="w-20 h-20 rounded-full object-cover shadow-md border-2 border-primary/30" />
+```
+
+#### 2. VoiceInputOverlay.tsx
+
+**Recording state (rad 210-215) och Confirmation (rad 153-158):**
+```tsx
+// Före
+<img className="w-8 h-8 rounded-full object-cover..." />
+
+// Efter
+<img className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-primary/30" />
+```
+
+#### 3. InlineDiaryCreator.tsx
+
+**Tips-texten (rad 376-383):**
+```tsx
+// Före
+<img className="w-5 h-5 rounded-full object-cover" />
+
+// Efter  
+<img className="w-10 h-10 rounded-full object-cover shadow-sm border border-primary/20" />
+```
+
+Byt även ut separat tips-text till ett mer prominent block likt VoicePromptButton.
+
+#### 4. EstimateBuilder.tsx
+
+**Lägg till Saga-avatar i inline prompt (rad 346-361):**
+```tsx
+// Före - bara mic-ikon
+<div className="flex items-center gap-3 p-3 bg-primary/5...">
+  <Mic className="h-5 w-5" />
+  <span>Låt Saga AI hjälpa dig</span>
+</div>
+
+// Efter - med stor avatar
+<div className="flex items-center gap-4 p-4 bg-primary/5...">
+  <img 
+    src={AI_AGENTS.estimate.avatar}
+    alt="Saga AI"
+    className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-primary/30"
+  />
+  <div>
+    <div className="flex items-center gap-2 text-primary">
+      <Mic className="h-5 w-5" />
+      <span className="font-medium">Låt Saga AI hjälpa dig</span>
+    </div>
+    <span className="text-sm text-muted-foreground">Spara 60% av din tid</span>
   </div>
 </div>
 ```
 
-#### 4. Uppdatera VoiceInputOverlay
+#### 5. PlanEditor.tsx (planering)
 
-**Fil: `src/components/shared/VoiceInputOverlay.tsx`**
+Planeringssidan ("Spela in" knappen) har bara en `VoiceInputOverlay` som floating button. Vi ser Bo först när man börjar spela in. 
 
-Lägg till `agentAvatar`-prop och visa avatar i inspelnings-/bekräftelsevyn:
+Användaren vill se Bo innan man börjar spela in. Vi behöver lägga till en mer prominent knapp som visar Bo-avataren direkt i UI:t.
 
-```typescript
-interface VoiceInputOverlayProps {
-  // ... befintliga props
-  agentAvatar?: string;  // NY
-}
-```
-
-Visa avatar i overlay:
+**Lägg till prominent Voice Prompt före "Generera plan" knappen:**
 
 ```tsx
-// I recording-state och confirmation-dialog
-{agentAvatar && (
-  <img 
-    src={agentAvatar} 
-    alt={agentName || "AI"} 
-    className="w-8 h-8 rounded-full object-cover"
-  />
-)}
+// I PlanEditor, efter phases-listan och före actions
+<VoicePromptButton
+  variant="default"
+  agentName="Bo AI"
+  agentAvatar={AI_AGENTS.planning.avatar}
+  onTranscriptComplete={handleVoiceEdit}
+  isProcessing={isApplyingVoice}
+  subtext="Beskriv ändringar med rösten"
+/>
 ```
 
-#### 5. Uppdatera användningsplatser
-
-Skicka `agentAvatar` prop till komponenter:
-
-| Fil | Agent | Ändring |
-|-----|-------|---------|
-| `EstimateBuilder.tsx` | Saga | `agentAvatar={AI_AGENTS.estimate.avatar}` |
-| `EstimateSummary.tsx` | Saga | `agentAvatar={AI_AGENTS.estimate.avatar}` |
-| `CreateTemplateDialog.tsx` | Saga | Visa avatar bredvid inspelningsknapp |
-| `PlanEditor.tsx` | Bo | `agentAvatar={AI_AGENTS.planning.avatar}` |
-| `InlineDiaryCreator.tsx` | Ulla | Visa avatar i text/inspelning |
-| `ReportEditor.tsx` | Ulla | `agentAvatar={AI_AGENTS.diary.avatar}` |
-| `ProjectWorkOrdersTab.tsx` | Ulla | `agentAvatar={AI_AGENTS.diary.avatar}` |
-| `ProjectAtaTab.tsx` | Ulla | `agentAvatar={AI_AGENTS.diary.avatar}` |
-| `InspectionView.tsx` | Ulla | `agentAvatar={AI_AGENTS.diary.avatar}` |
+OBS: Användaren sa "skit i att chatta" så vi skippar chat-funktionalitet och fokuserar på större avatarer.
 
 ---
 
-### UI-förändring
+### Filer som ändras
+
+| Fil | Ändringstyp |
+|-----|-------------|
+| `src/components/shared/VoicePromptButton.tsx` | Större avatar (w-20 h-20) |
+| `src/components/shared/VoiceInputOverlay.tsx` | Större avatar (w-14 h-14) |
+| `src/components/projects/InlineDiaryCreator.tsx` | Större avatar + omdesignad tips-sektion |
+| `src/components/estimates/EstimateBuilder.tsx` | Lägg till Saga-avatar i prompt |
+| `src/components/planning/PlanEditor.tsx` | Lägg till prominent VoicePromptButton med Bo-avatar |
+
+---
+
+### Visuellt resultat
 
 **Före (VoicePromptButton):**
 ```
 ┌─────────────────────────────────────────────┐
+│  [tiny avatar]                              │
 │  🎤✨ Låt Saga AI hjälpa dig               │
 │  Spara upp till 70% av din tid              │
 └─────────────────────────────────────────────┘
@@ -156,7 +145,14 @@ Skicka `agentAvatar` prop till komponenter:
 **Efter:**
 ```
 ┌─────────────────────────────────────────────┐
-│         [SAGA AVATAR]                       │
+│                                             │
+│         ╭────────────╮                      │
+│         │            │                      │
+│         │   SAGA     │  ← 80px avatar       │
+│         │  AVATAR    │                      │
+│         │            │                      │
+│         ╰────────────╯                      │
+│                                             │
 │  🎤✨ Låt Saga AI hjälpa dig               │
 │  Spara upp till 70% av din tid              │
 └─────────────────────────────────────────────┘
@@ -165,7 +161,9 @@ Skicka `agentAvatar` prop till komponenter:
 **I VoiceInputOverlay (inspelning):**
 ```
 ┌─────────────────────────────────────────────┐
-│  [AVATAR] 🔴 Saga lyssnar...               │
+│  ╭──────╮                                   │
+│  │ SAGA │  🔴 Saga lyssnar...              │
+│  ╰──────╯  ← 56px avatar                   │
 │  ─────────────────────────────              │
 │  "Vi ska lägga till rivning..."             │
 │  [Stoppa inspelning]                        │
@@ -174,31 +172,10 @@ Skicka `agentAvatar` prop till komponenter:
 
 ---
 
-### Filer som ändras
+### OBS: Projektöversikt
 
-| Fil | Typ | Ändring |
-|-----|-----|---------|
-| `src/assets/saga-avatar.png` | NY | Kopiera från upload |
-| `src/assets/bo-avatar.png` | NY | Kopiera från upload |
-| `src/assets/ulla-avatar.png` | NY | Kopiera från upload |
-| `src/config/aiAgents.ts` | ÄNDRA | Lägg till avatar-property |
-| `src/components/shared/VoicePromptButton.tsx` | ÄNDRA | Visa avatar |
-| `src/components/shared/VoiceInputOverlay.tsx` | ÄNDRA | Visa avatar |
-| `src/components/estimates/EstimateBuilder.tsx` | ÄNDRA | Skicka avatar |
-| `src/components/estimates/EstimateSummary.tsx` | ÄNDRA | Skicka avatar |
-| `src/components/estimates/CreateTemplateDialog.tsx` | ÄNDRA | Visa Saga avatar |
-| `src/components/planning/PlanEditor.tsx` | ÄNDRA | Skicka avatar |
-| `src/components/projects/InlineDiaryCreator.tsx` | ÄNDRA | Visa Ulla avatar |
-| `src/components/reports/ReportEditor.tsx` | ÄNDRA | Skicka avatar |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | ÄNDRA | Skicka avatar |
-| `src/components/projects/ProjectAtaTab.tsx` | ÄNDRA | Skicka avatar |
-| `src/pages/InspectionView.tsx` | ÄNDRA | Skicka avatar |
+Användaren nämnde att lägga till Bo på projektöversikten för att "spela in röstmeddelande och lägga in projektinformation". Detta är en mer omfattande förändring som kräver:
+1. Ny voice-to-form logik för projektdata
+2. Ny Edge Function för att tolka projektinfo
 
----
-
-### Resultat
-
-Användaren ser nu en visuell representation av varje AI-agent:
-- **Saga** (blond med miniräknare) i offertbyggaren och mallskaparen
-- **Bo** (pojke med ritningar) i projektplaneringen
-- **Ulla** (tjej med surfplatta) i dagbok, ÄTA, arbetsorder och egenkontroll
+Jag rekommenderar att vi först gör avatarerna större (denna plan), och sedan lägger till projektöversikts-röstinmatning som ett separat steg om du vill gå vidare med det.
