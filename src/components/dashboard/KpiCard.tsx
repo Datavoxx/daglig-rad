@@ -10,8 +10,9 @@ interface KpiCardProps {
   sparklineData?: number[];
   icon: LucideIcon;
   onClick?: () => void;
-  accentColor?: "primary" | "blue" | "amber" | "emerald" | "violet";
+  accentColor?: "primary" | "blue" | "amber" | "emerald" | "violet" | "red";
   delay?: number;
+  subtitle?: string;
 }
 
 const colorMap = {
@@ -45,6 +46,12 @@ const colorMap = {
     sparkline: "hsl(263, 70%, 50%)",
     trend: "text-violet-600 dark:text-violet-400",
   },
+  red: {
+    bg: "from-red-500/8 via-red-500/4 to-transparent",
+    icon: "text-red-600 dark:text-red-400 bg-red-500/10 ring-red-500/20",
+    sparkline: "hsl(0, 84%, 60%)",
+    trend: "text-red-600 dark:text-red-400",
+  },
 };
 
 const KpiCard = ({
@@ -57,6 +64,7 @@ const KpiCard = ({
   onClick,
   accentColor = "primary",
   delay = 0,
+  subtitle,
 }: KpiCardProps) => {
   const colors = colorMap[accentColor];
   const isPositive = change !== undefined && change >= 0;
@@ -102,6 +110,9 @@ const KpiCard = ({
           <span className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
             {value}
           </span>
+          {subtitle && (
+            <span className="ml-2 text-sm text-muted-foreground">{subtitle}</span>
+          )}
         </div>
 
         {/* Sparkline */}
@@ -133,7 +144,7 @@ const KpiCard = ({
           </div>
         )}
 
-        {!hasChange && (
+        {!hasChange && !subtitle && (
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground">Ingen förändring {changeLabel}</span>
           </div>

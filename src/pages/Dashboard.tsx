@@ -8,21 +8,40 @@ import {
   Users,
   Clock,
   Sparkles,
-  Wallet,
-  ArrowRight
+  ArrowRight,
+  UserCheck,
+  AlertCircle,
+  CalendarClock,
+  Receipt,
+  TrendingUp,
+  Plus
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow, subDays, startOfWeek, endOfWeek, format, isAfter, isBefore, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface ActivityItem {
+interface AttendanceRecord {
   id: string;
-  type: "estimate";
+  user_id: string;
+  check_in: string;
+  check_out: string | null;
+  guest_name: string | null;
+  project_id: string;
+  projects?: { name: string } | null;
+}
+
+interface UpcomingDeadline {
+  id: string;
+  type: "invoice" | "project";
   title: string;
-  projectName: string;
-  date: Date;
+  subtitle: string;
+  dueDate: Date;
+  daysLeft: number;
+  urgent: boolean;
 }
 
 const Dashboard = () => {
@@ -55,116 +74,155 @@ const Dashboard = () => {
     fetchProfile();
   }, []);
 
-  // Fetch all dashboard data with trends
+  // Fetch all dashboard data
   const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard-data"],
+    queryKey: ["dashboard-data-v2"],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return null;
 
       const now = new Date();
-      const thisMonthStart = startOfMonth(now);
-      const thisMonthEnd = endOfMonth(now);
-      const lastMonthStart = startOfMonth(subMonths(now, 1));
-      const lastMonthEnd = endOfMonth(subMonths(now, 1));
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
       const fourteenDaysAgo = subDays(now, 14);
 
       const [
-        projectsRes,
-        estimatesRes,
-        customersRes,
-        projectsThisMonth,
-        projectsLastMonth,
-        estimatesThisMonth,
-        estimatesLastMonth,
-        customersThisMonth,
-        customersLastMonth,
-        projectsTrend,
-        estimatesTrend,
-        customersTrend,
+        // Active workers (checked in but not out)
+        activeWorkersRes,
+        // Hours this week
+        hoursThisWeekRes,
+        // Active projects
+        activeProjectsRes,
+        // Overdue invoices
+        overdueInvoicesRes,
+        // Draft invoices
+        draftInvoicesRes,
+        // Upcoming deadlines (invoices due within 7 days)
+        upcomingInvoicesRes,
+        // Recent projects trend
+        projectsTrendRes,
+        // Recent hours trend
+        hoursTrendRes,
       ] = await Promise.all([
-        // Totals
-        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
-        supabase.from("project_estimates").select("id, total_incl_vat").eq("user_id", userData.user.id),
-        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id),
-        // This month counts
-        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
-        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
-        supabase.from("project_estimates").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
-        supabase.from("project_estimates").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
-        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", thisMonthStart.toISOString()).lte("created_at", thisMonthEnd.toISOString()),
-        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userData.user.id).gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
-        // Trends (14 days)
-        supabase.from("projects").select("created_at").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
-        supabase.from("project_estimates").select("created_at, total_incl_vat").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
-        supabase.from("customers").select("created_at").eq("user_id", userData.user.id).gte("created_at", fourteenDaysAgo.toISOString()),
+        // Active workers
+        supabase
+          .from("attendance_records")
+          .select("id, user_id, check_in, guest_name, project_id, projects(name)")
+          .eq("employer_id", userData.user.id)
+          .is("check_out", null),
+        // Hours this week
+        supabase
+          .from("time_entries")
+          .select("hours, date")
+          .eq("employer_id", userData.user.id)
+          .gte("date", weekStart.toISOString().split('T')[0])
+          .lte("date", weekEnd.toISOString().split('T')[0]),
+        // Active projects
+        supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userData.user.id)
+          .eq("status", "active"),
+        // Overdue invoices
+        supabase
+          .from("customer_invoices")
+          .select("id, total_inc_vat, due_date, invoice_number, customers(name)")
+          .eq("user_id", userData.user.id)
+          .neq("status", "paid")
+          .lt("due_date", now.toISOString().split('T')[0]),
+        // Draft invoices
+        supabase
+          .from("customer_invoices")
+          .select("id, total_inc_vat")
+          .eq("user_id", userData.user.id)
+          .eq("status", "draft"),
+        // Upcoming invoices (7 days)
+        supabase
+          .from("customer_invoices")
+          .select("id, due_date, invoice_number, total_inc_vat, customers(name)")
+          .eq("user_id", userData.user.id)
+          .neq("status", "paid")
+          .gte("due_date", now.toISOString().split('T')[0])
+          .lte("due_date", addDays(now, 7).toISOString().split('T')[0])
+          .order("due_date"),
+        // Trend data
+        supabase
+          .from("projects")
+          .select("created_at")
+          .eq("user_id", userData.user.id)
+          .gte("created_at", fourteenDaysAgo.toISOString()),
+        supabase
+          .from("time_entries")
+          .select("hours, date")
+          .eq("employer_id", userData.user.id)
+          .gte("date", fourteenDaysAgo.toISOString().split('T')[0]),
       ]);
 
-      // Calculate total estimate value
-      const totalEstimateValue = estimatesRes.data?.reduce((sum, e) => sum + (e.total_incl_vat || 0), 0) || 0;
+      // Calculate total hours this week
+      const totalHoursThisWeek = hoursThisWeekRes.data?.reduce((sum, e) => sum + (e.hours || 0), 0) || 0;
 
-      // Calculate percentage changes
-      const calcChange = (thisMonth: number, lastMonth: number) => {
-        if (lastMonth === 0) return thisMonth > 0 ? 100 : 0;
-        return ((thisMonth - lastMonth) / lastMonth) * 100;
+      // Calculate overdue total
+      const overdueTotal = overdueInvoicesRes.data?.reduce((sum, inv) => sum + (inv.total_inc_vat || 0), 0) || 0;
+
+      // Calculate draft total
+      const draftTotal = draftInvoicesRes.data?.reduce((sum, inv) => sum + (inv.total_inc_vat || 0), 0) || 0;
+
+      // Generate hours sparkline (14 days)
+      const generateHoursSparkline = () => {
+        if (!hoursTrendRes.data) return Array(14).fill(0);
+        const days: number[] = Array(14).fill(0);
+        hoursTrendRes.data.forEach(entry => {
+          const entryDate = new Date(entry.date);
+          const dayIndex = 13 - Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (dayIndex >= 0 && dayIndex < 14) {
+            days[dayIndex] += entry.hours || 0;
+          }
+        });
+        return days;
       };
 
-      // Generate sparkline data (14 days)
-      const generateSparkline = (items: { created_at: string }[] | null) => {
-        if (!items) return Array(14).fill(0);
+      // Generate project sparkline (14 days cumulative)
+      const generateProjectSparkline = () => {
+        if (!projectsTrendRes.data) return Array(14).fill(0);
         const days = Array(14).fill(0);
-        items.forEach(item => {
+        projectsTrendRes.data.forEach(item => {
           const dayIndex = 13 - Math.floor((now.getTime() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24));
           if (dayIndex >= 0 && dayIndex < 14) days[dayIndex]++;
         });
-        // Cumulative
         let cumulative = 0;
         return days.map(d => { cumulative += d; return cumulative; });
       };
 
-      return {
-        projects: projectsRes.count || 0,
-        estimates: estimatesRes.data?.length || 0,
-        customers: customersRes.count || 0,
-        totalEstimateValue,
-        projectsChange: calcChange(projectsThisMonth.count || 0, projectsLastMonth.count || 0),
-        estimatesChange: calcChange(estimatesThisMonth.count || 0, estimatesLastMonth.count || 0),
-        customersChange: calcChange(customersThisMonth.count || 0, customersLastMonth.count || 0),
-        projectsSparkline: generateSparkline(projectsTrend.data),
-        estimatesSparkline: generateSparkline(estimatesTrend.data),
-        customersSparkline: generateSparkline(customersTrend.data),
-      };
-    },
-  });
-
-  // Fetch recent activity (estimates only)
-  const { data: recentActivity } = useQuery({
-    queryKey: ["recent-activity"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
-
-      const { data: estimatesRes } = await supabase
-        .from("project_estimates")
-        .select("id, updated_at, project_id, projects!project_estimates_project_id_fkey(name)")
-        .eq("user_id", userData.user.id)
-        .order("updated_at", { ascending: false })
-        .limit(5);
-
-      const activities: ActivityItem[] = [];
-
-      estimatesRes?.forEach((e) => {
-        const project = e.projects as { name: string } | null;
-        activities.push({
-          id: e.id,
-          type: "estimate",
-          title: "Offert uppdaterad",
-          projectName: project?.name || "Okänt projekt",
-          date: new Date(e.updated_at || ""),
+      // Build upcoming deadlines
+      const deadlines: UpcomingDeadline[] = [];
+      
+      upcomingInvoicesRes.data?.forEach(inv => {
+        const dueDate = new Date(inv.due_date);
+        const daysLeft = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const customer = inv.customers as { name: string } | null;
+        deadlines.push({
+          id: inv.id,
+          type: "invoice",
+          title: inv.invoice_number || "Faktura",
+          subtitle: customer?.name || "Okänd kund",
+          dueDate,
+          daysLeft,
+          urgent: daysLeft <= 2,
         });
       });
 
-      return activities;
+      return {
+        activeWorkers: (activeWorkersRes.data as AttendanceRecord[]) || [],
+        totalHoursThisWeek,
+        activeProjects: activeProjectsRes.count || 0,
+        overdueInvoices: overdueInvoicesRes.data?.length || 0,
+        overdueTotal,
+        draftInvoices: draftInvoicesRes.data?.length || 0,
+        draftTotal,
+        hoursSparkline: generateHoursSparkline(),
+        projectsSparkline: generateProjectSparkline(),
+        upcomingDeadlines: deadlines,
+      };
     },
   });
 
@@ -173,25 +231,39 @@ const Dashboard = () => {
       return `${(value / 1000000).toFixed(1)}M kr`;
     }
     if (value >= 1000) {
-      return `${(value / 1000).toFixed(0)}k kr`;
+      return `${Math.round(value / 1000)}k kr`;
     }
     return `${value.toFixed(0)} kr`;
   };
 
+  const formatHours = (hours: number) => {
+    return `${hours.toFixed(1)}h`;
+  };
+
   const quickActions = [
     {
-      title: "Offerter",
-      description: "Skapa och hantera projektofferter",
+      title: "Ny offert",
       icon: Calculator,
       href: "/estimates",
-      gradient: "from-blue-500/5 via-transparent to-blue-500/10",
+      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
-      title: "Kunder",
-      description: "Hantera dina kundrelationer",
-      icon: Users,
-      href: "/customers",
-      gradient: "from-amber-500/5 via-transparent to-amber-500/10",
+      title: "Registrera tid",
+      icon: Clock,
+      href: "/time-reporting",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      title: "Nytt projekt",
+      icon: FolderKanban,
+      href: "/projects",
+      color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    },
+    {
+      title: "Ny faktura",
+      icon: Receipt,
+      href: "/invoices",
+      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     },
   ];
 
@@ -216,134 +288,278 @@ const Dashboard = () => {
             </p>
           </div>
 
+          {/* Quick action buttons */}
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((action) => (
+              <Button
+                key={action.title}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate(action.href)}
+              >
+                <action.icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{action.title}</span>
+              </Button>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Modern KPI Cards */}
+      {/* Primary KPI Cards - Most important metrics */}
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Projekt"
-          value={dashboardData?.projects ?? 0}
-          change={dashboardData?.projectsChange}
+          title="Personal på plats"
+          value={dashboardData?.activeWorkers.length ?? 0}
+          icon={UserCheck}
+          onClick={() => navigate("/attendance")}
+          accentColor="emerald"
+          delay={0}
+          subtitle="just nu"
+        />
+        <KpiCard
+          title="Timmar"
+          value={formatHours(dashboardData?.totalHoursThisWeek ?? 0)}
+          sparklineData={dashboardData?.hoursSparkline}
+          icon={Clock}
+          onClick={() => navigate("/time-reporting")}
+          accentColor="blue"
+          delay={80}
+          subtitle="denna vecka"
+        />
+        <KpiCard
+          title="Aktiva projekt"
+          value={dashboardData?.activeProjects ?? 0}
           sparklineData={dashboardData?.projectsSparkline}
           icon={FolderKanban}
           onClick={() => navigate("/projects")}
-          accentColor="primary"
-          delay={0}
-        />
-        <KpiCard
-          title="Offerter"
-          value={dashboardData?.estimates ?? 0}
-          change={dashboardData?.estimatesChange}
-          sparklineData={dashboardData?.estimatesSparkline}
-          icon={Calculator}
-          onClick={() => navigate("/estimates")}
-          accentColor="blue"
-          delay={80}
-        />
-        <KpiCard
-          title="Offertvärde"
-          value={formatCurrency(dashboardData?.totalEstimateValue ?? 0)}
-          sparklineData={dashboardData?.estimatesSparkline}
-          icon={Wallet}
-          onClick={() => navigate("/estimates")}
-          accentColor="emerald"
+          accentColor="violet"
           delay={160}
         />
         <KpiCard
-          title="Kunder"
-          value={dashboardData?.customers ?? 0}
-          change={dashboardData?.customersChange}
-          sparklineData={dashboardData?.customersSparkline}
-          icon={Users}
-          onClick={() => navigate("/customers")}
-          accentColor="amber"
+          title="Obetalda fakturor"
+          value={dashboardData?.overdueInvoices ?? 0}
+          icon={AlertCircle}
+          onClick={() => navigate("/invoices")}
+          accentColor={dashboardData?.overdueInvoices && dashboardData.overdueInvoices > 0 ? "red" : "primary"}
           delay={240}
+          subtitle={dashboardData?.overdueTotal ? formatCurrency(dashboardData.overdueTotal) : undefined}
         />
       </section>
 
-      {/* Quick Actions */}
-      <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <span className="h-1 w-1 rounded-full bg-primary" />
-          Snabbåtgärder
-        </h2>
-        <div className="grid gap-3 grid-cols-2">
-          {quickActions.map((action, index) => (
-            <Card
-              key={action.title}
-              className="group relative overflow-hidden cursor-pointer hover-lift border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5 animate-fade-in"
-              style={{ animationDelay: `${400 + index * 80}ms` }}
-              onClick={() => navigate(action.href)}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-              <CardContent className="relative p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary ring-1 ring-primary/20">
-                    <action.icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm text-foreground">{action.title}</h3>
-                    <p className="text-xs text-muted-foreground truncate hidden sm:block">
-                      {action.description}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Recent Activity - Compact */}
-      <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <span className="h-1 w-1 rounded-full bg-primary" />
-          Senaste aktivitet
-        </h2>
+      {/* Secondary row - Active workers + Upcoming deadlines */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        {/* Active Workers Card */}
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
-          <CardContent className="p-0">
-            {recentActivity && recentActivity.length > 0 ? (
-              <ul className="divide-y divide-border/50">
-                {recentActivity.map((activity, index) => (
-                  <li
-                    key={activity.id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors animate-fade-in"
-                    style={{ animationDelay: `${500 + index * 60}ms` }}
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-emerald-500" />
+                Personal på plats just nu
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/attendance")}>
+                Visa alla
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {dashboardData?.activeWorkers && dashboardData.activeWorkers.length > 0 ? (
+              <div className="space-y-3">
+                {dashboardData.activeWorkers.slice(0, 5).map((worker, index) => {
+                  const project = worker.projects as { name: string } | null;
+                  return (
+                    <div 
+                      key={worker.id} 
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors animate-fade-in"
+                      style={{ animationDelay: `${index * 60}ms` }}
+                    >
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-emerald-500/10 text-emerald-600 text-xs">
+                            {worker.guest_name?.substring(0, 2).toUpperCase() || "??"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {worker.guest_name || "Anonym"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {project?.name || "Okänt projekt"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {format(new Date(worker.check_in), "HH:mm")}
+                      </span>
+                    </div>
+                  );
+                })}
+                {dashboardData.activeWorkers.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center pt-2">
+                    +{dashboardData.activeWorkers.length - 5} fler på plats
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <UserCheck className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Ingen på plats</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Personal checkar in via QR-kod
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Deadlines Card */}
+        <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-amber-500" />
+                Kommande deadlines
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>
+                Visa alla
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {dashboardData?.upcomingDeadlines && dashboardData.upcomingDeadlines.length > 0 ? (
+              <div className="space-y-3">
+                {dashboardData.upcomingDeadlines.slice(0, 5).map((deadline, index) => (
+                  <div 
+                    key={deadline.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors animate-fade-in cursor-pointer"
+                    style={{ animationDelay: `${index * 60}ms` }}
+                    onClick={() => navigate("/invoices")}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                      <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div className={`rounded-lg p-2 ${deadline.urgent ? 'bg-red-500/10' : 'bg-amber-500/10'}`}>
+                      <Receipt className={`h-4 w-4 ${deadline.urgent ? 'text-red-500' : 'text-amber-500'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {activity.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {activity.projectName}
-                      </p>
+                      <p className="text-sm font-medium truncate">{deadline.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{deadline.subtitle}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDistanceToNow(activity.date, { addSuffix: true, locale: sv })}
-                    </span>
-                  </li>
+                    <Badge 
+                      variant={deadline.urgent ? "destructive" : "outline"}
+                      className="text-xs whitespace-nowrap"
+                    >
+                      {deadline.daysLeft === 0 ? "Idag" : deadline.daysLeft === 1 ? "Imorgon" : `${deadline.daysLeft} dagar`}
+                    </Badge>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="rounded-full bg-muted p-3 mb-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <CalendarClock className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <p className="text-sm font-medium text-foreground">Ingen aktivitet ännu</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Din senaste aktivitet visas här
+                <p className="text-sm font-medium text-foreground">Inga kommande deadlines</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fakturor som förfaller inom 7 dagar visas här
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
       </section>
+
+      {/* Draft invoices alert */}
+      {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+        <Card 
+          className="border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors"
+          onClick={() => navigate("/invoices")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-amber-500/10 p-2">
+                <Receipt className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {dashboardData.draftInvoices} utkast{dashboardData.draftInvoices > 1 ? "" : ""} att skicka
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Totalt värde: {formatCurrency(dashboardData.draftTotal)}
+                </p>
+              </div>
+              <Button variant="outline" size="sm">
+                Granska
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Additional KPIs - Secondary metrics */}
+      <section>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+          <span className="h-1 w-1 rounded-full bg-primary" />
+          Statistik
+        </h2>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <QuickStatCard
+            title="Offerter totalt"
+            icon={Calculator}
+            href="/estimates"
+            onClick={() => navigate("/estimates")}
+          />
+          <QuickStatCard
+            title="Kunder"
+            icon={Users}
+            href="/customers"
+            onClick={() => navigate("/customers")}
+          />
+          <QuickStatCard
+            title="Dagrapporter"
+            icon={TrendingUp}
+            href="/daily-reports"
+            onClick={() => navigate("/daily-reports")}
+          />
+          <QuickStatCard
+            title="Besiktningar"
+            icon={FolderKanban}
+            href="/inspections"
+            onClick={() => navigate("/inspections")}
+          />
+        </div>
+      </section>
     </div>
+  );
+};
+
+// Simple stat card for secondary navigation
+const QuickStatCard = ({ 
+  title, 
+  icon: Icon, 
+  onClick 
+}: { 
+  title: string; 
+  icon: React.ComponentType<{ className?: string }>; 
+  href: string;
+  onClick: () => void;
+}) => {
+  return (
+    <Card 
+      className="group cursor-pointer border-border/40 bg-card/50 hover:bg-muted/50 transition-all hover-lift"
+      onClick={onClick}
+    >
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className="rounded-lg bg-primary/10 p-2 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-sm font-medium">{title}</span>
+        <ArrowRight className="h-4 w-4 text-muted-foreground/50 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+      </CardContent>
+    </Card>
   );
 };
 
