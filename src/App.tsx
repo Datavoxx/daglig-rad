@@ -34,6 +34,7 @@ import AcceptInvitation from "@/pages/AcceptInvitation";
 import TimeReporting from "@/pages/TimeReporting";
 import Attendance from "@/pages/Attendance";
 import AttendanceScan from "@/pages/AttendanceScan";
+import DailyReports from "@/pages/DailyReports";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/invoices" element={<ProtectedModuleRoute module="invoices"><Invoices /></ProtectedModuleRoute>} />
               <Route path="/time-reporting" element={<ProtectedModuleRoute module="time-reporting"><TimeReporting /></ProtectedModuleRoute>} />
               <Route path="/attendance" element={<ProtectedModuleRoute module="attendance"><Attendance /></ProtectedModuleRoute>} />
+              <Route path="/daily-reports" element={<ProtectedModuleRoute module="daily-reports"><DailyReports /></ProtectedModuleRoute>} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
