@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.notify-new-account]
 verify_jwt = false
+
+[functions.request-accounting-integration]
+verify_jwt = false
