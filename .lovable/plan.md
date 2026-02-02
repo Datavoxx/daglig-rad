@@ -1,145 +1,156 @@
 
+## Plan: Tre huvudförbättringar
 
-## Lägg till RUT-avdrag och maxgränser för ROT/RUT
-
-### Bakgrund - Aktuella regler 2026
-
-Baserat på min research gäller följande regler för skatteavdrag:
-
-| Avdrag | Avdragsprocent | Maxbelopp/person/år | Tillämpning |
-|--------|----------------|---------------------|-------------|
-| **ROT** | 30% | 50 000 kr | Arbetskostnad för renovering, ombyggnad, tillbyggnad |
-| **RUT** | 50% | 75 000 kr | Arbetskostnad för hushållsnära tjänster |
-| **Kombinerat** | - | 75 000 kr | ROT + RUT tillsammans får inte överstiga 75 000 kr |
-
-### Vad som ska byggas
-
-#### 1. RUT-avdrag
-Lägg till stöd för RUT-avdrag med samma logik som ROT:
-- Separat switch för att aktivera RUT
-- Fast 50% avdragsprocent (ej valbart som ROT)
-- Beräknas på arbetskostnader märkta som RUT-berättigade
-
-#### 2. Maxgränser med varningar
-Visa tydliga varningar när beräknat avdrag överstiger maxgränser:
-- ROT-avdrag > 50 000 kr → Varning
-- RUT-avdrag > 75 000 kr → Varning
-- ROT + RUT > 75 000 kr → Varning
-
-#### 3. Uppdaterad UI
-Kombinera ROT och RUT i en gemensam "Skatteavdrag"-panel:
-- Visa båda avdragen med respektive switch
-- Visa beräknat avdrag för varje typ
-- Visa kombinerad summa med maxgräns-info
+Jag har analyserat koden och tagit fram en plan för de tre områdena du nämnde.
 
 ---
 
-### Teknisk implementation
+### 1. Artikelsektion på offertsidan
 
-#### Databas: Nya kolumner
+**Vad ska byggas:**
+En ny sektion högst upp på offertsidan (efter projektbeskrivningen) där användaren kan lägga till artiklar från en artikeldatabas. Dessa artiklar fylls sedan automatiskt i offertpostlistan.
 
+**Teknisk implementation:**
+
+| Komponent | Beskrivning |
+|-----------|-------------|
+| Ny databastabell `articles` | Sparar artiklar med namn, beskrivning, enhet, standardpris, artikel-kategori |
+| `ArticleLibrarySection.tsx` | Ny komponent för att välja och lägga till artiklar |
+| Uppdatera `EstimateBuilder.tsx` | Lägg till sektionen efter röstkontrollen |
+| Settings-flik | Lägg till artikelhantering i Inställningar |
+
+**Databas-schema för `articles`:**
 ```sql
-ALTER TABLE project_estimates 
-ADD COLUMN rut_enabled boolean DEFAULT false,
-ADD COLUMN rut_percent numeric DEFAULT 50;
+CREATE TABLE articles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id),
+  name text NOT NULL,
+  description text,
+  article_category text DEFAULT 'Material',
+  unit text DEFAULT 'st',
+  default_price numeric DEFAULT 0,
+  is_active boolean DEFAULT true,
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 ```
-
-#### Frontend: State och beräkningar
-
-Uppdatera `useEstimate.ts`:
-```typescript
-// Ny state
-rutEnabled: boolean;
-rutPercent: number; // Fast 50%
-
-// Beräkningar
-const rutEligibleLaborCost = items
-  .filter(item => item.type === "labor" && item.rut_eligible)
-  .reduce((sum, item) => sum + item.subtotal, 0);
-
-const rutEligibleWithVat = rutEligibleLaborCost * 1.25;
-const rutAmount = rutEnabled ? rutEligibleWithVat * 0.5 : 0;
-
-// Maxgränser
-const ROT_MAX = 50000;
-const RUT_MAX = 75000;
-const COMBINED_MAX = 75000;
-
-const rotCapped = Math.min(rotAmount, ROT_MAX);
-const rutCapped = Math.min(rutAmount, RUT_MAX);
-const combinedCapped = Math.min(rotCapped + rutCapped, COMBINED_MAX);
-```
-
-#### Frontend: Ny komponent
-
-Skapa `TaxDeductionPanel.tsx` som ersätter `RotPanel.tsx`:
-- Toggle för ROT (30%)
-- Toggle för RUT (50%)
-- Visar beräknat avdrag för varje typ
-- Varning om maxgräns överskrids
-- Info-tooltip som förklarar reglerna
-
-#### Uppdatera tabell
-
-Lägg till RUT-kolumn i `EstimateTable.tsx`:
-- Checkbox för RUT-berättigad (liknande ROT)
-- Endast synlig när RUT är aktiverat
-- Endast för arbetsrader (samma som ROT)
-
-#### PDF-generering
-
-Uppdatera `generateQuotePdf.ts` för att inkludera:
-- RUT-avdrag om aktiverat
-- Visa maxgränser
-- Korrekt "Att betala" efter båda avdragen
 
 ---
 
-### Filer som skapas/ändras
+### 2. Begränsade behörigheter för anställda
+
+**Vad ska ändras:**
+Anställda ska **endast** ha tillgång till:
+- Personalliggare (attendance)
+- Dagrapporter (daily_reports via projekts dagbok)
+- Tidsrapport (time-reporting)
+
+De ska **inte** ha tillgång till full projektkontroll, kunder, offerter, fakturor eller inställningar.
+
+**Nuvarande status:**
+Edge-funktionen `accept-invitation` ger redan begränsade moduler: `["dashboard", "projects", "time-reporting", "attendance"]`. Men anställda har fortfarande tillgång till hela projektvyn.
+
+**Ändringar:**
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/migrations/...` | Lägg till `rut_enabled`, `rut_percent` kolumner |
-| `src/hooks/useEstimate.ts` | RUT-state och beräkningar med maxgränser |
-| `src/components/estimates/TaxDeductionPanel.tsx` | **NY** - Ersätter RotPanel |
-| `src/components/estimates/RotPanel.tsx` | **TA BORT** - Ersätts av TaxDeductionPanel |
-| `src/components/estimates/EstimateTable.tsx` | Lägg till RUT-checkbox |
-| `src/components/estimates/EstimateBuilder.tsx` | Använd TaxDeductionPanel |
-| `src/lib/generateQuotePdf.ts` | RUT i PDF |
-| `src/lib/generateEstimatePdf.ts` | RUT i PDF (om finns) |
+| `accept-invitation/index.ts` | Ta bort `projects` från behörigheter, lägg till `daily-reports` |
+| `useUserPermissions.ts` | Lägg till `daily-reports` som modul |
+| `ProjectView.tsx` | Begränsa vilka tabbar anställda ser (endast Dagbok, Plan om tillåtet) |
+| Ny route `/daily-reports` | Skapa en dedikerad dagrapportsida för anställda |
+| Uppdatera navigation | Visa "Dagrapporter" istället för "Projekt" för anställda |
 
----
-
-### Ny UI-design för skatteavdragspanelen
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│  🏠 Skatteavdrag                                        │
-├─────────────────────────────────────────────────────────┤
-│  ROT-avdrag (30%)                          [  Toggle  ] │
-│  Berättigad arbetskostnad: 45 000 kr                    │
-│  Beräknat avdrag: 13 500 kr (max 50 000 kr)             │
-│                                                         │
-│  ─────────────────────────────────────────────────────  │
-│                                                         │
-│  RUT-avdrag (50%)                          [  Toggle  ] │
-│  Berättigad arbetskostnad: 12 000 kr                    │
-│  Beräknat avdrag: 6 000 kr (max 75 000 kr)              │
-│                                                         │
-│  ─────────────────────────────────────────────────────  │
-│                                                         │
-│  ⚠️ Totalt avdrag: 19 500 kr                            │
-│     (max 75 000 kr kombinerat per person/år)            │
-└─────────────────────────────────────────────────────────┘
+**Ny modulstruktur för anställda:**
+```
+["attendance", "time-reporting", "daily-reports"]
 ```
 
 ---
 
-### Resultat efter implementation
+### 3. Uppdaterad ekonomisk översikt i projektvyn
 
-- **ROT-avdrag**: 30% med maxgräns 50 000 kr per person/år
-- **RUT-avdrag**: 50% med maxgräns 75 000 kr per person/år
-- **Kombinerad gräns**: Max 75 000 kr totalt per person/år
-- **Varningar**: Tydliga varningar när gränser överskrids
-- **PDF**: Båda avdragen visas korrekt i offerter
+**Vad ska ändras:**
+Ersätt "Budget" med "Utgifter" och visa detaljerad ekonomisk information.
 
+**Ny layout för "Ekonomisk översikt":**
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│  📊 Ekonomisk översikt                                  │
+├─────────────────────────────────────────────────────────┤
+│  Offertbelopp                         461 438 kr        │
+│                                                         │
+│  ▼ Utgifter                          -125 340 kr        │
+│    ├─ Leverantörsfakturor             85 000 kr         │
+│    └─ Arbetskostnad (timmar)          40 340 kr         │
+│                                                         │
+│  ▼ ÄTA (godkända)                    +28 500 kr         │
+│    └─ 3 godkända poster                                 │
+│                                                         │
+│  ─────────────────────────────────────────────────────  │
+│  Beräknad marginal                   364 598 kr         │
+│  ████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░  27% utnyttjat │
+│                                                         │
+│  ⚠️ Obs! Denna kalkyl baseras endast på data som        │
+│     lagts in i systemet. Poster som saknas påverkar     │
+│     inte beräkningen.                                   │
+│                                                         │
+│  💡 Tips! Se till att anställda valt rätt debiteringstyp│
+│     vid tidrapportering för korrekt kostnadskalkyl.     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Teknisk implementation:**
+
+| Fil | Ändring |
+|-----|---------|
+| `ProjectOverviewTab.tsx` | Ny `EconomicOverviewCard` komponent med collapsible-sektioner |
+| Nya queries | Hämta `vendor_invoices`, `time_entries` med `billing_types.hourly_rate`, `project_ata` med status="approved" |
+| Beräkningar | Utgifter = leverantörsfakturor + (timmar × timpris), ÄTA = godkända poster |
+| UI | Progress bar för % utnyttjat, varningar/tips |
+
+**Beräkningslogik:**
+```typescript
+// Utgifter
+const vendorTotal = vendorInvoices.reduce((sum, inv) => sum + inv.total_inc_vat, 0);
+const laborCost = timeEntries.reduce((sum, entry) => 
+  sum + (entry.hours * (entry.billing_types?.hourly_rate || 0)), 0);
+const totalExpenses = vendorTotal + laborCost;
+
+// ÄTA (endast godkända)
+const approvedAtaTotal = atas
+  .filter(a => a.status === 'approved')
+  .reduce((sum, a) => sum + (a.subtotal || 0), 0);
+
+// Marginal och procent
+const margin = (linkedEstimate?.total_incl_vat || 0) + approvedAtaTotal - totalExpenses;
+const usedPercent = ((totalExpenses) / ((linkedEstimate?.total_incl_vat || 0) + approvedAtaTotal)) * 100;
+```
+
+---
+
+### Sammanfattning av filer som ändras/skapas
+
+| Kategori | Fil | Typ |
+|----------|-----|-----|
+| **Artiklar** | `supabase/migrations/xxx_create_articles.sql` | Ny |
+| | `src/components/estimates/ArticleLibrarySection.tsx` | Ny |
+| | `src/components/settings/ArticleManager.tsx` | Ny |
+| | `src/components/estimates/EstimateBuilder.tsx` | Ändra |
+| | `src/pages/Settings.tsx` | Ändra |
+| **Behörigheter** | `supabase/functions/accept-invitation/index.ts` | Ändra |
+| | `src/hooks/useUserPermissions.ts` | Ändra |
+| | `src/pages/DailyReports.tsx` | Ny |
+| | `src/components/layout/AppLayout.tsx` | Ändra |
+| | `src/App.tsx` | Ändra |
+| **Ekonomisk översikt** | `src/components/projects/ProjectOverviewTab.tsx` | Ändra |
+| | `src/components/projects/EconomicOverviewCard.tsx` | Ny |
+
+---
+
+### Prioriteringsordning
+
+1. **Ekonomisk översikt** - Minst invasiv, bra att börja med
+2. **Behörigheter för anställda** - Kräver ändring i edge function och navigation
+3. **Artikelsektion** - Störst scope, ny databastabell och flera komponenter
