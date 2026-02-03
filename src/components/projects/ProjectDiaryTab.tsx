@@ -105,10 +105,10 @@ export default function ProjectDiaryTab({ projectId, projectName }: ProjectDiary
     }
   };
 
-  const handleReportSaved = (reportId: string) => {
+  const handleReportSaved = () => {
     setShowCreateForm(false);
     fetchReports();
-    navigate(`/reports/${reportId}`);
+    toast.success("Dagrapport sparad");
   };
 
   const handleViewReport = (reportId: string) => {
