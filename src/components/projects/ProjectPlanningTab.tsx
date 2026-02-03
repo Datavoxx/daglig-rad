@@ -79,6 +79,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   const [startDate, setStartDate] = useState<Date>(getNextMonday(new Date()));
   const finalTranscriptRef = useRef<string>("");
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchPlan();
@@ -398,8 +399,6 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   }
 
   // View state
-  const isMobile = useIsMobile();
-  
   if (viewState === "view" && plan) {
     return (
       <div className="space-y-4">
