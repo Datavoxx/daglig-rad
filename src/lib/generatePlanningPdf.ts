@@ -102,8 +102,8 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
 
   // === PAGE 1: Cover Page ===
   
-  // Background accent - BYGGIO BLUE
-  doc.setFillColor(...PDF_COLORS.BYGGIO_BLUE);
+  // Background accent - BYGGIO GREEN
+  doc.setFillColor(...PDF_COLORS.BYGGIO_GREEN);
   doc.rect(0, 0, pageWidth, 8, "F");
   
   // Logo in top left
