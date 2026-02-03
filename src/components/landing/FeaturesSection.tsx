@@ -194,9 +194,6 @@ const FeaturesSection = () => {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-10 sm:mb-16">
-          <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Funktioner
-          </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground mb-4">
             Enklare vardag för dig som bygger
           </h2>

@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, FolderKanban, Calculator, Wallet, Users, TrendingUp, Sparkles } from "lucide-react";
 import TiltCard from "./TiltCard";
 import SparklineChart from "../dashboard/SparklineChart";
+
+const rotatingWords = ["projekt", "fakturor", "offerter", "dagrapporter", "arbetsorder"];
 
 // Mock data for dashboard visualization
 const mockKpiData = [
@@ -22,6 +25,22 @@ const colorClasses: Record<string, { bg: string; icon: string }> = {
 };
 
 const HeroSection = () => {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsVisible(false);
+      
+      setTimeout(() => {
+        setWordIndex((prev) => (prev + 1) % rotatingWords.length);
+        setIsVisible(true);
+      }, 300);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Background gradient - cleaner, more subtle */}
@@ -38,8 +57,12 @@ const HeroSection = () => {
           Få full kontroll på dina
         </h1>
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold tracking-tighter mb-8 animate-fade-in">
-          <span className="text-gradient bg-gradient-to-r from-primary via-primary to-emerald-500">
-            byggprojekt
+          <span 
+            className={`text-gradient bg-gradient-to-r from-primary via-primary to-emerald-500 inline-block transition-all duration-300 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+            }`}
+          >
+            {rotatingWords[wordIndex]}
           </span>
         </h1>
 
