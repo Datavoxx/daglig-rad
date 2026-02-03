@@ -1,264 +1,156 @@
 
 
-## Plan: Utöka projektrapporten med detaljerad information
+## Plan: Realistiska AI-agentbeskrivningar fokuserade på röstinspelning
 
-### Identifierade problem
-
-| Sektion | Problem | Lösning |
-|---------|---------|---------|
-| Projektplanering | Saknar fasbeskrivningar | Lägg till `description` för varje fas |
-| Arbetsdagbok | Kompakt, visar bara 2 work_items | Visa ALL data: roller, timmar/person, avvikelser, material, anteckningar |
-| Arbetsorder | Saknar beskrivning | Lägg till `description`-kolumn |
-| Projektfiler | Bara filnamn, ingen förhandsgranskning | Bädda in bilder direkt i PDF:en |
+### Kärna: Vad agenterna faktiskt gör
+Alla tre agenter gör samma sak tekniskt: **tar röstinspelning och strukturerar den till rätt format**. Det eliminerar adminarbete - inte genom att vara "smarta", utan genom att förstå vad du säger och lägga in det rätt.
 
 ---
 
-## Lösning
+## Ändringar
 
-### 1. Projektplanering - Lägg till fasbeskrivningar
+### Fil 1: `src/components/landing/AIAgentsSection.tsx`
 
-**Nuvarande kod (rad 325-347):**
+| Agent | Nuvarande | Nytt |
+|-------|-----------|------|
+| Saga | "hjälper dig med prissättning" | "Du pratar – hon skriver offerten" |
+| Bo | "håller koll på projektets alla faser" | "Du beskriver – han ritar tidplanen" |
+| Ulla | "skapar arbetsorder automatiskt" | "Du berättar – hon dokumenterar" |
+
+**Rad 8-33 - Ny agents-array:**
 ```typescript
-const planData = plan.phases.map((phase, index) => [
-  `Fas ${index + 1}`,
-  phase.name,
-  `Vecka ${phase.start_week}`,
-  `${phase.duration_weeks} veckor`,
-]);
-```
-
-**Ny struktur:**
-- Behåll tabellen för översikt
-- Lägg till "FASDETALJER"-sektion efter tabellen (som i planerings-PDF:en)
-- Visa `description` för varje fas
-
-**Ändringar:**
-1. Uppdatera `Phase` interface med `description?: string | null`
-2. Efter tabellen, loopa genom faserna och visa:
-   - Fasnamn + vecka
-   - Beskrivning (om den finns)
-
----
-
-### 2. Arbetsdagbok - Visa full information
-
-**Nuvarande struktur:**
-```typescript
-interface DiaryReport {
-  id, report_date, headcount, total_hours, work_items, notes
-}
-```
-
-**Saknas i interface:**
-- `roles` - vilka roller som arbetade
-- `hours_per_person` - timmar per person
-- `deviations` - avvikelser
-- `extra_work` - extraarbete
-- `materials_delivered` - levererat material
-- `materials_missing` - saknat material
-
-**Lösning:**
-1. Utöka `DiaryReport` interface med alla fält
-2. Ge varje dagrapport en egen sektion med:
-   - Datum, personal, timmar
-   - Lista: "Utfört arbete" (alla work_items)
-   - Lista: "Avvikelser" (om finns)
-   - Lista: "Extraarbete" (om finns)
-   - Lista: "Material" (levererat/saknat)
-   - Text: "Anteckningar" (notes)
-
-**Ny layout per rapport:**
-```text
-┌─────────────────────────────────────────────────────────┐
-│ 3 februari 2026                                         │
-│ Personal: 8 • Timmar totalt: 60                         │
-├─────────────────────────────────────────────────────────┤
-│ Utfört arbete:                                          │
-│   • Målning av två sidor av väggen                      │
-│   • Preparering av yta                                  │
-│                                                         │
-│ Avvikelser:                                             │
-│   • [Om det finns avvikelser]                           │
-│                                                         │
-│ Anteckningar:                                           │
-│   "Kunden var på plats och godkände..."                 │
-└─────────────────────────────────────────────────────────┘
+const agents = [
+  {
+    slug: "saga",
+    name: "Saga",
+    title: "Kalkylexpert",
+    description: "Du pratar in projektet – Saga skapar offerten. Slipp sitta och skriva varje post manuellt.",
+    avatar: sagaAvatar,
+    skills: ["Offerter", "Kalkylmallar", "ROT/RUT-beräkning"],
+  },
+  {
+    slug: "bo",
+    name: "Bo",
+    title: "Projektplanerare", 
+    description: "Du beskriver projektet – Bo ritar upp tidplanen. Faser, veckor och parallella arbeten på plats direkt.",
+    avatar: boAvatar,
+    skills: ["Tidsplaner", "Gantt-schema", "Fasplanering"],
+  },
+  {
+    slug: "ulla",
+    name: "Ulla",
+    title: "Dokumentationsassistent",
+    description: "Du berättar vad som hänt – Ulla skapar rapporten. Dagbok, ÄTA och arbetsorder utan pappersarbete.",
+    avatar: ullaAvatar,
+    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder"],
+  },
+];
 ```
 
 ---
 
-### 3. Arbetsorder - Lägg till beskrivning
+### Fil 2: `src/pages/ai/AgentDetail.tsx`
 
-**Nuvarande tabell:**
-| Order-nr | Titel | Tilldelad | Förfaller | Status |
+#### Saga (rad 29-52)
 
-**Ny tabell:**
-| Order-nr | Titel | Beskrivning | Tilldelad | Förfaller | Status |
+**heroDescription:**
+```
+"Slipp skriva offerter för hand. Prata in vad projektet innehåller – Saga strukturerar poster, mängder och belopp medan du pratar."
+```
 
-**Alternativ layout (om beskrivning är lång):**
-- Visa varje arbetsorder som ett kort/block istället för tabellrad
-- Beskrivning under rubriken
+**fullDescription:**
+```
+"Saga tar din röstinspelning och gör den till en färdig offert. Du säger 'rivning av kök, 8 timmar á 650 kronor' – hon lägger in det under rätt kategori med rätt beräkning. ROT- och RUT-avdrag beräknas automatiskt. Du får en proffsig offert utan att röra tangentbordet."
+```
+
+**Capabilities:**
+1. **Röststyrd offert** - "Prata in moment, mängder och priser. Saga lägger in allt i rätt format – du slipper skriva och formatera."
+2. **Automatisk kategorisering** (byt från "Smart prissättning") - "Saga förstår att 'rivning' är Bygg och 'måla vägg' är Målning. Du behöver inte sortera manuellt."
+3. **Kalkylmallar** - "Spara vanliga projekt som mallar. Nästa gång behöver du bara prata in ändringarna."
+
+**Skills:** ["Offerter", "Kalkylmallar", "ROT/RUT-beräkning", "Artikelbibliotek"]
+(Ta bort "Prissättning" - hon prissätter inte, hon tar det du säger)
 
 ---
 
-### 4. Projektfiler - Bädda in bilder
+#### Bo (rad 54-77)
 
-**Nuvarande:**
-```typescript
-interface ProjectFile {
-  id, file_name, category, created_at
-}
+**heroDescription:**
+```
+"Slipp rita tidplaner manuellt. Beskriv projektet med rösten – Bo skapar ett Gantt-schema med faser och tidsuppskattningar."
 ```
 
-**Saknas:** `storage_path` för att kunna hämta bilderna
-
-**Lösning:**
-
-1. **Uppdatera datahämtningen** i `ProjectOverviewTab.tsx`:
-```typescript
-supabase.from("project_files")
-  .select("id, file_name, category, created_at, storage_path")
+**fullDescription:**
+```
+"Bo tar din projektbeskrivning och gör den till en visuell tidplan. Du säger 'först rivning i två veckor, sen el och VVS parallellt' – han ritar upp det med rätt faser och veckor. Du får en tidplan att visa kunden utan att sitta och pilla i Excel."
 ```
 
-2. **Uppdatera interface:**
-```typescript
-interface ProjectFile {
-  id: string;
-  file_name: string;
-  category: string | null;
-  created_at: string;
-  storage_path: string; // Lägg till
-}
-```
+**Capabilities:**
+1. **Automatisk tidplan** - "Beskriv projektet i stora drag – Bo skapar faser med veckonummer och längd automatiskt."
+2. **Gantt-schema** - "Visuell översikt över hela projektet. Se alla faser och hur de ligger i tid."
+3. **Parallella faser** (byt från "Resursplanering") - "Bo lägger upp arbeten som kan ske samtidigt sida vid sida i schemat."
 
-3. **Bädda in bilder i PDF:en:**
-- För varje fil med `category === "image"`:
-  - Hämta bilden från storage via `supabase.storage.from("project-files").getPublicUrl(storage_path)`
-  - Konvertera till base64
-  - Lägg in i PDF:en med `doc.addImage()`
-- Icke-bilder visas bara som filnamn
-
-**Ny layout:**
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Projektfiler & bilagor                                  │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│ ┌─────────────────────┐                                 │
-│ │                     │   ladda-ned-(10).png            │
-│ │      [BILD]         │   Uppladdad: 3 februari 2026    │
-│ │                     │                                 │
-│ └─────────────────────┘                                 │
-│                                                         │
-│ ┌─────────────────────┐                                 │
-│ │                     │   fasad-foto.jpg                │
-│ │      [BILD]         │   Uppladdad: 2 februari 2026    │
-│ │                     │                                 │
-│ └─────────────────────┘                                 │
-│                                                         │
-│ Övriga filer:                                           │
-│   • rapport.pdf (Dokument) - 1 februari 2026            │
-└─────────────────────────────────────────────────────────┘
-```
+**Skills:** ["Tidsplaner", "Gantt-schema", "Fasplanering"]
+(Oförändrat - dessa stämmer)
 
 ---
 
-## Tekniska ändringar
+#### Ulla (rad 79-103)
 
-### Fil 1: `src/lib/generateCompleteProjectPdf.ts`
-
-**Ändringar:**
-
-1. **Uppdatera `Phase` interface (rad 51-56):**
-```typescript
-interface Phase {
-  name: string;
-  color: string;
-  start_week: number;
-  duration_weeks: number;
-  description?: string | null;  // Lägg till
-}
+**heroDescription:**
+```
+"Slipp skriva dagrapporter vid datorn. Prata in vad som hänt på bygget – Ulla strukturerar allt medan du kör hem."
 ```
 
-2. **Uppdatera `DiaryReport` interface (rad 65-72):**
-```typescript
-interface DiaryReport {
-  id: string;
-  report_date: string;
-  headcount: number | null;
-  total_hours: number | null;
-  hours_per_person: number | null;  // Lägg till
-  work_items: string[] | null;
-  roles: string[] | null;           // Lägg till
-  deviations: any | null;           // Lägg till
-  extra_work: string[] | null;      // Lägg till
-  materials_delivered: string[] | null;  // Lägg till
-  materials_missing: string[] | null;    // Lägg till
-  notes: string | null;
-}
+**fullDescription:**
+```
+"Ulla tar din röstinspelning från bilen och gör den till en strukturerad rapport. Du säger 'idag var vi fyra snickare, monterade kök och väntade på elcentralen' – hon skapar en dagrapport med bemanning, utfört arbete och avvikelser. ÄTA-underlag på samma sätt."
 ```
 
-3. **Uppdatera `ProjectFile` interface (rad 94-99):**
-```typescript
-interface ProjectFile {
-  id: string;
-  file_name: string;
-  category: string | null;
-  created_at: string;
-  storage_path: string;  // Lägg till
-}
-```
+**Capabilities:**
+1. **Dagrapporter** - "Berätta vad som hänt idag. Ulla strukturerar bemanning, timmar, utfört arbete och avvikelser."
+2. **ÄTA-hantering** - "Nämn ändringar eller tilläggsarbeten – Ulla dokumenterar dem separat med orsak och omfattning."
+3. **Arbetsorder** - "Beskriv uppgiften med rösten – Ulla fyller i titel, beskrivning och tilldelning åt dig."
 
-4. **Ändra planerings-sektionen (rad 317-348):**
-- Behåll tabellen för översikt
-- Lägg till loop efter tabellen som visar beskrivningar per fas
-
-5. **Ändra arbetsdagbok-sektionen (rad 350-384):**
-- Ersätt kompakt tabell med detaljerade block per rapport
-- Visa alla fält som finns i databasen
-
-6. **Ändra arbetsorder-sektionen (rad 423-450):**
-- Lägg till beskrivningskolumn eller byt till block-layout
-
-7. **Ändra projektfiler-sektionen (rad 452-477):**
-- Hämta bilder från storage
-- Bädda in bilder i PDF:en med `doc.addImage()`
-- Visa icke-bilder som lista
+**Skills:** ["Dagrapporter", "ÄTA-hantering", "Arbetsorder"]
+(Ta bort "Egenkontroller" om det inte finns implementerat)
 
 ---
 
-### Fil 2: `src/components/projects/ProjectOverviewTab.tsx`
+## CTA-sektionen (rad 241-265)
 
-**Ändring rad 148-151:**
-Lägg till `storage_path` i select:
+**Nuvarande rubrik:** "Redo att träffa {agent.name}?"
 
-```typescript
-supabase.from("project_files")
-  .select("id, file_name, category, created_at, storage_path")
-  .eq("project_id", project.id)
-  .order("created_at"),
+**Ny rubrik:** "Slipp adminarbetet"
+
+**Ny text:** 
 ```
+"Testa {agent.name} gratis. Prata in ditt första projekt och se hur mycket tid du sparar."
+```
+
+**Knappar:**
+- Primär: "Testa gratis" (istället för "Skapa konto gratis")
+- Sekundär: "Se hur det fungerar" → länka till /#how-it-works
 
 ---
 
 ## Sammanfattning
 
-| Fil | Ändring |
-|-----|---------|
-| `generateCompleteProjectPdf.ts` | Utöka interfaces, visa fasbeskrivningar, detaljerad dagbok, arbetsorderbeskrivningar, bädda in bilder |
-| `ProjectOverviewTab.tsx` | Hämta `storage_path` för projektfiler |
+| Agent | Vad elimineras | Realistiskt löfte |
+|-------|----------------|-------------------|
+| Saga | Manuellt offertskrivande | "Du pratar – hon skriver" |
+| Bo | Manuell tidplanering | "Du beskriver – han ritar" |
+| Ulla | Skriva rapporter vid datorn | "Du berättar – hon dokumenterar" |
 
-### Förväntad PDF-struktur efteråt
+### Borttaget (falskt)
+- "föreslår priser" 
+- "lär sig från tidigare offerter"
+- "beroenden och kritiska punkter"
+- "Resursplanering"
+- "kostnadsuppskattning" för ÄTA
 
-```text
-Sida 1: Försättsblad (oförändrat)
-Sida 2: Projektöversikt + Offertposter (oförändrat)
-Sida 3: ÄTA-arbeten (oförändrat)
-Sida 4: Projektplanering (UTÖKAT med fasbeskrivningar)
-Sida 5-6: Arbetsdagbok (UTÖKAT med all information)
-Sida 7: Arbetsorder (UTÖKAT med beskrivningar)
-Sida 8: Projektfiler (UTÖKAT med inbäddade bilder)
-Sida 9: Leverantörsfakturor (oförändrat om finns)
-Sida 10: Ekonomisk sammanfattning (oförändrat)
-```
+### Tillagt (sant)
+- "Automatisk kategorisering" (Saga mappar termer)
+- "Parallella faser" (Bo stödjer detta)
+- Fokus på röstinspelning genomgående
 
