@@ -48,6 +48,7 @@ export function VendorInvoiceUpload({ open, onOpenChange }: VendorInvoiceUploadP
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState(false);
   
   // Form state
   const [supplierName, setSupplierName] = useState("");
@@ -79,6 +80,7 @@ export function VendorInvoiceUpload({ open, onOpenChange }: VendorInvoiceUploadP
     setFile(null);
     setExtractedData(null);
     setExtractionError(null);
+    setProjectError(false);
     setSupplierName("");
     setInvoiceNumber("");
     setInvoiceDate(format(new Date(), "yyyy-MM-dd"));
@@ -364,9 +366,9 @@ export function VendorInvoiceUpload({ open, onOpenChange }: VendorInvoiceUploadP
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Projekt</Label>
-                    <Select value={projectId} onValueChange={setProjectId}>
-                      <SelectTrigger>
+                    <Label>Projekt *</Label>
+                    <Select value={projectId} onValueChange={(v) => { setProjectId(v); setProjectError(false); }}>
+                      <SelectTrigger className={projectError ? "border-destructive" : ""}>
                         <SelectValue placeholder="Välj projekt" />
                       </SelectTrigger>
                       <SelectContent>
@@ -377,6 +379,9 @@ export function VendorInvoiceUpload({ open, onOpenChange }: VendorInvoiceUploadP
                         ))}
                       </SelectContent>
                     </Select>
+                    {projectError && (
+                      <p className="text-xs text-destructive">Projekt måste väljas</p>
+                    )}
                   </div>
                 </div>
 
@@ -430,7 +435,14 @@ export function VendorInvoiceUpload({ open, onOpenChange }: VendorInvoiceUploadP
           </Button>
           <div className="flex-1" />
           <Button
-            onClick={() => saveMutation.mutate()}
+            onClick={() => {
+              if (!projectId) {
+                setProjectError(true);
+                toast.error("Du måste välja ett projekt");
+                return;
+              }
+              saveMutation.mutate();
+            }}
             disabled={!file || isExtracting || saveMutation.isPending || !supplierName}
           >
             <Save className="h-4 w-4 mr-2" />
