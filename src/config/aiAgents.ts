@@ -1,7 +1,7 @@
 // Centraliserad konfiguration för AI-agenter i Byggio
 // Tre agenter: Saga (Offerter & Mallar), Bo (Planering), Ulla (Dokumentation)
 
-import sagaAvatar from "@/assets/saga-avatar.png";
+import sagaAvatar from "@/assets/saga-avatar-transparent.png";
 import boAvatar from "@/assets/bo-avatar.png";
 import ullaAvatar from "@/assets/ulla-avatar.png";
 
