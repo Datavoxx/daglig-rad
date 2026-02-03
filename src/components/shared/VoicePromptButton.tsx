@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Loader2, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -151,9 +152,17 @@ export function VoicePromptButton({
             </Button>
           </div>
 
-          <div className="text-sm bg-muted/50 rounded p-3 max-h-32 overflow-y-auto">
-            <p className="font-medium mb-1">Du sa:</p>
-            <p className="text-muted-foreground">"{finalTranscript}"</p>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Redigera vid behov:</p>
+            <Textarea
+              value={finalTranscript}
+              onChange={(e) => {
+                setFinalTranscript(e.target.value);
+                finalTranscriptRef.current = e.target.value;
+              }}
+              className="min-h-[80px] resize-none text-sm"
+              autoFocus
+            />
           </div>
 
           <div className="flex gap-2">

@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Loader2, Check, Mic, MicOff } from "lucide-react";
+import { Plus, Trash2, Loader2, Check, Mic, MicOff, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -48,6 +49,8 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [pendingTranscript, setPendingTranscript] = useState("");
+  const [showVoiceConfirmation, setShowVoiceConfirmation] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef<string>("");
 
@@ -96,7 +99,7 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
     toast.success("Inspelning startad – säg dina ändringar");
   };
 
-  const stopVoiceEdit = async () => {
+  const stopVoiceEdit = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -110,11 +113,19 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
       return;
     }
 
+    // Show confirmation dialog instead of executing directly
+    setPendingTranscript(transcript);
+    setShowVoiceConfirmation(true);
+  };
+
+  const executeVoiceCommand = async () => {
+    setShowVoiceConfirmation(false);
     setIsProcessingVoice(true);
+
     try {
       const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
         body: {
-          transcript,
+          transcript: pendingTranscript,
           currentData: editedTemplate,
           documentType: "template",
         },
@@ -131,7 +142,14 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
       toast.error("Kunde inte tolka röständringarna");
     } finally {
       setIsProcessingVoice(false);
+      setPendingTranscript("");
     }
+  };
+
+  const cancelVoiceCommand = () => {
+    setShowVoiceConfirmation(false);
+    setPendingTranscript("");
+    toast.info("Kommando avbrutet");
   };
 
   const updateHourlyRate = (resource: string, value: number) => {
@@ -189,6 +207,45 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
 
   return (
     <div className="space-y-6">
+      {/* Voice confirmation dialog */}
+      {showVoiceConfirmation && (
+        <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-top-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Bekräfta röstkommando</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelVoiceCommand}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Redigera vid behov:</p>
+            <Textarea
+              value={pendingTranscript}
+              onChange={(e) => setPendingTranscript(e.target.value)}
+              className="min-h-[80px] resize-none text-sm"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={cancelVoiceCommand}>
+              Avbryt
+            </Button>
+            <Button className="flex-1" onClick={executeVoiceCommand} disabled={isProcessingVoice}>
+              {isProcessingVoice ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Bearbetar...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Kör kommando
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header with voice button */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Granska mall</h3>
