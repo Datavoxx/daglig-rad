@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Mic, Calculator, FileText, Calendar, BarChart3, Users, ClipboardList, FileCheck, Wrench, Sparkles } from "lucide-react";
+import { ArrowLeft, Mic, FolderOpen, FileText, Calendar, BarChart3, Layers, ClipboardList, FileCheck, Wrench, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LandingNavbar from "@/components/landing/LandingNavbar";
@@ -29,49 +29,49 @@ const agentData: Record<string, AgentData> = {
   saga: {
     name: "Saga",
     title: "Din kalkylexpert",
-    heroDescription: "Saga förstår byggprojekt in och ut. Beskriv vad du ska göra – Saga skapar en proffsig offert med rätt priser och ROT/RUT-beräkning.",
-    fullDescription: "Med Saga vid din sida behöver du aldrig oroa dig för att missa en post i offerten. Hon analyserar dina projektbeskrivningar, föreslår rimliga priser baserat på din prislista, och ser till att ROT- och RUT-avdrag beräknas korrekt. Saga lär sig från dina tidigare offerter och blir smartare ju mer du använder henne.",
+    heroDescription: "Slipp skriva offerter för hand. Prata in vad projektet innehåller – Saga strukturerar poster, mängder och belopp medan du pratar.",
+    fullDescription: "Saga tar din röstinspelning och gör den till en färdig offert. Du säger 'rivning av kök, 8 timmar á 650 kronor' – hon lägger in det under rätt kategori med rätt beräkning. ROT- och RUT-avdrag beräknas automatiskt. Du får en proffsig offert utan att röra tangentbordet.",
     avatar: sagaAvatar,
     capabilities: [
       {
         icon: Mic,
         title: "Röststyrd offert",
-        description: "Prata in din projektbeskrivning så strukturerar Saga allt automatiskt med rätt moment, artiklar och priser."
+        description: "Prata in moment, mängder och priser. Saga lägger in allt i rätt format – du slipper skriva och formatera."
       },
       {
-        icon: Calculator,
-        title: "Smart prissättning",
-        description: "Saga föreslår priser baserat på din prislista och tidigare offerter. Du justerar enkelt om något behöver ändras."
+        icon: FolderOpen,
+        title: "Automatisk kategorisering",
+        description: "Saga förstår att 'rivning' är Bygg och 'måla vägg' är Målning. Du behöver inte sortera manuellt."
       },
       {
         icon: FileText,
         title: "Kalkylmallar",
-        description: "Spara tid med återanvändbara mallar. Saga hjälper dig bygga upp ett bibliotek av standardofferter."
+        description: "Spara vanliga projekt som mallar. Nästa gång behöver du bara prata in ändringarna."
       },
     ],
-    skills: ["Offerter", "Kalkylmallar", "ROT/RUT-beräkning", "Prissättning", "Artikelbibliotek"],
+    skills: ["Offerter", "Kalkylmallar", "ROT/RUT-beräkning", "Artikelbibliotek"],
   },
   bo: {
     name: "Bo",
     title: "Din projektplanerare",
-    heroDescription: "Bo bygger realistiska tidsplaner på några sekunder. Beskriv projektet så skapar han ett Gantt-schema med alla faser och beroenden.",
-    fullDescription: "Bo har koll på hur byggprojekt fungerar i praktiken. Han vet att målning måste vänta på spackling, att VVS-arbeten påverkar kakelsättning, och att städ alltid kommer sist. Med Bo får du en genomtänkt tidplan som faktiskt håller.",
+    heroDescription: "Slipp rita tidplaner manuellt. Beskriv projektet med rösten – Bo skapar ett Gantt-schema med faser och tidsuppskattningar.",
+    fullDescription: "Bo tar din projektbeskrivning och gör den till en visuell tidplan. Du säger 'först rivning i två veckor, sen el och VVS parallellt' – han ritar upp det med rätt faser och veckor. Du får en tidplan att visa kunden utan att sitta och pilla i Excel.",
     avatar: boAvatar,
     capabilities: [
       {
         icon: Calendar,
         title: "Automatisk tidplan",
-        description: "Beskriv projektet i stora drag så skapar Bo en detaljerad tidplan med alla faser, uppgifter och realistiska tidsuppskattningar."
+        description: "Beskriv projektet i stora drag – Bo skapar faser med veckonummer och längd automatiskt."
       },
       {
         icon: BarChart3,
         title: "Gantt-schema",
-        description: "Visuell överblick över hela projektet. Se beroenden, kritiska punkter och var du ligger tidsmässigt."
+        description: "Visuell översikt över hela projektet. Se alla faser och hur de ligger i tid."
       },
       {
-        icon: Users,
-        title: "Resursplanering",
-        description: "Bo håller koll på vilka yrkesgrupper som behövs när, så du kan planera bemanning och underentreprenörer."
+        icon: Layers,
+        title: "Parallella faser",
+        description: "Bo lägger upp arbeten som kan ske samtidigt sida vid sida i schemat."
       },
     ],
     skills: ["Tidsplaner", "Gantt-schema", "Fasplanering"],
@@ -79,27 +79,27 @@ const agentData: Record<string, AgentData> = {
   ulla: {
     name: "Ulla",
     title: "Din dokumentationsassistent",
-    heroDescription: "Ulla tar hand om allt pappersarbete. Prata in vad som hänt på bygget – hon skapar dagrapporter, ÄTA-underlag och arbetsorder.",
-    fullDescription: "Dokumentation är ofta det som hamnar efter i stressiga projekt. Med Ulla behöver du bara prata in vad som hänt så strukturerar hon allt snyggt. Dagrapporter, ÄTA-underlag, arbetsorder – allt på plats utan att du behöver sitta vid datorn.",
+    heroDescription: "Slipp skriva dagrapporter vid datorn. Prata in vad som hänt på bygget – Ulla strukturerar allt medan du kör hem.",
+    fullDescription: "Ulla tar din röstinspelning från bilen och gör den till en strukturerad rapport. Du säger 'idag var vi fyra snickare, monterade kök och väntade på elcentralen' – hon skapar en dagrapport med bemanning, utfört arbete och avvikelser. ÄTA-underlag på samma sätt.",
     avatar: ullaAvatar,
     capabilities: [
       {
         icon: ClipboardList,
         title: "Dagrapporter",
-        description: "Prata in dagens händelser på väg hem från bygget. Ulla skapar en proffsig dagrapport med bemanning, utfört arbete och avvikelser."
+        description: "Berätta vad som hänt idag. Ulla strukturerar bemanning, timmar, utfört arbete och avvikelser."
       },
       {
         icon: FileCheck,
         title: "ÄTA-hantering",
-        description: "När det dyker upp tilläggsarbeten dokumenterar Ulla allt korrekt med tid, material och kostnadsuppskattning."
+        description: "Nämn ändringar eller tilläggsarbeten – Ulla dokumenterar dem separat med orsak och omfattning."
       },
       {
         icon: Wrench,
         title: "Arbetsorder",
-        description: "Skapa tydliga arbetsorder till medarbetare och underentreprenörer. Ulla ser till att alla vet vad som ska göras."
+        description: "Beskriv uppgiften med rösten – Ulla fyller i titel, beskrivning och tilldelning åt dig."
       },
     ],
-    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder", "Egenkontroller"],
+    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder"],
   },
 };
 
@@ -243,20 +243,20 @@ const AgentDetail = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              Redo att träffa {agent.name}?
+              Slipp adminarbetet
             </h2>
             <p className="text-muted-foreground mb-8">
-              Kom igång gratis och upplev hur {agent.name} kan effektivisera ditt arbete.
+              Testa {agent.name} gratis. Prata in ditt första projekt och se hur mycket tid du sparar.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
                 <Link to="/register">
-                  Skapa konto gratis
+                  Testa gratis
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/">
-                  Läs mer om Byggio
+                <Link to="/#how-it-works">
+                  Se hur det fungerar
                 </Link>
               </Button>
             </div>
