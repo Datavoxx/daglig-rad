@@ -43,6 +43,7 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
   const [vatAmount, setVatAmount] = useState(0);
   const [totalIncVat, setTotalIncVat] = useState(0);
   const [status, setStatus] = useState<"new" | "reviewed" | "attested">("new");
+  const [projectError, setProjectError] = useState(false);
 
   // Fetch projects
   const { data: projects = [] } = useQuery({
@@ -101,7 +102,7 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
         .from("vendor_invoices")
         .update({
           supplier_name: supplierName,
-          project_id: projectId || null,
+          project_id: projectId,
           invoice_number: invoiceNumber || null,
           invoice_date: invoiceDate || null,
           due_date: dueDate || null,
@@ -157,7 +158,15 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }}>
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          if (!projectId) {
+            setProjectError(true);
+            toast.error("Du måste välja ett projekt");
+            return;
+          }
+          saveMutation.mutate(); 
+        }}>
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-6 pb-4">
               {/* Status */}
@@ -213,9 +222,9 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Projekt</Label>
-                  <Select value={projectId} onValueChange={setProjectId}>
-                    <SelectTrigger>
+                  <Label>Projekt *</Label>
+                  <Select value={projectId} onValueChange={(v) => { setProjectId(v); setProjectError(false); }}>
+                    <SelectTrigger className={projectError ? "border-destructive" : ""}>
                       <SelectValue placeholder="Välj projekt" />
                     </SelectTrigger>
                     <SelectContent>
@@ -226,6 +235,9 @@ export function VendorInvoiceDialog({ invoice, open, onOpenChange }: VendorInvoi
                       ))}
                     </SelectContent>
                   </Select>
+                  {projectError && (
+                    <p className="text-xs text-destructive">Projekt måste väljas</p>
+                  )}
                 </div>
               </div>
 
