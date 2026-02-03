@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,11 +71,13 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [generatedPhases, setGeneratedPhases] = useState<PlanPhase[]>([]);
   const [generatedTotalWeeks, setGeneratedTotalWeeks] = useState(0);
   const [generatedConfidence, setGeneratedConfidence] = useState(0);
   const [generatedSummary, setGeneratedSummary] = useState("");
   const [startDate, setStartDate] = useState<Date>(getNextMonday(new Date()));
+  const finalTranscriptRef = useRef<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -120,34 +122,48 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   };
 
   const startRecording = () => {
-    if (!("webkitSpeechRecognition" in window)) {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       toast({ title: "Taligenkänning stöds inte", variant: "destructive" });
       return;
     }
 
-    const recognition = new (window as any).webkitSpeechRecognition();
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "sv-SE";
 
+    finalTranscriptRef.current = transcript;
+
     recognition.onresult = (event: any) => {
+      let interim = "";
       let final = "";
-      for (let i = 0; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript + " ";
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          final += result[0].transcript + " ";
+        } else {
+          interim += result[0].transcript;
         }
       }
+
       if (final) {
-        setTranscript((prev) => prev + final);
+        finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + final.trim();
+        setTranscript(finalTranscriptRef.current);
       }
+
+      setInterimTranscript(interim);
     };
 
     recognition.onerror = () => {
       setIsRecording(false);
+      setInterimTranscript("");
     };
 
     recognition.onend = () => {
       setIsRecording(false);
+      setInterimTranscript("");
     };
 
     recognition.start();
@@ -160,6 +176,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
       (window as any).currentRecognition.stop();
     }
     setIsRecording(false);
+    setInterimTranscript("");
   };
 
   const handleGeneratePlan = async () => {
@@ -319,12 +336,24 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           </div>
         </div>
 
-        <Textarea
-          placeholder="Beskriv projektets faser, t.ex. 'Rivning 2 veckor, sedan stomme och grundarbete 4 veckor...'"
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          rows={6}
-        />
+        <div className="relative">
+          <Textarea
+            placeholder="Beskriv projektets faser, t.ex. 'Rivning 2 veckor, sedan stomme och grundarbete 4 veckor...'"
+            value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+            onChange={(e) => {
+              setTranscript(e.target.value);
+              finalTranscriptRef.current = e.target.value;
+            }}
+            rows={6}
+            disabled={isRecording}
+            className={isRecording ? "pr-24" : ""}
+          />
+          {isRecording && interimTranscript && (
+            <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium animate-pulse">
+              Lyssnar...
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <Button
             variant={isRecording ? "destructive" : "outline"}

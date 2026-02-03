@@ -45,10 +45,12 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [parsedTemplate, setParsedTemplate] = useState<ParsedTemplate | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
   const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef<string>("");
 
   const startRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -62,23 +64,32 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
     recognitionRef.current.interimResults = true;
     recognitionRef.current.lang = "sv-SE";
 
-    let finalTranscript = transcript;
+    finalTranscriptRef.current = transcript;
 
     recognitionRef.current.onresult = (event: any) => {
       let interim = "";
+      let final = "";
+      
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + " ";
+          final += event.results[i][0].transcript + " ";
         } else {
           interim += event.results[i][0].transcript;
         }
       }
-      setTranscript(finalTranscript + interim);
+      
+      if (final) {
+        finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + final.trim();
+        setTranscript(finalTranscriptRef.current);
+      }
+      
+      setInterimTranscript(interim);
     };
 
     recognitionRef.current.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
       setIsRecording(false);
+      setInterimTranscript("");
     };
 
     recognitionRef.current.start();
@@ -90,6 +101,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
       recognitionRef.current.stop();
     }
     setIsRecording(false);
+    setInterimTranscript("");
   };
 
   const handleParseTemplate = async () => {
@@ -156,6 +168,8 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
   const resetAndClose = () => {
     setStep("input");
     setTranscript("");
+    setInterimTranscript("");
+    finalTranscriptRef.current = "";
     setParsedTemplate(null);
     onOpenChange(false);
   };
@@ -183,10 +197,14 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
               <Label>Beskrivning</Label>
               <div className="relative">
                 <Textarea
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
+                  value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+                  onChange={(e) => {
+                    setTranscript(e.target.value);
+                    finalTranscriptRef.current = e.target.value;
+                  }}
                   placeholder="Beskriv mallens priser, moment och material..."
                   className="min-h-[150px] pr-12"
+                  disabled={isRecording}
                 />
                 <Button
                   type="button"
@@ -199,9 +217,15 @@ export function CreateTemplateDialog({ open, onOpenChange, onCreated }: CreateTe
                 </Button>
               </div>
               {isRecording && (
-                <p className="text-sm text-destructive animate-pulse">
-                  🔴 Spelar in...
-                </p>
+                <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
+                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                  Lyssnar...
+                  {interimTranscript && (
+                    <span className="text-muted-foreground italic truncate max-w-[200px]">
+                      "{interimTranscript}"
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 

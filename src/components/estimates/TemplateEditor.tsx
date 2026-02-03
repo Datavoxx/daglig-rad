@@ -47,6 +47,7 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
   const [editedTemplate, setEditedTemplate] = useState<ParsedTemplate>(template);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef<string>("");
 
@@ -65,16 +66,20 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
 
     recognition.lang = "sv-SE";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
 
     transcriptRef.current = "";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           transcriptRef.current += event.results[i][0].transcript + " ";
+        } else {
+          interim += event.results[i][0].transcript;
         }
       }
+      setInterimTranscript(interim);
     };
 
     recognition.onerror = (event: Event & { error?: string }) => {
@@ -82,6 +87,7 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
         toast.error("Röstinspelningen avbröts");
       }
       setIsRecording(false);
+      setInterimTranscript("");
     };
 
     recognitionRef.current = recognition;
@@ -96,6 +102,7 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
       recognitionRef.current = null;
     }
     setIsRecording(false);
+    setInterimTranscript("");
 
     const transcript = transcriptRef.current.trim();
     if (!transcript) {
@@ -209,6 +216,11 @@ export function TemplateEditor({ template, onSave, onCancel, isSaving }: Templat
               </>
             )}
           </Button>
+        )}
+        {isRecording && interimTranscript && (
+          <div className="text-xs text-muted-foreground italic animate-pulse truncate max-w-[200px]">
+            "{interimTranscript}"
+          </div>
         )}
       </div>
 
