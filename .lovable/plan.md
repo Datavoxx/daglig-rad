@@ -1,19 +1,22 @@
 
 
-## Plan: Byt ut Sagas avatar till transparent version
+## Plan: Ersätt Sagas avatar med transparent version
 
 ### Problem
-Saga-avataren visar fortfarande en vit bakgrund/ram, medan Bo och Ulla har rena transparenta bakgrunder som visas direkt mot kortet.
+Den nuvarande `src/assets/saga-avatar.png` visar fortfarande den gamla bilden med vit bakgrund/ram. Den nya transparenta bilden har inte kopierats korrekt.
 
 ### Lösning
-Ersätt `src/assets/saga-avatar.png` med den nya bilden du har laddat upp (`ChatGPT_Image_2_feb._2026_23_21_44-removebg-preview-3.png`) som har transparent bakgrund.
+Kopiera den uppladdade filen `ChatGPT_Image_2_feb._2026_23_21_44-removebg-preview-3.png` till `src/assets/saga-avatar.png` och ersätt den befintliga filen.
 
 ### Åtgärd
 
 | Fil | Åtgärd |
 |-----|--------|
-| `src/assets/saga-avatar.png` | Ersätt med den nya transparenta bilden |
+| `src/assets/saga-avatar.png` | Ersätt med `user-uploads://ChatGPT_Image_2_feb._2026_23_21_44-removebg-preview-3.png` |
+
+### Teknisk detalj
+Använder `lov-copy` för att kopiera från `user-uploads://` till `src/assets/saga-avatar.png`, vilket överskriver den befintliga filen.
 
 ### Resultat
-Efter ändringen kommer Saga att visas på samma sätt som Bo och Ulla - utan vit bakgrund/ram, direkt mot kortets bakgrund.
+Saga kommer att visas med transparent bakgrund, precis som Bo och Ulla.
 
