@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import LandingFooter from "@/components/landing/LandingFooter";
-import sagaAvatar from "@/assets/saga-avatar.png";
+import sagaAvatar from "@/assets/saga-avatar-transparent.png";
 import boAvatar from "@/assets/bo-avatar.png";
 import ullaAvatar from "@/assets/ulla-avatar.png";
 

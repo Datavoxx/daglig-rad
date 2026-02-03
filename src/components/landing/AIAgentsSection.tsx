@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Sparkles } from "lucide-react";
-import sagaAvatar from "@/assets/saga-avatar.png";
+import sagaAvatar from "@/assets/saga-avatar-transparent.png";
 import boAvatar from "@/assets/bo-avatar.png";
 import ullaAvatar from "@/assets/ulla-avatar.png";
 
