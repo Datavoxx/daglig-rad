@@ -1,110 +1,55 @@
 
+## Plan: Ändra redirect efter sparad dagrapport
 
-## Plan: Grön PDF-header + Obligatoriskt projekt i uppladdningsdialog
+### Problem
+När man sparar en dagrapport från projektvyn (`/projects/{id}`) navigeras man till `/reports/{reportId}` istället för att stanna kvar på projektsidans dagbok-flik.
 
-### Problem 1: Blå header istället för Byggios gröna färg
-PDF:en använder `BYGGIO_BLUE` (blue-600, `#2563EB`) som header-färg, men Byggios varumärkesfärg är **grön** som syns i loggan.
-
-### Problem 2: Projektvalidering saknas i uppladdningsdialogen
-Valideringen vi tidigare implementerade finns i `VendorInvoiceDialog.tsx` (redigera faktura), men du testar `VendorInvoiceUpload.tsx` (lägg till ny faktura) - där saknas projektvalidering helt.
-
----
-
-## Lösning
-
-### Fil 1: `src/lib/pdfUtils.ts`
-
-Byt ut `BYGGIO_BLUE` mot en grön färg som matchar Byggios varumärke:
-
-| Före | Efter |
-|------|-------|
-| `BYGGIO_BLUE: [37, 99, 235]` (blue-600) | `BYGGIO_GREEN: [34, 197, 94]` (green-500) |
-| `HEADER_BG: [37, 99, 235]` | `HEADER_BG: [34, 197, 94]` |
-
-**Ändringar:**
-```typescript
-// Byt ut blå mot grön
-HEADER_BG: [34, 197, 94] as [number, number, number],  // green-500 - BYGGIO GREEN
-BYGGIO_GREEN: [34, 197, 94] as [number, number, number], // green-500 - Primary brand color
-```
-
-### Fil 2: `src/lib/generatePlanningPdf.ts`
-
-Uppdatera referensen från `BYGGIO_BLUE` till `BYGGIO_GREEN`:
-
-```typescript
-// Rad 106: Ändra från
-doc.setFillColor(...PDF_COLORS.BYGGIO_BLUE);
-
-// Till
-doc.setFillColor(...PDF_COLORS.BYGGIO_GREEN);
-```
+### Lösning
+Ändra `handleReportSaved` i `ProjectDiaryTab.tsx` så att den **inte** navigerar bort, utan bara:
+1. Stänger skapandeformuläret
+2. Uppdaterar listan med rapporter
+3. Visar ett bekräftelsemeddelande
 
 ---
 
-### Fil 3: `src/components/invoices/VendorInvoiceUpload.tsx`
+## Ändringar
 
-Lägg till samma projektvalidering som i `VendorInvoiceDialog`:
+### Fil: `src/components/projects/ProjectDiaryTab.tsx`
 
-1. **Lägg till error-state:**
+**Rad 108-112 - Nuvarande kod:**
 ```typescript
-const [projectError, setProjectError] = useState(false);
+const handleReportSaved = (reportId: string) => {
+  setShowCreateForm(false);
+  fetchReports();
+  navigate(`/reports/${reportId}`);
+};
 ```
 
-2. **Uppdatera projektlabel med asterisk:**
-```tsx
-<Label>Projekt *</Label>
+**Ny kod:**
+```typescript
+const handleReportSaved = (reportId: string) => {
+  setShowCreateForm(false);
+  fetchReports();
+  toast.success("Dagrapport sparad");
+  // Stanna kvar på projektsidan - ingen navigering
+};
 ```
-
-3. **Lägg till visuell felindikation på Select:**
-```tsx
-<Select value={projectId} onValueChange={(v) => { setProjectId(v); setProjectError(false); }}>
-  <SelectTrigger className={projectError ? "border-destructive" : ""}>
-    <SelectValue placeholder="Välj projekt" />
-  </SelectTrigger>
-  ...
-</Select>
-{projectError && (
-  <p className="text-xs text-destructive">Projekt måste väljas</p>
-)}
-```
-
-4. **Validera innan spara:**
-Ändra sparaknappens onClick till att validera projekt först:
-```tsx
-onClick={() => {
-  if (!projectId) {
-    setProjectError(true);
-    toast.error("Du måste välja ett projekt");
-    return;
-  }
-  saveMutation.mutate();
-}}
-```
-
-5. **Uppdatera disabled-villkoret:**
-Ta bort `!supplierName` (det är sekundärt) men behåll resten.
-
-6. **Uppdatera resetForm:**
-Lägg till `setProjectError(false)` i reset-funktionen.
 
 ---
 
 ## Resultat
 
-| Ändring | Fil |
-|---------|-----|
-| Byt header-färg till grön | `pdfUtils.ts` |
-| Uppdatera färgreferens | `generatePlanningPdf.ts` |
-| Lägg till projektvalidering | `VendorInvoiceUpload.tsx` |
+| Före | Efter |
+|------|-------|
+| Navigeras till `/reports/{id}` | Stannar på `/projects/{id}` (dagbok-fliken) |
+| Förlorar projektkontext | Ser rapporten direkt i listan |
+| Måste klicka tillbaka | Kan skapa flera rapporter i rad |
 
-### Visuellt resultat
+---
 
-**PDF Header:**
-- Före: Blå accent-linje högst upp
-- Efter: Grön accent-linje som matchar Byggio-loggan
+## Tekniska detaljer
 
-**Leverantörsfaktura (lägg till):**
-- Före: Kan spara utan projekt valt
-- Efter: Rött felmeddelande + blockerar sparning om projekt saknas
-
+- `reportId` skickas fortfarande in som parameter men används inte för navigering
+- `fetchReports()` körs för att uppdatera listan så den nya rapporten syns direkt
+- `toast.success()` ger feedback att sparningen lyckades
+- Användaren kan fortfarande klicka på en rapport i listan om de vill se detaljer
