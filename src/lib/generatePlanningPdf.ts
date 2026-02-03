@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 interface PlanPhase {
   name: string;
@@ -9,6 +10,7 @@ interface PlanPhase {
   duration_weeks: number;
   color: string;
   parallel_with?: string | null;
+  description?: string | null;
 }
 
 interface CompanySettings {
@@ -66,6 +68,22 @@ const phaseColorsLight: Record<string, [number, number, number]> = {
   orange: [253, 186, 116],   // orange-300
 };
 
+// Helper function to convert imported image to base64
+async function getByggioLogoBase64(): Promise<string | null> {
+  try {
+    const response = await fetch(byggioLogo);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   const doc = new jsPDF({
     orientation: "landscape",
@@ -77,13 +95,15 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
 
-  // Get logo
-  const logoBase64 = await getCompanyLogoBase64(data.companySettings?.logo_url || null);
+  // Get logos - prefer company logo, fallback to Byggio logo
+  const companyLogoBase64 = await getCompanyLogoBase64(data.companySettings?.logo_url || null);
+  const byggioLogoBase64 = await getByggioLogoBase64();
+  const logoBase64 = companyLogoBase64 || byggioLogoBase64;
 
   // === PAGE 1: Cover Page ===
   
-  // Background accent
-  doc.setFillColor(...PDF_COLORS.HEADER_BG);
+  // Background accent - BYGGIO BLUE
+  doc.setFillColor(...PDF_COLORS.BYGGIO_BLUE);
   doc.rect(0, 0, pageWidth, 8, "F");
   
   // Logo in top left
@@ -261,58 +281,77 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     }
   });
   
-  // === Phase Table ===
-  const tableStartY = yPos + data.phases.length * rowHeight + 20;
+  // === FASDETALJER Section ===
+  const detailsStartY = yPos + data.phases.length * rowHeight + 20;
   
-  // Check if we need a new page for the table
-  if (tableStartY > pageHeight - 60) {
+  // Check if we need a new page for details
+  if (detailsStartY > pageHeight - 80) {
     doc.addPage();
     yPos = 20;
   } else {
-    yPos = tableStartY;
+    yPos = detailsStartY;
   }
   
   doc.setFontSize(14);
   doc.setTextColor(...PDF_COLORS.DARK);
-  doc.text("MOMENTLISTA", margin, yPos);
-  yPos += 8;
+  doc.text("FASDETALJER", margin, yPos);
+  yPos += 12;
   
-  autoTable(doc, {
-    startY: yPos,
-    margin: { left: margin, right: margin },
-    head: [["Moment", "Startvecka", "Längd", "Parallellt med"]],
-    body: data.phases.map((phase) => [
-      phase.name,
-      `V${phase.start_week}`,
-      phase.duration_weeks === 1 ? "1 vecka" : `${phase.duration_weeks} veckor`,
-      phase.parallel_with || "—",
-    ]),
-    theme: "striped",
-    headStyles: {
-      fillColor: PDF_COLORS.HEADER_BG,
-      textColor: PDF_COLORS.WHITE,
-      fontSize: 9,
-      fontStyle: "bold",
-    },
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-    },
-    columnStyles: {
-      0: { cellWidth: 80 },
-      1: { cellWidth: 30, halign: "center" },
-      2: { cellWidth: 30, halign: "center" },
-      3: { cellWidth: 50 },
-    },
+  // Draw each phase with details
+  data.phases.forEach((phase, index) => {
+    // Check if we need a new page
+    const estimatedHeight = phase.description ? 35 : 22;
+    if (yPos + estimatedHeight > pageHeight - 25) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Phase color indicator (circle)
+    const phaseColor = phaseColors[phase.color] || phaseColors.slate;
+    doc.setFillColor(...phaseColor);
+    doc.circle(margin + 3, yPos + 2, 2.5, "F");
+    
+    // Phase name (bold)
+    doc.setFontSize(11);
+    doc.setTextColor(...PDF_COLORS.DARK);
+    doc.setFont("helvetica", "bold");
+    doc.text(phase.name, margin + 10, yPos + 3);
+    
+    // Week and duration info on the right
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_COLORS.MUTED);
+    const weekInfo = `V${phase.start_week} • ${phase.duration_weeks === 1 ? "1 vecka" : `${phase.duration_weeks} veckor`}`;
+    doc.text(weekInfo, pageWidth - margin, yPos + 3, { align: "right" });
+    
+    yPos += 8;
+    
+    // Description if available
+    if (phase.description) {
+      doc.setFontSize(9);
+      doc.setTextColor(...PDF_COLORS.DARK);
+      const descriptionLines = doc.splitTextToSize(phase.description, pageWidth - margin * 2 - 10);
+      doc.text(descriptionLines, margin + 10, yPos);
+      yPos += descriptionLines.length * 4 + 2;
+    }
+    
+    // Parallel info if available
+    if (phase.parallel_with) {
+      doc.setFontSize(8);
+      doc.setTextColor(...PDF_COLORS.MUTED);
+      doc.text(`Parallellt med: ${phase.parallel_with}`, margin + 10, yPos);
+      yPos += 5;
+    }
+    
+    // Separator line between phases
+    if (index < data.phases.length - 1) {
+      yPos += 4;
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setLineWidth(0.2);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 6;
+    }
   });
-  
-  // === Color Legend ===
-  const legendY = (doc as any).lastAutoTable.finalY + 15;
-  
-  // Check if we need a new page for legend
-  if (legendY > pageHeight - 30) {
-    doc.addPage();
-  }
   
   // Footer on all pages
   const pageCount = doc.getNumberOfPages();
