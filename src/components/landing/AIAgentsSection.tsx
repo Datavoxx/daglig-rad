@@ -45,17 +45,54 @@ const AIAgentsSection = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            <Sparkles className="w-4 h-4" />
-            AI-drivna assistenter
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
             Möt dina AI-kollegor
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Tre specialister som jobbar dygnet runt för att underlätta ditt vardagsjobb
-          </p>
+        </div>
+
+        {/* Simulation Section */}
+        <div className="max-w-5xl mx-auto mb-16">
+          <div className="relative bg-card rounded-2xl border border-border/50 p-6 md:p-8 overflow-hidden">
+            {/* Top highlight */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+            
+            {/* Three agent previews side by side */}
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Saga - Offerter */}
+              <div className="text-center">
+                <img src={sagaAvatar} alt="Saga" className="w-20 h-20 mx-auto mb-3 object-contain drop-shadow-lg" />
+                <p className="text-primary font-semibold mb-2">Saga</p>
+                <p className="text-xs text-muted-foreground mb-3">hanterar dina</p>
+                <div className="bg-muted/50 rounded-lg p-4 border border-border/30">
+                  <p className="font-medium text-primary text-lg">Offerter</p>
+                  <p className="text-xs text-muted-foreground">Från röst till proffsig offert</p>
+                </div>
+              </div>
+              
+              {/* Bo - Projekt */}
+              <div className="text-center">
+                <img src={boAvatar} alt="Bo" className="w-20 h-20 mx-auto mb-3 object-contain drop-shadow-lg" />
+                <p className="text-primary font-semibold mb-2">Bo</p>
+                <p className="text-xs text-muted-foreground mb-3">planerar dina</p>
+                <div className="bg-muted/50 rounded-lg p-4 border border-border/30">
+                  <p className="font-medium text-primary text-lg">Projekt</p>
+                  <p className="text-xs text-muted-foreground">Tidsplaner & Gantt-schema</p>
+                </div>
+              </div>
+              
+              {/* Ulla - Rapporter */}
+              <div className="text-center">
+                <img src={ullaAvatar} alt="Ulla" className="w-20 h-20 mx-auto mb-3 object-contain drop-shadow-lg" />
+                <p className="text-primary font-semibold mb-2">Ulla</p>
+                <p className="text-xs text-muted-foreground mb-3">dokumenterar dina</p>
+                <div className="bg-muted/50 rounded-lg p-4 border border-border/30">
+                  <p className="font-medium text-primary text-lg">Rapporter</p>
+                  <p className="text-xs text-muted-foreground">Dagbok, ÄTA & arbetsorder</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Agents grid */}
@@ -76,12 +113,12 @@ const AIAgentsSection = () => {
                 {/* Avatar with glow */}
                 <div className="relative mb-6 flex justify-center">
                   <div className="absolute inset-0 flex justify-center items-center">
-                    <div className="w-24 h-24 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
+                    <div className="w-32 h-32 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
                   </div>
                   <img
                     src={agent.avatar}
                     alt={agent.name}
-                    className="w-28 h-28 md:w-32 md:h-32 object-contain drop-shadow-2xl relative z-10 transition-transform duration-300 group-hover:scale-110"
+                    className="w-36 h-36 md:w-44 md:h-44 object-contain drop-shadow-2xl relative z-10 transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
 

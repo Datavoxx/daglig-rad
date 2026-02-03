@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect } from "react";
 import { ArrowLeft, Mic, Calculator, FileText, Calendar, BarChart3, Users, ClipboardList, FileCheck, Wrench, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +74,7 @@ const agentData: Record<string, AgentData> = {
         description: "Bo håller koll på vilka yrkesgrupper som behövs när, så du kan planera bemanning och underentreprenörer."
       },
     ],
-    skills: ["Tidsplaner", "Gantt-schema", "Fasplanering", "Beroenden", "Resursöversikt"],
+    skills: ["Tidsplaner", "Gantt-schema", "Fasplanering"],
   },
   ulla: {
     name: "Ulla",
@@ -98,13 +99,18 @@ const agentData: Record<string, AgentData> = {
         description: "Skapa tydliga arbetsorder till medarbetare och underentreprenörer. Ulla ser till att alla vet vad som ska göras."
       },
     ],
-    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder", "Egenkontroller", "Avvikelselogg"],
+    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder", "Egenkontroller"],
   },
 };
 
 const AgentDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const agent = slug ? agentData[slug] : null;
+
+  // Scroll to top when navigating to agent page
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
 
   if (!agent) {
     return (
