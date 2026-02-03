@@ -146,7 +146,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
           .eq("project_id", project.id)
           .order("created_at"),
         supabase.from("project_files")
-          .select("id, file_name, category, created_at")
+          .select("id, file_name, category, created_at, storage_path")
           .eq("project_id", project.id)
           .order("created_at"),
         supabase.from("vendor_invoices")
