@@ -17,6 +17,7 @@ import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
 import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
 import ProjectDiaryTab from "@/components/projects/ProjectDiaryTab";
+import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
 
 interface Project {
   id: string;
@@ -206,6 +207,17 @@ export default function ProjectView() {
           <ProjectDiaryTab projectId={project.id} projectName={project.name} />
         </TabsContent>
       </Tabs>
+
+      {/* Bo AI Chat Bubble */}
+      <AgentChatBubble
+        agent="bo"
+        context={{
+          projectId: project.id,
+          projectName: project.name,
+          clientName: project.client_name || undefined,
+          status: project.status || undefined,
+        }}
+      />
     </div>
   );
 }
