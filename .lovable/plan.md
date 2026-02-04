@@ -1,20 +1,17 @@
 
 
-## Plan: Fixa API-parameterfel i agent-chat
+## Plan: Ta bort temperature-parametern
 
 ### Problem identifierat
 
 | Fel | Orsak | Plats |
 |-----|-------|-------|
-| `AI API error: 400` | Fel parameter: `max_tokens` stöds inte | Rad 243 i `agent-chat/index.ts` |
+| `AI API error: 400` | `temperature: 0.7` stöds inte av modellen | Rad 242 i `agent-chat/index.ts` |
 
-API:et returnerar:
+API-felet:
 ```json
 {
-  "error": {
-    "message": "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
-    "type": "invalid_request_error"
-  }
+  "message": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported."
 }
 ```
 
@@ -24,23 +21,22 @@ API:et returnerar:
 
 ### Fil: `supabase/functions/agent-chat/index.ts`
 
-**Rad 239-244 - Ändra parametern:**
+**Rad 239-244 - Ta bort temperature:**
 
 ```typescript
 // FEL (nuvarande kod):
 body: JSON.stringify({
   model: "openai/gpt-5-mini",
   messages: apiMessages,
-  temperature: 0.7,
-  max_tokens: 1000,   // <-- FEL PARAMETER
+  temperature: 0.7,                  // <-- DENNA RAD ORSAKAR FELET
+  max_completion_tokens: 1000,
 }),
 
 // RÄTT (fix):
 body: JSON.stringify({
   model: "openai/gpt-5-mini",
   messages: apiMessages,
-  temperature: 0.7,
-  max_completion_tokens: 1000,   // <-- RÄTT PARAMETER
+  max_completion_tokens: 1000,       // Ta bort temperature helt
 }),
 ```
 
@@ -50,7 +46,7 @@ body: JSON.stringify({
 
 | Ändring | Beskrivning |
 |---------|-------------|
-| `max_tokens` → `max_completion_tokens` | OpenAI/GPT-5-modeller kräver den nya parametern |
+| Ta bort `temperature: 0.7` | Modellen stöder endast default temperature (1) |
 
-Efter denna ändring kommer Saga och Bo att kunna svara på frågor korrekt.
+Efter denna ändring kommer Saga och Bo att fungera korrekt.
 
