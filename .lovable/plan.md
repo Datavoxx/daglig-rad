@@ -1,190 +1,279 @@
 
 
-## Plan: Suddig prissektion med "Coming Soon"
+## Plan: AI-chattbubbla för Saga (Offert) och Bo (Projekt)
 
-### Koncept
-En teaser-prissektion där själva priskorten är helt suddiga och olåsliga. Ett lås-ikon och lanseringsdatum skapar nyfikenhet utan att avslöja detaljer.
+### Översikt
+Skapa interaktiva chattbubblor i nedre vänstra hörnet av skärmen för att prata med AI-agenterna. Saga hanterar offertfrågor och Bo hanterar projektfrågor (inklusive Ullas dokumentationsdomän).
 
 ---
 
-## Design
+## Teknisk arkitektur
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                          Priser                                  │
-│            Enkla, transparenta priser                           │
-│                                                                  │
-│  ┌─────────────────────┐    ┌─────────────────────┐             │
-│  │░░░░░░░░░░░░░░░░░░░░░│    │░░░░░░░░░░░░░░░░░░░░░│             │
-│  │░░░░ SUDDIGT ░░░░░░░░│    │░░░░ SUDDIGT ░░░░░░░░│             │
-│  │░░░░░░░░░░░░░░░░░░░░░│    │░░░░░░░░░░░░░░░░░░░░░│             │
-│  │░░░░░░░░░░░░░░░░░░░░░│    │░░░░░░░░░░░░░░░░░░░░░│             │
-│  └─────────────────────┘    └─────────────────────┘             │
-│                                                                  │
-│                         🔒                                       │
-│              Priser lanseras 2 mars                             │
-│                                                                  │
+│                          FRONTEND                                │
+├─────────────────────────────────────────────────────────────────┤
+│  AgentChatBubble.tsx (ny komponent)                             │
+│  ├── Floating button (nedre vänster)                            │
+│  ├── Chat panel med animation (slide-in + fade)                 │
+│  ├── Message history + streaming response                       │
+│  └── Agent avatar + personlighet                                │
+├─────────────────────────────────────────────────────────────────┤
+│                          BACKEND                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  supabase/functions/agent-chat/index.ts (ny edge function)      │
+│  ├── Streaming SSE response                                     │
+│  ├── Saga: full offertkontext (items, scope, assumptions, etc)  │
+│  └── Bo: full projektkontext (faser, dagbok, ÄTA, arbetsorder) │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Tekniska ändringar
+## Filer att skapa
 
-### Fil 1: `src/components/landing/PricingSection.tsx`
+### 1. `src/components/shared/AgentChatBubble.tsx` (ny fil)
 
-**Komplett omskrivning:**
+En återanvändbar chattbubbla-komponent med följande funktioner:
 
-1. **Reducera till 2 paket:**
-   - "Gratis" - grundpaket
-   - "Pro" - allt inkluderat
+**Props:**
+```typescript
+interface AgentChatBubbleProps {
+  agent: "saga" | "bo";
+  context: SagaContext | BoContext;
+}
 
-2. **Applicera blur på korten:**
-   ```tsx
-   <div className="blur-md select-none pointer-events-none">
-     {/* Priskort */}
-   </div>
-   ```
+interface SagaContext {
+  projectName: string;
+  clientName: string;
+  scope: string;
+  assumptions: string[];
+  items: EstimateItem[];
+  addons: EstimateAddon[];
+  rotEnabled: boolean;
+  markupPercent: number;
+  totals: { laborCost: number; materialCost: number; subcontractorCost: number; grandTotal: number };
+}
 
-3. **Overlay med lås och datum:**
-   ```tsx
-   <div className="absolute inset-0 flex flex-col items-center justify-center">
-     <Lock className="h-12 w-12 text-muted-foreground mb-4" />
-     <p className="text-lg font-medium">Priser lanseras 2 mars</p>
-   </div>
-   ```
+interface BoContext {
+  projectId: string;
+  projectName: string;
+  clientName?: string;
+  status?: string;
+  // Planering
+  phases?: PlanPhase[];
+  totalWeeks?: number;
+  // Dagbok (Ulla's domain - Bo kan besvara)
+  recentDiaryEntries?: DiaryEntry[];
+  // ÄTA
+  ataItems?: AtaItem[];
+  // Arbetsorder
+  workOrders?: WorkOrder[];
+}
+```
 
-4. **Ta bort Trust badges** (Stripe, Visa, etc.) - inte relevant innan lansering
+**UI-design:**
+- Floating button i nedre vänstra hörnet (ej i vägen för navigation)
+- Klick öppnar en chattpanel med snygg animation (slide-in från vänster + fade)
+- Agentens avatar visas i panelens header
+- Meddelandehistorik med bubblor (användare höger, agent vänster)
+- Streaming-svar visas token för token
+- Stäng-knapp + möjlighet att minimera
+
+**Animationer (Tailwind + CSS):**
+```css
+/* Öppna chatten */
+.chat-panel-enter {
+  animation: slideInLeft 0.3s ease-out, fadeIn 0.2s ease-out;
+}
+
+/* Stäng chatten */
+.chat-panel-exit {
+  animation: slideOutLeft 0.2s ease-in, fadeOut 0.15s ease-in;
+}
+```
+
+### 2. `supabase/functions/agent-chat/index.ts` (ny edge function)
+
+**Streaming SSE-baserad chattfunktion:**
+
+```typescript
+// Saga's system prompt fokus:
+// - Full kunskap om offertstruktur
+// - Kan förklara ROT/RUT-beräkningar
+// - Kan svara på frågor om specifika poster
+// - Kan ge rekommendationer baserat på kontext
+
+// Bo's system prompt fokus:
+// - Full kunskap om projektplanering (faser, tidslinjer)
+// - Kan svara på Ullas domän: dagrapporter, ÄTA, arbetsorder
+// - Kan förklara projektets status och nästa steg
+// - Kan ge rekommendationer för tidsplanen
+```
+
+**Request body:**
+```typescript
+{
+  agent: "saga" | "bo",
+  messages: Array<{ role: "user" | "assistant", content: string }>,
+  context: SagaContext | BoContext
+}
+```
+
+**Response:** SSE-stream med token-by-token text
 
 ---
 
-### Fil 2: `src/pages/Landing.tsx`
+## Filer att uppdatera
 
-**Lägg till PricingSection:**
+### 3. `src/components/estimates/EstimateBuilder.tsx`
 
-```tsx
-import PricingSection from "@/components/landing/PricingSection";
+Lägg till AgentChatBubble med Saga:
 
-// I main-sektionen, efter TimeComparisonSection:
-<TimeComparisonSection />
-<PricingSection />  // Lägg till här
-<GuideSection />
+```typescript
+import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
+
+// I komponenten, efter allt annat innehåll:
+<AgentChatBubble 
+  agent="saga"
+  context={{
+    projectName: displayProjectName,
+    clientName: displayClientName,
+    scope: estimate.state.scope,
+    assumptions: estimate.state.assumptions,
+    items: estimate.state.items,
+    addons: estimate.state.addons,
+    rotEnabled: estimate.state.rotEnabled,
+    markupPercent: estimate.state.markupPercent,
+    totals: estimate.totals,
+  }}
+/>
+```
+
+### 4. `src/pages/ProjectView.tsx`
+
+Lägg till AgentChatBubble med Bo:
+
+```typescript
+import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
+
+// I komponenten, efter Tabs:
+<AgentChatBubble 
+  agent="bo"
+  context={{
+    projectId: project.id,
+    projectName: project.name,
+    clientName: project.client_name,
+    status: project.status,
+    // Dessa kan hämtas dynamiskt via queries
+  }}
+/>
+```
+
+### 5. `supabase/config.toml`
+
+Lägg till konfiguration för nya edge function:
+
+```toml
+[functions.agent-chat]
+verify_jwt = false
 ```
 
 ---
 
-## Ny kod för PricingSection
+## UI-design detaljer
 
-```tsx
-import { Lock, Check } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+### Chattbubbla (stängd)
+```text
+┌─────────┐
+│  [👤]   │  ← Agent avatar (Saga eller Bo)
+│ Fråga   │  ← Kort label
+└─────────┘
+Position: fixed, bottom-6, left-6
+```
 
-const plans = [
-  {
-    name: "Gratis",
-    price: "0",
-    period: "kr/månad",
-    description: "Perfekt för att komma igång",
-    features: [
-      "3 aktiva projekt",
-      "Röstinspelning", 
-      "Dagrapporter",
-      "PDF-export"
-    ],
-    cta: "Kom igång gratis"
-  },
-  {
-    name: "Pro",
-    price: "???",
-    period: "kr/månad",
-    description: "För växande byggföretag",
-    features: [
-      "Obegränsade projekt",
-      "AI-genererade offerter",
-      "Projektplanering",
-      "Kundregister",
-      "White-label dokument",
-      "Prioriterad support"
-    ],
-    cta: "Starta provperiod"
-  }
-];
+### Chattpanel (öppen)
+```text
+┌────────────────────────────────────────┐
+│ [Avatar] Saga                     [X]  │  ← Header
+├────────────────────────────────────────┤
+│                                        │
+│  ┌──────────────────────────────┐     │
+│  │ Hej! Jag är Saga, din        │     │  ← Agent intro
+│  │ kalkylexpert. Ställ frågor   │     │
+│  │ om offerten!                 │     │
+│  └──────────────────────────────┘     │
+│                                        │
+│         ┌──────────────────────┐      │
+│         │ Vad är totalsumman?  │      │  ← Användare
+│         └──────────────────────┘      │
+│                                        │
+│  ┌──────────────────────────────┐     │
+│  │ Totalsumman är 125 000 kr   │     │  ← Saga svarar
+│  │ inklusive ROT-avdrag...     │     │
+│  └──────────────────────────────┘     │
+│                                        │
+├────────────────────────────────────────┤
+│ [Skriv ditt meddelande...]    [Skicka]│  ← Input
+└────────────────────────────────────────┘
+Position: fixed, bottom-6, left-6
+Storlek: w-80 h-[500px] (max)
+```
 
-const PricingSection = () => {
-  return (
-    <section id="pricing" className="py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Priser
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-4">
-            Enkla, transparenta priser
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Välj den plan som passar ditt företag.
-          </p>
-        </div>
+---
 
-        {/* Container med blur och overlay */}
-        <div className="relative max-w-3xl mx-auto">
-          {/* Suddiga priskort */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 blur-md select-none pointer-events-none">
-            {plans.map((plan) => (
-              <Card key={plan.name} className="border-border/50">
-                <CardHeader className="text-center pb-4">
-                  <CardTitle>{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  <div className="pt-4">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground ml-1">{plan.period}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm">
-                        <Check className="h-4 w-4 text-primary" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button className="w-full" variant="outline">
-                    {plan.cta}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+## System prompts
 
-          {/* Overlay med lås */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/30 rounded-xl">
-            <div className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-center border border-border/50 shadow-lg">
-              <Lock className="h-10 w-10 text-primary mx-auto mb-3" />
-              <p className="text-lg font-semibold text-foreground">Priser lanseras 2 mars</p>
-              <p className="text-sm text-muted-foreground mt-1">Registrera dig för att bli notifierad</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
+### Saga (Offert)
+```
+Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige.
 
-export default PricingSection;
+Du har full tillgång till den aktuella offerten som användaren arbetar med. Du kan:
+- Förklara vilka poster som ingår och deras kostnader
+- Berätta om ROT/RUT-avdrag och hur de påverkar slutpriset
+- Ge rekommendationer om prissättning
+- Svara på frågor om projektets omfattning
+- Hjälpa till att förklara offerten för kunden
+
+Var hjälpsam, professionell och koncis. Svara alltid på svenska.
+
+AKTUELL OFFERT:
+[Kontextdata injiceras här]
+```
+
+### Bo (Projekt)
+```
+Du heter Bo och är en expert på byggprojektplanering och dokumentation.
+
+Du har full tillgång till det aktuella projektet. Du kan:
+- Förklara projektets tidplan och faser
+- Svara på frågor om dagrapporter och dokumentation (Ullas område)
+- Ge information om ÄTA-ärenden
+- Förklara arbetsorder och deras status
+- Ge rekommendationer för projektets nästa steg
+
+Var hjälpsam, professionell och koncis. Svara alltid på svenska.
+
+AKTUELLT PROJEKT:
+[Kontextdata injiceras här]
 ```
 
 ---
 
 ## Sammanfattning
 
-| Ändring | Beskrivning |
-|---------|-------------|
-| 2 paket | Gratis + Pro (tog bort Enterprise) |
-| Blur-effekt | `blur-md` på hela kortområdet |
-| Lås-overlay | Centrerad ruta med lås-ikon + datum |
-| Lanseringstext | "Priser lanseras 2 mars" |
-| Placering | Efter TimeComparisonSection, före GuideSection |
+| Fil | Typ | Beskrivning |
+|-----|-----|-------------|
+| `src/components/shared/AgentChatBubble.tsx` | Ny | Återanvändbar chattbubbla med animationer |
+| `supabase/functions/agent-chat/index.ts` | Ny | Streaming edge function för båda agenter |
+| `src/components/estimates/EstimateBuilder.tsx` | Uppdatera | Lägg till Saga chattbubbla |
+| `src/pages/ProjectView.tsx` | Uppdatera | Lägg till Bo chattbubbla |
+| `supabase/config.toml` | Uppdatera | Registrera agent-chat function |
+
+### Nyckelfunktioner
+- Streaming-svar (token-by-token) för responsiv UX
+- Animationer vid öppna/stäng (slide-in från vänster)
+- Full kontextmedvetenhet för båda agenterna
+- Bo kan besvara frågor om Ullas domän (dokumentation)
+- Positionerad i nedre vänstra hörnet (ej i konflikt med befintlig VoiceInputOverlay som är höger)
 
