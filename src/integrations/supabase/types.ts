@@ -500,12 +500,14 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          employment_number: string | null
           hourly_rate: number | null
           id: string
           invitation_status: string | null
           is_active: boolean | null
           linked_user_id: string | null
           name: string
+          personal_number: string | null
           phone: string | null
           role: string | null
           updated_at: string
@@ -514,12 +516,14 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          employment_number?: string | null
           hourly_rate?: number | null
           id?: string
           invitation_status?: string | null
           is_active?: boolean | null
           linked_user_id?: string | null
           name: string
+          personal_number?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string
@@ -528,12 +532,14 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          employment_number?: string | null
           hourly_rate?: number | null
           id?: string
           invitation_status?: string | null
           is_active?: boolean | null
           linked_user_id?: string | null
           name?: string
+          personal_number?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string
@@ -973,6 +979,89 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payroll_exports: {
+        Row: {
+          created_at: string | null
+          employee_count: number | null
+          entry_count: number | null
+          exported_at: string | null
+          file_name: string | null
+          id: string
+          pdf_url: string | null
+          period_id: string | null
+          total_hours: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_count?: number | null
+          entry_count?: number | null
+          exported_at?: string | null
+          file_name?: string | null
+          id?: string
+          pdf_url?: string | null
+          period_id?: string | null
+          total_hours?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_count?: number | null
+          entry_count?: number | null
+          exported_at?: string | null
+          file_name?: string | null
+          id?: string
+          pdf_url?: string | null
+          period_id?: string | null
+          total_hours?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_exports_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          created_at: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          period_end: string
+          period_start: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end: string
+          period_start: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       plan_share_links: {
         Row: {
@@ -1581,8 +1670,11 @@ export type Database = {
           markup_percent: number | null
           name: string
           sort_order: number | null
+          time_type: string | null
           updated_at: string | null
           user_id: string
+          visma_salary_type: string | null
+          visma_wage_code: string | null
         }
         Insert: {
           abbreviation: string
@@ -1592,8 +1684,11 @@ export type Database = {
           markup_percent?: number | null
           name: string
           sort_order?: number | null
+          time_type?: string | null
           updated_at?: string | null
           user_id: string
+          visma_salary_type?: string | null
+          visma_wage_code?: string | null
         }
         Update: {
           abbreviation?: string
@@ -1603,8 +1698,11 @@ export type Database = {
           markup_percent?: number | null
           name?: string
           sort_order?: number | null
+          time_type?: string | null
           updated_at?: string | null
           user_id?: string
+          visma_salary_type?: string | null
+          visma_wage_code?: string | null
         }
         Relationships: []
       }
@@ -1652,41 +1750,53 @@ export type Database = {
       }
       time_entries: {
         Row: {
+          attested_at: string | null
+          attested_by: string | null
           billing_type_id: string | null
           created_at: string | null
           date: string
           description: string | null
           employer_id: string
+          export_id: string | null
           hours: number
           id: string
           project_id: string
           salary_type_id: string | null
+          status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          attested_at?: string | null
+          attested_by?: string | null
           billing_type_id?: string | null
           created_at?: string | null
           date?: string
           description?: string | null
           employer_id: string
+          export_id?: string | null
           hours?: number
           id?: string
           project_id: string
           salary_type_id?: string | null
+          status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          attested_at?: string | null
+          attested_by?: string | null
           billing_type_id?: string | null
           created_at?: string | null
           date?: string
           description?: string | null
           employer_id?: string
+          export_id?: string | null
           hours?: number
           id?: string
           project_id?: string
           salary_type_id?: string | null
+          status?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1696,6 +1806,13 @@ export type Database = {
             columns: ["billing_type_id"]
             isOneToOne: false
             referencedRelation: "billing_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_export_id_fkey"
+            columns: ["export_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_exports"
             referencedColumns: ["id"]
           },
           {

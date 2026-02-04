@@ -14,6 +14,7 @@ import {
   Menu,
   Clock,
   ClipboardCheck,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ const getNavItems = (isEmployee: boolean): NavItem[] => {
     { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
     { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
     { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+    { label: "Löneexport", href: "/payroll-export", icon: FileSpreadsheet, moduleKey: "payroll-export" },
     { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
     { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
     { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
