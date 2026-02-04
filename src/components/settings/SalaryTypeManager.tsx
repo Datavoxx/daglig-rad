@@ -37,7 +37,19 @@ interface SalaryType {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  visma_wage_code: string | null;
+  visma_salary_type: string | null;
+  time_type: string | null;
 }
+
+const TIME_TYPES = [
+  { value: "WORK", label: "Ordinarie arbete" },
+  { value: "OT1", label: "Övertid nivå 1" },
+  { value: "OT2", label: "Övertid nivå 2" },
+  { value: "SICK", label: "Sjuk" },
+  { value: "VAC", label: "Semester" },
+  { value: "VAB", label: "Vård av barn" },
+];
 
 export function SalaryTypeManager() {
   const queryClient = useQueryClient();
@@ -49,6 +61,9 @@ export function SalaryTypeManager() {
     abbreviation: "",
     markup_percent: "",
     sort_order: "",
+    visma_wage_code: "",
+    visma_salary_type: "",
+    time_type: "WORK",
   });
 
   const { data: salaryTypes = [], isLoading } = useQuery({
@@ -81,6 +96,9 @@ export function SalaryTypeManager() {
             abbreviation: salaryType.abbreviation,
             markup_percent: salaryType.markup_percent,
             sort_order: salaryType.sort_order,
+            visma_wage_code: (salaryType as any).visma_wage_code || null,
+            visma_salary_type: (salaryType as any).visma_salary_type || null,
+            time_type: (salaryType as any).time_type || "WORK",
           })
           .eq("id", currentSalaryType.id);
         if (error) throw error;
@@ -91,6 +109,9 @@ export function SalaryTypeManager() {
           abbreviation: salaryType.abbreviation,
           markup_percent: salaryType.markup_percent,
           sort_order: salaryType.sort_order,
+          visma_wage_code: (salaryType as any).visma_wage_code || null,
+          visma_salary_type: (salaryType as any).visma_salary_type || null,
+          time_type: (salaryType as any).time_type || "WORK",
         });
         if (error) throw error;
       }
@@ -144,6 +165,9 @@ export function SalaryTypeManager() {
       abbreviation: "",
       markup_percent: "",
       sort_order: "",
+      visma_wage_code: "",
+      visma_salary_type: "",
+      time_type: "WORK",
     });
   };
 
@@ -164,6 +188,9 @@ export function SalaryTypeManager() {
       abbreviation: salaryType.abbreviation,
       markup_percent: salaryType.markup_percent?.toString() || "",
       sort_order: salaryType.sort_order?.toString() || "",
+      visma_wage_code: salaryType.visma_wage_code || "",
+      visma_salary_type: salaryType.visma_salary_type || "",
+      time_type: salaryType.time_type || "WORK",
     });
     setDialogOpen(true);
   };
@@ -194,7 +221,10 @@ export function SalaryTypeManager() {
       abbreviation: formData.abbreviation.trim().toUpperCase(),
       markup_percent: formData.markup_percent ? parseFloat(formData.markup_percent) : 0,
       sort_order: formData.sort_order ? parseInt(formData.sort_order) : 0,
-    });
+      visma_wage_code: formData.visma_wage_code.trim(),
+      visma_salary_type: formData.visma_salary_type.trim(),
+      time_type: formData.time_type,
+    } as any);
   };
 
   const handleDelete = () => {
@@ -376,6 +406,44 @@ export function SalaryTypeManager() {
                   onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
                   placeholder="1"
                 />
+              </div>
+            </div>
+
+            {/* Visma-fält */}
+            <div className="pt-4 border-t space-y-4">
+              <p className="text-xs text-muted-foreground">Visma Lön-mappning (för löneexport)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="visma_wage_code">Visma tidkod</Label>
+                  <Input
+                    id="visma_wage_code"
+                    value={formData.visma_wage_code}
+                    onChange={(e) => setFormData({ ...formData, visma_wage_code: e.target.value })}
+                    placeholder="TIM"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="visma_salary_type">Visma löneart</Label>
+                  <Input
+                    id="visma_salary_type"
+                    value={formData.visma_salary_type}
+                    onChange={(e) => setFormData({ ...formData, visma_salary_type: e.target.value })}
+                    placeholder="1010"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time_type">Tidtyp</Label>
+                <select
+                  id="time_type"
+                  value={formData.time_type}
+                  onChange={(e) => setFormData({ ...formData, time_type: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {TIME_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

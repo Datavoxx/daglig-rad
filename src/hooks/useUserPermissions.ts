@@ -12,7 +12,8 @@ const ALL_MODULES = [
   "invoices",
   "time-reporting",
   "attendance",
-  "daily-reports"
+  "daily-reports",
+  "payroll-export"
 ];
 
 // Strictly limited modules for employees - NEVER includes dashboard or projects

@@ -51,6 +51,8 @@ interface Employee {
   updated_at: string;
   linked_user_id: string | null;
   invitation_status: string | null;
+  employment_number: string | null;
+  personal_number: string | null;
 }
 
 export function EmployeeManager() {
@@ -62,6 +64,8 @@ export function EmployeeManager() {
     name: "",
     phone: "",
     email: "",
+    employment_number: "",
+    personal_number: "",
   });
 
   // Fetch company settings for organization name
@@ -149,6 +153,8 @@ export function EmployeeManager() {
             phone: employee.phone || null,
             email: employee.email || null,
             hourly_rate: employee.hourly_rate || null,
+            employment_number: (employee as any).employment_number || null,
+            personal_number: (employee as any).personal_number || null,
           })
           .eq("id", currentEmployee.id);
         if (error) throw error;
@@ -160,6 +166,8 @@ export function EmployeeManager() {
           phone: employee.phone || null,
           email: employee.email || null,
           hourly_rate: employee.hourly_rate || null,
+          employment_number: (employee as any).employment_number || null,
+          personal_number: (employee as any).personal_number || null,
         });
         if (error) throw error;
       }
@@ -225,6 +233,8 @@ export function EmployeeManager() {
       name: "",
       phone: "",
       email: "",
+      employment_number: "",
+      personal_number: "",
     });
   };
 
@@ -240,6 +250,8 @@ export function EmployeeManager() {
       name: employee.name,
       phone: employee.phone || "",
       email: employee.email || "",
+      employment_number: employee.employment_number || "",
+      personal_number: employee.personal_number || "",
     });
     setDialogOpen(true);
   };
@@ -265,7 +277,9 @@ export function EmployeeManager() {
       name: formData.name.trim(),
       phone: formData.phone.trim(),
       email: formData.email.trim(),
-    });
+      employment_number: formData.employment_number.trim(),
+      personal_number: formData.personal_number.trim(),
+    } as any);
   };
 
   const handleDelete = () => {
@@ -471,6 +485,31 @@ export function EmployeeManager() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="erik@exempel.se"
                 />
+              </div>
+            </div>
+
+            {/* Visma-fält */}
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-3">Visma Lön-identifiering (för löneexport)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="employment_number">Anställningsnummer</Label>
+                  <Input
+                    id="employment_number"
+                    value={formData.employment_number}
+                    onChange={(e) => setFormData({ ...formData, employment_number: e.target.value })}
+                    placeholder="1001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="personal_number">Personnummer</Label>
+                  <Input
+                    id="personal_number"
+                    value={formData.personal_number}
+                    onChange={(e) => setFormData({ ...formData, personal_number: e.target.value })}
+                    placeholder="YYYYMMDD-XXXX"
+                  />
+                </div>
               </div>
             </div>
           </div>
