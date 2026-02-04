@@ -218,7 +218,7 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full",
+          "fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full",
           "bg-primary text-primary-foreground shadow-lg",
           "hover:scale-105 active:scale-95 transition-all duration-200",
           "group cursor-pointer",
@@ -239,13 +239,13 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
       {/* Chat panel */}
       <div
         className={cn(
-          "fixed bottom-6 left-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
+          "fixed bottom-6 right-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
           "bg-card border border-border rounded-2xl shadow-xl",
           "flex flex-col overflow-hidden",
           "transition-all duration-300 ease-out",
           isOpen
             ? "opacity-100 translate-x-0 scale-100"
-            : "opacity-0 -translate-x-4 scale-95 pointer-events-none"
+            : "opacity-0 translate-x-4 scale-95 pointer-events-none"
         )}
       >
         {/* Header */}
