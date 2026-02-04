@@ -1,52 +1,58 @@
 
 
-## Plan: Ta bort temperature-parametern
+## Plan: Korta svar + fullhöjdschatt
 
-### Problem identifierat
+### Problem identifierade
 
-| Fel | Orsak | Plats |
-|-----|-------|-------|
-| `AI API error: 400` | `temperature: 0.7` stöds inte av modellen | Rad 242 i `agent-chat/index.ts` |
+| Problem | Nuvarande | Lösning |
+|---------|-----------|---------|
+| Långa AI-svar | Prompten säger bara "koncis" | Lägga till strikt instruktion: max 2-3 meningar |
+| Chatten täcker inte hela höjden | `h-[500px] max-h-[80vh]` | Ändra till `h-[calc(100vh-6rem)]` |
 
-API-felet:
-```json
-{
-  "message": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported."
-}
+---
+
+## Tekniska ändringar
+
+### Fil 1: `supabase/functions/agent-chat/index.ts`
+
+**Uppdatera Sagas system-prompt (rad 99-109):**
+
+```typescript
+// Lägg till i slutet av instruktionerna:
+"VIKTIGT: Ge KORTA svar. Max 2-3 meningar. Gå direkt på sak utan onödiga förklaringar."
+```
+
+**Uppdatera Bos system-prompt (rad 178-188):**
+
+```typescript
+// Lägg till i slutet av instruktionerna:
+"VIKTIGT: Ge KORTA svar. Max 2-3 meningar. Gå direkt på sak utan onödiga förklaringar."
 ```
 
 ---
 
-## Teknisk ändring
+### Fil 2: `src/components/shared/AgentChatBubble.tsx`
 
-### Fil: `supabase/functions/agent-chat/index.ts`
-
-**Rad 239-244 - Ta bort temperature:**
+**Ändra chatt-panelens höjd (rad 241-242):**
 
 ```typescript
-// FEL (nuvarande kod):
-body: JSON.stringify({
-  model: "openai/gpt-5-mini",
-  messages: apiMessages,
-  temperature: 0.7,                  // <-- DENNA RAD ORSAKAR FELET
-  max_completion_tokens: 1000,
-}),
+// FEL:
+"fixed bottom-6 right-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
 
-// RÄTT (fix):
-body: JSON.stringify({
-  model: "openai/gpt-5-mini",
-  messages: apiMessages,
-  max_completion_tokens: 1000,       // Ta bort temperature helt
-}),
+// RÄTT:
+"fixed top-4 bottom-4 right-4 z-50 w-80 sm:w-96",
 ```
+
+Detta gör att chatten:
+- Sträcker sig från 1rem (16px) från toppen till 1rem från botten
+- Tar upp hela höger sida utan att scrolla
 
 ---
 
 ## Sammanfattning
 
-| Ändring | Beskrivning |
-|---------|-------------|
-| Ta bort `temperature: 0.7` | Modellen stöder endast default temperature (1) |
-
-Efter denna ändring kommer Saga och Bo att fungera korrekt.
+| Fil | Ändring |
+|-----|---------|
+| `agent-chat/index.ts` | Lägg till "Max 2-3 meningar" i båda prompts |
+| `AgentChatBubble.tsx` | Fullhöjd: `top-4 bottom-4 right-4` istället för `bottom-6 right-6 h-[500px]` |
 
