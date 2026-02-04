@@ -239,7 +239,7 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
       {/* Chat panel */}
       <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
+          "fixed top-4 bottom-4 right-4 z-50 w-80 sm:w-96",
           "bg-card border border-border rounded-2xl shadow-xl",
           "flex flex-col overflow-hidden",
           "transition-all duration-300 ease-out",
