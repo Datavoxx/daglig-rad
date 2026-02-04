@@ -1,279 +1,75 @@
 
 
-## Plan: AI-chattbubbla för Saga (Offert) och Bo (Projekt)
+## Plan: Fixa chattbubbla - API-fel och flytta till höger hörnet
 
-### Översikt
-Skapa interaktiva chattbubblor i nedre vänstra hörnet av skärmen för att prata med AI-agenterna. Saga hanterar offertfrågor och Bo hanterar projektfrågor (inklusive Ullas dokumentationsdomän).
+### Problem identifierade
 
----
-
-## Teknisk arkitektur
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                          FRONTEND                                │
-├─────────────────────────────────────────────────────────────────┤
-│  AgentChatBubble.tsx (ny komponent)                             │
-│  ├── Floating button (nedre vänster)                            │
-│  ├── Chat panel med animation (slide-in + fade)                 │
-│  ├── Message history + streaming response                       │
-│  └── Agent avatar + personlighet                                │
-├─────────────────────────────────────────────────────────────────┤
-│                          BACKEND                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  supabase/functions/agent-chat/index.ts (ny edge function)      │
-│  ├── Streaming SSE response                                     │
-│  ├── Saga: full offertkontext (items, scope, assumptions, etc)  │
-│  └── Bo: full projektkontext (faser, dagbok, ÄTA, arbetsorder) │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Problem | Orsak | Lösning |
+|---------|-------|---------|
+| 404-fel från AI API | Fel API URL i edge function | Ändra till rätt Lovable AI gateway |
+| Bubblan i fel hörn | `left-6` istället för `right-6` | Uppdatera positionering |
 
 ---
 
-## Filer att skapa
+## Tekniska ändringar
 
-### 1. `src/components/shared/AgentChatBubble.tsx` (ny fil)
+### Fil 1: `supabase/functions/agent-chat/index.ts`
 
-En återanvändbar chattbubbla-komponent med följande funktioner:
-
-**Props:**
+**Ändra rad 233:**
 ```typescript
-interface AgentChatBubbleProps {
-  agent: "saga" | "bo";
-  context: SagaContext | BoContext;
-}
+// FEL:
+const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
 
-interface SagaContext {
-  projectName: string;
-  clientName: string;
-  scope: string;
-  assumptions: string[];
-  items: EstimateItem[];
-  addons: EstimateAddon[];
-  rotEnabled: boolean;
-  markupPercent: number;
-  totals: { laborCost: number; materialCost: number; subcontractorCost: number; grandTotal: number };
-}
-
-interface BoContext {
-  projectId: string;
-  projectName: string;
-  clientName?: string;
-  status?: string;
-  // Planering
-  phases?: PlanPhase[];
-  totalWeeks?: number;
-  // Dagbok (Ulla's domain - Bo kan besvara)
-  recentDiaryEntries?: DiaryEntry[];
-  // ÄTA
-  ataItems?: AtaItem[];
-  // Arbetsorder
-  workOrders?: WorkOrder[];
-}
+// RÄTT:
+const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
 ```
 
-**UI-design:**
-- Floating button i nedre vänstra hörnet (ej i vägen för navigation)
-- Klick öppnar en chattpanel med snygg animation (slide-in från vänster + fade)
-- Agentens avatar visas i panelens header
-- Meddelandehistorik med bubblor (användare höger, agent vänster)
-- Streaming-svar visas token för token
-- Stäng-knapp + möjlighet att minimera
-
-**Animationer (Tailwind + CSS):**
-```css
-/* Öppna chatten */
-.chat-panel-enter {
-  animation: slideInLeft 0.3s ease-out, fadeIn 0.2s ease-out;
-}
-
-/* Stäng chatten */
-.chat-panel-exit {
-  animation: slideOutLeft 0.2s ease-in, fadeOut 0.15s ease-in;
-}
-```
-
-### 2. `supabase/functions/agent-chat/index.ts` (ny edge function)
-
-**Streaming SSE-baserad chattfunktion:**
-
-```typescript
-// Saga's system prompt fokus:
-// - Full kunskap om offertstruktur
-// - Kan förklara ROT/RUT-beräkningar
-// - Kan svara på frågor om specifika poster
-// - Kan ge rekommendationer baserat på kontext
-
-// Bo's system prompt fokus:
-// - Full kunskap om projektplanering (faser, tidslinjer)
-// - Kan svara på Ullas domän: dagrapporter, ÄTA, arbetsorder
-// - Kan förklara projektets status och nästa steg
-// - Kan ge rekommendationer för tidsplanen
-```
-
-**Request body:**
-```typescript
-{
-  agent: "saga" | "bo",
-  messages: Array<{ role: "user" | "assistant", content: string }>,
-  context: SagaContext | BoContext
-}
-```
-
-**Response:** SSE-stream med token-by-token text
+Detta är samma URL som används i `generate-estimate` och andra fungerande edge functions.
 
 ---
 
-## Filer att uppdatera
+### Fil 2: `src/components/shared/AgentChatBubble.tsx`
 
-### 3. `src/components/estimates/EstimateBuilder.tsx`
+**Flytta från vänster till höger hörnet:**
 
-Lägg till AgentChatBubble med Saga:
-
+1. **Floating button (rad 221):**
 ```typescript
-import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
+// FEL:
+"fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full",
 
-// I komponenten, efter allt annat innehåll:
-<AgentChatBubble 
-  agent="saga"
-  context={{
-    projectName: displayProjectName,
-    clientName: displayClientName,
-    scope: estimate.state.scope,
-    assumptions: estimate.state.assumptions,
-    items: estimate.state.items,
-    addons: estimate.state.addons,
-    rotEnabled: estimate.state.rotEnabled,
-    markupPercent: estimate.state.markupPercent,
-    totals: estimate.totals,
-  }}
-/>
+// RÄTT:
+"fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full",
 ```
 
-### 4. `src/pages/ProjectView.tsx`
-
-Lägg till AgentChatBubble med Bo:
-
+2. **Chat panel (rad 242):**
 ```typescript
-import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
+// FEL:
+"fixed bottom-6 left-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
 
-// I komponenten, efter Tabs:
-<AgentChatBubble 
-  agent="bo"
-  context={{
-    projectId: project.id,
-    projectName: project.name,
-    clientName: project.client_name,
-    status: project.status,
-    // Dessa kan hämtas dynamiskt via queries
-  }}
-/>
+// RÄTT:
+"fixed bottom-6 right-6 z-50 w-80 sm:w-96 h-[500px] max-h-[80vh]",
 ```
 
-### 5. `supabase/config.toml`
+3. **Animation riktning (rad 248):**
+```typescript
+// FEL (slide från vänster):
+: "opacity-0 -translate-x-4 scale-95 pointer-events-none"
 
-Lägg till konfiguration för nya edge function:
-
-```toml
-[functions.agent-chat]
-verify_jwt = false
-```
-
----
-
-## UI-design detaljer
-
-### Chattbubbla (stängd)
-```text
-┌─────────┐
-│  [👤]   │  ← Agent avatar (Saga eller Bo)
-│ Fråga   │  ← Kort label
-└─────────┘
-Position: fixed, bottom-6, left-6
-```
-
-### Chattpanel (öppen)
-```text
-┌────────────────────────────────────────┐
-│ [Avatar] Saga                     [X]  │  ← Header
-├────────────────────────────────────────┤
-│                                        │
-│  ┌──────────────────────────────┐     │
-│  │ Hej! Jag är Saga, din        │     │  ← Agent intro
-│  │ kalkylexpert. Ställ frågor   │     │
-│  │ om offerten!                 │     │
-│  └──────────────────────────────┘     │
-│                                        │
-│         ┌──────────────────────┐      │
-│         │ Vad är totalsumman?  │      │  ← Användare
-│         └──────────────────────┘      │
-│                                        │
-│  ┌──────────────────────────────┐     │
-│  │ Totalsumman är 125 000 kr   │     │  ← Saga svarar
-│  │ inklusive ROT-avdrag...     │     │
-│  └──────────────────────────────┘     │
-│                                        │
-├────────────────────────────────────────┤
-│ [Skriv ditt meddelande...]    [Skicka]│  ← Input
-└────────────────────────────────────────┘
-Position: fixed, bottom-6, left-6
-Storlek: w-80 h-[500px] (max)
-```
-
----
-
-## System prompts
-
-### Saga (Offert)
-```
-Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige.
-
-Du har full tillgång till den aktuella offerten som användaren arbetar med. Du kan:
-- Förklara vilka poster som ingår och deras kostnader
-- Berätta om ROT/RUT-avdrag och hur de påverkar slutpriset
-- Ge rekommendationer om prissättning
-- Svara på frågor om projektets omfattning
-- Hjälpa till att förklara offerten för kunden
-
-Var hjälpsam, professionell och koncis. Svara alltid på svenska.
-
-AKTUELL OFFERT:
-[Kontextdata injiceras här]
-```
-
-### Bo (Projekt)
-```
-Du heter Bo och är en expert på byggprojektplanering och dokumentation.
-
-Du har full tillgång till det aktuella projektet. Du kan:
-- Förklara projektets tidplan och faser
-- Svara på frågor om dagrapporter och dokumentation (Ullas område)
-- Ge information om ÄTA-ärenden
-- Förklara arbetsorder och deras status
-- Ge rekommendationer för projektets nästa steg
-
-Var hjälpsam, professionell och koncis. Svara alltid på svenska.
-
-AKTUELLT PROJEKT:
-[Kontextdata injiceras här]
+// RÄTT (slide från höger):
+: "opacity-0 translate-x-4 scale-95 pointer-events-none"
 ```
 
 ---
 
 ## Sammanfattning
 
-| Fil | Typ | Beskrivning |
-|-----|-----|-------------|
-| `src/components/shared/AgentChatBubble.tsx` | Ny | Återanvändbar chattbubbla med animationer |
-| `supabase/functions/agent-chat/index.ts` | Ny | Streaming edge function för båda agenter |
-| `src/components/estimates/EstimateBuilder.tsx` | Uppdatera | Lägg till Saga chattbubbla |
-| `src/pages/ProjectView.tsx` | Uppdatera | Lägg till Bo chattbubbla |
-| `supabase/config.toml` | Uppdatera | Registrera agent-chat function |
+| Fil | Ändring |
+|-----|---------|
+| `supabase/functions/agent-chat/index.ts` | Fixa API URL: `api.lovable.dev` → `ai.gateway.lovable.dev` |
+| `src/components/shared/AgentChatBubble.tsx` | Flytta position: `left-6` → `right-6`, justera animation |
 
-### Nyckelfunktioner
-- Streaming-svar (token-by-token) för responsiv UX
-- Animationer vid öppna/stäng (slide-in från vänster)
-- Full kontextmedvetenhet för båda agenterna
-- Bo kan besvara frågor om Ullas domän (dokumentation)
-- Positionerad i nedre vänstra hörnet (ej i konflikt med befintlig VoiceInputOverlay som är höger)
+Efter dessa ändringar kommer:
+- Saga och Bo att svara korrekt på frågor
+- Chattbubblan att visas i nedre högra hörnet
+- Animationen att glida in från höger istället för vänster
 
