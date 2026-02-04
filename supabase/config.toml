@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.request-accounting-integration]
 verify_jwt = false
+
+[functions.agent-chat]
+verify_jwt = false
