@@ -22,7 +22,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 import BookingSuccess from "./booking/BookingSuccess";
 
-const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
+const timeSlots30min = [
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"
+];
+
+const timeSlots60min = [
+  "09:00", "10:00", "11:00", "13:00", "14:00", "15:00"
+];
 
 const bookingSchema = z.object({
   name: z.string().trim().min(2, "Ange ditt namn").max(100),
@@ -138,6 +145,10 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
   });
 
   const trainingDuration = watch("training_duration");
+
+  const timeSlots = useMemo(() => {
+    return trainingDuration === "30 min" ? timeSlots30min : timeSlots60min;
+  }, [trainingDuration]);
 
   const availableDays = useMemo(() => {
     const days: Date[] = [];
@@ -271,7 +282,10 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
               <Label>Utbildningslängd</Label>
               <RadioGroup
                 value={trainingDuration}
-                onValueChange={(value) => setValue("training_duration", value as "30 min" | "60 min")}
+                onValueChange={(value) => {
+                  setValue("training_duration", value as "30 min" | "60 min");
+                  setSelectedTime(null);
+                }}
                 className="grid grid-cols-2 gap-2"
               >
                 <DurationCard
@@ -308,7 +322,7 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
             {/* Time selection (always visible) */}
             <div className="space-y-2">
               <Label>Välj tid</Label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 {timeSlots.map((time) => (
                   <TimeButton
                     key={time}
