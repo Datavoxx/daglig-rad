@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
-import { Plus, Clock, Calendar, Trash2, Receipt, Wallet } from "lucide-react";
+import { Plus, Clock, Calendar, Trash2, Receipt, Wallet, FileSpreadsheet } from "lucide-react";
+import { Link } from "react-router-dom";
 import { TimeCalendarView } from "@/components/time-reporting/TimeCalendarView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -225,7 +226,16 @@ export default function TimeReporting() {
           <h1 className="text-2xl font-bold tracking-tight">Tidsrapportering</h1>
           <p className="text-muted-foreground">Rapportera arbetade timmar per projekt</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" asChild>
+              <Link to="/payroll-export">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Löneexport
+              </Link>
+            </Button>
+          )}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -351,6 +361,7 @@ export default function TimeReporting() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Calendar View */}
