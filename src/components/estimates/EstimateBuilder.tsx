@@ -27,7 +27,6 @@ import { ArticleLibrarySection } from "./ArticleLibrarySection";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { AI_AGENTS } from "@/config/aiAgents";
-import { AgentChatBubble } from "@/components/shared/AgentChatBubble";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -717,27 +716,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Saga AI Chat Bubble */}
-      <AgentChatBubble
-        agent="saga"
-        context={{
-          projectName: displayProjectName,
-          clientName: displayClientName,
-          scope: estimate.state.scope,
-          assumptions: estimate.state.assumptions,
-          items: estimate.state.items,
-          addons: estimate.state.addons,
-          rotEnabled: estimate.state.rotEnabled,
-          markupPercent: estimate.state.markupPercent,
-          totals: {
-            laborCost: estimate.totals.laborCost,
-            materialCost: estimate.totals.materialCost,
-            subcontractorCost: estimate.totals.subcontractorCost,
-            totalInclVat: estimate.totals.totalInclVat,
-          },
-        }}
-      />
     </>
   );
 }
