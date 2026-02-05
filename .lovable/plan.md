@@ -1,60 +1,61 @@
 
+# Plan: Kompaktera bokningsdialogen
 
-# Sammanfattning: Bokningsflödet är implementerat
-
-## Status
-
-Alla planerade ändringar har redan implementerats:
-
-| Komponent | Status |
-|-----------|--------|
-| Edge Function (training-booking) | Implementerad och deployad |
-| Visuella förbättringar (30/60 min kort) | Klart |
-| Dag- och tidsval alltid synliga | Klart |
-| Alla fält obligatoriska | Klart |
-| Post-booking registreringsprompt | Klart |
+## Mål
+Gör formuläret mindre och mer kompakt så att det ryms utan scrollning.
 
 ---
 
-## Identifierat problem
+## Ändringar i TrainingBookingDialog.tsx
 
-Edge function-testet returnerar:
-```
-status 502: {"error":"Webhook request failed","status":404}
-```
+### 1. Minska spacing mellan sektioner
+- `space-y-6` blir `space-y-4`
+- `space-y-4` blir `space-y-3`
+- `space-y-3` blir `space-y-2`
 
-Detta betyder att n8n-webhoken (`https://datavox.app.n8n.cloud/webhook/utbildning`) svarar med 404 Not Found.
+### 2. Kompaktera DurationCard
+- Minska padding från `p-4 sm:p-5` till `p-3`
+- Ta bort subtitle-texten (den extra beskrivningen)
+- Mindre border-radius: `rounded-2xl` till `rounded-xl`
 
-**Orsak:** Webhoken i n8n är antingen:
-1. Inte aktiverad (workflow inte "Active")
-2. URL:en har ändrats
-3. Workflow:et har tagits bort
+### 3. Kompaktera DayPill
+- Minska min-width från `64px` till `52px`
+- Minska padding från `p-3` till `p-2`
+- Mindre border-radius: `rounded-2xl` till `rounded-xl`
+- Visa endast 7 dagar istället för 10
 
----
+### 4. Kompaktera TimeButton
+- Minska padding från `p-3` till `py-2 px-3`
+- Mindre border-radius: `rounded-2xl` till `rounded-xl`
 
-## Åtgärd krävs (i n8n)
+### 5. Kompaktera Input-fält
+- Minska spacing från `space-y-2` till `space-y-1`
+- Ta bort margin-top på form (`mt-4` blir `mt-2`)
 
-1. Logga in på n8n (datavox.app.n8n.cloud)
-2. Öppna workflow:et för utbildningsbokning
-3. Kontrollera att:
-   - Workflow är satt till "Active"
-   - Webhook-noden har rätt path (`/utbildning`)
-   - Webhook är av typen "Production"
-4. Aktivera och spara workflow:et
+### 6. Minska dialog header
+- Minska title från `text-xl` till `text-lg`
 
----
-
-## Vad jag kan göra nu
-
-Eftersom webhook-problemet är på n8n-sidan, kan jag inte fixa det härifrån. Men om du vill kan jag:
-
-1. **Temporär lösning**: Modifiera edge function att alltid returnera success (för att testa UI-flödet)
-2. **Logga till databas**: Spara bokningar i en Supabase-tabell istället för (eller utöver) webhook
-3. **Vänta**: Du aktiverar webhoken i n8n, sedan testar vi igen
+### 7. Ta bort "Obligatoriskt"-text
+- Onödigt visuellt brus - knappen är redan disabled
 
 ---
 
-## Rekommendation
+## Resultat
 
-Aktivera webhoken i n8n först. Om den fungerar korrekt, fungerar hela flödet. Alternativt kan jag spara bokningar i databasen som backup.
+| Element | Före | Efter |
+|---------|------|-------|
+| Form spacing | space-y-6 | space-y-4 |
+| Duration card padding | p-4/p-5 | p-3 |
+| Day pill min-width | 64px | 52px |
+| Day pill padding | p-3 | p-2 |
+| Time button padding | p-3 | py-2 px-3 |
+| Antal dagar visade | 10 | 7 |
+| Border-radius | rounded-2xl | rounded-xl |
 
+---
+
+## Fil som ändras
+
+| Fil | Ändring |
+|-----|---------|
+| `src/components/landing/TrainingBookingDialog.tsx` | Kompaktare layout |
