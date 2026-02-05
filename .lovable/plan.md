@@ -1,105 +1,60 @@
 
-# Plan: Förbättra bokningsdialogen och fixa alla problem
 
-## Problem att lösa
+# Sammanfattning: Bokningsflödet är implementerat
 
-1. **Visuellt**: 30/60 min-korten syns inte ordentligt, tidsvalen är dolda
-2. **Bokning fungerar inte**: CORS-fel när vi skickar till extern webhook från frontend
-3. **Alla fält obligatoriska**: Säkerställ att allt måste fyllas i
-4. **Post-booking registreringsprompt**: Visa "Har du ett konto? Registrera dig"-meddelande
+## Status
+
+Alla planerade ändringar har redan implementerats:
+
+| Komponent | Status |
+|-----------|--------|
+| Edge Function (training-booking) | Implementerad och deployad |
+| Visuella förbättringar (30/60 min kort) | Klart |
+| Dag- och tidsval alltid synliga | Klart |
+| Alla fält obligatoriska | Klart |
+| Post-booking registreringsprompt | Klart |
 
 ---
 
-## Lösningar
+## Identifierat problem
 
-### 1. Skapa Edge Function för webhook-proxy
-
-Eftersom webbläsaren blockerar direktanrop till externa webhooks (CORS), behöver vi en edge function som agerar mellanhand.
-
-**Fil:** `supabase/functions/training-booking/index.ts`
-
-```text
-┌─────────────┐      ┌──────────────────┐      ┌───────────────────┐
-│   Frontend  │ ───► │  Edge Function   │ ───► │  n8n Webhook      │
-│   (Dialog)  │      │  /training-booking│      │  datavox.app...   │
-└─────────────┘      └──────────────────┘      └───────────────────┘
+Edge function-testet returnerar:
+```
+status 502: {"error":"Webhook request failed","status":404}
 ```
 
-- Tar emot bokningsdata från frontend
-- Skickar vidare till `https://datavox.app.n8n.cloud/webhook/utbildning`
-- Returnerar success/error till frontend
+Detta betyder att n8n-webhoken (`https://datavox.app.n8n.cloud/webhook/utbildning`) svarar med 404 Not Found.
+
+**Orsak:** Webhoken i n8n är antingen:
+1. Inte aktiverad (workflow inte "Active")
+2. URL:en har ändrats
+3. Workflow:et har tagits bort
 
 ---
 
-### 2. Förbättra visuell layout
+## Åtgärd krävs (i n8n)
 
-**Ändringar i TrainingBookingDialog:**
-
-| Problem | Lösning |
-|---------|---------|
-| 30/60 min kort för små | Öka padding, tydligare typografi |
-| Tider dolda tills dag vald | Visa alltid tiderna (disabled om ingen dag) |
-| Dialog för lång | Kompaktare spacing |
-
-**Ny layout för duration-valen:**
-- Tydligare bakgrundsfärg vid val
-- Större text för "30 min" / "60 min"
-- Bättre visuell feedback
+1. Logga in på n8n (datavox.app.n8n.cloud)
+2. Öppna workflow:et för utbildningsbokning
+3. Kontrollera att:
+   - Workflow är satt till "Active"
+   - Webhook-noden har rätt path (`/utbildning`)
+   - Webhook är av typen "Production"
+4. Aktivera och spara workflow:et
 
 ---
 
-### 3. Alla fält obligatoriska
+## Vad jag kan göra nu
 
-Formuläret validerar redan namn, e-post, telefon via Zod. Men vi behöver:
-- Visa tydligare att dag och tid är obligatoriska
-- Knappen är redan disabled tills allt är valt
+Eftersom webhook-problemet är på n8n-sidan, kan jag inte fixa det härifrån. Men om du vill kan jag:
 
----
-
-### 4. Post-booking registreringsprompt
-
-Efter lyckad bokning, visa:
-
-```text
-┌──────────────────────────────────────────────────┐
-│           ✓ Tack för din bokning!                │
-│                                                  │
-│   Vi ringer dig måndag 10 februari kl 10:00.     │
-│                                                  │
-│   ────────────────────────────────────────────   │
-│                                                  │
-│   Har du ett konto?                              │
-│   Registrera dig innan samtalet för att          │
-│   förbereda din Byggio-upplevelse.               │
-│                                                  │
-│         [ Registrera konto → ]                   │
-│         [ Stäng ]                                │
-└──────────────────────────────────────────────────┘
-```
+1. **Temporär lösning**: Modifiera edge function att alltid returnera success (för att testa UI-flödet)
+2. **Logga till databas**: Spara bokningar i en Supabase-tabell istället för (eller utöver) webhook
+3. **Vänta**: Du aktiverar webhoken i n8n, sedan testar vi igen
 
 ---
 
-## Tekniska detaljer
+## Rekommendation
 
-### Edge Function (`training-booking/index.ts`)
-- Tar emot POST med bokningsdata
-- Validerar att alla fält finns
-- Skickar vidare till n8n webhook
-- Returnerar framgång/fel
+Aktivera webhoken i n8n först. Om den fungerar korrekt, fungerar hela flödet. Alternativt kan jag spara bokningar i databasen som backup.
 
-### TrainingBookingDialog ändringar
-- Byt från direkt webhook-anrop till edge function
-- Förbättra layouten för 30/60 min-val
-- Visa tidsvalen alltid (med disabled-state)
-- Uppdatera success-skärmen med registreringsprompt
-- Lägg till länk till `/register`
-
----
-
-## Filer som ändras/skapas
-
-| Fil | Ändring |
-|-----|---------|
-| `supabase/functions/training-booking/index.ts` | NY - Webhook proxy |
-| `supabase/config.toml` | Lägg till training-booking function |
-| `src/components/landing/TrainingBookingDialog.tsx` | Visuella förbättringar + edge function anrop + registreringsprompt |
