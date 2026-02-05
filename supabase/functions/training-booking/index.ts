@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const WEBHOOK_URL = "https://datavox.app.n8n.cloud/webhook/utbildning";
 
@@ -13,9 +14,9 @@ type BookingPayload = {
   email: string;
   phone: string;
   training_duration: "30 min" | "60 min" | string;
-  preferred_date: string; // yyyy-MM-dd
-  preferred_time: string; // HH:mm
-  requested_at: string; // ISO
+  preferred_date: string;
+  preferred_time: string;
+  requested_at: string;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -23,12 +24,10 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 function isValidEmail(email: string) {
-  // basic sanity check
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -78,51 +77,81 @@ serve(async (req) => {
       });
     }
 
-    const forwardPayload: BookingPayload = {
+    const bookingData = {
       name: payload.name!.trim().slice(0, 100),
       email: payload.email!.trim().slice(0, 255),
       phone: payload.phone!.trim().slice(0, 30),
       training_duration: String(payload.training_duration).slice(0, 20),
       preferred_date: payload.preferred_date!.trim().slice(0, 20),
       preferred_time: payload.preferred_time!.trim().slice(0, 10),
-      requested_at: isNonEmptyString(payload.requested_at) ? payload.requested_at : new Date().toISOString(),
     };
 
-    console.log("[training-booking] forward_start", {
-      requestId,
-      date: forwardPayload.preferred_date,
-      time: forwardPayload.preferred_time,
-      duration: forwardPayload.training_duration,
-    });
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const webhookResponse = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(forwardPayload),
-    });
+    // Try to forward to webhook (best effort)
+    let webhookStatus = "pending";
+    let webhookResponse = "";
 
-    const responseText = await webhookResponse.text().catch(() => "");
-
-    if (!webhookResponse.ok) {
-      console.error("[training-booking] webhook_failed", {
+    try {
+      console.log("[training-booking] forward_start", {
         requestId,
-        status: webhookResponse.status,
-        body: responseText?.slice(0, 1000),
+        date: bookingData.preferred_date,
+        time: bookingData.preferred_time,
+        duration: bookingData.training_duration,
       });
 
-      return new Response(
-        JSON.stringify({
-          error: "Webhook request failed",
-          status: webhookResponse.status,
+      const webhookResult = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...bookingData,
+          requested_at: new Date().toISOString(),
         }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      });
+
+      webhookResponse = await webhookResult.text().catch(() => "");
+      
+      if (webhookResult.ok) {
+        webhookStatus = "success";
+        console.log("[training-booking] webhook_success", { requestId });
+      } else {
+        webhookStatus = "failed";
+        console.warn("[training-booking] webhook_failed", {
+          requestId,
+          status: webhookResult.status,
+          body: webhookResponse?.slice(0, 500),
+        });
+      }
+    } catch (webhookError) {
+      webhookStatus = "error";
+      webhookResponse = webhookError instanceof Error ? webhookError.message : String(webhookError);
+      console.warn("[training-booking] webhook_error", { requestId, error: webhookResponse });
     }
 
-    console.log("[training-booking] forward_ok", { requestId });
+    // Always save to database (this is the reliable storage)
+    const { error: dbError } = await supabase.from("training_bookings").insert({
+      name: bookingData.name,
+      email: bookingData.email,
+      phone: bookingData.phone,
+      training_duration: bookingData.training_duration,
+      preferred_date: bookingData.preferred_date,
+      preferred_time: bookingData.preferred_time,
+      webhook_status: webhookStatus,
+      webhook_response: webhookResponse?.slice(0, 1000) || null,
+    });
+
+    if (dbError) {
+      console.error("[training-booking] db_error", { requestId, error: dbError.message });
+      return new Response(JSON.stringify({ error: "Failed to save booking" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("[training-booking] booking_saved", { requestId, webhookStatus });
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

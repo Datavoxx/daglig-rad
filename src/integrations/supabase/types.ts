@@ -1831,6 +1831,45 @@ export type Database = {
           },
         ]
       }
+      training_bookings: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          training_duration: string
+          webhook_response: string | null
+          webhook_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          training_duration: string
+          webhook_response?: string | null
+          webhook_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          preferred_date?: string
+          preferred_time?: string
+          training_duration?: string
+          webhook_response?: string | null
+          webhook_status?: string | null
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string | null
