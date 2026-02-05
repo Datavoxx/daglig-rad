@@ -4,11 +4,13 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import AIAgentsSection from "@/components/landing/AIAgentsSection";
 import IntegrationsSection from "@/components/landing/IntegrationsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import FreeTrainingSection from "@/components/landing/FreeTrainingSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
 import PricingSection from "@/components/landing/PricingSection";
 import GuideSection from "@/components/landing/GuideSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
+
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -19,6 +21,7 @@ const Landing = () => {
         <AIAgentsSection />
         <IntegrationsSection />
         <HowItWorksSection />
+        <FreeTrainingSection />
         <TimeComparisonSection />
         <PricingSection />
         <GuideSection />
