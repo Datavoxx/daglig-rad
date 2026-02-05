@@ -18,10 +18,10 @@ const Landing = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <FreeTrainingSection />
         <AIAgentsSection />
         <IntegrationsSection />
         <HowItWorksSection />
-        <FreeTrainingSection />
         <TimeComparisonSection />
         <PricingSection />
         <GuideSection />

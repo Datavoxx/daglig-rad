@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { ArrowRight, Clock, Zap, BookOpen, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import byggioLogo from "@/assets/byggio-logo.png";
+import TrainingBookingDialog from "./TrainingBookingDialog";
 
 const trainingOptions = [
   {
@@ -18,6 +20,8 @@ const trainingOptions = [
 ];
 
 const FreeTrainingSection = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background decoration */}
@@ -85,11 +89,9 @@ const FreeTrainingSection = () => {
 
         {/* CTA */}
         <div className="text-center">
-          <Button size="lg" className="gap-2" asChild>
-            <a href="https://cal.com" target="_blank" rel="noopener noreferrer">
-              Boka din utbildning
-              <ArrowRight className="w-4 h-4" />
-            </a>
+          <Button size="lg" className="gap-2" onClick={() => setDialogOpen(true)}>
+            Boka din utbildning
+            <ArrowRight className="w-4 h-4" />
           </Button>
           <p className="mt-3 text-sm text-muted-foreground flex items-center justify-center gap-1.5">
             <MessageCircleQuestion className="w-4 h-4" />
@@ -97,6 +99,8 @@ const FreeTrainingSection = () => {
           </p>
         </div>
       </div>
+
+      <TrainingBookingDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </section>
   );
 };
