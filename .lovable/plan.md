@@ -1,128 +1,98 @@
 
+# Plan: Förbättra bokningsdialogen och fixa alla problem
 
-# Plan: Bokningsformulär med "fake-kalender" för utbildning
+## Problem att lösa
 
-## Sammanfattning
-
-Flytta FreeTrainingSection ovanför AIAgentsSection och ersätta "Boka utbildning"-knappen med en dialog som innehåller:
-1. Formulär för användaruppgifter (namn, e-post, telefon)
-2. Val av utbildningslängd (30 eller 60 min)
-3. En kalender-liknande vy för att välja önskad tid att bli uppringd
-4. Skicka allt till webhook: `https://datavox.app.n8n.cloud/webhook/utbildning`
+1. **Visuellt**: 30/60 min-korten syns inte ordentligt, tidsvalen är dolda
+2. **Bokning fungerar inte**: CORS-fel när vi skickar till extern webhook från frontend
+3. **Alla fält obligatoriska**: Säkerställ att allt måste fyllas i
+4. **Post-booking registreringsprompt**: Visa "Har du ett konto? Registrera dig"-meddelande
 
 ---
 
-## Ändringar
+## Lösningar
 
-### 1. Flytta sektionen i Landing.tsx
+### 1. Skapa Edge Function för webhook-proxy
 
-**Före:**
-```
-FeaturesSection
-AIAgentsSection  <-- AI-kollegor
-IntegrationsSection
-HowItWorksSection
-FreeTrainingSection  <-- Utbildning (fel plats)
+Eftersom webbläsaren blockerar direktanrop till externa webhooks (CORS), behöver vi en edge function som agerar mellanhand.
+
+**Fil:** `supabase/functions/training-booking/index.ts`
+
+```text
+┌─────────────┐      ┌──────────────────┐      ┌───────────────────┐
+│   Frontend  │ ───► │  Edge Function   │ ───► │  n8n Webhook      │
+│   (Dialog)  │      │  /training-booking│      │  datavox.app...   │
+└─────────────┘      └──────────────────┘      └───────────────────┘
 ```
 
-**Efter:**
-```
-FeaturesSection
-FreeTrainingSection  <-- Utbildning (NY plats)
-AIAgentsSection  <-- AI-kollegor
-IntegrationsSection
-HowItWorksSection
-```
+- Tar emot bokningsdata från frontend
+- Skickar vidare till `https://datavox.app.n8n.cloud/webhook/utbildning`
+- Returnerar success/error till frontend
 
 ---
 
-### 2. Ny komponent: TrainingBookingDialog
+### 2. Förbättra visuell layout
 
-**Fil:** `src/components/landing/TrainingBookingDialog.tsx`
+**Ändringar i TrainingBookingDialog:**
 
-#### Formulärfält:
-| Fält | Typ | Obligatoriskt |
-|------|-----|---------------|
-| Namn | text | Ja |
-| E-post | email | Ja |
-| Telefon | tel | Ja |
-| Utbildningslängd | radio (30/60 min) | Ja |
-| Önskad dag | kalenderval | Ja |
-| Önskad tid | tidslot-val | Ja |
+| Problem | Lösning |
+|---------|---------|
+| 30/60 min kort för små | Öka padding, tydligare typografi |
+| Tider dolda tills dag vald | Visa alltid tiderna (disabled om ingen dag) |
+| Dialog för lång | Kompaktare spacing |
 
-#### Fake-kalender-design:
-- Visa kommande 14 dagar som klickbara kort
-- När dag är vald, visa tidslots (09:00, 10:00, 11:00, 13:00, 14:00, 15:00)
-- Ser ut och känns som en riktig bokningskalender
-- Allt skickas bara till webhook
-
-#### UI-struktur:
-```
-┌──────────────────────────────────────────────────────┐
-│  Boka din gratis utbildning                      [X] │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│  Namn: [________________]                            │
-│  E-post: [________________]                          │
-│  Telefon: [________________]                         │
-│                                                      │
-│  Utbildningslängd:                                   │
-│  ○ 30 min - Snabbstart                               │
-│  ○ 60 min - Djupdykning                              │
-│                                                      │
-│  Välj dag:                                           │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐   │
-│  │Mån │ │Tis │ │Ons │ │Tor │ │Fre │ │Mån │ │Tis │   │
-│  │ 5  │ │ 6  │ │ 7  │ │ 8  │ │ 9  │ │ 12 │ │ 13 │   │
-│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘ └────┘   │
-│                                                      │
-│  Välj tid:                                           │
-│  ┌───────┐ ┌───────┐ ┌───────┐                      │
-│  │ 09:00 │ │ 10:00 │ │ 11:00 │                      │
-│  └───────┘ └───────┘ └───────┘                      │
-│  ┌───────┐ ┌───────┐ ┌───────┐                      │
-│  │ 13:00 │ │ 14:00 │ │ 15:00 │                      │
-│  └───────┘ └───────┘ └───────┘                      │
-│                                                      │
-│           [ Boka utbildning → ]                      │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
+**Ny layout för duration-valen:**
+- Tydligare bakgrundsfärg vid val
+- Större text för "30 min" / "60 min"
+- Bättre visuell feedback
 
 ---
 
-### 3. Webhook-payload
+### 3. Alla fält obligatoriska
 
-Data som skickas till `https://datavox.app.n8n.cloud/webhook/utbildning`:
-
-```json
-{
-  "name": "Anna Andersson",
-  "email": "anna@byggfirma.se",
-  "phone": "0701234567",
-  "training_duration": "60 min",
-  "preferred_date": "2026-02-10",
-  "preferred_time": "10:00",
-  "requested_at": "2026-02-05T16:50:00.000Z"
-}
-```
+Formuläret validerar redan namn, e-post, telefon via Zod. Men vi behöver:
+- Visa tydligare att dag och tid är obligatoriska
+- Knappen är redan disabled tills allt är valt
 
 ---
 
-### 4. Uppdatera FreeTrainingSection
+### 4. Post-booking registreringsprompt
 
-- Ta bort externa cal.com-länken
-- Lägg till state för att öppna dialogen
-- Importera och rendera TrainingBookingDialog
+Efter lyckad bokning, visa:
+
+```text
+┌──────────────────────────────────────────────────┐
+│           ✓ Tack för din bokning!                │
+│                                                  │
+│   Vi ringer dig måndag 10 februari kl 10:00.     │
+│                                                  │
+│   ────────────────────────────────────────────   │
+│                                                  │
+│   Har du ett konto?                              │
+│   Registrera dig innan samtalet för att          │
+│   förbereda din Byggio-upplevelse.               │
+│                                                  │
+│         [ Registrera konto → ]                   │
+│         [ Stäng ]                                │
+└──────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Tekniska detaljer
 
-- Använder `date-fns` för datumhantering (redan installerat)
-- Dialogen använder Radix Dialog (redan finns)
-- Formulärvalidering med zod
-- Toast-meddelande vid lyckad bokning
+### Edge Function (`training-booking/index.ts`)
+- Tar emot POST med bokningsdata
+- Validerar att alla fält finns
+- Skickar vidare till n8n webhook
+- Returnerar framgång/fel
+
+### TrainingBookingDialog ändringar
+- Byt från direkt webhook-anrop till edge function
+- Förbättra layouten för 30/60 min-val
+- Visa tidsvalen alltid (med disabled-state)
+- Uppdatera success-skärmen med registreringsprompt
+- Lägg till länk till `/register`
 
 ---
 
@@ -130,7 +100,6 @@ Data som skickas till `https://datavox.app.n8n.cloud/webhook/utbildning`:
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/Landing.tsx` | Flytta FreeTrainingSection ovanför AIAgentsSection |
-| `src/components/landing/TrainingBookingDialog.tsx` | NY - Bokningsformulär med fake-kalender |
-| `src/components/landing/FreeTrainingSection.tsx` | Integrera dialog istället för extern länk |
-
+| `supabase/functions/training-booking/index.ts` | NY - Webhook proxy |
+| `supabase/config.toml` | Lägg till training-booking function |
+| `src/components/landing/TrainingBookingDialog.tsx` | Visuella förbättringar + edge function anrop + registreringsprompt |
