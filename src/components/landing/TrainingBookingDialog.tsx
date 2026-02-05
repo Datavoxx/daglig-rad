@@ -41,18 +41,16 @@ interface TrainingBookingDialogProps {
 function DurationCard({
   value,
   title,
-  subtitle,
   selected,
 }: {
   value: "30 min" | "60 min";
   title: string;
-  subtitle: string;
   selected: boolean;
 }) {
   return (
     <label
       className={cn(
-        "relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 cursor-pointer transition-all",
+        "relative flex flex-col items-start p-3 rounded-xl border-2 cursor-pointer transition-all",
         "focus-within:ring-2 focus-within:ring-primary/15 focus-within:border-primary/40",
         selected
           ? "border-primary bg-primary/10"
@@ -60,9 +58,8 @@ function DurationCard({
       )}
     >
       <RadioGroupItem value={value} className="sr-only" />
-      <span className="text-lg font-semibold text-foreground leading-none">{value}</span>
-      <span className="text-sm text-muted-foreground mt-1">{title}</span>
-      <span className="text-xs text-muted-foreground/80 mt-2">{subtitle}</span>
+      <span className="text-base font-semibold text-foreground leading-none">{value}</span>
+      <span className="text-xs text-muted-foreground mt-0.5">{title}</span>
     </label>
   );
 }
@@ -81,13 +78,13 @@ function DayPill({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex flex-col items-center min-w-[64px] p-3 rounded-2xl border-2 transition-all",
+        "flex flex-col items-center min-w-[52px] p-2 rounded-xl border-2 transition-all",
         selected ? "border-primary bg-primary/10" : "border-border hover:border-primary/30 bg-card",
       )}
     >
-      <span className="text-xs text-muted-foreground uppercase">{format(day, "EEE", { locale: sv })}</span>
-      <span className="text-lg font-semibold text-foreground">{format(day, "d")}</span>
-      <span className="text-xs text-muted-foreground">{format(day, "MMM", { locale: sv })}</span>
+      <span className="text-[10px] text-muted-foreground uppercase">{format(day, "EEE", { locale: sv })}</span>
+      <span className="text-base font-semibold text-foreground">{format(day, "d")}</span>
+      <span className="text-[10px] text-muted-foreground">{format(day, "MMM", { locale: sv })}</span>
     </button>
   );
 }
@@ -109,7 +106,7 @@ function TimeButton({
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        "p-3 rounded-2xl border-2 font-medium transition-all",
+        "py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all",
         disabled && "opacity-50 cursor-not-allowed",
         !disabled && "hover:border-primary/30",
         selected
@@ -146,7 +143,7 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
     const days: Date[] = [];
     let currentDate = addDays(new Date(), 1);
 
-    while (days.length < 10) {
+    while (days.length < 7) {
       if (!isWeekend(currentDate)) days.push(currentDate);
       currentDate = addDays(currentDate, 1);
     }
@@ -224,16 +221,16 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
     <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Boka din gratis utbildning</DialogTitle>
+          <DialogTitle className="text-lg">Boka din gratis utbildning</DialogTitle>
         </DialogHeader>
 
         {isSuccess ? (
           <BookingSuccess preferredLabel={preferredLabel} onClose={closeAndReset} />
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
             {/* Personal details */}
-            <div className="space-y-4">
-              <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <Label htmlFor="name">Namn</Label>
                 <Input
                   id="name"
@@ -241,10 +238,10 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
                   {...register("name")}
                   className={errors.name ? "border-destructive" : ""}
                 />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="email">E-post</Label>
                 <Input
                   id="email"
@@ -253,10 +250,10 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
                   {...register("email")}
                   className={errors.email ? "border-destructive" : ""}
                 />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="phone">Telefon</Label>
                 <Input
                   id="phone"
@@ -265,42 +262,35 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
                   {...register("phone")}
                   className={errors.phone ? "border-destructive" : ""}
                 />
-                {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
               </div>
             </div>
 
             {/* Training duration */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label>Utbildningslängd</Label>
               <RadioGroup
                 value={trainingDuration}
                 onValueChange={(value) => setValue("training_duration", value as "30 min" | "60 min")}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                className="grid grid-cols-2 gap-2"
               >
                 <DurationCard
                   value="30 min"
                   title="Snabbstart"
-                  subtitle="Perfekt för att komma igång direkt"
                   selected={trainingDuration === "30 min"}
                 />
                 <DurationCard
                   value="60 min"
                   title="Djupdykning"
-                  subtitle="För dig som vill gå igenom allt + Q&A"
                   selected={trainingDuration === "60 min"}
                 />
               </RadioGroup>
             </div>
 
             {/* Date selection */}
-            <div className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
-                <Label>Välj dag</Label>
-                {!selectedDate && (
-                  <span className="text-xs text-muted-foreground">Obligatoriskt</span>
-                )}
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            <div className="space-y-2">
+              <Label>Välj dag</Label>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
                 {availableDays.map((day) => (
                   <DayPill
                     key={day.toISOString()}
@@ -316,14 +306,9 @@ export default function TrainingBookingDialog({ open, onOpenChange }: TrainingBo
             </div>
 
             {/* Time selection (always visible) */}
-            <div className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
-                <Label>Välj tid</Label>
-                {!selectedTime && (
-                  <span className="text-xs text-muted-foreground">Obligatoriskt</span>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-2">
+              <Label>Välj tid</Label>
+              <div className="grid grid-cols-3 gap-1.5">
                 {timeSlots.map((time) => (
                   <TimeButton
                     key={time}
