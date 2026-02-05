@@ -1,56 +1,74 @@
 
-# Plan: Kompaktera bokningsdialogen
+# Plan: Dynamiska tidsintervall baserat på utbildningslängd
 
 ## Mål
-Gör formuläret mindre och mer kompakt så att det ryms utan scrollning.
+Visa tidsalternativ i 30-minutersintervall när "30 min" är valt och i 1-timmesintervall när "60 min" är valt.
+
+---
+
+## Nuvarande implementation
+
+```typescript
+const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
+```
+
+Statisk array med 1-timmesintervall som alltid visas oavsett vald längd.
 
 ---
 
 ## Ändringar i TrainingBookingDialog.tsx
 
-### 1. Minska spacing mellan sektioner
-- `space-y-6` blir `space-y-4`
-- `space-y-4` blir `space-y-3`
-- `space-y-3` blir `space-y-2`
+### 1. Ersätt statisk array med två varianter
 
-### 2. Kompaktera DurationCard
-- Minska padding från `p-4 sm:p-5` till `p-3`
-- Ta bort subtitle-texten (den extra beskrivningen)
-- Mindre border-radius: `rounded-2xl` till `rounded-xl`
+```typescript
+const timeSlots30min = [
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"
+];
 
-### 3. Kompaktera DayPill
-- Minska min-width från `64px` till `52px`
-- Minska padding från `p-3` till `p-2`
-- Mindre border-radius: `rounded-2xl` till `rounded-xl`
-- Visa endast 7 dagar istället för 10
+const timeSlots60min = [
+  "09:00", "10:00", "11:00", "13:00", "14:00", "15:00"
+];
+```
 
-### 4. Kompaktera TimeButton
-- Minska padding från `p-3` till `py-2 px-3`
-- Mindre border-radius: `rounded-2xl` till `rounded-xl`
+### 2. Skapa dynamisk timeSlots baserat på trainingDuration
 
-### 5. Kompaktera Input-fält
-- Minska spacing från `space-y-2` till `space-y-1`
-- Ta bort margin-top på form (`mt-4` blir `mt-2`)
+Använd `useMemo` för att välja rätt array:
 
-### 6. Minska dialog header
-- Minska title från `text-xl` till `text-lg`
+```typescript
+const timeSlots = useMemo(() => {
+  return trainingDuration === "30 min" ? timeSlots30min : timeSlots60min;
+}, [trainingDuration]);
+```
 
-### 7. Ta bort "Obligatoriskt"-text
-- Onödigt visuellt brus - knappen är redan disabled
+### 3. Nollställ vald tid när duration ändras
+
+Lägg till effekt som rensar `selectedTime` när användaren byter mellan 30/60 min:
+
+```typescript
+// I onValueChange för RadioGroup:
+onValueChange={(value) => {
+  setValue("training_duration", value as "30 min" | "60 min");
+  setSelectedTime(null); // Nollställ tid när duration ändras
+}}
+```
+
+### 4. Justera grid för fler knappar
+
+Ändra från 3 kolumner till 4 för att passa fler tider:
+
+```typescript
+<div className="grid grid-cols-4 gap-1.5">
+```
 
 ---
 
 ## Resultat
 
-| Element | Före | Efter |
-|---------|------|-------|
-| Form spacing | space-y-6 | space-y-4 |
-| Duration card padding | p-4/p-5 | p-3 |
-| Day pill min-width | 64px | 52px |
-| Day pill padding | p-3 | p-2 |
-| Time button padding | p-3 | py-2 px-3 |
-| Antal dagar visade | 10 | 7 |
-| Border-radius | rounded-2xl | rounded-xl |
+| Duration | Tider som visas |
+|----------|-----------------|
+| 30 min | 09:00, 09:30, 10:00, 10:30, 11:00, 11:30, 13:00, 13:30, 14:00, 14:30, 15:00, 15:30 |
+| 60 min | 09:00, 10:00, 11:00, 13:00, 14:00, 15:00 |
 
 ---
 
@@ -58,4 +76,4 @@ Gör formuläret mindre och mer kompakt så att det ryms utan scrollning.
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/landing/TrainingBookingDialog.tsx` | Kompaktare layout |
+| `src/components/landing/TrainingBookingDialog.tsx` | Dynamiska tidsintervall baserat på vald utbildningslängd |
