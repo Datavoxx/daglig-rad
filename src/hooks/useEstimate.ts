@@ -4,6 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { EstimateItem } from "@/components/estimates/EstimateTable";
 
+// Maps estimate article categories to article library categories
+function mapToArticleCategory(article: string | undefined): string {
+  if (!article) return "Övrigt";
+  const mapping: Record<string, string> = {
+    "Arbete": "Arbete",
+    "Bygg": "Bygg",
+    "Deponi": "Deponi",
+    "Framkörning": "Övrigt",
+    "Förbrukning": "Material",
+    "Förvaltning": "Övrigt",
+    "Markarbete": "Bygg",
+    "Maskin": "Maskin",
+    "Material": "Material",
+    "Målning": "Målning",
+    "Snöröjning": "Övrigt",
+    "Städ": "Övrigt",
+    "Trädgårdsskötsel": "Övrigt",
+  };
+  return mapping[article] || "Övrigt";
+}
 export interface EstimateAddon {
   id: string;
   name: string;
@@ -510,6 +530,52 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         }));
         const { error } = await supabase.from("estimate_addons").insert(addonsToInsert);
         if (error) throw error;
+      }
+
+      // Sync new items to article library
+      const itemsWithDescriptions = state.items.filter(
+        item => item.description?.trim() && item.unit_price > 0
+      );
+
+      if (itemsWithDescriptions.length > 0) {
+        // Fetch existing articles for this user
+        const { data: existingArticles } = await supabase
+          .from("articles")
+          .select("name")
+          .eq("user_id", userData.user.id);
+
+        const existingNames = new Set(
+          (existingArticles || []).map(a => a.name.toLowerCase().trim())
+        );
+
+        // Find new unique articles
+        const newArticles = itemsWithDescriptions
+          .filter(item => !existingNames.has((item.description || "").toLowerCase().trim()))
+          .map((item, index) => ({
+            user_id: userData.user.id,
+            name: (item.description || "").trim(),
+            description: null,
+            article_category: mapToArticleCategory(item.article),
+            unit: item.unit || "st",
+            default_price: item.unit_price,
+            sort_order: (existingArticles?.length || 0) + index,
+          }));
+
+        // Deduplicate within the batch
+        const uniqueNewArticles = newArticles.filter((article, index, self) =>
+          index === self.findIndex(a => a.name.toLowerCase() === article.name.toLowerCase())
+        );
+
+        // Insert new articles (fire-and-forget, don't block save)
+        if (uniqueNewArticles.length > 0) {
+          supabase.from("articles").insert(uniqueNewArticles).then(({ error }) => {
+            if (error) {
+              console.error("Failed to sync articles to library:", error);
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["articles"] });
+            }
+          });
+        }
       }
 
       return estimateId;
