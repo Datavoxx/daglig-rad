@@ -1,512 +1,280 @@
 
-# Plan: Utöka Global Assistant med alla saknade funktioner
+# Plan: Fixa "hämta/visa" vs "uppdatera" i Global Assistant
 
-## Sammanfattning
+## Problem
 
-Utöka Global Assistant med stöd för alla appens moduler: tidsrapportering, dagrapporter, fakturor, egenkontroller, planering, närvaro, samt redigering/radering och röstinput.
+Global Assistant saknar verktyg för att endast **läsa** data. När användaren ber om att "hämta" eller "visa" en offert/projekt/kund, tvingas AI:n använda `update_`-verktyg utan parametrar, vilket resulterar i felaktigt meddelande "har uppdaterats!".
 
-## Omfattning
+## Lösning
 
-| Kategori | Nya funktioner |
-|----------|---------------|
-| **Tidsrapportering** | Registrera tid, visa tidrapporter, summering |
-| **Dagrapporter** | Skapa dagrapport, söka/visa rapporter |
-| **Fakturor** | Söka kund-/leverantörsfakturor, skapa kundfaktura |
-| **Egenkontroller** | Skapa inspektion, visa inspektioner |
-| **Planering** | Visa projektplanering |
-| **Närvaro** | Checka in/ut, visa aktiva |
-| **Redigering** | Uppdatera kund, projekt, offert |
-| **Radering** | Ta bort kund, projekt, offert |
-| **Röstinput** | Mikrofon-knappen aktiveras |
-| **Next Actions** | Aktivera förslag efter varje åtgärd |
+Lägg till dedikerade read-only verktyg för att hämta fullständig information om entiteter.
+
+## Nya verktyg att lägga till
+
+| Verktyg | Beskrivning |
+|---------|-------------|
+| `get_estimate` | Hämta fullständig offert med rader, summor, status |
+| `get_project` | Hämta projektdetaljer med ekonomi, faser, status |
+| `get_customer` | Hämta kundinfo med kontaktuppgifter, projekt, offerter |
 
 ## Teknisk implementation
 
-### 1. Utöka Tool Registry (Edge Function)
-
-Lägger till 20+ nya verktyg i `global-assistant/index.ts`:
+### 1. Lägg till verktyg i tool registry
 
 ```typescript
-// NYA VERKTYG ATT LÄGGA TILL:
-
-// === TIDSRAPPORTERING ===
 {
-  name: "register_time",
-  description: "Registrera tid för ett projekt",
-  parameters: {
-    project_id: "string",
-    hours: "number",
-    date: "string (YYYY-MM-DD)",
-    description: "string",
-    billing_type_id: "string (optional)",
-    salary_type_id: "string (optional)"
+  type: "function",
+  function: {
+    name: "get_estimate",
+    description: "Hämta och visa fullständig information om en offert",
+    parameters: {
+      type: "object",
+      properties: {
+        estimate_id: { type: "string", description: "Offertens ID" }
+      },
+      required: ["estimate_id"]
+    }
   }
 }
 
 {
-  name: "get_time_summary",
-  description: "Visa tidssammanfattning för en period",
-  parameters: {
-    start_date: "string",
-    end_date: "string",
-    project_id: "string (optional)"
-  }
-}
-
-// === DAGRAPPORTER ===
-{
-  name: "search_daily_reports",
-  description: "Sök dagrapporter",
-  parameters: {
-    project_id: "string (optional)",
-    date_from: "string (optional)",
-    date_to: "string (optional)"
+  type: "function", 
+  function: {
+    name: "get_project",
+    description: "Hämta och visa fullständig information om ett projekt",
+    parameters: {
+      type: "object",
+      properties: {
+        project_id: { type: "string", description: "Projektets ID" }
+      },
+      required: ["project_id"]
+    }
   }
 }
 
 {
-  name: "create_daily_report",
-  description: "Skapa en ny dagrapport",
-  parameters: {
-    project_id: "string",
-    work_items: "string[]",
-    headcount: "number",
-    total_hours: "number",
-    notes: "string (optional)"
-  }
-}
-
-// === FAKTUROR ===
-{
-  name: "search_customer_invoices",
-  description: "Sök kundfakturor",
-  parameters: {
-    query: "string",
-    status: "string (optional)"
-  }
-}
-
-{
-  name: "search_vendor_invoices",
-  description: "Sök leverantörsfakturor",
-  parameters: {
-    query: "string",
-    status: "string (optional)"
-  }
-}
-
-{
-  name: "create_customer_invoice",
-  description: "Skapa kundfaktura för ett projekt",
-  parameters: {
-    project_id: "string",
-    customer_id: "string"
-  }
-}
-
-// === EGENKONTROLLER ===
-{
-  name: "search_inspections",
-  description: "Sök egenkontroller",
-  parameters: {
-    project_id: "string (optional)",
-    status: "string (optional)"
-  }
-}
-
-{
-  name: "create_inspection",
-  description: "Skapa ny egenkontroll",
-  parameters: {
-    project_id: "string",
-    template_id: "string",
-    inspector_name: "string (optional)"
-  }
-}
-
-// === PLANERING ===
-{
-  name: "get_project_plan",
-  description: "Visa projektplanering/Gantt",
-  parameters: {
-    project_id: "string"
-  }
-}
-
-// === NÄRVARO ===
-{
-  name: "check_in",
-  description: "Checka in på ett projekt",
-  parameters: {
-    project_id: "string"
-  }
-}
-
-{
-  name: "check_out",
-  description: "Checka ut från ett projekt",
-  parameters: {
-    project_id: "string"
-  }
-}
-
-{
-  name: "get_active_attendance",
-  description: "Visa vem som är incheckad på ett projekt",
-  parameters: {
-    project_id: "string"
-  }
-}
-
-// === REDIGERING ===
-{
-  name: "update_customer",
-  description: "Uppdatera kunduppgifter",
-  parameters: {
-    customer_id: "string",
-    name: "string (optional)",
-    email: "string (optional)",
-    phone: "string (optional)",
-    address: "string (optional)",
-    city: "string (optional)"
-  }
-}
-
-{
-  name: "update_project",
-  description: "Uppdatera projektuppgifter",
-  parameters: {
-    project_id: "string",
-    name: "string (optional)",
-    status: "string (optional)",
-    address: "string (optional)"
-  }
-}
-
-{
-  name: "update_estimate",
-  description: "Uppdatera offertuppgifter",
-  parameters: {
-    estimate_id: "string",
-    manual_project_name: "string (optional)",
-    status: "string (optional)"
-  }
-}
-
-// === RADERING ===
-{
-  name: "delete_customer",
-  description: "Ta bort en kund",
-  parameters: {
-    customer_id: "string"
-  }
-}
-
-{
-  name: "delete_project",
-  description: "Ta bort ett projekt",
-  parameters: {
-    project_id: "string"
-  }
-}
-
-{
-  name: "delete_estimate",
-  description: "Ta bort en offert",
-  parameters: {
-    estimate_id: "string"
+  type: "function",
+  function: {
+    name: "get_customer", 
+    description: "Hämta och visa fullständig information om en kund",
+    parameters: {
+      type: "object",
+      properties: {
+        customer_id: { type: "string", description: "Kundens ID" }
+      },
+      required: ["customer_id"]
+    }
   }
 }
 ```
 
 ### 2. Implementera executeTool för nya verktyg
 
-Lägger till hantering för varje nytt verktyg i `executeTool`-funktionen:
-
 ```typescript
-case "register_time": {
-  const { project_id, hours, date, description, billing_type_id, salary_type_id } = args;
+case "get_estimate": {
+  const { estimate_id } = args;
   
-  const { data, error } = await supabase
-    .from("time_entries")
-    .insert({
-      user_id: userId,
-      employer_id: userId,
-      project_id,
-      hours,
-      date: date || new Date().toISOString().split('T')[0],
-      description,
-      billing_type_id,
-      salary_type_id,
-      status: "pending"
-    })
-    .select()
+  // Hämta offert med alla rader
+  const { data: estimate, error } = await supabase
+    .from("project_estimates")
+    .select(`
+      *,
+      customers (name, email, phone),
+      projects (name, status)
+    `)
+    .eq("id", estimate_id)
+    .eq("user_id", userId)
     .single();
     
   if (error) throw error;
-  return data;
+  
+  // Hämta rader
+  const { data: items } = await supabase
+    .from("estimate_items")
+    .select("*")
+    .eq("estimate_id", estimate_id)
+    .order("order_index");
+    
+  return { ...estimate, items: items || [] };
 }
 
-case "create_daily_report": {
-  const { project_id, work_items, headcount, total_hours, notes } = args;
+case "get_project": {
+  const { project_id } = args;
   
-  const { data, error } = await supabase
-    .from("daily_reports")
-    .insert({
-      user_id: userId,
-      project_id,
-      work_items,
-      headcount,
-      total_hours,
-      notes,
-      report_date: new Date().toISOString().split('T')[0]
-    })
-    .select()
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select(`
+      *,
+      customers (name, email, phone)
+    `)
+    .eq("id", project_id)
+    .eq("user_id", userId)
     .single();
     
   if (error) throw error;
-  return data;
+  return project;
 }
 
-// ... etc för alla nya verktyg
+case "get_customer": {
+  const { customer_id } = args;
+  
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", customer_id)
+    .eq("user_id", userId)
+    .single();
+    
+  if (error) throw error;
+  
+  // Hämta relaterade projekt och offerter
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, name, status")
+    .eq("customer_id", customer_id)
+    .limit(5);
+    
+  const { data: estimates } = await supabase
+    .from("project_estimates")
+    .select("id, offer_number, status, manual_project_name")
+    .eq("customer_id", customer_id)
+    .limit(5);
+    
+  return { ...customer, projects: projects || [], estimates: estimates || [] };
+}
 ```
 
-### 3. Utöka formatToolResults
-
-Lägger till formatering för nya resultat:
+### 3. Formatera resultat med detaljerad info
 
 ```typescript
-case "register_time": {
-  const entry = results as { id: string; hours: number };
+case "get_estimate": {
+  const estimate = results as any;
+  const totalRows = estimate.items?.length || 0;
+  
+  // Beräkna summor från items
+  const laborTotal = estimate.items?.reduce((sum, item) => 
+    item.row_type === 'labor' ? sum + (item.subtotal || 0) : sum, 0) || 0;
+  const materialTotal = estimate.items?.reduce((sum, item) => 
+    item.row_type === 'material' ? sum + (item.subtotal || 0) : sum, 0) || 0;
+  
   return {
     type: "result",
-    content: "",
+    content: `**${estimate.offer_number || 'Offert'}**
+
+**Projekt:** ${estimate.manual_project_name || estimate.projects?.name || 'Ej angivet'}
+**Kund:** ${estimate.customers?.name || 'Ej angiven'}
+**Status:** ${estimate.status || 'Utkast'}
+
+**Summering:**
+- Arbete: ${laborTotal.toLocaleString('sv-SE')} kr
+- Material: ${materialTotal.toLocaleString('sv-SE')} kr
+- Antal rader: ${totalRows}
+
+**Skapad:** ${new Date(estimate.created_at).toLocaleDateString('sv-SE')}`,
     data: {
       success: true,
-      resultMessage: `${entry.hours} timmar registrerade!`,
+      resultMessage: "",
       link: {
-        label: "Öppna tidsrapportering",
-        href: "/time-reporting"
+        label: "Öppna offert",
+        href: `/estimates?id=${estimate.id}`
       },
       nextActions: [
-        { label: "Registrera mer tid", icon: "plus", prompt: "Registrera mer tid" },
-        { label: "Visa veckans tid", icon: "eye", prompt: "Visa veckans tidrapport" }
+        { label: "Redigera offert", icon: "edit", prompt: "Redigera denna offert" },
+        { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt från denna offert" },
+        { label: "Visa kund", icon: "user", prompt: "Visa kunden för denna offert" }
       ]
     }
   };
 }
 
-case "create_daily_report": {
-  const report = results as { id: string };
+case "get_project": {
+  const project = results as any;
+  
   return {
     type: "result",
-    content: "",
+    content: `**${project.name}**
+
+**Kund:** ${project.customers?.name || 'Ej angiven'}
+**Status:** ${project.status || 'Ej angiven'}
+**Adress:** ${project.address || 'Ej angiven'}
+
+**Ekonomi:**
+- Budget: ${(project.budget || 0).toLocaleString('sv-SE')} kr
+- Fakturerat: ${(project.invoiced_amount || 0).toLocaleString('sv-SE')} kr
+
+**Skapad:** ${new Date(project.created_at).toLocaleDateString('sv-SE')}`,
     data: {
       success: true,
-      resultMessage: "Dagrapport skapad!",
+      resultMessage: "",
       link: {
-        label: "Öppna rapport",
-        href: `/reports/${report.id}`
+        label: "Öppna projekt",
+        href: `/projects/${project.id}`
       },
       nextActions: [
-        { label: "Skapa till", icon: "plus", prompt: "Skapa en till dagrapport" },
-        { label: "Visa projekt", icon: "folder", prompt: "Öppna projektet" }
+        { label: "Skapa dagrapport", icon: "clipboard", prompt: "Skapa dagrapport för detta projekt" },
+        { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på detta projekt" },
+        { label: "Visa planering", icon: "calendar", prompt: "Visa planeringen för detta projekt" }
+      ]
+    }
+  };
+}
+
+case "get_customer": {
+  const customer = results as any;
+  
+  return {
+    type: "result",
+    content: `**${customer.name}**
+
+**Kontakt:**
+- Email: ${customer.email || 'Ej angiven'}
+- Telefon: ${customer.phone || 'Ej angiven'}
+- Adress: ${customer.address || 'Ej angiven'}${customer.city ? `, ${customer.city}` : ''}
+
+**Relaterat:**
+- Projekt: ${customer.projects?.length || 0} st
+- Offerter: ${customer.estimates?.length || 0} st`,
+    data: {
+      success: true,
+      resultMessage: "",
+      link: {
+        label: "Öppna kund",
+        href: `/customers?id=${customer.id}`
+      },
+      nextActions: [
+        { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för denna kund" },
+        { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt för denna kund" },
+        { label: "Redigera kund", icon: "edit", prompt: "Redigera denna kund" }
       ]
     }
   };
 }
 ```
 
-### 4. Aktivera Next Actions i svaren
+### 4. Uppdatera systemprompt
 
-Uppdatera `formatToolResults` för att alltid returnera `nextActions`:
-
-```typescript
-// Lägg till nextActions i alla result-svar:
-data: {
-  success: true,
-  resultMessage: "...",
-  link: {...},
-  nextActions: [  // NY!
-    { label: "...", icon: "...", prompt: "..." },
-    { label: "...", icon: "...", prompt: "..." }
-  ]
-}
-```
-
-### 5. Aktivera röstinput i ChatInput
-
-Uppdatera `ChatInput.tsx` för att koppla mikrofon-knappen:
+Förtydliga för AI:n när den ska använda `get_` vs `update_`:
 
 ```typescript
-// Lägg till i ChatInput.tsx:
-import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
-
-interface ChatInputProps {
-  onSend: (message: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-}
-
-export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
-  const [input, setInput] = useState("");
-  
-  const { 
-    isRecording, 
-    isTranscribing, 
-    startRecording, 
-    stopRecording,
-    isSupported 
-  } = useVoiceRecorder({
-    onTranscriptComplete: (transcript) => {
-      setInput(transcript);
-    }
-  });
-
-  const handleMicClick = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  return (
-    <div className="...">
-      {/* Mic button - nu aktiverad */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          "h-9 w-9 shrink-0 rounded-full",
-          isRecording && "text-red-500 animate-pulse"
-        )}
-        onClick={handleMicClick}
-        disabled={!isSupported || disabled || isTranscribing}
-      >
-        <Mic className="h-5 w-5" />
-      </Button>
-    </div>
-  );
-}
-```
-
-### 6. Utöka QuickSuggestions
-
-Lägg till fler snabbförslag:
-
-```typescript
-const suggestions = [
-  { label: "Skapa offert", icon: FileText, prompt: "Jag vill skapa en ny offert" },
-  { label: "Hitta projekt", icon: FolderKanban, prompt: "Visa mina aktiva projekt" },
-  { label: "Sök kund", icon: Users, prompt: "Sök efter en kund" },
-  { label: "Ny dagrapport", icon: ClipboardList, prompt: "Skapa en ny dagrapport" },
-  // NYA:
-  { label: "Registrera tid", icon: Clock, prompt: "Registrera tid på ett projekt" },
-  { label: "Visa fakturor", icon: Receipt, prompt: "Visa mina kundfakturor" },
-  { label: "Checka in", icon: MapPin, prompt: "Checka in på ett projekt" },
-];
-```
-
-### 7. Uppdatera types
-
-Utöka `ConversationContext` och `MessageData`:
-
-```typescript
-// types/global-assistant.ts
-
-export interface ConversationContext {
-  selectedCustomerId?: string;
-  selectedProjectId?: string;
-  selectedEstimateId?: string;
-  selectedInvoiceId?: string;      // NY
-  selectedInspectionId?: string;   // NY
-  selectedTimeEntryId?: string;    // NY
-  pendingAction?: string;
-  pendingData?: Record<string, unknown>;
-}
-
-export interface MessageData {
-  // Befintliga...
-  
-  // För verification - utöka entityType
-  entityType?: 
-    | "customer" 
-    | "project" 
-    | "estimate"
-    | "invoice"          // NY
-    | "inspection"       // NY
-    | "daily_report"     // NY
-    | "time_entry";      // NY
-    
-  // För next_actions (redan finns, men behöver användas mer)
-  actions?: NextAction[];
-}
-```
-
-### 8. Uppdatera systemprompt
-
-Förbättra AI:ns instruktioner:
-
-```typescript
-const systemPrompt = `Du är en hjälpsam AI-assistent för ett byggföretag. Du hjälper användaren att hantera hela verksamheten.
-
-FUNKTIONER DU KAN UTFÖRA:
-- Kunder: Söka, skapa, redigera, ta bort
-- Projekt: Söka, skapa, redigera, ta bort  
-- Offerter: Söka, skapa, redigera, ta bort
-- Tidsrapportering: Registrera tid, visa summeringar
-- Dagrapporter: Skapa och söka rapporter
-- Fakturor: Söka kund- och leverantörsfakturor, skapa kundfaktura
-- Egenkontroller: Skapa och söka inspektioner
-- Närvaro: Checka in/ut, visa aktiva på projekt
-
-VIKTIGA REGLER:
-1. Svara alltid på svenska
-2. Var kortfattad och koncis
-3. Vid skrivoperationer, verifiera alltid först (sök efter kunder/projekt)
-4. Vid radering, varna alltid användaren och be om bekräftelse
-5. Föreslå alltid nästa steg efter en slutförd åtgärd
-
-KONTEXT:
-${context?.selectedCustomerId ? `- Vald kund-ID: ${context.selectedCustomerId}` : ""}
-${context?.selectedProjectId ? `- Valt projekt-ID: ${context.selectedProjectId}` : ""}
-...
-`;
+// Lägg till i systemPrompt:
+VIKTIGT - SKILLNAD MELLAN HÄMTA OCH UPPDATERA:
+- När användaren vill "visa", "hämta", "se" eller "öppna" → använd get_estimate/get_project/get_customer
+- När användaren vill "ändra", "uppdatera", "redigera" med specifika värden → använd update_*
+- ALDRIG använd update_* utan faktiska ändringar att göra
 ```
 
 ## Filer att modifiera
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Lägg till 20+ nya verktyg + formatering |
-| `src/components/global-assistant/ChatInput.tsx` | Aktivera röstinput |
-| `src/components/global-assistant/QuickSuggestions.tsx` | Lägg till fler förslag |
-| `src/types/global-assistant.ts` | Utöka typer |
-| `src/pages/GlobalAssistant.tsx` | Hantera next_actions-svar |
-
-## Arbetsordning
-
-1. **Edge Function** - Utöka tool registry med alla nya verktyg
-2. **Edge Function** - Implementera executeTool för varje verktyg
-3. **Edge Function** - Utöka formatToolResults med next actions
-4. **Frontend** - Aktivera röstinput i ChatInput
-5. **Frontend** - Utöka QuickSuggestions
-6. **Frontend** - Uppdatera types
-7. **Frontend** - Säkerställ NextActionsCard visas
+| `supabase/functions/global-assistant/index.ts` | Lägg till 3 nya get-verktyg + formatering |
 
 ## Resultat
 
-Efter implementationen kan Global Assistant:
+Efter implementationen:
 
-- Registrera tid: "Registrera 8 timmar på projekt Badrum idag"
-- Skapa dagrapport: "Skapa dagrapport för Villavägen - 3 snickare, rivning av väggar"
-- Söka fakturor: "Visa obetalda kundfakturor"
-- Skapa faktura: "Skapa faktura för projektet"
-- Egenkontroller: "Skapa egenkontroll för el på projektet"
-- Checka in: "Checka in mig på Lindströms projekt"
-- Redigera: "Ändra telefonnummer på kund Anders till 070-123 45 67"
-- Ta bort: "Ta bort offert OFF-2024-0123"
-- Röstkommandon: Prata in meddelanden via mikrofon-knappen
-
-Varje åtgärd avslutas med förslag på nästa steg för att guida användaren framåt.
+| Användarens begäran | Före (fel) | Efter (rätt) |
+|---------------------|------------|--------------|
+| "Hämta offert X" | "Offerten har uppdaterats!" | Visar offertens detaljer med summor och länk |
+| "Visa projekt Y" | Funkade inte | Visar projektinfo med ekonomi och status |
+| "Visa kund Z" | Funkade inte | Visar kundinfo med relaterade projekt/offerter |
