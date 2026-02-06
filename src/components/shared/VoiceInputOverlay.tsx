@@ -26,6 +26,7 @@ export function VoiceInputOverlay({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef<string>("");
+  const isRecordingRef = useRef(false);
 
   const isSpeechRecognitionSupported =
     typeof window !== "undefined" &&
@@ -87,7 +88,7 @@ export function VoiceInputOverlay({
     };
 
     recognition.onend = () => {
-      if (isRecording && recognitionRef.current) {
+      if (isRecordingRef.current && recognitionRef.current) {
         try {
           recognitionRef.current.start();
         } catch (e) {
@@ -98,6 +99,7 @@ export function VoiceInputOverlay({
 
     recognitionRef.current = recognition;
     recognition.start();
+    isRecordingRef.current = true;
     setIsRecording(true);
     const recordingMessage = agentName ? `${agentName} lyssnar...` : "Spela in dina ändringar...";
     toast.success(recordingMessage);
@@ -105,6 +107,7 @@ export function VoiceInputOverlay({
 
   const stopRecording = () => {
     if (recognitionRef.current) {
+      isRecordingRef.current = false;
       setIsRecording(false);
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -136,6 +139,7 @@ export function VoiceInputOverlay({
 
   const cancelRecording = () => {
     if (recognitionRef.current) {
+      isRecordingRef.current = false;
       setIsRecording(false);
       recognitionRef.current.abort();
       recognitionRef.current = null;
