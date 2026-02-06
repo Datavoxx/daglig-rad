@@ -33,7 +33,12 @@ export default function GlobalAssistant() {
     fetchUser();
   }, []);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, contextOverride?: Partial<ConversationContext>) => {
+    // Merge context with override (bypass React async state)
+    const effectiveContext = contextOverride 
+      ? { ...context, ...contextOverride } 
+      : context;
+
     // Add user message
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -58,7 +63,7 @@ export default function GlobalAssistant() {
         body: {
           message: content,
           history: messages.filter((m) => m.type !== "loading"),
-          context,
+          context: effectiveContext,
         },
       });
 
@@ -114,17 +119,26 @@ export default function GlobalAssistant() {
   };
 
   const handleVerificationSelect = async (messageId: string, match: VerificationMatch) => {
-    // Update context with selected entity
     const message = messages.find((m) => m.id === messageId);
+    let newContext: Partial<ConversationContext> = {};
+    
     if (message?.data?.entityType === "customer") {
-      setContext((prev) => ({ ...prev, selectedCustomerId: match.id }));
+      newContext = { selectedCustomerId: match.id };
     } else if (message?.data?.entityType === "project") {
-      setContext((prev) => ({ ...prev, selectedProjectId: match.id }));
+      newContext = { selectedProjectId: match.id };
     } else if (message?.data?.entityType === "estimate") {
-      setContext((prev) => ({ ...prev, selectedEstimateId: match.id }));
+      newContext = { selectedEstimateId: match.id };
+    } else if (message?.data?.entityType === "invoice") {
+      newContext = { selectedInvoiceId: match.id };
+    } else if (message?.data?.entityType === "inspection") {
+      newContext = { selectedInspectionId: match.id };
     }
     
-    await sendMessage(`Ja, det är ${match.title}`);
+    // Update local state for future messages
+    setContext((prev) => ({ ...prev, ...newContext }));
+    
+    // Send with the new context immediately (bypass React async)
+    await sendMessage(`Ja, det är ${match.title}`, newContext);
   };
 
   const handleVerificationSearchOther = async (messageId: string) => {
