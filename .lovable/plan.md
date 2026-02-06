@@ -1,123 +1,65 @@
 
-# Plan: Ta bort alla toast-notifieringar från appen
+# Plan: Ta bort alla återstående toast-notifieringar (del 2)
 
-## Omfattning
+## Sammanfattning
 
-Denna ändring tar bort **alla popup-notifieringar (toasts)** från hela applikationen. Detta inkluderar:
+Fortsätter borttagningen av toast-notifieringar från de återstående ~52 filerna i applikationen.
 
-- Alla `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()` anrop (Sonner)
-- Alla `toast({ title: ... })` anrop (Radix UI Toast)
-- Toast-komponenterna själva från App.tsx
+## Filer att modifiera
 
-## Filer som påverkas
+### Grupp 1: Sonner-toasts (37 filer)
 
-### Röstinspelning och AI
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/hooks/useVoiceRecorder.ts` | 11 stycken (inkl. "Prata nu!", "Transkribering klar!", fel-toasts) |
-| `src/components/shared/VoiceInputOverlay.tsx` | 2 stycken |
-| `src/components/shared/VoicePromptButton.tsx` | 2 stycken |
-| `src/components/estimates/TemplateEditor.tsx` | 5 stycken |
-| `src/components/estimates/EstimateSummary.tsx` | Flera |
-
-### Inloggning och registrering
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/pages/Auth.tsx` | 3 stycken (inkl. "Välkommen tillbaka!") |
-| `src/pages/Register.tsx` | 4 stycken |
-| `src/pages/AcceptInvitation.tsx` | Flera |
-
-### Projekthantering
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/components/projects/ProjectPlanningTab.tsx` | 8 stycken |
-| `src/components/projects/ProjectOverviewTab.tsx` | 4 stycken |
-| `src/components/projects/AtaFollowUpDialog.tsx` | 4 stycken |
-| `src/components/projects/ProjectFilesTab.tsx` | Flera |
-| `src/components/projects/InlineDiaryCreator.tsx` | Flera |
-
-### Offerter och mallar
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/hooks/useEstimate.ts` | Flera |
-| `src/components/estimates/EstimateImportDialog.tsx` | Flera |
-| `src/pages/Estimates.tsx` | Flera |
-
-### Tidrapportering och närvaro
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/pages/TimeReporting.tsx` | Flera |
-| `src/pages/Attendance.tsx` | Flera |
-| `src/pages/AttendanceScan.tsx` | 4 stycken |
+| Fil | Antal toasts |
+|-----|-------------|
+| `src/pages/AttendanceScan.tsx` | 4 |
+| `src/pages/Invoices.tsx` | 4 |
 | `src/pages/PayrollExport.tsx` | Flera |
-| `src/components/time-reporting/AttestationView.tsx` | Flera |
-
-### Inställningar
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/components/settings/SalaryTypeManager.tsx` | 9 stycken |
-| `src/components/settings/ArticleManager.tsx` | Flera |
-| `src/components/settings/EmployeeManager.tsx` | Flera |
-| `src/components/settings/BillingTypeManager.tsx` | Flera |
+| `src/pages/Customers.tsx` | Flera |
+| `src/pages/TimeReporting.tsx` | Flera |
+| `src/components/attendance/QRCodeGenerator.tsx` | 2 |
+| `src/components/attendance/AttendanceHistory.tsx` | Flera |
+| `src/components/attendance/AttendanceEmployeeView.tsx` | Flera |
+| `src/components/estimates/EstimateSummary.tsx` | 2 |
+| `src/components/estimates/CreateTemplateDialog.tsx` | 4 |
+| `src/components/estimates/EstimateBuilder.tsx` | Flera |
+| `src/components/estimates/TemplateEditor.tsx` | 5 |
+| `src/components/projects/ProjectDiaryTab.tsx` | Flera |
+| `src/components/invoices/VendorInvoiceDialog.tsx` | Flera |
+| `src/components/invoices/CustomerInvoiceDialog.tsx` | Flera |
+| `src/components/invoices/VendorInvoiceUpload.tsx` | Flera |
+| `src/components/invoices/VendorInvoiceList.tsx` | 4 |
+| `src/components/invoices/CustomerInvoiceList.tsx` | 4 |
 | `src/components/settings/TemplateManager.tsx` | Flera |
-
-### Fakturor
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/pages/Invoices.tsx` | 4 stycken |
-| `src/components/invoices/VendorInvoiceList.tsx` | 4 stycken |
-| `src/components/invoices/CustomerInvoiceList.tsx` | Flera |
-
-### Kunder
-| Fil | Toasts att ta bort |
-|-----|-------------------|
+| `src/components/settings/SalaryTypeManager.tsx` | 9 |
 | `src/components/customers/CustomerFormDialog.tsx` | Flera |
 | `src/components/customers/CustomerImportDialog.tsx` | Flera |
 | `src/components/customers/CustomerDetailSheet.tsx` | Flera |
+| `src/components/time-reporting/AttestationView.tsx` | Flera |
+| Och fler... | |
 
-### Egenkontroller och rapporter
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/pages/Inspections.tsx` | Flera |
+### Grupp 2: Radix UI Toast / useToast (18 filer)
+
+| Fil | Antal toasts |
+|-----|-------------|
 | `src/pages/InspectionView.tsx` | Flera |
+| `src/pages/Estimates.tsx` | Flera |
+| `src/pages/Settings.tsx` | Flera |
 | `src/pages/InspectionNew.tsx` | Flera |
-| `src/components/reports/ReportEditor.tsx` | Flera |
-| `src/pages/ReportView.tsx` | Flera |
-| `src/pages/DailyReports.tsx` | Flera |
-
-### Övriga
-| Fil | Toasts att ta bort |
-|-----|-------------------|
-| `src/pages/Guide.tsx` | Flera |
-| `src/pages/Planning.tsx` | Flera |
 | `src/pages/Projects.tsx` | Flera |
+| `src/pages/ReportView.tsx` | Flera |
+| `src/components/reports/ReportEditor.tsx` | Flera |
+| `src/components/projects/ProjectPlanningTab.tsx` | 8 |
+| `src/components/projects/ProjectOverviewTab.tsx` | 4 |
+| `src/components/projects/ProjectFilesTab.tsx` | Flera |
+| `src/components/projects/ProjectAtaTab.tsx` | Flera |
+| `src/components/projects/AtaFollowUpDialog.tsx` | 4 |
 | `src/components/onboarding/CompanyOnboardingWizard.tsx` | Flera |
-| `src/components/landing/TrainingBookingDialog.tsx` | 2 stycken |
-| `src/components/attendance/AttendanceHistory.tsx` | Flera |
-| `src/components/auth/ProtectedModuleRoute.tsx` | 1 stycken |
+| `src/components/estimates/EstimateWizard.tsx` | Flera |
+| Och fler... | |
 
-### App-komponenter att ändra
-| Fil | Ändring |
-|-----|---------|
-| `src/App.tsx` | Ta bort `<Toaster />` och `<SonnerToaster />` komponenter |
+## Teknisk implementering
 
-## Implementationsstrategi
-
-1. **Steg 1**: Ta bort toast-importer och anrop från alla filer (ca 60 filer)
-2. **Steg 2**: Ta bort `<Toaster />` och `<SonnerToaster />` från `App.tsx`
-3. **Steg 3**: Behåll toast-komponentfilerna (`src/components/ui/toast.tsx`, etc.) ifall de behövs i framtiden
-
-## Tekniska detaljer
-
-### Metod för borttagning
-
-För varje fil:
-1. Ta bort `import { toast } from "sonner"` eller `import { useToast } from "@/hooks/use-toast"`
-2. Ta bort `const { toast } = useToast()` deklarationer
-3. Ta bort alla `toast(...)`, `toast.success(...)`, `toast.error(...)`, `toast.info(...)` anrop
-4. Behåll resten av logiken (felhantering fungerar fortfarande via console.error)
-
-### Exempel på ändring
+### För Sonner-toasts
 
 **Före:**
 ```typescript
@@ -138,21 +80,69 @@ const handleSave = async () => {
 const handleSave = async () => {
   try {
     await saveData();
+    // Toast borttagen
   } catch (error) {
     console.error("Save failed:", error);
   }
 };
 ```
 
-## Konsekvenser
+### För Radix UI Toast (useToast)
 
-- **Ingen visuell feedback** för lyckade operationer (spara, ladda upp, etc.)
-- **Ingen visuell feedback** för fel (användaren måste titta på UI-förändringar istället)
-- Felhantering fortsätter fungera via `console.error` för felsökning
-- Appen blir "tystare" och mindre störande
+**Före:**
+```typescript
+import { useToast } from "@/hooks/use-toast";
 
-## Uppskattad omfattning
+function Component() {
+  const { toast } = useToast();
+  
+  const handleAction = () => {
+    toast({ title: "Sparat!" });
+  };
+}
+```
 
-- ~60 filer att modifiera
-- ~150+ toast-anrop att ta bort
-- Ingen funktionalitet påverkas, bara feedback-popups försvinner
+**Efter:**
+```typescript
+function Component() {
+  const handleAction = () => {
+    // Toast borttagen
+  };
+}
+```
+
+## Uppdelning av arbetet
+
+Jag kommer att uppdatera filerna i omgångar:
+
+1. **Omgång 1**: Inställningar och projekthantering
+   - `SalaryTypeManager.tsx`, `TemplateManager.tsx`
+   - `ProjectPlanningTab.tsx`, `ProjectOverviewTab.tsx`, `ProjectFilesTab.tsx`
+   - `ProjectAtaTab.tsx`, `AtaFollowUpDialog.tsx`, `ProjectDiaryTab.tsx`
+
+2. **Omgång 2**: Fakturor och kunder
+   - `Invoices.tsx`, `VendorInvoiceList.tsx`, `CustomerInvoiceList.tsx`
+   - `VendorInvoiceDialog.tsx`, `CustomerInvoiceDialog.tsx`, `VendorInvoiceUpload.tsx`
+   - `CustomerFormDialog.tsx`, `CustomerImportDialog.tsx`, `CustomerDetailSheet.tsx`
+
+3. **Omgång 3**: Offerter och tidrapportering
+   - `EstimateSummary.tsx`, `CreateTemplateDialog.tsx`, `EstimateBuilder.tsx`
+   - `TemplateEditor.tsx`, `EstimateWizard.tsx`, `Estimates.tsx`
+   - `TimeReporting.tsx`, `AttestationView.tsx`, `PayrollExport.tsx`
+
+4. **Omgång 4**: Närvaro och egenkontroller
+   - `AttendanceScan.tsx`, `QRCodeGenerator.tsx`, `AttendanceHistory.tsx`
+   - `AttendanceEmployeeView.tsx`
+   - `InspectionView.tsx`, `InspectionNew.tsx`, `Inspections.tsx`
+
+5. **Omgång 5**: Rapporter och övriga
+   - `ReportEditor.tsx`, `ReportView.tsx`, `DailyReports.tsx`
+   - `Projects.tsx`, `Settings.tsx`, `Guide.tsx`, `Planning.tsx`
+   - `CompanyOnboardingWizard.tsx`, `TrainingBookingDialog.tsx`
+
+## Resultat
+
+- Alla popup-notifieringar tas bort
+- Felhantering behålls via `console.error`
+- Appen blir helt "tyst" utan störande meddelanden
+- Logiken i appen fungerar precis som innan
