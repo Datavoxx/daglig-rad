@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { PlanEditor } from "@/components/planning/PlanEditor";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Json } from "@/integrations/supabase/types";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface PlanPhase {
   name: string;
@@ -70,16 +71,31 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
   const [transcript, setTranscript] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
   const [generatedPhases, setGeneratedPhases] = useState<PlanPhase[]>([]);
   const [generatedTotalWeeks, setGeneratedTotalWeeks] = useState(0);
   const [generatedConfidence, setGeneratedConfidence] = useState(0);
   const [generatedSummary, setGeneratedSummary] = useState("");
   const [startDate, setStartDate] = useState<Date>(getNextMonday(new Date()));
-  const finalTranscriptRef = useRef<string>("");
   const { toast } = useToast();
   const isMobile = useIsMobile();
+
+  const {
+    isRecording,
+    isTranscribing,
+    interimTranscript,
+    startRecording,
+    stopRecording,
+    isSupported,
+    isIOSDevice,
+  } = useVoiceRecorder({
+    agentName: "Bo",
+    onTranscriptUpdate: (newTranscript) => {
+      setTranscript(newTranscript);
+    },
+    onTranscriptComplete: (completedTranscript) => {
+      setTranscript(completedTranscript);
+    },
+  });
 
   useEffect(() => {
     fetchPlan();
@@ -122,63 +138,10 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     }
   };
 
-  const startRecording = () => {
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      toast({ title: "Taligenkänning stöds inte", variant: "destructive" });
-      return;
-    }
-
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "sv-SE";
-
-    finalTranscriptRef.current = transcript;
-
-    recognition.onresult = (event: any) => {
-      let interim = "";
-      let final = "";
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          final += result[0].transcript + " ";
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-
-      if (final) {
-        finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + final.trim();
-        setTranscript(finalTranscriptRef.current);
-      }
-
-      setInterimTranscript(interim);
-    };
-
-    recognition.onerror = () => {
-      setIsRecording(false);
-      setInterimTranscript("");
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-      setInterimTranscript("");
-    };
-
-    recognition.start();
-    setIsRecording(true);
-    (window as any).currentRecognition = recognition;
-  };
-
-  const stopRecording = () => {
-    if ((window as any).currentRecognition) {
-      (window as any).currentRecognition.stop();
-    }
-    setIsRecording(false);
-    setInterimTranscript("");
-  };
+  // Construct displayed transcript
+  const displayedTranscript = isIOSDevice 
+    ? transcript 
+    : transcript + (interimTranscript ? (transcript ? " " : "") + interimTranscript : "");
 
   const handleGeneratePlan = async () => {
     if (!transcript.trim()) {
@@ -330,9 +293,14 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
               <Sparkles className="h-4 w-4" />
               <span className="font-medium">Låt Bo AI hjälpa dig</span>
             </div>
-            <span className="text-sm text-muted-foreground">Beskriv planen med rösten</span>
+            <span className="text-sm text-muted-foreground">
+              Beskriv planen med rösten{isIOSDevice && " (transkribering efter inspelning)"}
+            </span>
             {isRecording && (
               <span className="text-xs text-destructive animate-pulse">● Spelar in...</span>
+            )}
+            {isTranscribing && (
+              <span className="text-xs text-primary animate-pulse">Transkriberar...</span>
             )}
           </div>
         </div>
@@ -340,18 +308,17 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
         <div className="relative">
           <Textarea
             placeholder="Beskriv projektets faser, t.ex. 'Rivning 2 veckor, sedan stomme och grundarbete 4 veckor...'"
-            value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+            value={displayedTranscript}
             onChange={(e) => {
               setTranscript(e.target.value);
-              finalTranscriptRef.current = e.target.value;
             }}
             rows={6}
-            disabled={isRecording}
-            className={isRecording ? "pr-24" : ""}
+            disabled={isRecording || isTranscribing}
+            className={isRecording || isTranscribing ? "pr-24" : ""}
           />
-          {isRecording && interimTranscript && (
+          {(isRecording || isTranscribing) && (
             <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium animate-pulse">
-              Lyssnar...
+              {isTranscribing ? "Transkriberar..." : "Lyssnar..."}
             </div>
           )}
         </div>
@@ -359,11 +326,26 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           <Button
             variant={isRecording ? "destructive" : "outline"}
             onClick={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing || !isSupported}
           >
-            {isRecording ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-            {isRecording ? "Stoppa" : "Spela in"}
+            {isTranscribing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Transkriberar...
+              </>
+            ) : isRecording ? (
+              <>
+                <MicOff className="mr-2 h-4 w-4" />
+                Stoppa
+              </>
+            ) : (
+              <>
+                <Mic className="mr-2 h-4 w-4" />
+                Spela in
+              </>
+            )}
           </Button>
-          <Button onClick={handleGeneratePlan} disabled={!transcript.trim()}>
+          <Button onClick={handleGeneratePlan} disabled={!transcript.trim() || isRecording || isTranscribing}>
             Generera plan
           </Button>
         </div>

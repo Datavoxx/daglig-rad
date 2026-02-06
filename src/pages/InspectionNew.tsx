@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, ClipboardCheck, Building2, FileText, Mic, MicOff, Loader2, AlertCircle, Sparkles, Check, X, Minus } from "lucide-react";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 type Step = "project" | "template" | "input" | "preview" | "creating";
 
@@ -34,18 +35,31 @@ export default function InspectionNew() {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [textInput, setTextInput] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
   const [aiResults, setAiResults] = useState<AICheckpointResult[] | null>(null);
   const [aiSummary, setAiSummary] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Real-time speech recognition refs
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef<string>("");
+  const {
+    isRecording,
+    isTranscribing,
+    interimTranscript,
+    startRecording,
+    stopRecording,
+    isSupported,
+    isIOSDevice,
+  } = useVoiceRecorder({
+    onTranscriptUpdate: (newTranscript) => {
+      setTextInput(newTranscript);
+    },
+    onTranscriptComplete: (completedTranscript) => {
+      setTextInput(completedTranscript);
+    },
+  });
 
-  const isSpeechRecognitionSupported = typeof window !== 'undefined' && 
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  // Construct displayed transcript
+  const displayedTranscript = isIOSDevice 
+    ? textInput 
+    : textInput + (interimTranscript ? (textInput ? " " : "") + interimTranscript : "");
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
@@ -123,113 +137,6 @@ export default function InspectionNew() {
       setStep("input");
     },
   });
-
-  // Real-time speech recognition (same as ReportNew.tsx)
-  const startRecording = () => {
-    if (!isSpeechRecognitionSupported) {
-      toast({
-        title: "Röstinspelning stöds ej",
-        description: "Din webbläsare stöder inte Web Speech API. Använd Chrome, Edge eller Safari.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognitionAPI();
-      
-      recognition.lang = 'sv-SE';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-
-      finalTranscriptRef.current = textInput;
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interim = '';
-        let final = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            final += result[0].transcript + ' ';
-          } else {
-            interim += result[0].transcript;
-          }
-        }
-        
-        if (final) {
-          finalTranscriptRef.current += (finalTranscriptRef.current ? ' ' : '') + final.trim();
-          setTextInput(finalTranscriptRef.current);
-        }
-        
-        setInterimTranscript(interim);
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        
-        if (event.error === 'no-speech') {
-          toast({
-            title: "Inget tal upptäckt",
-            description: "Försök tala tydligare och närmare mikrofonen",
-            variant: "destructive",
-          });
-        } else if (event.error === 'audio-capture') {
-          toast({
-            title: "Mikrofon ej tillgänglig",
-            description: "Kontrollera att mikrofonen är ansluten och tillåten",
-            variant: "destructive",
-          });
-        } else if (event.error !== 'aborted') {
-          toast({
-            title: "Inspelningsfel",
-            description: `Fel: ${event.error}`,
-            variant: "destructive",
-          });
-        }
-        
-        setIsRecording(false);
-        setInterimTranscript("");
-      };
-
-      recognition.onend = () => {
-        if (isRecording) {
-          try {
-            recognition.start();
-          } catch {
-            setIsRecording(false);
-            setInterimTranscript("");
-          }
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      setIsRecording(true);
-      
-      toast({ title: "Inspelning startad", description: "Tala tydligt - texten visas i realtid" });
-    } catch (error) {
-      console.error("Speech recognition start error:", error);
-      toast({
-        title: "Kunde inte starta inspelning",
-        description: "Ett oväntat fel uppstod",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      setIsRecording(false);
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setInterimTranscript("");
-      
-      toast({ title: "Inspelning stoppad" });
-    }
-  };
 
   const groupedTemplates = templates?.reduce((acc, template) => {
     if (!acc[template.category]) {
@@ -355,7 +262,7 @@ export default function InspectionNew() {
   const canProceed = () => {
     if (step === "project") return !!selectedProject;
     if (step === "template") return !!selectedTemplate;
-    if (step === "input") return !isRecording && !isAnalyzing;
+    if (step === "input") return !isRecording && !isAnalyzing && !isTranscribing;
     if (step === "preview") return true;
     return false;
   };
@@ -377,6 +284,7 @@ export default function InspectionNew() {
       default: return "Ej ifylld";
     }
   };
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -556,17 +464,16 @@ export default function InspectionNew() {
               <div className="relative">
                 <Textarea
                   placeholder="T.ex. 'Punkt ett OK, punkt två OK, punkt tre har avvikelse - skyddsutrustning saknas...'"
-                  value={textInput + (interimTranscript ? (textInput ? ' ' : '') + interimTranscript : '')}
+                  value={displayedTranscript}
                   onChange={(e) => {
                     setTextInput(e.target.value);
-                    finalTranscriptRef.current = e.target.value;
                   }}
                   rows={4}
-                  disabled={isRecording || isAnalyzing}
+                  disabled={isRecording || isAnalyzing || isTranscribing}
                 />
-                {interimTranscript && (
+                {(isRecording || isTranscribing) && (
                   <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
-                    Lyssnar...
+                    {isTranscribing ? "Transkriberar..." : "Lyssnar..."}
                   </div>
                 )}
               </div>
@@ -576,9 +483,14 @@ export default function InspectionNew() {
                   variant={isRecording ? "destructive" : "secondary"}
                   onClick={isRecording ? stopRecording : startRecording}
                   className="flex-1"
-                  disabled={!isSpeechRecognitionSupported || isAnalyzing}
+                  disabled={!isSupported || isAnalyzing || isTranscribing}
                 >
-                  {isRecording ? (
+                  {isTranscribing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Transkriberar...
+                    </>
+                  ) : isRecording ? (
                     <>
                       <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
                       <MicOff className="mr-2 h-4 w-4" />
@@ -587,13 +499,13 @@ export default function InspectionNew() {
                   ) : (
                     <>
                       <Mic className="mr-2 h-4 w-4" />
-                      Spela in (realtid)
+                      Spela in {isIOSDevice ? "" : "(realtid)"}
                     </>
                   )}
                 </Button>
               </div>
               
-              {!isSpeechRecognitionSupported && (
+              {!isSupported && (
                 <p className="text-sm text-destructive flex items-center gap-1.5">
                   <AlertCircle className="h-4 w-4" />
                   Din webbläsare stöder inte röstinspelning
