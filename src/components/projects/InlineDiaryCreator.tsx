@@ -88,6 +88,7 @@ export function InlineDiaryCreator({
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef<string>("");
+  const isRecordingRef = useRef(false);
 
   const isSpeechRecognitionSupported =
     typeof window !== "undefined" &&
@@ -193,10 +194,11 @@ export function InlineDiaryCreator({
       };
 
       recognition.onend = () => {
-        if (isRecording) {
+        if (isRecordingRef.current) {
           try {
             recognition.start();
           } catch {
+            isRecordingRef.current = false;
             setIsRecording(false);
             setInterimTranscript("");
           }
@@ -205,6 +207,7 @@ export function InlineDiaryCreator({
 
       recognitionRef.current = recognition;
       recognition.start();
+      isRecordingRef.current = true;
       setIsRecording(true);
 
       toast.info("Inspelning startad", {
@@ -218,6 +221,7 @@ export function InlineDiaryCreator({
 
   const stopRecording = () => {
     if (recognitionRef.current) {
+      isRecordingRef.current = false;
       setIsRecording(false);
       recognitionRef.current.stop();
       recognitionRef.current = null;
