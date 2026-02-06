@@ -1,100 +1,158 @@
 
-# Plan: Fixa transkribering som inte tolkar ljudet
+# Plan: Ta bort alla toast-notifieringar från appen
 
-## Problemanalys
+## Omfattning
 
-Loggarna visar att:
-- Ljudfilen skickas korrekt (462KB, 20 sekunder, audio/mp4)
-- AI-modellen svarar: "Vänligen tillhandahåll ljudfilen..."
+Denna ändring tar bort **alla popup-notifieringar (toasts)** från hela applikationen. Detta inkluderar:
 
-**Orsak:** Gemini-modellen via Lovable AI Gateway får inte ljuddata i rätt format. Antingen:
-1. `input_audio`-formatet stöds inte av denna gateway/modell
-2. Base64-datan behöver skickas som `image_url` med data-URI istället
+- Alla `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()` anrop (Sonner)
+- Alla `toast({ title: ... })` anrop (Radix UI Toast)
+- Toast-komponenterna själva från App.tsx
 
-## Lösning
+## Filer som påverkas
 
-Ändra hur ljudet skickas till AI-modellen. Enligt OpenAI/Gemini-kompatibla APIs ska audio skickas som en data-URI i `image_url`-fältet (som också hanterar audio):
+### Röstinspelning och AI
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/hooks/useVoiceRecorder.ts` | 11 stycken (inkl. "Prata nu!", "Transkribering klar!", fel-toasts) |
+| `src/components/shared/VoiceInputOverlay.tsx` | 2 stycken |
+| `src/components/shared/VoicePromptButton.tsx` | 2 stycken |
+| `src/components/estimates/TemplateEditor.tsx` | 5 stycken |
+| `src/components/estimates/EstimateSummary.tsx` | Flera |
 
-```typescript
-// NUVARANDE (fungerar inte):
-{
-  type: "input_audio",
-  input_audio: { data: audio, format: "mp4" }
-}
+### Inloggning och registrering
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/pages/Auth.tsx` | 3 stycken (inkl. "Välkommen tillbaka!") |
+| `src/pages/Register.tsx` | 4 stycken |
+| `src/pages/AcceptInvitation.tsx` | Flera |
 
-// NYTT (data-URI format):
-{
-  type: "image_url",
-  image_url: {
-    url: `data:audio/mp4;base64,${audio}`
-  }
-}
-```
+### Projekthantering
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/components/projects/ProjectPlanningTab.tsx` | 8 stycken |
+| `src/components/projects/ProjectOverviewTab.tsx` | 4 stycken |
+| `src/components/projects/AtaFollowUpDialog.tsx` | 4 stycken |
+| `src/components/projects/ProjectFilesTab.tsx` | Flera |
+| `src/components/projects/InlineDiaryCreator.tsx` | Flera |
 
-Alternativt, om Lovable AI Gateway stöder OpenAI's audio-format:
+### Offerter och mallar
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/hooks/useEstimate.ts` | Flera |
+| `src/components/estimates/EstimateImportDialog.tsx` | Flera |
+| `src/pages/Estimates.tsx` | Flera |
 
-```typescript
-{
-  type: "audio_url",
-  audio_url: {
-    url: `data:audio/mp4;base64,${audio}`
-  }
-}
-```
+### Tidrapportering och närvaro
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/pages/TimeReporting.tsx` | Flera |
+| `src/pages/Attendance.tsx` | Flera |
+| `src/pages/AttendanceScan.tsx` | 4 stycken |
+| `src/pages/PayrollExport.tsx` | Flera |
+| `src/components/time-reporting/AttestationView.tsx` | Flera |
 
-## Fil som ändras
+### Inställningar
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/components/settings/SalaryTypeManager.tsx` | 9 stycken |
+| `src/components/settings/ArticleManager.tsx` | Flera |
+| `src/components/settings/EmployeeManager.tsx` | Flera |
+| `src/components/settings/BillingTypeManager.tsx` | Flera |
+| `src/components/settings/TemplateManager.tsx` | Flera |
 
+### Fakturor
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/pages/Invoices.tsx` | 4 stycken |
+| `src/components/invoices/VendorInvoiceList.tsx` | 4 stycken |
+| `src/components/invoices/CustomerInvoiceList.tsx` | Flera |
+
+### Kunder
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/components/customers/CustomerFormDialog.tsx` | Flera |
+| `src/components/customers/CustomerImportDialog.tsx` | Flera |
+| `src/components/customers/CustomerDetailSheet.tsx` | Flera |
+
+### Egenkontroller och rapporter
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/pages/Inspections.tsx` | Flera |
+| `src/pages/InspectionView.tsx` | Flera |
+| `src/pages/InspectionNew.tsx` | Flera |
+| `src/components/reports/ReportEditor.tsx` | Flera |
+| `src/pages/ReportView.tsx` | Flera |
+| `src/pages/DailyReports.tsx` | Flera |
+
+### Övriga
+| Fil | Toasts att ta bort |
+|-----|-------------------|
+| `src/pages/Guide.tsx` | Flera |
+| `src/pages/Planning.tsx` | Flera |
+| `src/pages/Projects.tsx` | Flera |
+| `src/components/onboarding/CompanyOnboardingWizard.tsx` | Flera |
+| `src/components/landing/TrainingBookingDialog.tsx` | 2 stycken |
+| `src/components/attendance/AttendanceHistory.tsx` | Flera |
+| `src/components/auth/ProtectedModuleRoute.tsx` | 1 stycken |
+
+### App-komponenter att ändra
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/transcribe-audio/index.ts` | Ändra content-format för audio |
+| `src/App.tsx` | Ta bort `<Toaster />` och `<SonnerToaster />` komponenter |
 
-## Teknisk implementation
+## Implementationsstrategi
 
-### transcribe-audio/index.ts
+1. **Steg 1**: Ta bort toast-importer och anrop från alla filer (ca 60 filer)
+2. **Steg 2**: Ta bort `<Toaster />` och `<SonnerToaster />` från `App.tsx`
+3. **Steg 3**: Behåll toast-komponentfilerna (`src/components/ui/toast.tsx`, etc.) ifall de behövs i framtiden
 
-1. Ändra meddelande-strukturen från `input_audio` till data-URI format
-2. Testa med `image_url` (som vissa APIs använder för multimodalt innehåll)
-3. Om det inte fungerar, fallback till explicit audio data-URI
+## Tekniska detaljer
 
+### Metod för borttagning
+
+För varje fil:
+1. Ta bort `import { toast } from "sonner"` eller `import { useToast } from "@/hooks/use-toast"`
+2. Ta bort `const { toast } = useToast()` deklarationer
+3. Ta bort alla `toast(...)`, `toast.success(...)`, `toast.error(...)`, `toast.info(...)` anrop
+4. Behåll resten av logiken (felhantering fungerar fortfarande via console.error)
+
+### Exempel på ändring
+
+**Före:**
 ```typescript
-// Bygg data-URI för ljudfilen
-const audioDataUri = `data:${mimeType || 'audio/mp4'};base64,${audio}`;
+import { toast } from "sonner";
 
-messages: [
-  {
-    role: "system",
-    content: `...`
-  },
-  {
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: "Transkribera följande ljudinspelning ordagrant:"
-      },
-      {
-        type: "image_url",  // Multimodal content type
-        image_url: {
-          url: audioDataUri
-        }
-      }
-    ]
+const handleSave = async () => {
+  try {
+    await saveData();
+    toast.success("Sparat!");
+  } catch (error) {
+    toast.error("Kunde inte spara");
   }
-]
+};
 ```
 
-## Fallback: Byt till annan modell
+**Efter:**
+```typescript
+const handleSave = async () => {
+  try {
+    await saveData();
+  } catch (error) {
+    console.error("Save failed:", error);
+  }
+};
+```
 
-Om ovanstående inte fungerar, kan vi testa:
-- `openai/gpt-5` som har bekräftat stöd för audio
-- `google/gemini-2.5-flash` med annan syntax
+## Konsekvenser
 
-## Testplan
+- **Ingen visuell feedback** för lyckade operationer (spara, ladda upp, etc.)
+- **Ingen visuell feedback** för fel (användaren måste titta på UI-förändringar istället)
+- Felhantering fortsätter fungera via `console.error` för felsökning
+- Appen blir "tystare" och mindre störande
 
-1. Spela in på iPhone Safari med ~5-10 sekunders tal
-2. Verifiera att transkriberingen innehåller det du faktiskt sa
-3. Kontrollera loggarna för att se att modellen får ljudet
+## Uppskattad omfattning
 
-## Sammanfattning
-
-Problemet är att AI-modellen inte "ser" ljudfilen trots att den skickas. Lösningen är att ändra hur ljuddatan formateras i API-anropet - från `input_audio` till data-URI format som är mer standardiserat för multimodala API:er.
+- ~60 filer att modifiera
+- ~150+ toast-anrop att ta bort
+- Ingen funktionalitet påverkas, bara feedback-popups försvinner
