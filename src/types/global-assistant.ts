@@ -2,7 +2,7 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading";
+  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list";
   data?: MessageData;
 }
 
@@ -34,6 +34,10 @@ export interface MessageData {
     href: string;
   };
   nextActions?: NextAction[];
+  
+  // For list
+  listItems?: ListItem[];
+  listType?: "project" | "customer" | "estimate" | "invoice" | "inspection";
 }
 
 export interface VerificationMatch {
@@ -47,6 +51,16 @@ export interface NextAction {
   label: string;
   icon: string;
   prompt: string;
+}
+
+export interface ListItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  statusColor?: "green" | "yellow" | "blue" | "gray";
+  details?: { label: string; value: string }[];
+  link?: string;
 }
 
 export interface ConversationContext {

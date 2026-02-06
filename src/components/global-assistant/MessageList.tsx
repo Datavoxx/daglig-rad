@@ -6,6 +6,7 @@ import { ProposalCard } from "./ProposalCard";
 import { VerificationCard } from "./VerificationCard";
 import { NextActionsCard } from "./NextActionsCard";
 import { ResultCard } from "./ResultCard";
+import { ListCard } from "./ListCard";
 import { cn } from "@/lib/utils";
 
 interface MessageListProps {
@@ -98,6 +99,11 @@ export function MessageList({
                 {/* Result card */}
                 {message.type === "result" && message.data && (
                   <ResultCard data={message.data} onNextAction={onNextAction} />
+                )}
+
+                {/* List card */}
+                {message.type === "list" && message.data && (
+                  <ListCard content={message.content} data={message.data} />
                 )}
 
                 {/* Next actions */}
