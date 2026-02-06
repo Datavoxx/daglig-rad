@@ -1,0 +1,48 @@
+import { FileText, Search, ClipboardList, Users, FolderKanban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface QuickSuggestionsProps {
+  onSelect: (prompt: string) => void;
+}
+
+const suggestions = [
+  {
+    label: "Skapa offert",
+    icon: FileText,
+    prompt: "Jag vill skapa en ny offert",
+  },
+  {
+    label: "Hitta projekt",
+    icon: FolderKanban,
+    prompt: "Visa mina aktiva projekt",
+  },
+  {
+    label: "Sök kund",
+    icon: Users,
+    prompt: "Sök efter en kund",
+  },
+  {
+    label: "Ny dagrapport",
+    icon: ClipboardList,
+    prompt: "Skapa en ny dagrapport",
+  },
+];
+
+export function QuickSuggestions({ onSelect }: QuickSuggestionsProps) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      {suggestions.map((suggestion) => (
+        <Button
+          key={suggestion.label}
+          variant="outline"
+          size="sm"
+          className="gap-2 rounded-full border-border/60 bg-card/50 hover:bg-card hover:border-primary/30 transition-all"
+          onClick={() => onSelect(suggestion.prompt)}
+        >
+          <suggestion.icon className="h-4 w-4 text-muted-foreground" />
+          <span>{suggestion.label}</span>
+        </Button>
+      ))}
+    </div>
+  );
+}

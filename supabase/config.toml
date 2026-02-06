@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.training-booking]
 verify_jwt = false
+
+[functions.global-assistant]
+verify_jwt = false
