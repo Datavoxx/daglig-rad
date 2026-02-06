@@ -1,99 +1,120 @@
 
-# Plan: Fixa röstinspelning på iPhone Safari
 
-## Problemidentifikation
+# Plan: Lägg till ElevenLabs Scribe Realtime för iOS Safari
 
-iOS Safari har **begränsat stöd för Web Speech API**:
-- `continuous: true` fungerar INTE på iOS
-- Sessionen avslutas automatiskt efter ~5-10 sekunder
-- `onend`-händelser triggas aggressivt
+## Översikt
 
-Detta förklarar varför röstinspelningen fungerar på desktop men inte på iPhone.
+| Platform | Metod | Realtid | Kostnad |
+|----------|-------|---------|---------|
+| Desktop (Chrome/Edge) | Web Speech API | ✅ Ja | Gratis |
+| iOS Safari | ElevenLabs Scribe v2 Realtime | ✅ Ja | Per minut |
 
-## Lösning: Hybridmetod
+## Krav: ElevenLabs API-nyckel
 
-Implementera en tvådelad strategi:
+Du behöver en ElevenLabs API-nyckel för att detta ska fungera:
+1. Gå till [elevenlabs.io](https://elevenlabs.io) och skapa ett konto
+2. Navigera till "Profile" → "API Keys"
+3. Kopiera din API-nyckel
 
-| Platform | Metod |
-|----------|-------|
-| Desktop (Chrome/Edge) | Web Speech API (funkar utmärkt) |
-| iOS Safari | MediaRecorder + AI-transkribering via edge function |
+Jag kommer be dig lägga till nyckeln som en hemlighet i projektet.
 
-## Teknisk Implementation
+## Filer som skapas/ändras
 
-### Del 1: Skapa iOS-detektering
+### 1. Ny Edge Function: `elevenlabs-scribe-token`
 
-Lägg till en hjälpfunktion för att detektera iOS:
+Skapar engångstoken för säker anslutning till ElevenLabs WebSocket.
 
 ```typescript
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-const isIOSSafari = isIOS || (isSafari && 'ontouchend' in document);
+// supabase/functions/elevenlabs-scribe-token/index.ts
+serve(async (req) => {
+  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+  
+  const response = await fetch(
+    "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
+    {
+      method: "POST",
+      headers: { "xi-api-key": ELEVENLABS_API_KEY },
+    }
+  );
+  
+  const { token } = await response.json();
+  return new Response(JSON.stringify({ token }));
+});
 ```
 
-### Del 2: Uppdatera transkriberings-edge function
+### 2. Uppdatera `supabase/config.toml`
 
-Edge-funktionen `transcribe-audio` finns redan och använder Lovable AI Gateway. Behöver bara säkerställa att den fungerar med iPhone-inspelat ljud.
+Lägg till den nya funktionen.
 
-### Del 3: Uppdatera röstkomponenter
+### 3. Nytt paket: `@elevenlabs/react`
 
-Alla komponenter med röstinspelning får en ny logik:
+Lägg till ElevenLabs React SDK för `useScribe` hook.
 
-**VoiceInputOverlay.tsx** (huvudkomponent för Saga):
-- iOS: Använd MediaRecorder → base64 ljud → transcribe-audio edge function
-- Desktop: Befintlig Web Speech API
+### 4. Uppdatera `src/hooks/useVoiceRecorder.ts`
 
-**VoicePromptButton.tsx**:
-- Samma hybridlogik
+Byt ut MediaRecorder-fallback mot ElevenLabs Scribe Realtime för iOS:
 
-**InlineDiaryCreator.tsx** (Ulla):
-- Samma hybridlogik
-
-**Planning.tsx** (Bo):
-- Samma hybridlogik + fixa isRecordingRef
-
-**InspectionNew.tsx**:
-- Samma hybridlogik + fixa isRecordingRef
-
-**ProjectPlanningTab.tsx**:
-- Samma hybridlogik + fixa isRecordingRef
-
-**CreateTemplateDialog.tsx**:
-- Samma hybridlogik
-
-**TemplateEditor.tsx**:
-- Samma hybridlogik
-
-## Filer som ändras
-
-| Fil | Ändringar |
-|-----|-----------|
-| `src/components/shared/VoiceInputOverlay.tsx` | Lägg till iOS-fallback med MediaRecorder + transcribe-audio |
-| `src/components/shared/VoicePromptButton.tsx` | Lägg till isRecordingRef + iOS-fallback |
-| `src/components/projects/InlineDiaryCreator.tsx` | Lägg till iOS-fallback |
-| `src/pages/Planning.tsx` | Lägg till isRecordingRef + iOS-fallback |
-| `src/pages/InspectionNew.tsx` | Lägg till isRecordingRef + iOS-fallback |
-| `src/components/projects/ProjectPlanningTab.tsx` | Lägg till isRecordingRef + iOS-fallback |
-| `src/components/estimates/CreateTemplateDialog.tsx` | Lägg till iOS-fallback |
-| `src/components/estimates/TemplateEditor.tsx` | Lägg till isRecordingRef + iOS-fallback |
-
-## Nytt flöde för iOS
+**Ny logik:**
 
 ```text
-1. Användaren trycker "Spela in"
-2. System detekterar iOS Safari
-3. MediaRecorder startar (spelar in ljud som webm/mp4)
-4. Användaren pratar...
-5. Användaren trycker "Stoppa"
-6. Ljud konverteras till base64
-7. Anrop till transcribe-audio edge function
-8. AI transkriberar ljud → text returneras
-9. Text visas i bekräftelsedialogrutan
+if (isIOSDevice) {
+  1. Hämta engångstoken från edge function
+  2. Anslut till ElevenLabs WebSocket med useScribe
+  3. Streama mikrofon-ljud till ElevenLabs
+  4. Visa partialTranscript i realtid (ord för ord!)
+  5. committedTranscript → finalTranscript
+} else {
+  Befintlig Web Speech API (oförändrad)
+}
 ```
 
-## Resultat efter fix
+**Callbacks:**
+- `onPartialTranscript` → uppdaterar `interimTranscript` (realtid!)
+- `onCommittedTranscript` → uppdaterar `finalTranscript`
 
-- Röstinspelning fungerar på **iPhone Safari** (via AI-transkribering)
-- Röstinspelning fortsätter fungera på **desktop** (via Web Speech API)
-- Saga, Bo och Ulla fungerar på alla plattformar
-- Samma användarupplevelse oavsett enhet
+### 5. Uppdatera `src/components/shared/VoiceInputOverlay.tsx`
+
+Ta bort meddelandet "Transkribering sker efter inspelning..." och visa istället realtidstext även på iOS:
+
+```tsx
+{/* Samma realtidsvy för både iOS och desktop */}
+{(finalTranscript || interimTranscript) && (
+  <div className="text-sm bg-muted/50 rounded p-2">
+    {finalTranscript && <span>{finalTranscript} </span>}
+    {interimTranscript && <span className="italic opacity-70">{interimTranscript}</span>}
+  </div>
+)}
+```
+
+## Tekniskt flöde för iOS (efter implementation)
+
+```text
+1. Användaren trycker "Spela in" på iPhone
+2. Hook detekterar iOS Safari
+3. Hämtar engångstoken från elevenlabs-scribe-token edge function
+4. Ansluter till ElevenLabs WebSocket
+5. Mikrofon startar → ljud streamas till ElevenLabs
+6. Partial transcripts kommer tillbaka i realtid (~150ms latens)
+7. Text visas ord för ord medan användaren pratar
+8. Användaren trycker "Stoppa"
+9. Final transcript visas i bekräftelsedialogrutan
+```
+
+## Sammanfattning av ändringar
+
+| Fil | Ändring |
+|-----|---------|
+| `package.json` | Lägg till `@elevenlabs/react` |
+| `supabase/functions/elevenlabs-scribe-token/index.ts` | **NY** - Token-generering |
+| `supabase/config.toml` | Lägg till ny function |
+| `src/hooks/useVoiceRecorder.ts` | Ersätt MediaRecorder med ElevenLabs Scribe |
+| `src/components/shared/VoiceInputOverlay.tsx` | Visa realtidstext för iOS |
+
+## Resultat efter implementation
+
+- **Samma realtidsupplevelse** på iOS som på desktop
+- Text visas **ord för ord** medan du pratar (även på iPhone!)
+- **~150ms latens** på iOS via ElevenLabs
+- **Gratis** på desktop (Web Speech API)
+- **Automatisk VAD** (voice activity detection) för intelligent paus-hantering
+
