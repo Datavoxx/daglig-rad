@@ -1,79 +1,120 @@
 
+# Plan: Fixa röstinspelning på mobil - Closure-bugg
 
-# Plan: Fixa röstinspelning i hela applikationen + Ta bort felaktig artikelsynkronisering
+## Problem
 
-## Sammanfattning
+Röstinspelningen stoppar direkt på mobila enheter (men fungerar på desktop) på grund av ett **JavaScript closure-problem** i Web Speech API-hanteringen.
 
-Röstinspelningen fungerar inte för Saga (Offert), Bo (Planering) eller Ulla (Arbetsorder/Dagrapport) på grund av ofullständiga CORS-headers i alla edge-funktioner. Dessutom ska den oönskade automatiska artikelsynkroniseringen tas bort.
+### Teknisk förklaring
+
+När `startRecording()` körs:
+1. `setIsRecording(true)` anropas
+2. `recognition.onend` callback skapas - men den **fångar det gamla värdet** av `isRecording` (som var `false` när funktionen definierades)
+3. På mobil triggar Web Speech API `onend` nästan omedelbart (p.g.a. striktare strömhantering)
+4. Callback kollar `if (isRecording)` - men det är `false` (closure-värdet)!
+5. Inspelningen återstartas **inte** → den stoppar direkt
+
+### Varför det fungerar på desktop
+
+Desktop-webbläsare är mer "generösa" och väntar längre innan de triggar `onend`. React hinner uppdatera state innan `onend` anropas första gången. På mobil är timing-fönstret mycket kortare.
 
 ---
 
-## Identifierat problem
+## Lösning
 
-Alla röstrelaterade edge-funktioner har samma CORS-konfiguration:
+Använd en **ref** (`useRef`) för att hålla reda på inspelningsstatus istället för att förlita sig på state i callbacks.
 
+---
+
+## Ändringar
+
+### 1. VoiceInputOverlay.tsx
+
+Lägg till `isRecordingRef` och synkronisera med state:
+
+**Lägg till ny ref (efter rad 27):**
 ```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const isRecordingRef = useRef(false);
+```
+
+**Uppdatera startRecording (rad 100-101):**
+```typescript
+recognitionRef.current = recognition;
+recognition.start();
+isRecordingRef.current = true;
+setIsRecording(true);
+```
+
+**Fixa onend callback (rad 89-96):**
+```typescript
+recognition.onend = () => {
+  if (isRecordingRef.current && recognitionRef.current) {
+    try {
+      recognitionRef.current.start();
+    } catch (e) {
+      // Already started
+    }
+  }
 };
 ```
 
-Supabase-klienten skickar nu ytterligare headers som blockeras:
-- `x-supabase-client-platform`
-- `x-supabase-client-platform-version`
-- `x-supabase-client-runtime`
-- `x-supabase-client-runtime-version`
-
----
-
-## Edge-funktioner som behöver fixas
-
-| Funktion | AI-agent | Används för |
-|----------|----------|-------------|
-| `apply-full-estimate-voice` | Saga | Offertbyggaren - fullständig röststyrning |
-| `apply-estimate-voice-edits` | Saga | Offertposter - röstredigering |
-| `apply-summary-voice-edits` | Saga | Offertsammanfattning - röstredigering |
-| `apply-voice-edits` | Saga/Bo/Ulla | Universell redigerare (rapport/planering/mall/arbetsorder/ÄTA) |
-| `generate-plan` | Bo | Planering - generera tidplan från röst |
-| `generate-report` | Ulla | Dagrapport - generera från röst |
-| `parse-template-voice` | Saga | Mallar - skapa mall från röst |
-| `prefill-inspection` | Ulla | Egenkontroll - förifylla från röst |
-
----
-
-## Korrigerad CORS-konfiguration
-
-Alla funktioner ovan ska använda:
-
+**Uppdatera stopRecording (rad 107-108):**
 ```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+const stopRecording = () => {
+  if (recognitionRef.current) {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    // ...
+```
+
+**Uppdatera cancelRecording (rad 138-139):**
+```typescript
+const cancelRecording = () => {
+  if (recognitionRef.current) {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    // ...
+```
+
+### 2. InlineDiaryCreator.tsx
+
+Samma mönster:
+
+**Lägg till ny ref (efter rad ~91):**
+```typescript
+const isRecordingRef = useRef(false);
+```
+
+**Uppdatera startRecording (rad 207-208):**
+```typescript
+recognitionRef.current = recognition;
+recognition.start();
+isRecordingRef.current = true;
+setIsRecording(true);
+```
+
+**Fixa onend callback (rad 195-203):**
+```typescript
+recognition.onend = () => {
+  if (isRecordingRef.current) {
+    try {
+      recognition.start();
+    } catch {
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      setInterimTranscript("");
+    }
+  }
 };
 ```
 
----
-
-## Del 2: Ta bort artikelsynkronisering från useEstimate.ts
-
-### Kod som tas bort (rad 7-26)
-
+**Uppdatera stopRecording (rad 219-221):**
 ```typescript
-// Maps estimate article categories to article library categories
-function mapToArticleCategory(article: string | undefined): string {
-  ...
-}
-```
-
-### Kod som tas bort (rad 535-579)
-
-```typescript
-// Sync new items to article library
-const itemsWithDescriptions = state.items.filter(
-  item => item.description?.trim() && item.unit_price > 0
-);
-...
+const stopRecording = () => {
+  if (recognitionRef.current) {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    // ...
 ```
 
 ---
@@ -82,22 +123,14 @@ const itemsWithDescriptions = state.items.filter(
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/apply-full-estimate-voice/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/apply-estimate-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/apply-summary-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/apply-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/generate-plan/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/generate-report/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/parse-template-voice/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `supabase/functions/prefill-inspection/index.ts` | Uppdatera CORS-headers (rad 3-6) |
-| `src/hooks/useEstimate.ts` | Ta bort mapToArticleCategory + synkroniseringslogik |
+| `src/components/shared/VoiceInputOverlay.tsx` | Lägg till `isRecordingRef` och använd i callbacks |
+| `src/components/projects/InlineDiaryCreator.tsx` | Lägg till `isRecordingRef` och använd i callbacks |
 
 ---
 
 ## Resultat efter fix
 
-- Saga (Offert) fungerar igen
-- Bo (Planering) fungerar igen
-- Ulla (Arbetsorder, Dagrapport, Egenkontroll, ÄTA) fungerar igen
-- Inga offertrader synkas automatiskt till artikelbiblioteket
-
+- Röstinspelningen fungerar på **både mobil och desktop**
+- Web Speech API:s automatiska `onend`-händelser hanteras korrekt
+- Inspelningen återstartas automatiskt vid korta tystnader
+- Ingen förändring i användarupplevelsen på desktop (där det redan fungerade)
