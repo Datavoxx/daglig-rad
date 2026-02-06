@@ -1,78 +1,56 @@
 
-# Plan: Fixa context-timing bug i Global Assistant
+# Plan: Fixa offert deep-linking från Global Assistant
 
 ## Problem
 
-När användaren väljer en offert i verifikationskortet:
-1. `handleVerificationSelect` uppdaterar context med `setContext({ selectedEstimateId: match.id })`
-2. `sendMessage` anropas direkt efter med texten "Ja, det är tony-test"
-3. **Men React state är asynkront** - `context` är fortfarande tom när anropet sker
-4. Edge-funktionen får `Context: {}` och AI:n tolkar "tony-test" som ID istället för UUID
+När Global Assistant genererar en länk till en offert använder den `/estimates?id=...` men Estimates.tsx letar efter `?estimateId=...` eller `?offerNumber=...`. Detta gör att offerten inte öppnas automatiskt.
+
+| Genererad URL | Förväntad URL |
+|---------------|---------------|
+| `/estimates?id=e284148f-...` | `/estimates?estimateId=e284148f-...` |
 
 ## Lösning
 
-Ändra `sendMessage` så den accepterar en **override-context** som parameter. På så sätt kan vi skicka med den nya kontexten direkt utan att vänta på React-rendering.
+Uppdatera båda ställen för robusthet:
 
-## Teknisk implementation
+### 1. Edge Function - Ändra query param
 
-### Ändring i GlobalAssistant.tsx
+Ändra alla `href: /estimates?id=${...}` till `href: /estimates?estimateId=${...}` i `supabase/functions/global-assistant/index.ts`.
 
 ```typescript
 // FÖRE:
-const sendMessage = async (content: string) => {
-  // ...
-  await supabase.functions.invoke("global-assistant", {
-    body: { message: content, history, context }
-  });
-};
+href: `/estimates?id=${estimate.id}`,
 
 // EFTER:
-const sendMessage = async (content: string, contextOverride?: Partial<ConversationContext>) => {
-  const effectiveContext = contextOverride 
-    ? { ...context, ...contextOverride } 
-    : context;
-  
-  // ...
-  await supabase.functions.invoke("global-assistant", {
-    body: { message: content, history, context: effectiveContext }
-  });
-};
-
-// Uppdatera handleVerificationSelect:
-const handleVerificationSelect = async (messageId: string, match: VerificationMatch) => {
-  const message = messages.find((m) => m.id === messageId);
-  let newContext: Partial<ConversationContext> = {};
-  
-  if (message?.data?.entityType === "customer") {
-    newContext = { selectedCustomerId: match.id };
-  } else if (message?.data?.entityType === "project") {
-    newContext = { selectedProjectId: match.id };
-  } else if (message?.data?.entityType === "estimate") {
-    newContext = { selectedEstimateId: match.id };
-  } else if (message?.data?.entityType === "invoice") {
-    newContext = { selectedInvoiceId: match.id };
-  } else if (message?.data?.entityType === "inspection") {
-    newContext = { selectedInspectionId: match.id };
-  }
-  
-  // Update local state for future messages
-  setContext((prev) => ({ ...prev, ...newContext }));
-  
-  // Send with the new context immediately (bypass React async)
-  await sendMessage(`Ja, det är ${match.title}`, newContext);
-};
+href: `/estimates?estimateId=${estimate.id}`,
 ```
 
-## Fil att ändra
+Detta gäller på minst 3 ställen i filen:
+- `search_estimates` formatering (rad ~1266)
+- `get_estimate` formatering (rad ~1546)
+- `update_estimate` formatering (rad ~1626)
+
+### 2. Estimates.tsx - Stöd även "id" för bakåtkompatibilitet
+
+Uppdatera deep-linking logiken för att även kolla `id` query param:
+
+```typescript
+// FÖRE (rad 105):
+const estimateIdFromUrl = searchParams.get("estimateId");
+
+// EFTER:
+const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
+```
+
+## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/GlobalAssistant.tsx` | Lägg till contextOverride-parameter i sendMessage och använd i handleVerificationSelect |
+| `supabase/functions/global-assistant/index.ts` | Ändra `?id=` till `?estimateId=` i alla offertlänkar |
+| `src/pages/Estimates.tsx` | Lägg till fallback för `?id=` query param |
 
 ## Resultat
 
 | Före | Efter |
 |------|-------|
-| Edge-funktionen får `Context: {}` | Edge-funktionen får `Context: { selectedEstimateId: "e284148f-..." }` |
-| AI:n tolkar "tony-test" som ID | AI:n använder rätt UUID från context |
-| Fel: "invalid input syntax for type uuid" | Offerten hämtas och visas korrekt |
+| "Öppna offert" → visar listan | "Öppna offert" → öppnar offerten direkt |
