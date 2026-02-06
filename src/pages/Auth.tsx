@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import byggioLogo from "@/assets/byggio-logo.png";
@@ -18,9 +17,9 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
 
   // Get returnTo parameter for post-login redirect
   const returnTo = searchParams.get("returnTo");
@@ -29,14 +28,11 @@ export default function Auth() {
     try {
       emailSchema.parse(email);
       passwordSchema.parse(password);
+      setValidationError(null);
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Valideringsfel",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        setValidationError(error.errors[0].message);
       }
       return false;
     }
@@ -51,16 +47,12 @@ export default function Auth() {
     setIsLoading(false);
 
     if (error) {
-      toast({
-        title: "Inloggning misslyckades",
-        description: error.message === "Invalid login credentials"
+      setValidationError(
+        error.message === "Invalid login credentials"
           ? "Felaktiga inloggningsuppgifter"
-          : error.message,
-        variant: "destructive",
-      });
+          : error.message
+      );
     } else {
-      toast({ title: "Välkommen tillbaka!" });
-      // Redirect to returnTo if provided, otherwise dashboard
       navigate(returnTo || "/dashboard");
     }
   };

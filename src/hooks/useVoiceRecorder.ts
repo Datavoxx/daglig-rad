@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface UseVoiceRecorderOptions {
   onTranscriptUpdate?: (transcript: string) => void;
@@ -177,7 +176,7 @@ export function useVoiceRecorder({
         console.log("[VoiceRecorder] Recording stopped, duration:", recordingDurationMs, "ms, chunks:", chunkCount);
         
         if (chunkCount === 0) {
-          toast.info("Ingen ljud inspelades");
+          console.log("[VoiceRecorder] No audio chunks recorded");
           return;
         }
         
@@ -188,14 +187,12 @@ export function useVoiceRecorder({
         // Sanity check: Reject too-short recordings to prevent hallucinations
         if (recordingDurationMs < MIN_RECORDING_DURATION_MS) {
           console.log("[VoiceRecorder] Recording too short, skipping transcription");
-          toast.info("Inspelningen blev för kort. Försök igen med längre tal.");
           return;
         }
         
         // Sanity check: Reject tiny blobs (likely silent/corrupt)
         if (audioBlob.size < MIN_BLOB_SIZE_BYTES) {
           console.log("[VoiceRecorder] Audio blob too small, likely silent or corrupt");
-          toast.info("Inspelningen verkar tom eller tyst. Försök igen.");
           return;
         }
         
@@ -206,18 +203,10 @@ export function useVoiceRecorder({
       isRecordingRef.current = true;
       setIsRecording(true);
       
-      const recordingMsg = agentName 
-        ? `${agentName} lyssnar... Prata nu!` 
-        : "Spelar in... Prata nu!";
-      toast.success(recordingMsg);
+      console.log("[VoiceRecorder] Recording started", agentName ? `for ${agentName}` : "");
       
     } catch (error: any) {
       console.error("[VoiceRecorder] MediaRecorder error:", error);
-      if (error.name === "NotAllowedError") {
-        toast.error("Mikrofontillstånd nekades. Tillåt mikrofonen i webbläsarinställningarna.");
-      } else {
-        toast.error("Kunde inte starta inspelning: " + error.message);
-      }
     }
   }, [agentName, isIOSDevice]);
 
@@ -242,19 +231,18 @@ export function useVoiceRecorder({
       
       if (error) {
         console.error("[VoiceRecorder] Transcription error:", error);
-        toast.error("Kunde inte transkribera ljudet. Försök igen.");
         return;
       }
       
       if (data?.error) {
-        toast.error(data.error);
+        console.error("[VoiceRecorder] Transcription API error:", data.error);
         return;
       }
       
       const transcribedText = data?.text?.trim() || "";
       
       if (!transcribedText || transcribedText === "[ohörbart]") {
-        toast.info("Ingen text tolkades från inspelningen");
+        console.log("[VoiceRecorder] No text transcribed");
         return;
       }
       
@@ -263,10 +251,9 @@ export function useVoiceRecorder({
       onTranscriptUpdate?.(transcribedText);
       onTranscriptComplete?.(transcribedText);
       
-      toast.success("Transkribering klar!");
+      console.log("[VoiceRecorder] Transcription complete");
     } catch (error) {
       console.error("[VoiceRecorder] Transcription failed:", error);
-      toast.error("Transkribering misslyckades. Försök igen.");
     } finally {
       setIsTranscribing(false);
     }
@@ -310,11 +297,6 @@ export function useVoiceRecorder({
     
     recognition.onerror = (event: Event & { error?: string }) => {
       console.error("[VoiceRecorder] Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        toast.error("Mikrofontillstånd nekades. Tillåt mikrofonen i webbläsarinställningarna.");
-      } else if (event.error !== "aborted" && event.error !== "no-speech") {
-        toast.error("Röstinspelningen avbröts");
-      }
       isRecordingRef.current = false;
       setIsRecording(false);
       setInterimTranscript("");
@@ -336,16 +318,13 @@ export function useVoiceRecorder({
     isRecordingRef.current = true;
     setIsRecording(true);
     
-    const recordingMsg = agentName 
-      ? `${agentName} lyssnar...` 
-      : "Spela in...";
-    toast.success(recordingMsg);
+    console.log("[VoiceRecorder] Web Speech recording started", agentName ? `for ${agentName}` : "");
   }, [agentName, onTranscriptUpdate]);
 
   // Main start function
   const startRecording = useCallback(() => {
     if (!isSupported) {
-      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome, Edge eller Safari.");
+      console.error("[VoiceRecorder] Voice recording not supported");
       return;
     }
     
@@ -375,8 +354,6 @@ export function useVoiceRecorder({
       const transcript = finalTranscriptRef.current.trim();
       if (transcript) {
         onTranscriptComplete?.(transcript);
-      } else {
-        toast.info("Ingen text tolkades");
       }
     }
   }, [useMediaRecorderFallback, onTranscriptComplete]);
@@ -409,7 +386,7 @@ export function useVoiceRecorder({
       recognitionRef.current = null;
     }
     
-    toast.info("Inspelning avbruten");
+    console.log("[VoiceRecorder] Recording cancelled");
   }, [useMediaRecorderFallback]);
 
   return {

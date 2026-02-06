@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Loader2, X, Check, Sparkles } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
@@ -51,7 +50,6 @@ export function VoicePromptButton({
   const confirmTranscript = async () => {
     const transcript = editableTranscript.trim();
     if (!transcript) {
-      toast.info("Ingen text att skicka");
       return;
     }
     setShowConfirmation(false);
@@ -62,7 +60,6 @@ export function VoicePromptButton({
   const cancelConfirmation = () => {
     setShowConfirmation(false);
     setEditableTranscript("");
-    toast.info("Kommando avbrutet");
   };
 
   const handleCancelRecording = () => {
@@ -71,7 +68,7 @@ export function VoicePromptButton({
 
   const handleStartRecording = () => {
     if (!isSupported) {
-      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome, Edge eller Safari.");
+      console.error("Voice recording not supported");
       return;
     }
     startRecording();

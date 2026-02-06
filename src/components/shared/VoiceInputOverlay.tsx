@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Loader2, X, Check } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
@@ -47,7 +46,6 @@ export function VoiceInputOverlay({
   const confirmTranscript = async () => {
     const transcript = editableTranscript.trim();
     if (!transcript) {
-      toast.info("Ingen text att skicka");
       return;
     }
     setShowConfirmation(false);
@@ -58,7 +56,6 @@ export function VoiceInputOverlay({
   const cancelConfirmation = () => {
     setShowConfirmation(false);
     setEditableTranscript("");
-    toast.info("Kommando avbrutet");
   };
 
   const handleCancelRecording = () => {
@@ -67,7 +64,7 @@ export function VoiceInputOverlay({
 
   const handleStartRecording = () => {
     if (!isSupported) {
-      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome, Edge eller Safari.");
+      console.error("Voice recording not supported");
       return;
     }
     startRecording();

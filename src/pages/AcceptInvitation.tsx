@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import byggioLogo from "@/assets/byggio-logo.png";
 
 interface InvitationData {
@@ -74,12 +73,10 @@ export default function AcceptInvitation() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Lösenorden matchar inte");
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Lösenordet måste vara minst 6 tecken");
       return;
     }
 
@@ -104,7 +101,6 @@ export default function AcceptInvitation() {
       }
 
       setSuccess(true);
-      toast.success("Konto aktiverat!");
 
       // Redirect to login after a short delay
       setTimeout(() => {
@@ -112,7 +108,6 @@ export default function AcceptInvitation() {
       }, 2000);
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
-      toast.error(error.message || "Ett fel uppstod");
     } finally {
       setSubmitting(false);
     }
