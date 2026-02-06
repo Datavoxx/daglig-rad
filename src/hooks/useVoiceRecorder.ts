@@ -20,6 +20,10 @@ interface UseVoiceRecorderReturn {
   isIOSDevice: boolean;
 }
 
+// Minimum recording duration (ms) and blob size (bytes) to prevent hallucinations
+const MIN_RECORDING_DURATION_MS = 800;
+const MIN_BLOB_SIZE_BYTES = 5000;
+
 // Detect iOS/Safari - they have limited Web Speech API support
 const detectIOS = (): boolean => {
   if (typeof window === "undefined") return false;
@@ -66,6 +70,10 @@ export function useVoiceRecorder({
   const streamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef<string>("");
   const isRecordingRef = useRef(false);
+  
+  // Anti-hallucination refs
+  const shouldTranscribeRef = useRef(false);
+  const recordingStartTimeRef = useRef<number>(0);
 
   const isIOSDevice = detectIOS();
   const webSpeechSupported = isSpeechRecognitionSupported();
@@ -127,11 +135,20 @@ export function useVoiceRecorder({
         mimeType = "audio/ogg;codecs=opus";
       }
       
-      console.log("MediaRecorder using mimeType:", mimeType, "isIOS:", isIOSDevice);
+      console.log("[VoiceRecorder] Starting MediaRecorder, mimeType:", mimeType, "isIOS:", isIOSDevice);
       
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      
+      // Reset transcript state for clean start
+      setInterimTranscript("");
+      setFinalTranscript("");
+      finalTranscriptRef.current = "";
+      
+      // Mark that we SHOULD transcribe when stop is called
+      shouldTranscribeRef.current = true;
+      recordingStartTimeRef.current = Date.now();
       
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -140,20 +157,49 @@ export function useVoiceRecorder({
       };
       
       mediaRecorder.onstop = async () => {
-        // Stop all tracks
+        // Stop all tracks first
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
         
-        if (audioChunksRef.current.length === 0) {
+        // Check if we should transcribe (not cancelled)
+        if (!shouldTranscribeRef.current) {
+          console.log("[VoiceRecorder] Transcription skipped - recording was cancelled");
+          audioChunksRef.current = [];
+          return;
+        }
+        
+        // Calculate recording duration
+        const recordingDurationMs = Date.now() - recordingStartTimeRef.current;
+        const chunkCount = audioChunksRef.current.length;
+        
+        console.log("[VoiceRecorder] Recording stopped, duration:", recordingDurationMs, "ms, chunks:", chunkCount);
+        
+        if (chunkCount === 0) {
           toast.info("Ingen ljud inspelades");
           return;
         }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log("Audio blob size:", audioBlob.size, "bytes, mimeType:", mimeType);
-        await transcribeAudio(audioBlob, mimeType);
+        
+        console.log("[VoiceRecorder] Audio blob size:", audioBlob.size, "bytes, mimeType:", mimeType);
+        
+        // Sanity check: Reject too-short recordings to prevent hallucinations
+        if (recordingDurationMs < MIN_RECORDING_DURATION_MS) {
+          console.log("[VoiceRecorder] Recording too short, skipping transcription");
+          toast.info("Inspelningen blev för kort. Försök igen med längre tal.");
+          return;
+        }
+        
+        // Sanity check: Reject tiny blobs (likely silent/corrupt)
+        if (audioBlob.size < MIN_BLOB_SIZE_BYTES) {
+          console.log("[VoiceRecorder] Audio blob too small, likely silent or corrupt");
+          toast.info("Inspelningen verkar tom eller tyst. Försök igen.");
+          return;
+        }
+        
+        await transcribeAudio(audioBlob, mimeType, recordingDurationMs);
       };
       
       mediaRecorder.start(1000); // Collect data every second
@@ -166,7 +212,7 @@ export function useVoiceRecorder({
       toast.success(recordingMsg);
       
     } catch (error: any) {
-      console.error("MediaRecorder error:", error);
+      console.error("[VoiceRecorder] MediaRecorder error:", error);
       if (error.name === "NotAllowedError") {
         toast.error("Mikrofontillstånd nekades. Tillåt mikrofonen i webbläsarinställningarna.");
       } else {
@@ -176,7 +222,7 @@ export function useVoiceRecorder({
   }, [agentName, isIOSDevice]);
 
   // Transcribe audio using edge function
-  const transcribeAudio = useCallback(async (audioBlob: Blob, mimeType: string) => {
+  const transcribeAudio = useCallback(async (audioBlob: Blob, mimeType: string, durationMs?: number) => {
     setIsTranscribing(true);
     
     try {
@@ -184,14 +230,18 @@ export function useVoiceRecorder({
       const arrayBuffer = await audioBlob.arrayBuffer();
       const base64Audio = arrayBufferToBase64(arrayBuffer);
       
-      console.log("Sending audio for transcription, base64 length:", base64Audio.length);
+      console.log("[VoiceRecorder] Sending audio for transcription, base64 length:", base64Audio.length, "duration:", durationMs, "ms");
       
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-        body: { audio: base64Audio, mimeType },
+        body: { 
+          audio: base64Audio, 
+          mimeType,
+          durationMs: durationMs || 0,
+        },
       });
       
       if (error) {
-        console.error("Transcription error:", error);
+        console.error("[VoiceRecorder] Transcription error:", error);
         toast.error("Kunde inte transkribera ljudet. Försök igen.");
         return;
       }
@@ -203,7 +253,7 @@ export function useVoiceRecorder({
       
       const transcribedText = data?.text?.trim() || "";
       
-      if (!transcribedText) {
+      if (!transcribedText || transcribedText === "[ohörbart]") {
         toast.info("Ingen text tolkades från inspelningen");
         return;
       }
@@ -215,7 +265,7 @@ export function useVoiceRecorder({
       
       toast.success("Transkribering klar!");
     } catch (error) {
-      console.error("Transcription failed:", error);
+      console.error("[VoiceRecorder] Transcription failed:", error);
       toast.error("Transkribering misslyckades. Försök igen.");
     } finally {
       setIsTranscribing(false);
@@ -234,6 +284,7 @@ export function useVoiceRecorder({
     
     finalTranscriptRef.current = "";
     setFinalTranscript("");
+    setInterimTranscript("");
     
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = "";
@@ -258,7 +309,7 @@ export function useVoiceRecorder({
     };
     
     recognition.onerror = (event: Event & { error?: string }) => {
-      console.error("Speech recognition error:", event.error);
+      console.error("[VoiceRecorder] Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
         toast.error("Mikrofontillstånd nekades. Tillåt mikrofonen i webbläsarinställningarna.");
       } else if (event.error !== "aborted" && event.error !== "no-speech") {
@@ -330,8 +381,13 @@ export function useVoiceRecorder({
     }
   }, [useMediaRecorderFallback, onTranscriptComplete]);
 
-  // Cancel recording
+  // Cancel recording - IMPORTANT: Sets flag to prevent transcription
   const cancelRecording = useCallback(() => {
+    console.log("[VoiceRecorder] Cancel recording called");
+    
+    // Prevent transcription from running on stop
+    shouldTranscribeRef.current = false;
+    
     isRecordingRef.current = false;
     setIsRecording(false);
     setInterimTranscript("");
