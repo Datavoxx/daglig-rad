@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Loader2, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface VoicePromptButtonProps {
   onTranscriptComplete: (transcript: string) => Promise<void>;
@@ -24,120 +25,56 @@ export function VoicePromptButton({
   agentName,
   agentAvatar,
 }: VoicePromptButtonProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
-  const [finalTranscript, setFinalTranscript] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef<string>("");
+  const [editableTranscript, setEditableTranscript] = useState("");
 
-  const isSpeechRecognitionSupported =
-    typeof window !== "undefined" &&
-    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-
-  const startRecording = () => {
-    if (!isSpeechRecognitionSupported) {
-      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome eller Edge.");
-      return;
-    }
-
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-
-    recognition.lang = "sv-SE";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    finalTranscriptRef.current = "";
-    setFinalTranscript("");
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      let final = "";
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          final += result[0].transcript + " ";
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-
-      if (final) {
-        finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + final.trim();
-        setFinalTranscript(finalTranscriptRef.current);
-      }
-
-      setInterimTranscript(interim);
-    };
-
-    recognition.onerror = (event: Event & { error?: string }) => {
-      console.error("Speech recognition error:", event.error);
-      if (event.error !== "aborted") {
-        toast.error("Röstinspelningen avbröts");
-      }
-      setIsRecording(false);
-      setInterimTranscript("");
-    };
-
-    recognition.onend = () => {
-      if (isRecording && recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          // Already started
-        }
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
-    toast.success("Spela in...");
-  };
-
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      setIsRecording(false);
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setInterimTranscript("");
-
-      const transcript = finalTranscriptRef.current.trim();
+  const {
+    isRecording,
+    isTranscribing,
+    interimTranscript,
+    finalTranscript,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    isSupported,
+    isIOSDevice,
+  } = useVoiceRecorder({
+    agentName,
+    onTranscriptComplete: (transcript) => {
       if (transcript) {
+        setEditableTranscript(transcript);
         setShowConfirmation(true);
-      } else {
-        toast.info("Ingen text tolkades");
       }
-    }
-  };
+    },
+  });
 
   const confirmTranscript = async () => {
-    const transcript = finalTranscriptRef.current.trim();
+    const transcript = editableTranscript.trim();
+    if (!transcript) {
+      toast.info("Ingen text att skicka");
+      return;
+    }
     setShowConfirmation(false);
     await onTranscriptComplete(transcript);
-    setFinalTranscript("");
-    finalTranscriptRef.current = "";
+    setEditableTranscript("");
   };
 
   const cancelConfirmation = () => {
     setShowConfirmation(false);
-    setFinalTranscript("");
-    finalTranscriptRef.current = "";
+    setEditableTranscript("");
     toast.info("Kommando avbrutet");
   };
 
-  const cancelRecording = () => {
-    if (recognitionRef.current) {
-      setIsRecording(false);
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-      setInterimTranscript("");
-      setFinalTranscript("");
-      toast.info("Inspelning avbruten");
+  const handleCancelRecording = () => {
+    cancelRecording();
+  };
+
+  const handleStartRecording = () => {
+    if (!isSupported) {
+      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome, Edge eller Safari.");
+      return;
     }
+    startRecording();
   };
 
   // Confirmation dialog
@@ -155,11 +92,8 @@ export function VoicePromptButton({
           <div className="space-y-2">
             <p className="text-sm font-medium">Redigera vid behov:</p>
             <Textarea
-              value={finalTranscript}
-              onChange={(e) => {
-                setFinalTranscript(e.target.value);
-                finalTranscriptRef.current = e.target.value;
-              }}
+              value={editableTranscript}
+              onChange={(e) => setEditableTranscript(e.target.value)}
               className="min-h-[80px] resize-none text-sm"
               autoFocus
             />
@@ -198,38 +132,59 @@ export function VoicePromptButton({
   }
 
   // Recording state
-  if (isRecording) {
+  if (isRecording || isTranscribing) {
     return (
       <div className={cn("w-full", className)}>
         <div className="bg-background border rounded-lg shadow-lg p-4 space-y-3 animate-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
-              </span>
-              <span className="text-sm font-medium">Spelar in...</span>
+              {isTranscribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm font-medium">Transkriberar...</span>
+                </>
+              ) : (
+                <>
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+                  </span>
+                  <span className="text-sm font-medium">Spelar in...</span>
+                </>
+              )}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelRecording}>
-              <X className="h-4 w-4" />
-            </Button>
+            {!isTranscribing && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCancelRecording}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
-          {(finalTranscript || interimTranscript) && (
+          {/* Show interim transcript for Web Speech API (non-iOS) */}
+          {!isIOSDevice && (finalTranscript || interimTranscript) && (
             <div className="text-sm text-muted-foreground bg-muted/50 rounded p-2 max-h-24 overflow-y-auto">
               {finalTranscript && <span>{finalTranscript} </span>}
               {interimTranscript && <span className="italic opacity-70">{interimTranscript}</span>}
             </div>
           )}
 
-          <Button 
-            variant="default" 
-            className="w-full" 
-            onClick={stopRecording}
-          >
-            <MicOff className="mr-2 h-4 w-4" />
-            Stoppa inspelning
-          </Button>
+          {/* iOS message */}
+          {isIOSDevice && isRecording && (
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded p-2">
+              <span className="italic">Transkribering sker efter inspelning...</span>
+            </div>
+          )}
+
+          {!isTranscribing && (
+            <Button 
+              variant="default" 
+              className="w-full" 
+              onClick={stopRecording}
+            >
+              <MicOff className="mr-2 h-4 w-4" />
+              Stoppa inspelning
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -241,8 +196,8 @@ export function VoicePromptButton({
       <Button
         variant="outline"
         className={cn("gap-2", className)}
-        onClick={startRecording}
-        disabled={isProcessing || !isSpeechRecognitionSupported}
+        onClick={handleStartRecording}
+        disabled={isProcessing || !isSupported}
       >
         {isProcessing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -263,8 +218,8 @@ export function VoicePromptButton({
         variant="ghost"
         size="sm"
         className={cn("gap-2 text-muted-foreground hover:text-primary", className)}
-        onClick={startRecording}
-        disabled={isProcessing || !isSpeechRecognitionSupported}
+        onClick={handleStartRecording}
+        disabled={isProcessing || !isSupported}
       >
         {isProcessing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -283,7 +238,7 @@ export function VoicePromptButton({
         "w-full p-4 border border-dashed border-primary/30 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer",
         className
       )}
-      onClick={startRecording}
+      onClick={handleStartRecording}
     >
       <div className="flex flex-col items-center gap-4 text-center">
         {agentAvatar && (

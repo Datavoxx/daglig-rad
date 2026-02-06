@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 type ViewState = "empty" | "input" | "review" | "view";
 
@@ -61,29 +62,28 @@ export default function Planning() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [transcript, setTranscript] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [interimTranscript, setInterimTranscript] = useState("");
   const [mobileViewMode, setMobileViewMode] = useState<"list" | "timeline">("list");
   
-  // Web Speech API refs
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef<string>("");
-  
-  // Check if Web Speech API is supported
-  const isSpeechRecognitionSupported = typeof window !== 'undefined' && 
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-    };
-  }, []);
+  const {
+    isRecording,
+    isTranscribing,
+    interimTranscript,
+    startRecording,
+    stopRecording,
+    isSupported,
+    isIOSDevice,
+  } = useVoiceRecorder({
+    agentName: "Bo",
+    onTranscriptUpdate: (newTranscript) => {
+      setTranscript(newTranscript);
+    },
+    onTranscriptComplete: (completedTranscript) => {
+      setTranscript(completedTranscript);
+    },
+  });
 
   // Fetch projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -209,82 +209,6 @@ export default function Planning() {
     },
   });
 
-  const startRecording = () => {
-    if (!isSpeechRecognitionSupported) {
-      toast.error("Din webbläsare stöder inte röstinspelning. Prova Chrome eller Edge.");
-      return;
-    }
-
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-    
-    recognition.lang = 'sv-SE';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    // Store current transcript as starting point
-    finalTranscriptRef.current = transcript;
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let final = '';
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          final += result[0].transcript + ' ';
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-      
-      if (final) {
-        finalTranscriptRef.current += (finalTranscriptRef.current ? ' ' : '') + final.trim();
-        setTranscript(finalTranscriptRef.current);
-      }
-      
-      setInterimTranscript(interim);
-    };
-
-    recognition.onerror = (event: Event & { error?: string }) => {
-      console.error('Speech recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        toast.info("Ingen röst upptäcktes. Fortsätt prata...");
-      } else if (event.error !== 'aborted') {
-        toast.error("Röstinspelningen avbröts. Försök igen.");
-      }
-      setIsRecording(false);
-      setInterimTranscript("");
-    };
-
-    recognition.onend = () => {
-      // Restart if still recording (continuous mode)
-      if (isRecording && recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          // Already started, ignore
-        }
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
-    toast.success("Inspelning startad – texten visas i realtid");
-  };
-
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      setIsRecording(false);
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setInterimTranscript("");
-      toast.success("Inspelning stoppad");
-    }
-  };
-
   const handleGeneratePlan = async () => {
     if (!transcript.trim()) {
       toast.error("Skriv eller spela in en beskrivning först");
@@ -362,6 +286,12 @@ export default function Planning() {
   const endDate = startDate && generatedPlan 
     ? getEndDate(startDate, generatedPlan.total_weeks) 
     : undefined;
+
+  // Construct displayed transcript
+  const displayedTranscript = isIOSDevice 
+    ? transcript 
+    : transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '');
+
 
   if (projectsLoading) {
     return (
@@ -445,24 +375,23 @@ export default function Planning() {
           <CardContent className="space-y-4">
             <div className="relative">
               <Textarea
-                value={transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')}
+                value={displayedTranscript}
                 onChange={(e) => {
                   setTranscript(e.target.value);
-                  finalTranscriptRef.current = e.target.value;
                 }}
                 placeholder="T.ex. 'Rivning först, sen stomme, el och VVS parallellt, sen ytskikt. Totalt runt 6 veckor.'"
                 className="min-h-[150px] resize-none pr-24"
-                disabled={isRecording || isGenerating}
+                disabled={isRecording || isTranscribing || isGenerating}
               />
-              {interimTranscript && (
+              {(isRecording || isTranscribing) && (
                 <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium animate-pulse">
-                  Lyssnar...
+                  {isTranscribing ? "Transkriberar..." : "Lyssnar..."}
                 </div>
               )}
             </div>
 
-            {!isSpeechRecognitionSupported && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+            {!isSupported && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
                 <AlertCircle className="h-4 w-4" />
                 <span>Din webbläsare stöder inte röstinspelning. Prova Chrome eller Edge.</span>
               </div>
@@ -472,9 +401,14 @@ export default function Planning() {
               <Button
                 variant={isRecording ? "destructive" : "outline"}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isGenerating || !isSpeechRecognitionSupported}
+                disabled={isGenerating || isTranscribing || !isSupported}
               >
-                {isRecording ? (
+                {isTranscribing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Transkriberar...
+                  </>
+                ) : isRecording ? (
                   <>
                     <span className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
                     <MicOff className="h-4 w-4 mr-2" />
@@ -483,7 +417,7 @@ export default function Planning() {
                 ) : (
                   <>
                     <Mic className="h-4 w-4 mr-2" />
-                    Spela in (realtid)
+                    Spela in {isIOSDevice ? "" : "(realtid)"}
                   </>
                 )}
               </Button>
