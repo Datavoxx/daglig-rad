@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import byggioLogo from "@/assets/byggio-logo.png";
@@ -20,22 +19,19 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const validateForm = () => {
     try {
       nameSchema.parse(fullName);
       emailSchema.parse(email);
       passwordSchema.parse(password);
+      setValidationError(null);
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Valideringsfel",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        setValidationError(error.errors[0].message);
       }
       return false;
     }
@@ -62,17 +58,9 @@ export default function Register() {
     if (signUpError) {
       setIsLoading(false);
       if (signUpError.message.includes("already registered")) {
-        toast({
-          title: "Kontot finns redan",
-          description: "Denna e-postadress är redan registrerad. Försök logga in istället.",
-          variant: "destructive",
-        });
+        setValidationError("Denna e-postadress är redan registrerad. Försök logga in istället.");
       } else {
-        toast({
-          title: "Registrering misslyckades",
-          description: signUpError.message,
-          variant: "destructive",
-        });
+        setValidationError(signUpError.message);
       }
       return;
     }
@@ -86,11 +74,6 @@ export default function Register() {
     setIsLoading(false);
 
     if (signInError) {
-      toast({
-        title: "Konto skapat!",
-        description: "Automatisk inloggning misslyckades. Logga in manuellt.",
-        variant: "destructive",
-      });
       navigate("/auth");
     } else {
       // Fire-and-forget webhook notification for new account
@@ -106,7 +89,6 @@ export default function Register() {
         }
       });
 
-      toast({ title: "Välkommen till Byggio!" });
       navigate("/dashboard");
     }
   };
