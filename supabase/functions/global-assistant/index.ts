@@ -12,6 +12,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 // Tool definitions for function calling
 const tools = [
+  // === SEARCH TOOLS ===
   {
     type: "function",
     function: {
@@ -58,6 +59,68 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "search_daily_reports",
+      description: "Search daily reports by project or date range",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID to filter by" },
+          date_from: { type: "string", description: "Start date (YYYY-MM-DD)" },
+          date_to: { type: "string", description: "End date (YYYY-MM-DD)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_customer_invoices",
+      description: "Search customer invoices by customer name or status",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query (customer name)" },
+          status: { type: "string", description: "Filter by status (draft, sent, paid, overdue)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_vendor_invoices",
+      description: "Search vendor/supplier invoices",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query (vendor name)" },
+          status: { type: "string", description: "Filter by status" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_inspections",
+      description: "Search inspections/quality checks",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID to filter by" },
+          status: { type: "string", description: "Filter by status (draft, completed)" },
+        },
+        required: [],
+      },
+    },
+  },
+  // === CREATE TOOLS ===
+  {
+    type: "function",
+    function: {
       name: "create_estimate",
       description: "Create a new estimate for a customer. Requires customer verification first.",
       parameters: {
@@ -87,6 +150,242 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "register_time",
+      description: "Register time on a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          hours: { type: "number", description: "Number of hours" },
+          date: { type: "string", description: "Date (YYYY-MM-DD), defaults to today" },
+          description: { type: "string", description: "Work description" },
+        },
+        required: ["project_id", "hours"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_time_summary",
+      description: "Get time summary for a period",
+      parameters: {
+        type: "object",
+        properties: {
+          start_date: { type: "string", description: "Start date (YYYY-MM-DD)" },
+          end_date: { type: "string", description: "End date (YYYY-MM-DD)" },
+          project_id: { type: "string", description: "Optional project ID to filter by" },
+        },
+        required: ["start_date", "end_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_daily_report",
+      description: "Create a daily work report for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          work_items: { type: "array", items: { type: "string" }, description: "List of work performed" },
+          headcount: { type: "number", description: "Number of workers" },
+          total_hours: { type: "number", description: "Total hours worked" },
+          notes: { type: "string", description: "Additional notes" },
+        },
+        required: ["project_id", "work_items", "headcount", "total_hours"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_customer_invoice",
+      description: "Create a customer invoice for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          customer_id: { type: "string", description: "Customer ID" },
+        },
+        required: ["project_id", "customer_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_inspection",
+      description: "Create a new inspection/quality check for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          template_id: { type: "string", description: "Inspection template ID" },
+          inspector_name: { type: "string", description: "Name of inspector" },
+        },
+        required: ["project_id", "template_id"],
+      },
+    },
+  },
+  // === PLANNING ===
+  {
+    type: "function",
+    function: {
+      name: "get_project_plan",
+      description: "Get project planning/Gantt chart data",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // === ATTENDANCE ===
+  {
+    type: "function",
+    function: {
+      name: "check_in",
+      description: "Check in to a project (start attendance)",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_out",
+      description: "Check out from a project (end attendance)",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_active_attendance",
+      description: "Get list of people currently checked in to a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // === UPDATE TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "update_customer",
+      description: "Update customer information",
+      parameters: {
+        type: "object",
+        properties: {
+          customer_id: { type: "string", description: "Customer ID" },
+          name: { type: "string", description: "New name" },
+          email: { type: "string", description: "New email" },
+          phone: { type: "string", description: "New phone number" },
+          address: { type: "string", description: "New address" },
+          city: { type: "string", description: "New city" },
+        },
+        required: ["customer_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_project",
+      description: "Update project information",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          name: { type: "string", description: "New name" },
+          status: { type: "string", description: "New status (active, completed, on_hold)" },
+          address: { type: "string", description: "New address" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_estimate",
+      description: "Update estimate information",
+      parameters: {
+        type: "object",
+        properties: {
+          estimate_id: { type: "string", description: "Estimate ID" },
+          manual_project_name: { type: "string", description: "New project name" },
+          status: { type: "string", description: "New status (draft, sent, accepted, rejected)" },
+        },
+        required: ["estimate_id"],
+      },
+    },
+  },
+  // === DELETE TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "delete_customer",
+      description: "Delete a customer. WARNING: This is permanent!",
+      parameters: {
+        type: "object",
+        properties: {
+          customer_id: { type: "string", description: "Customer ID to delete" },
+        },
+        required: ["customer_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_project",
+      description: "Delete a project. WARNING: This is permanent!",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID to delete" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_estimate",
+      description: "Delete an estimate. WARNING: This is permanent!",
+      parameters: {
+        type: "object",
+        properties: {
+          estimate_id: { type: "string", description: "Estimate ID to delete" },
+        },
+        required: ["estimate_id"],
+      },
+    },
+  },
 ];
 
 // Execute tool calls against the database
@@ -99,6 +398,7 @@ async function executeTool(
   console.log(`Executing tool: ${toolName}`, args);
 
   switch (toolName) {
+    // === SEARCH ===
     case "search_customers": {
       const query = args.query as string;
       const { data, error } = await supabase
@@ -145,6 +445,91 @@ async function executeTool(
       return data;
     }
 
+    case "search_daily_reports": {
+      const projectId = args.project_id as string | undefined;
+      const dateFrom = args.date_from as string | undefined;
+      const dateTo = args.date_to as string | undefined;
+      
+      let q = supabase
+        .from("daily_reports")
+        .select("id, project_id, report_date, work_items, headcount, total_hours, projects(name)")
+        .eq("user_id", userId)
+        .order("report_date", { ascending: false })
+        .limit(10);
+      
+      if (projectId) q = q.eq("project_id", projectId);
+      if (dateFrom) q = q.gte("report_date", dateFrom);
+      if (dateTo) q = q.lte("report_date", dateTo);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+
+    case "search_customer_invoices": {
+      const query = args.query as string | undefined;
+      const status = args.status as string | undefined;
+      
+      let q = supabase
+        .from("customer_invoices")
+        .select("id, invoice_number, invoice_date, due_date, total_inc_vat, status, customers(name)")
+        .eq("user_id", userId)
+        .order("invoice_date", { ascending: false })
+        .limit(10);
+      
+      if (status) q = q.eq("status", status);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      
+      // Filter by customer name if query provided
+      if (query && data) {
+        return data.filter((inv: any) => 
+          inv.customers?.name?.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+      return data;
+    }
+
+    case "search_vendor_invoices": {
+      const query = args.query as string | undefined;
+      const status = args.status as string | undefined;
+      
+      let q = supabase
+        .from("vendor_invoices")
+        .select("id, vendor_name, invoice_number, invoice_date, due_date, total_amount, status")
+        .eq("user_id", userId)
+        .order("invoice_date", { ascending: false })
+        .limit(10);
+      
+      if (status) q = q.eq("status", status);
+      if (query) q = q.ilike("vendor_name", `%${query}%`);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+
+    case "search_inspections": {
+      const projectId = args.project_id as string | undefined;
+      const status = args.status as string | undefined;
+      
+      let q = supabase
+        .from("inspections")
+        .select("id, template_name, template_category, inspection_date, status, inspector_name, projects(name)")
+        .eq("user_id", userId)
+        .order("inspection_date", { ascending: false })
+        .limit(10);
+      
+      if (projectId) q = q.eq("project_id", projectId);
+      if (status) q = q.eq("status", status);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+
+    // === CREATE ===
     case "create_estimate": {
       const { customer_id, title, address } = args as {
         customer_id: string;
@@ -152,7 +537,6 @@ async function executeTool(
         address?: string;
       };
 
-      // Get customer info
       const { data: customer } = await supabase
         .from("customers")
         .select("name, address, city")
@@ -216,6 +600,333 @@ async function executeTool(
 
       if (error) throw error;
       return data;
+    }
+
+    case "register_time": {
+      const { project_id, hours, date, description } = args as {
+        project_id: string;
+        hours: number;
+        date?: string;
+        description?: string;
+      };
+      
+      const { data, error } = await supabase
+        .from("time_entries")
+        .insert({
+          user_id: userId,
+          employer_id: userId,
+          project_id,
+          hours,
+          date: date || new Date().toISOString().split('T')[0],
+          description: description || "",
+          status: "pending",
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_time_summary": {
+      const { start_date, end_date, project_id } = args as {
+        start_date: string;
+        end_date: string;
+        project_id?: string;
+      };
+      
+      let q = supabase
+        .from("time_entries")
+        .select("id, date, hours, description, project_id, projects(name)")
+        .eq("user_id", userId)
+        .gte("date", start_date)
+        .lte("date", end_date)
+        .order("date", { ascending: false });
+      
+      if (project_id) q = q.eq("project_id", project_id);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      
+      const totalHours = (data || []).reduce((sum: number, entry: any) => sum + (entry.hours || 0), 0);
+      return { entries: data, totalHours, period: { start_date, end_date } };
+    }
+
+    case "create_daily_report": {
+      const { project_id, work_items, headcount, total_hours, notes } = args as {
+        project_id: string;
+        work_items: string[];
+        headcount: number;
+        total_hours: number;
+        notes?: string;
+      };
+      
+      const { data, error } = await supabase
+        .from("daily_reports")
+        .insert({
+          user_id: userId,
+          project_id,
+          work_items,
+          headcount,
+          total_hours,
+          notes: notes || "",
+          report_date: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "create_customer_invoice": {
+      const { project_id, customer_id } = args as {
+        project_id: string;
+        customer_id: string;
+      };
+      
+      const { data, error } = await supabase
+        .from("customer_invoices")
+        .insert({
+          user_id: userId,
+          project_id,
+          customer_id,
+          status: "draft",
+          rows: [],
+          total_ex_vat: 0,
+          vat_amount: 0,
+          total_inc_vat: 0,
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "create_inspection": {
+      const { project_id, template_id, inspector_name } = args as {
+        project_id: string;
+        template_id: string;
+        inspector_name?: string;
+      };
+      
+      // Get template info
+      const { data: template } = await supabase
+        .from("inspection_templates")
+        .select("name, category, checkpoints")
+        .eq("id", template_id)
+        .single();
+      
+      const { data, error } = await supabase
+        .from("inspections")
+        .insert({
+          user_id: userId,
+          project_id,
+          template_id,
+          template_name: template?.name || "Egenkontroll",
+          template_category: template?.category || "general",
+          checkpoints: template?.checkpoints || [],
+          inspector_name: inspector_name || "",
+          status: "draft",
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_project_plan": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("project_plans")
+        .select("id, phases, start_date, total_weeks, notes")
+        .eq("project_id", project_id)
+        .single();
+        
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    }
+
+    // === ATTENDANCE ===
+    case "check_in": {
+      const { project_id } = args as { project_id: string };
+      
+      // Check if already checked in
+      const { data: existing } = await supabase
+        .from("attendance_records")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("project_id", project_id)
+        .is("check_out", null)
+        .single();
+      
+      if (existing) {
+        return { already_checked_in: true, id: existing.id };
+      }
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .insert({
+          user_id: userId,
+          employer_id: userId,
+          project_id,
+          check_in: new Date().toISOString(),
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "check_out": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .update({ check_out: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("project_id", project_id)
+        .is("check_out", null)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_active_attendance": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select("id, user_id, check_in, guest_name, profiles(full_name)")
+        .eq("project_id", project_id)
+        .is("check_out", null);
+        
+      if (error) throw error;
+      return data;
+    }
+
+    // === UPDATE ===
+    case "update_customer": {
+      const { customer_id, ...updates } = args as {
+        customer_id: string;
+        name?: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+      };
+      
+      const updateData: Record<string, string> = {};
+      if (updates.name) updateData.name = updates.name;
+      if (updates.email) updateData.email = updates.email;
+      if (updates.phone) updateData.phone = updates.phone;
+      if (updates.address) updateData.address = updates.address;
+      if (updates.city) updateData.city = updates.city;
+      
+      const { data, error } = await supabase
+        .from("customers")
+        .update(updateData)
+        .eq("id", customer_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "update_project": {
+      const { project_id, ...updates } = args as {
+        project_id: string;
+        name?: string;
+        status?: string;
+        address?: string;
+      };
+      
+      const updateData: Record<string, string> = {};
+      if (updates.name) updateData.name = updates.name;
+      if (updates.status) updateData.status = updates.status;
+      if (updates.address) updateData.address = updates.address;
+      
+      const { data, error } = await supabase
+        .from("projects")
+        .update(updateData)
+        .eq("id", project_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "update_estimate": {
+      const { estimate_id, ...updates } = args as {
+        estimate_id: string;
+        manual_project_name?: string;
+        status?: string;
+      };
+      
+      const updateData: Record<string, string> = {};
+      if (updates.manual_project_name) updateData.manual_project_name = updates.manual_project_name;
+      if (updates.status) updateData.status = updates.status;
+      
+      const { data, error } = await supabase
+        .from("project_estimates")
+        .update(updateData)
+        .eq("id", estimate_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    // === DELETE ===
+    case "delete_customer": {
+      const { customer_id } = args as { customer_id: string };
+      
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", customer_id)
+        .eq("user_id", userId);
+        
+      if (error) throw error;
+      return { deleted: true, id: customer_id };
+    }
+
+    case "delete_project": {
+      const { project_id } = args as { project_id: string };
+      
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", project_id)
+        .eq("user_id", userId);
+        
+      if (error) throw error;
+      return { deleted: true, id: project_id };
+    }
+
+    case "delete_estimate": {
+      const { estimate_id } = args as { estimate_id: string };
+      
+      const { error } = await supabase
+        .from("project_estimates")
+        .delete()
+        .eq("id", estimate_id)
+        .eq("user_id", userId);
+        
+      if (error) throw error;
+      return { deleted: true, id: estimate_id };
     }
 
     default:
@@ -320,6 +1031,118 @@ function formatToolResults(toolName: string, results: unknown): {
       };
     }
 
+    case "search_daily_reports": {
+      const reports = results as Array<{
+        id: string;
+        report_date: string;
+        work_items: string[];
+        headcount: number;
+        total_hours: number;
+        projects?: { name: string };
+      }>;
+      
+      return {
+        type: "verification",
+        content: `Jag hittade ${reports.length} dagrapport${reports.length > 1 ? "er" : ""}:`,
+        data: {
+          entityType: "daily_report",
+          matches: reports.map((r) => ({
+            id: r.id,
+            title: r.projects?.name || "Dagrapport",
+            subtitle: r.report_date,
+            metadata: {
+              personal: `${r.headcount} pers`,
+              timmar: `${r.total_hours}h`,
+            },
+          })),
+        },
+      };
+    }
+
+    case "search_customer_invoices": {
+      const invoices = results as Array<{
+        id: string;
+        invoice_number: string;
+        invoice_date: string;
+        total_inc_vat: number;
+        status: string;
+        customers?: { name: string };
+      }>;
+      
+      return {
+        type: "verification",
+        content: `Jag hittade ${invoices.length} kundfaktura${invoices.length > 1 ? "or" : ""}:`,
+        data: {
+          entityType: "invoice",
+          matches: invoices.map((inv) => ({
+            id: inv.id,
+            title: inv.invoice_number || "Faktura",
+            subtitle: inv.customers?.name || "Okänd kund",
+            metadata: {
+              datum: inv.invoice_date,
+              belopp: `${inv.total_inc_vat?.toLocaleString("sv-SE")} kr`,
+              status: inv.status,
+            },
+          })),
+        },
+      };
+    }
+
+    case "search_vendor_invoices": {
+      const invoices = results as Array<{
+        id: string;
+        vendor_name: string;
+        invoice_number: string;
+        total_amount: number;
+        status: string;
+      }>;
+      
+      return {
+        type: "verification",
+        content: `Jag hittade ${invoices.length} leverantörsfaktura${invoices.length > 1 ? "or" : ""}:`,
+        data: {
+          entityType: "invoice",
+          matches: invoices.map((inv) => ({
+            id: inv.id,
+            title: inv.vendor_name || "Leverantörsfaktura",
+            subtitle: inv.invoice_number || "",
+            metadata: {
+              belopp: `${inv.total_amount?.toLocaleString("sv-SE")} kr`,
+              status: inv.status,
+            },
+          })),
+        },
+      };
+    }
+
+    case "search_inspections": {
+      const inspections = results as Array<{
+        id: string;
+        template_name: string;
+        template_category: string;
+        inspection_date: string;
+        status: string;
+        projects?: { name: string };
+      }>;
+      
+      return {
+        type: "verification",
+        content: `Jag hittade ${inspections.length} egenkontroll${inspections.length > 1 ? "er" : ""}:`,
+        data: {
+          entityType: "inspection",
+          matches: inspections.map((i) => ({
+            id: i.id,
+            title: i.template_name,
+            subtitle: i.projects?.name || "Okänt projekt",
+            metadata: {
+              datum: i.inspection_date,
+              status: i.status,
+            },
+          })),
+        },
+      };
+    }
+
     case "create_estimate": {
       const estimate = results as { id: string; offer_number: string };
       return {
@@ -332,6 +1155,10 @@ function formatToolResults(toolName: string, results: unknown): {
             label: "Öppna offert",
             href: `/estimates?id=${estimate.id}`,
           },
+          nextActions: [
+            { label: "Skapa ny offert", icon: "plus", prompt: "Skapa en ny offert" },
+            { label: "Visa alla offerter", icon: "list", prompt: "Visa mina offerter" },
+          ],
         },
       };
     }
@@ -348,9 +1175,313 @@ function formatToolResults(toolName: string, results: unknown): {
             label: "Öppna projekt",
             href: `/projects/${project.id}`,
           },
+          nextActions: [
+            { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för detta projekt" },
+            { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på projektet" },
+          ],
         },
       };
     }
+
+    case "register_time": {
+      const entry = results as { id: string; hours: number; date: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `${entry.hours} timmar registrerade för ${entry.date}!`,
+          link: {
+            label: "Öppna tidsrapportering",
+            href: "/time-reporting",
+          },
+          nextActions: [
+            { label: "Registrera mer tid", icon: "plus", prompt: "Registrera mer tid" },
+            { label: "Visa veckans tid", icon: "calendar", prompt: "Visa veckans tidrapport" },
+          ],
+        },
+      };
+    }
+
+    case "get_time_summary": {
+      const summary = results as { totalHours: number; entries: any[]; period: { start_date: string; end_date: string } };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Totalt ${summary.totalHours} timmar registrerade mellan ${summary.period.start_date} och ${summary.period.end_date}.`,
+          link: {
+            label: "Öppna tidsrapportering",
+            href: "/time-reporting",
+          },
+          nextActions: [
+            { label: "Registrera tid", icon: "plus", prompt: "Registrera tid" },
+            { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+          ],
+        },
+      };
+    }
+
+    case "create_daily_report": {
+      const report = results as { id: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Dagrapport skapad!",
+          link: {
+            label: "Öppna rapport",
+            href: `/reports/${report.id}`,
+          },
+          nextActions: [
+            { label: "Skapa ny rapport", icon: "plus", prompt: "Skapa en till dagrapport" },
+            { label: "Visa alla rapporter", icon: "list", prompt: "Visa mina dagrapporter" },
+          ],
+        },
+      };
+    }
+
+    case "create_customer_invoice": {
+      const invoice = results as { id: string; invoice_number: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Kundfaktura ${invoice.invoice_number || ""} skapad!`,
+          link: {
+            label: "Öppna faktura",
+            href: `/invoices?tab=customer&id=${invoice.id}`,
+          },
+          nextActions: [
+            { label: "Skapa ny faktura", icon: "plus", prompt: "Skapa en ny kundfaktura" },
+            { label: "Visa fakturor", icon: "list", prompt: "Visa mina kundfakturor" },
+          ],
+        },
+      };
+    }
+
+    case "create_inspection": {
+      const inspection = results as { id: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Egenkontroll skapad!",
+          link: {
+            label: "Öppna egenkontroll",
+            href: `/inspections/${inspection.id}`,
+          },
+          nextActions: [
+            { label: "Skapa ny kontroll", icon: "plus", prompt: "Skapa en till egenkontroll" },
+            { label: "Visa kontroller", icon: "list", prompt: "Visa mina egenkontroller" },
+          ],
+        },
+      };
+    }
+
+    case "get_project_plan": {
+      const plan = results as { id: string; phases: any[]; total_weeks: number } | null;
+      if (!plan) {
+        return {
+          type: "text",
+          content: "Det finns ingen planering för detta projekt ännu. Vill du skapa en?",
+        };
+      }
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Projektplanen har ${plan.phases?.length || 0} faser och ${plan.total_weeks || 0} veckor.`,
+          link: {
+            label: "Öppna planering",
+            href: `/planning?project=${plan.id}`,
+          },
+          nextActions: [
+            { label: "Visa projekt", icon: "folder", prompt: "Öppna projektet" },
+          ],
+        },
+      };
+    }
+
+    case "check_in": {
+      const record = results as { id: string; already_checked_in?: boolean };
+      if (record.already_checked_in) {
+        return {
+          type: "text",
+          content: "Du är redan incheckad på detta projekt.",
+        };
+      }
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Du är nu incheckad!",
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka ut", icon: "log-out", prompt: "Checka ut mig" },
+            { label: "Visa närvaro", icon: "users", prompt: "Visa vem som är incheckad" },
+          ],
+        },
+      };
+    }
+
+    case "check_out": {
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Du är nu utcheckad!",
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka in igen", icon: "log-in", prompt: "Checka in mig" },
+            { label: "Registrera tid", icon: "clock", prompt: "Registrera tid" },
+          ],
+        },
+      };
+    }
+
+    case "get_active_attendance": {
+      const records = results as Array<{
+        id: string;
+        check_in: string;
+        guest_name?: string;
+        profiles?: { full_name: string };
+      }>;
+      
+      if (records.length === 0) {
+        return {
+          type: "text",
+          content: "Ingen är incheckad på detta projekt just nu.",
+        };
+      }
+      
+      const names = records.map(r => r.profiles?.full_name || r.guest_name || "Okänd").join(", ");
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `${records.length} person${records.length > 1 ? "er" : ""} incheckade: ${names}`,
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka in", icon: "log-in", prompt: "Checka in mig" },
+          ],
+        },
+      };
+    }
+
+    case "update_customer": {
+      const customer = results as { id: string; name: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Kund "${customer.name}" har uppdaterats!`,
+          link: {
+            label: "Visa kund",
+            href: `/customers?id=${customer.id}`,
+          },
+          nextActions: [
+            { label: "Sök kund", icon: "search", prompt: "Sök efter en kund" },
+            { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för kunden" },
+          ],
+        },
+      };
+    }
+
+    case "update_project": {
+      const project = results as { id: string; name: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Projekt "${project.name}" har uppdaterats!`,
+          link: {
+            label: "Öppna projekt",
+            href: `/projects/${project.id}`,
+          },
+          nextActions: [
+            { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+          ],
+        },
+      };
+    }
+
+    case "update_estimate": {
+      const estimate = results as { id: string; manual_project_name: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Offert "${estimate.manual_project_name}" har uppdaterats!`,
+          link: {
+            label: "Öppna offert",
+            href: `/estimates?id=${estimate.id}`,
+          },
+          nextActions: [
+            { label: "Visa offerter", icon: "list", prompt: "Visa mina offerter" },
+          ],
+        },
+      };
+    }
+
+    case "delete_customer":
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Kunden har tagits bort!",
+          nextActions: [
+            { label: "Sök kund", icon: "search", prompt: "Sök efter en kund" },
+          ],
+        },
+      };
+
+    case "delete_project":
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Projektet har tagits bort!",
+          nextActions: [
+            { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+          ],
+        },
+      };
+
+    case "delete_estimate":
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Offerten har tagits bort!",
+          nextActions: [
+            { label: "Visa offerter", icon: "list", prompt: "Visa mina offerter" },
+          ],
+        },
+      };
 
     default:
       return {
@@ -397,18 +1528,31 @@ serve(async (req) => {
     const conversationMessages = [
       {
         role: "system",
-        content: `Du är en hjälpsam AI-assistent för ett byggföretag. Du hjälper användaren att hantera kunder, projekt och offerter.
+        content: `Du är en hjälpsam AI-assistent för ett byggföretag. Du hjälper användaren att hantera hela verksamheten.
+
+FUNKTIONER DU KAN UTFÖRA:
+- Kunder: Söka, skapa, redigera, ta bort
+- Projekt: Söka, skapa, redigera, ta bort  
+- Offerter: Söka, skapa, redigera, ta bort
+- Tidsrapportering: Registrera tid, visa summeringar
+- Dagrapporter: Skapa och söka rapporter
+- Fakturor: Söka kund- och leverantörsfakturor, skapa kundfaktura
+- Egenkontroller: Skapa och söka inspektioner
+- Närvaro: Checka in/ut, visa aktiva på projekt
 
 VIKTIGA REGLER:
 1. Svara alltid på svenska
 2. Var kortfattad och koncis (max 2-3 meningar)
-3. När användaren vill skapa något (offert, projekt), sök alltid först efter matchande kunder
+3. När användaren vill skapa något (offert, projekt), sök alltid först efter matchande kunder/projekt
 4. Fråga aldrig om onödig information - använd det du har
 5. Om användaren bekräftar en kund/projekt, fortsätt med nästa steg
+6. Vid radering, varna alltid användaren och be om bekräftelse först
+7. Föreslå alltid nästa steg efter en slutförd åtgärd
 
 KONTEXT:
 ${context?.selectedCustomerId ? `- Vald kund-ID: ${context.selectedCustomerId}` : ""}
 ${context?.selectedProjectId ? `- Valt projekt-ID: ${context.selectedProjectId}` : ""}
+${context?.selectedEstimateId ? `- Vald offert-ID: ${context.selectedEstimateId}` : ""}
 ${context?.pendingAction ? `- Väntande åtgärd: ${context.pendingAction}` : ""}
 
 Använd verktygen för att söka och skapa data. Bekräfta alltid innan du skapar något.`,

@@ -97,7 +97,7 @@ export function MessageList({
 
                 {/* Result card */}
                 {message.type === "result" && message.data && (
-                  <ResultCard data={message.data} />
+                  <ResultCard data={message.data} onNextAction={onNextAction} />
                 )}
 
                 {/* Next actions */}
