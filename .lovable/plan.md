@@ -1,112 +1,165 @@
 
-# Plan: Fixa projektlistning utan sökord
 
-## Problem
+# Plan: Förbättra Global Assistant UX
 
-`search_projects` kräver alltid en `query`-parameter, men användare vill ofta lista **alla** projekt med en viss status (t.ex. "Visa mina aktiva projekt") utan att söka på ett specifikt namn.
+## Problem 1: Ingen knapp för ny chatt
+Det finns ingen möjlighet att rensa konversationen och starta om. Användaren fastnar i samma chatthistorik.
 
-| Användarens begäran | Vad AI:n gör nu | Resultat |
-|---------------------|-----------------|----------|
-| "Visa mina aktiva projekt" | `query: "aktiva", status: "active"` | 0 träffar (söker på "aktiva" i projektnamn) |
+## Problem 2: Ineffektiv projektlistning
+När användaren säger "Visa mina aktiva projekt" och får en träff, visar assistenten ett verifikationskort som kräver att man trycker på det och bekräftar "Ja, det är Tony Test". Det är onödigt när man bara vill **se** sina projekt.
+
+| Nuvarande flöde | Önskat flöde |
+|-----------------|--------------|
+| 1. "Visa aktiva projekt" | 1. "Visa aktiva projekt" |
+| 2. Visar verifikationskort med "Välj projekt" | 2. Visar projektlista med detaljer direkt |
+| 3. Användaren klickar på projekt | - |
+| 4. "Ja, det är Tony Test" skickas | - |
+| 5. AI bekräftar val | - |
 
 ## Lösning
 
-Gör `query` valfri och lägg bara till `.or()`-filtret om `query` faktiskt finns.
+### 1. Lägg till "Ny chatt"-knapp
+Placera en knapp i headern (bredvid chattfältet) som rensar `messages` och `context`.
+
+```text
+┌─────────────────────────────────────┐
+│  [Sparkles]  Global Assistant  [+]  │  <-- "+" knapp för ny chatt
+├─────────────────────────────────────┤
+│                                     │
+│  Chattmeddelanden...                │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### 2. Ny meddelandetyp: "list" 
+Skapa en ny meddelandetyp `list` som visar projekt/offerter/kunder i ett snyggt format utan att kräva interaktion.
+
+**Logik i Edge Function:**
+- Om användaren frågar "Visa X" (list intent) → returnera `type: "list"` med detaljerad info
+- Om användaren behöver välja för att göra något (t.ex. skapa offert) → fortsätt med `type: "verification"`
 
 ## Teknisk implementation
 
-### 1. Uppdatera tool-definitionen (rad 36-42)
+### Fil 1: `src/types/global-assistant.ts`
+
+Lägg till ny meddelandetyp:
 
 ```typescript
-// FÖRE:
-{
-  name: "search_projects",
-  description: "Search for projects by name or client",
-  parameters: {
-    type: "object",
-    properties: {
-      query: { type: "string", description: "Search query" },
-      status: { type: "string", description: "Filter by status (active, completed, etc.)" },
-    },
-    required: ["query"],  // <-- Problemet
-  },
+export interface Message {
+  // ...
+  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list";
 }
 
-// EFTER:
-{
-  name: "search_projects",
-  description: "Search for projects by name, client, or status. Use status alone to list all projects with that status.",
-  parameters: {
-    type: "object",
-    properties: {
-      query: { type: "string", description: "Search query (optional - omit to list all)" },
-      status: { type: "string", description: "Filter by status: planning, active, closing, completed" },
-    },
-    required: [],  // Ingen required - kan lista alla
-  },
+export interface MessageData {
+  // ... befintliga fält
+  
+  // För list
+  listItems?: ListItem[];
+  listType?: "project" | "customer" | "estimate" | "invoice" | "inspection";
+}
+
+export interface ListItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  statusColor?: "green" | "yellow" | "blue" | "gray";
+  details?: { label: string; value: string }[];
+  link?: string;
 }
 ```
 
-### 2. Uppdatera executeTool (rad 458-476)
+### Fil 2: `src/components/global-assistant/ListCard.tsx` (NY FIL)
+
+Ny komponent för att visa listor:
 
 ```typescript
-// FÖRE:
-case "search_projects": {
-  const query = args.query as string;
-  const status = args.status as string | undefined;
-  
-  let q = supabase
-    .from("projects")
-    .select("id, name, client_name, address, city, status")
-    .eq("user_id", userId)
-    .or(`name.ilike.%${query}%,client_name.ilike.%${query}%`)  // <-- Körs alltid
-    .limit(5);
-  
-  if (status) q = q.eq("status", status);
-  
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
-}
+// Visar projekt/offerter/etc i ett rent listformat
+// Varje rad har:
+// - Ikon baserat på listType
+// - Titel + subtitle
+// - Status-badge
+// - Detaljer (adress, belopp, datum, etc.)
+// - "Öppna"-länk
+```
 
-// EFTER:
+### Fil 3: `src/components/global-assistant/MessageList.tsx`
+
+Lägg till rendering för `type === "list"`:
+
+```typescript
+{message.type === "list" && message.data && (
+  <ListCard data={message.data} />
+)}
+```
+
+### Fil 4: `src/pages/GlobalAssistant.tsx`
+
+Lägg till:
+1. `handleNewChat`-funktion som rensar state
+2. Header med ny chatt-knapp
+
+```typescript
+const handleNewChat = () => {
+  setMessages([]);
+  setContext({});
+};
+
+// I JSX, lägg till header när hasMessages:
+<div className="flex items-center justify-between border-b px-4 py-2">
+  <h1>Global Assistant</h1>
+  <Button variant="ghost" size="icon" onClick={handleNewChat}>
+    <Plus className="h-4 w-4" />
+  </Button>
+</div>
+```
+
+### Fil 5: `supabase/functions/global-assistant/index.ts`
+
+Uppdatera `formatToolResults` för `search_projects`:
+
+```typescript
 case "search_projects": {
-  const query = args.query as string | undefined;
-  const status = args.status as string | undefined;
+  const projects = results as Array<{...}>;
   
-  let q = supabase
-    .from("projects")
-    .select("id, name, client_name, address, city, status")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(10);
-  
-  // Only add search filter if query is provided
-  if (query && query.trim()) {
-    q = q.or(`name.ilike.%${query}%,client_name.ilike.%${query}%`);
-  }
-  
-  if (status) {
-    q = q.eq("status", status);
-  }
-  
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
+  // Returnera som list istället för verification
+  return {
+    type: "list",
+    content: `Här är dina ${status || ""} projekt:`,
+    data: {
+      listType: "project",
+      listItems: projects.map((p) => ({
+        id: p.id,
+        title: p.name,
+        subtitle: p.client_name || "Ingen kund",
+        status: translateStatus(p.status),
+        statusColor: getStatusColor(p.status),
+        details: [
+          { label: "Adress", value: p.address || "-" },
+          { label: "Stad", value: p.city || "-" },
+        ],
+        link: `/projects/${p.id}`,
+      })),
+    },
+  };
 }
 ```
 
-## Fil att ändra
+## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Gör `query` valfri i definition + logik |
+| `src/types/global-assistant.ts` | Lägg till `list` type och `ListItem` interface |
+| `src/components/global-assistant/ListCard.tsx` | NY: Komponent för listvisning |
+| `src/components/global-assistant/MessageList.tsx` | Rendera ListCard för `type === "list"` |
+| `src/pages/GlobalAssistant.tsx` | Lägg till header med "Ny chatt"-knapp |
+| `supabase/functions/global-assistant/index.ts` | Returnera `list` istället för `verification` vid sökningar |
 
-## Resultat efter fix
+## Resultat
 
-| Användarens begäran | Vad AI:n gör | Resultat |
-|---------------------|--------------|----------|
-| "Visa mina aktiva projekt" | `status: "active"` | Listar alla med status active |
-| "Visa projekt tony" | `query: "tony"` | Söker på "tony" i namn/kund |
-| "Visa mina projekt" | (inga params) | Listar de 10 senaste projekten |
-| "Visa pågående projekt för Adam" | `query: "Adam", status: "active"` | Kombinerad sökning |
+| Före | Efter |
+|------|-------|
+| Ingen ny chatt-knapp | [+] knapp i header rensar chatten |
+| "Visa aktiva projekt" → verifikationskort → klicka → bekräfta | "Visa aktiva projekt" → projektlista med detaljer |
+| Kräver 3+ steg för att se info | Visar info direkt |
+
