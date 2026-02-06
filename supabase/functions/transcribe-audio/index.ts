@@ -51,7 +51,9 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Received audio for transcription, mimeType:", mimeType);
+    // Log audio size for debugging
+    const audioSizeKB = Math.round(audio.length * 0.75 / 1024); // Base64 to bytes approx
+    console.log("Received audio for transcription, mimeType:", mimeType, "approx size:", audioSizeKB, "KB");
 
     // Determine the format for Gemini based on mimeType
     let format = "webm";
@@ -62,6 +64,8 @@ serve(async (req) => {
     } else if (mimeType?.includes("wav")) {
       format = "wav";
     }
+    
+    console.log("Using audio format for Gemini:", format);
 
     // Call Lovable AI Gateway with Gemini for audio transcription
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -75,11 +79,10 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Du är en professionell transkriberings-assistent för byggbranschen. 
-Din uppgift är att lyssna på ljudinspelningen och skriva ut exakt vad som sägs på svenska.
-- Skriv ut texten ordagrant men med korrekt interpunktion
-- Korrigera uppenbara talfel och felsägningar för läsbarhet
-- Behåll byggterminologi och fackuttryck korrekt
+            content: `Du är en transkriberings-assistent. 
+Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som sägs på svenska.
+- Skriv ut texten ORDAGRANT - ändra inte ord eller meningar
+- Använd korrekt interpunktion
 - Om det är svårt att höra något, skriv [ohörbart]
 - Returnera ENDAST den transkriberade texten, ingen annan text eller förklaring`
           },
