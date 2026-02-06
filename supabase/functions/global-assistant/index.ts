@@ -1263,7 +1263,7 @@ function formatToolResults(toolName: string, results: unknown): {
           resultMessage: `Offert ${estimate.offer_number} har skapats!`,
           link: {
             label: "Öppna offert",
-            href: `/estimates?id=${estimate.id}`,
+            href: `/estimates?estimateId=${estimate.id}`,
           },
           nextActions: [
             { label: "Skapa ny offert", icon: "plus", prompt: "Skapa en ny offert" },
@@ -1545,7 +1545,7 @@ function formatToolResults(toolName: string, results: unknown): {
           resultMessage: `Offert "${estimate.manual_project_name}" har uppdaterats!`,
           link: {
             label: "Öppna offert",
-            href: `/estimates?id=${estimate.id}`,
+            href: `/estimates?estimateId=${estimate.id}`,
           },
           nextActions: [
             { label: "Visa offerter", icon: "list", prompt: "Visa mina offerter" },
@@ -1625,7 +1625,7 @@ function formatToolResults(toolName: string, results: unknown): {
           resultMessage: "",
           link: {
             label: "Öppna offert",
-            href: `/estimates?id=${estimate.id}`,
+            href: `/estimates?estimateId=${estimate.id}`,
           },
           nextActions: [
             { label: "Redigera offert", icon: "edit", prompt: "Redigera denna offert" },

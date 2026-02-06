@@ -102,7 +102,7 @@ export default function Estimates() {
 
   // Handle URL parameter for direct estimate navigation (robust deep-linking)
   useEffect(() => {
-    const estimateIdFromUrl = searchParams.get("estimateId");
+    const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
     const offerNumberFromUrl = searchParams.get("offerNumber");
     
     // Skip if no params or already processed this exact param set
