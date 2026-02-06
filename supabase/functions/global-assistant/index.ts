@@ -290,6 +290,49 @@ const tools = [
       },
     },
   },
+  // === GET (READ-ONLY) TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "get_estimate",
+      description: "Hämta och visa fullständig information om en offert (används för 'visa', 'hämta', 'öppna' offert)",
+      parameters: {
+        type: "object",
+        properties: {
+          estimate_id: { type: "string", description: "Offertens ID" },
+        },
+        required: ["estimate_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_project",
+      description: "Hämta och visa fullständig information om ett projekt (används för 'visa', 'hämta', 'öppna' projekt)",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Projektets ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_customer",
+      description: "Hämta och visa fullständig information om en kund (används för 'visa', 'hämta', 'öppna' kund)",
+      parameters: {
+        type: "object",
+        properties: {
+          customer_id: { type: "string", description: "Kundens ID" },
+        },
+        required: ["customer_id"],
+      },
+    },
+  },
   // === UPDATE TOOLS ===
   {
     type: "function",
@@ -929,6 +972,73 @@ async function executeTool(
       return { deleted: true, id: estimate_id };
     }
 
+    // === GET (READ-ONLY) ===
+    case "get_estimate": {
+      const { estimate_id } = args as { estimate_id: string };
+      
+      const { data: estimate, error } = await supabase
+        .from("project_estimates")
+        .select("*")
+        .eq("id", estimate_id)
+        .eq("user_id", userId)
+        .single();
+        
+      if (error) throw error;
+      
+      // Get estimate items
+      const { data: items } = await supabase
+        .from("estimate_items")
+        .select("*")
+        .eq("estimate_id", estimate_id)
+        .order("sort_order");
+        
+      return { ...estimate, items: items || [] };
+    }
+
+    case "get_project": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data: project, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", project_id)
+        .eq("user_id", userId)
+        .single();
+        
+      if (error) throw error;
+      return project;
+    }
+
+    case "get_customer": {
+      const { customer_id } = args as { customer_id: string };
+      
+      const { data: customer, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customer_id)
+        .eq("user_id", userId)
+        .single();
+        
+      if (error) throw error;
+      
+      // Get related projects and estimates
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id, name, status")
+        .eq("user_id", userId)
+        .eq("client_name", customer.name)
+        .limit(5);
+        
+      const { data: estimates } = await supabase
+        .from("project_estimates")
+        .select("id, offer_number, status, manual_project_name")
+        .eq("user_id", userId)
+        .eq("manual_client_name", customer.name)
+        .limit(5);
+        
+      return { ...customer, projects: projects || [], estimates: estimates || [] };
+    }
+
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -1483,6 +1593,111 @@ function formatToolResults(toolName: string, results: unknown): {
         },
       };
 
+    // === GET (READ-ONLY) ===
+    case "get_estimate": {
+      const estimate = results as any;
+      const totalRows = estimate.items?.length || 0;
+      
+      // Calculate totals from items
+      const laborTotal = estimate.items?.reduce((sum: number, item: any) => 
+        item.type === 'labor' ? sum + (item.subtotal || 0) : sum, 0) || 0;
+      const materialTotal = estimate.items?.reduce((sum: number, item: any) => 
+        item.type === 'material' ? sum + (item.subtotal || 0) : sum, 0) || 0;
+      
+      return {
+        type: "result",
+        content: `**${estimate.offer_number || 'Offert'}**
+
+**Projekt:** ${estimate.manual_project_name || 'Ej angivet'}
+**Kund:** ${estimate.manual_client_name || 'Ej angiven'}
+**Status:** ${estimate.status || 'Utkast'}
+
+**Summering:**
+- Arbete: ${laborTotal.toLocaleString('sv-SE')} kr
+- Material: ${materialTotal.toLocaleString('sv-SE')} kr
+- Totalt exkl. moms: ${(estimate.total_excl_vat || 0).toLocaleString('sv-SE')} kr
+- Totalt inkl. moms: ${(estimate.total_incl_vat || 0).toLocaleString('sv-SE')} kr
+- Antal rader: ${totalRows}
+
+**Skapad:** ${new Date(estimate.created_at).toLocaleDateString('sv-SE')}`,
+        data: {
+          success: true,
+          resultMessage: "",
+          link: {
+            label: "Öppna offert",
+            href: `/estimates?id=${estimate.id}`,
+          },
+          nextActions: [
+            { label: "Redigera offert", icon: "edit", prompt: "Redigera denna offert" },
+            { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt från denna offert" },
+            { label: "Visa kund", icon: "users", prompt: "Visa kunden för denna offert" },
+          ],
+        },
+      };
+    }
+
+    case "get_project": {
+      const project = results as any;
+      
+      return {
+        type: "result",
+        content: `**${project.name}**
+
+**Kund:** ${project.client_name || 'Ej angiven'}
+**Status:** ${project.status || 'Ej angiven'}
+**Adress:** ${project.address || 'Ej angiven'}${project.city ? `, ${project.city}` : ''}
+
+**Ekonomi:**
+- Budget: ${(project.budget || 0).toLocaleString('sv-SE')} kr
+
+**Skapad:** ${new Date(project.created_at).toLocaleDateString('sv-SE')}`,
+        data: {
+          success: true,
+          resultMessage: "",
+          link: {
+            label: "Öppna projekt",
+            href: `/projects/${project.id}`,
+          },
+          nextActions: [
+            { label: "Skapa dagrapport", icon: "clipboard", prompt: "Skapa dagrapport för detta projekt" },
+            { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på detta projekt" },
+            { label: "Visa planering", icon: "calendar", prompt: "Visa planeringen för detta projekt" },
+          ],
+        },
+      };
+    }
+
+    case "get_customer": {
+      const customer = results as any;
+      
+      return {
+        type: "result",
+        content: `**${customer.name}**
+
+**Kontakt:**
+- Email: ${customer.email || 'Ej angiven'}
+- Telefon: ${customer.phone || 'Ej angiven'}
+- Adress: ${customer.address || 'Ej angiven'}${customer.city ? `, ${customer.city}` : ''}
+
+**Relaterat:**
+- Projekt: ${customer.projects?.length || 0} st
+- Offerter: ${customer.estimates?.length || 0} st`,
+        data: {
+          success: true,
+          resultMessage: "",
+          link: {
+            label: "Öppna kund",
+            href: `/customers?id=${customer.id}`,
+          },
+          nextActions: [
+            { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för denna kund" },
+            { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt för denna kund" },
+            { label: "Redigera kund", icon: "edit", prompt: "Redigera denna kund" },
+          ],
+        },
+      };
+    }
+
     default:
       return {
         type: "text",
@@ -1531,14 +1746,20 @@ serve(async (req) => {
         content: `Du är en hjälpsam AI-assistent för ett byggföretag. Du hjälper användaren att hantera hela verksamheten.
 
 FUNKTIONER DU KAN UTFÖRA:
-- Kunder: Söka, skapa, redigera, ta bort
-- Projekt: Söka, skapa, redigera, ta bort  
-- Offerter: Söka, skapa, redigera, ta bort
+- Kunder: Söka, visa, skapa, redigera, ta bort
+- Projekt: Söka, visa, skapa, redigera, ta bort  
+- Offerter: Söka, visa, skapa, redigera, ta bort
 - Tidsrapportering: Registrera tid, visa summeringar
 - Dagrapporter: Skapa och söka rapporter
 - Fakturor: Söka kund- och leverantörsfakturor, skapa kundfaktura
 - Egenkontroller: Skapa och söka inspektioner
 - Närvaro: Checka in/ut, visa aktiva på projekt
+
+VIKTIGT - SKILLNAD MELLAN HÄMTA/VISA OCH UPPDATERA:
+- När användaren vill "visa", "hämta", "se", "öppna" eller "kolla" → använd get_estimate/get_project/get_customer
+- När användaren vill "ändra", "uppdatera", "redigera" med specifika värden → använd update_*
+- ALDRIG använd update_* utan faktiska ändringar att göra
+- Om användaren säger "hämta offerten" eller "visa projektet" → använd get_* verktygen
 
 VIKTIGA REGLER:
 1. Svara alltid på svenska
