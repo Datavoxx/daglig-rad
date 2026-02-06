@@ -69,19 +69,13 @@ serve(async (req) => {
       );
     }
 
-    // Determine the format for Gemini based on mimeType
-    let format = "webm";
-    if (mimeType?.includes("mp4")) {
-      format = "mp4";
-    } else if (mimeType?.includes("ogg")) {
-      format = "ogg";
-    } else if (mimeType?.includes("wav")) {
-      format = "wav";
-    }
+    // Build the audio data URI for multimodal API
+    const audioMimeType = mimeType || "audio/mp4";
+    const audioDataUri = `data:${audioMimeType};base64,${audio}`;
     
-    console.log("[transcribe-audio] Using audio format for Gemini:", format);
+    console.log("[transcribe-audio] Using audio data-URI format, mimeType:", audioMimeType);
 
-    // Call Lovable AI Gateway with strict anti-hallucination settings
+    // Call Lovable AI Gateway with data-URI format (compatible with multimodal APIs)
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -89,7 +83,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         temperature: 0,
         top_p: 0.1,
         max_tokens: 300,
@@ -116,10 +110,9 @@ Om inspelningen är tyst eller inte innehåller tydligt tal, returnera: [ohörba
                 text: "Transkribera följande ljudinspelning ordagrant:"
               },
               {
-                type: "input_audio",
-                input_audio: {
-                  data: audio,
-                  format: format
+                type: "image_url",
+                image_url: {
+                  url: audioDataUri
                 }
               }
             ]
