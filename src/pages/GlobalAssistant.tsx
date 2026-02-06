@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/global-assistant/ChatInput";
 import { MessageList } from "@/components/global-assistant/MessageList";
 import { QuickSuggestions } from "@/components/global-assistant/QuickSuggestions";
@@ -11,6 +12,11 @@ export default function GlobalAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [context, setContext] = useState<ConversationContext>({});
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setContext({});
+  };
 
   // Fetch user name on mount
   useEffect(() => {
@@ -179,6 +185,23 @@ export default function GlobalAssistant() {
       {/* Conversation view */}
       {hasMessages && (
         <>
+          {/* Header with new chat button */}
+          <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Global Assistant</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8"
+              title="Ny chatt"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <MessageList
             messages={messages}
             onProposalConfirm={handleProposalConfirm}

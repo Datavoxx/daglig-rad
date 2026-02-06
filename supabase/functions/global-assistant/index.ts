@@ -1096,22 +1096,50 @@ function formatToolResults(toolName: string, results: unknown): {
         name: string;
         client_name: string;
         address?: string;
+        city?: string;
         status?: string;
       }>;
       
+      // Helper functions for status translation
+      const translateStatus = (status: string | undefined): string => {
+        const statusMap: Record<string, string> = {
+          planning: "Planering",
+          active: "Pågående",
+          closing: "Avslutning",
+          completed: "Avslutat",
+        };
+        return statusMap[status || ""] || status || "Okänd";
+      };
+      
+      const getStatusColor = (status: string | undefined): "green" | "yellow" | "blue" | "gray" => {
+        const colorMap: Record<string, "green" | "yellow" | "blue" | "gray"> = {
+          active: "green",
+          planning: "blue",
+          closing: "yellow",
+          completed: "gray",
+        };
+        return colorMap[status || ""] || "gray";
+      };
+      
+      // Return as list for viewing, not verification
       return {
-        type: "verification",
-        content: `Jag hittade ${projects.length} matchande projekt:`,
+        type: "list",
+        content: projects.length > 0 
+          ? `Här är ${projects.length} projekt:`
+          : "Inga projekt hittades.",
         data: {
-          entityType: "project",
-          matches: projects.map((p) => ({
+          listType: "project",
+          listItems: projects.map((p) => ({
             id: p.id,
             title: p.name,
             subtitle: p.client_name || "Ingen kund",
-            metadata: {
-              ...(p.address && { address: p.address }),
-              ...(p.status && { status: p.status }),
-            },
+            status: translateStatus(p.status),
+            statusColor: getStatusColor(p.status),
+            details: [
+              ...(p.address ? [{ label: "Adress", value: p.address }] : []),
+              ...(p.city ? [{ label: "Stad", value: p.city }] : []),
+            ],
+            link: `/projects/${p.id}`,
           })),
         },
       };
