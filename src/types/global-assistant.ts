@@ -14,7 +14,14 @@ export interface MessageData {
   
   // For verification
   matches?: VerificationMatch[];
-  entityType?: "customer" | "project" | "estimate";
+  entityType?: 
+    | "customer" 
+    | "project" 
+    | "estimate"
+    | "invoice"
+    | "inspection"
+    | "daily_report"
+    | "time_entry";
   
   // For next_actions
   actions?: NextAction[];
@@ -26,6 +33,7 @@ export interface MessageData {
     label: string;
     href: string;
   };
+  nextActions?: NextAction[];
 }
 
 export interface VerificationMatch {
@@ -45,6 +53,9 @@ export interface ConversationContext {
   selectedCustomerId?: string;
   selectedProjectId?: string;
   selectedEstimateId?: string;
+  selectedInvoiceId?: string;
+  selectedInspectionId?: string;
+  selectedTimeEntryId?: string;
   pendingAction?: string;
   pendingData?: Record<string, unknown>;
 }
