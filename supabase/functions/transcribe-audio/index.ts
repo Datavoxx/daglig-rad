@@ -40,7 +40,7 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, mimeType } = await req.json();
+    const { audio, mimeType, durationMs } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -51,9 +51,23 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Log audio size for debugging
+    // Log audio metadata for debugging
     const audioSizeKB = Math.round(audio.length * 0.75 / 1024); // Base64 to bytes approx
-    console.log("Received audio for transcription, mimeType:", mimeType, "approx size:", audioSizeKB, "KB");
+    console.log("[transcribe-audio] Received audio:", {
+      mimeType,
+      sizeKB: audioSizeKB,
+      durationMs: durationMs || "unknown",
+      base64Length: audio.length,
+    });
+
+    // Sanity check: if audio is suspiciously small, return early
+    if (audioSizeKB < 3) {
+      console.log("[transcribe-audio] Audio too small, likely silent or corrupt");
+      return new Response(
+        JSON.stringify({ text: "[ohörbart]" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Determine the format for Gemini based on mimeType
     let format = "webm";
@@ -65,9 +79,9 @@ serve(async (req) => {
       format = "wav";
     }
     
-    console.log("Using audio format for Gemini:", format);
+    console.log("[transcribe-audio] Using audio format for Gemini:", format);
 
-    // Call Lovable AI Gateway with Gemini for audio transcription
+    // Call Lovable AI Gateway with strict anti-hallucination settings
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -75,23 +89,31 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
+        temperature: 0,
+        top_p: 0.1,
+        max_tokens: 300,
         messages: [
           {
             role: "system",
-            content: `Du är en transkriberings-assistent. 
-Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som sägs på svenska.
-- Skriv ut texten ORDAGRANT - ändra inte ord eller meningar
-- Använd korrekt interpunktion
-- Om det är svårt att höra något, skriv [ohörbart]
-- Returnera ENDAST den transkriberade texten, ingen annan text eller förklaring`
+            content: `Du är en strikt transkriberings-assistent. Din ENDA uppgift är att skriva ut EXAKT vad som sägs i ljudinspelningen på svenska.
+
+KRITISKA REGLER:
+1. Skriv ut texten ORDAGRANT - ändra absolut inte ord, meningar eller ordning
+2. Om du inte kan höra tydligt vad som sägs, returnera exakt: [ohörbart]
+3. GISSA INTE! Om ljudet är otydligt, tyst eller korrupt, returnera: [ohörbart]
+4. Hitta inte på text som inte finns i ljudet
+5. Returnera ENDAST den transkriberade texten - ingen förklaring, ingen inledning, inget annat
+6. Använd korrekt svensk interpunktion
+
+Om inspelningen är tyst eller inte innehåller tydligt tal, returnera: [ohörbart]`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Transkribera följande ljudinspelning:"
+                text: "Transkribera följande ljudinspelning ordagrant:"
               },
               {
                 type: "input_audio",
@@ -108,7 +130,7 @@ Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som säg
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("[transcribe-audio] AI gateway error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -127,9 +149,19 @@ Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som säg
     }
 
     const data = await response.json();
-    const transcribedText = data.choices?.[0]?.message?.content || "";
+    const transcribedText = data.choices?.[0]?.message?.content?.trim() || "";
 
-    console.log("Transcription successful, length:", transcribedText.length);
+    console.log("[transcribe-audio] Transcription result, length:", transcribedText.length, "text preview:", transcribedText.substring(0, 100));
+
+    // Post-processing: If response is suspiciously long compared to audio duration, it might be hallucinated
+    if (durationMs && durationMs > 0) {
+      // Rough heuristic: ~150 words per minute = ~2.5 words per second = ~15 chars per second
+      const expectedMaxChars = Math.round((durationMs / 1000) * 25); // generous: 25 chars/sec
+      if (transcribedText.length > expectedMaxChars && transcribedText.length > 200) {
+        console.log("[transcribe-audio] Response suspiciously long vs duration. Expected max:", expectedMaxChars, "got:", transcribedText.length);
+        // Don't reject, but log for debugging
+      }
+    }
 
     return new Response(
       JSON.stringify({ text: transcribedText }),
@@ -137,7 +169,7 @@ Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som säg
     );
 
   } catch (error) {
-    console.error("Transcription error:", error);
+    console.error("[transcribe-audio] Error:", error);
     await reportError("transcribe-audio", error, { endpoint: "transcribe-audio" });
     const message = error instanceof Error ? error.message : "Transkribering misslyckades";
     return new Response(
