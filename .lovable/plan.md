@@ -1,74 +1,164 @@
 
-# Plan: Dynamiska tidsintervall baserat på utbildningslängd
+
+# Plan: Automatisk synkronisering av offertrader till artikelbiblioteket
 
 ## Mål
-Visa tidsalternativ i 30-minutersintervall när "30 min" är valt och i 1-timmesintervall när "60 min" är valt.
+När en offert sparas ska alla nya unika artiklar automatiskt läggas till i användarens artikelbibliotek, så att de kan återanvändas i framtida offerter.
 
 ---
 
-## Nuvarande implementation
+## Synkroniseringslogik
 
-```typescript
-const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
-```
+### Villkor för att synka en rad till biblioteket
+En offertrad synkas om:
+1. Den har en **beskrivning** (description) som inte är tom
+2. Den har ett **à-pris** (unit_price) som är större än 0
+3. Det finns **ingen befintlig artikel** med samma namn (case-insensitive match)
 
-Statisk array med 1-timmesintervall som alltid visas oavsett vald längd.
+### Fält som mappas
 
----
-
-## Ändringar i TrainingBookingDialog.tsx
-
-### 1. Ersätt statisk array med två varianter
-
-```typescript
-const timeSlots30min = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"
-];
-
-const timeSlots60min = [
-  "09:00", "10:00", "11:00", "13:00", "14:00", "15:00"
-];
-```
-
-### 2. Skapa dynamisk timeSlots baserat på trainingDuration
-
-Använd `useMemo` för att välja rätt array:
-
-```typescript
-const timeSlots = useMemo(() => {
-  return trainingDuration === "30 min" ? timeSlots30min : timeSlots60min;
-}, [trainingDuration]);
-```
-
-### 3. Nollställ vald tid när duration ändras
-
-Lägg till effekt som rensar `selectedTime` när användaren byter mellan 30/60 min:
-
-```typescript
-// I onValueChange för RadioGroup:
-onValueChange={(value) => {
-  setValue("training_duration", value as "30 min" | "60 min");
-  setSelectedTime(null); // Nollställ tid när duration ändras
-}}
-```
-
-### 4. Justera grid för fler knappar
-
-Ändra från 3 kolumner till 4 för att passa fler tider:
-
-```typescript
-<div className="grid grid-cols-4 gap-1.5">
-```
+| estimate_items | articles |
+|----------------|----------|
+| description | name |
+| (ingen) | description (null) |
+| article | article_category |
+| unit | unit |
+| unit_price | default_price |
 
 ---
 
-## Resultat
+## Ändringar
 
-| Duration | Tider som visas |
-|----------|-----------------|
-| 30 min | 09:00, 09:30, 10:00, 10:30, 11:00, 11:30, 13:00, 13:30, 14:00, 14:30, 15:00, 15:30 |
-| 60 min | 09:00, 10:00, 11:00, 13:00, 14:00, 15:00 |
+### 1. Uppdatera useEstimate.ts - saveMutation
+
+Efter att `estimate_items` har sparats (rad ~498), lägg till logik för att:
+
+```typescript
+// Sync new items to article library
+const itemsWithDescriptions = state.items.filter(
+  item => item.description?.trim() && item.unit_price > 0
+);
+
+if (itemsWithDescriptions.length > 0) {
+  // Fetch existing articles for this user
+  const { data: existingArticles } = await supabase
+    .from("articles")
+    .select("name")
+    .eq("user_id", userData.user.id);
+
+  const existingNames = new Set(
+    (existingArticles || []).map(a => a.name.toLowerCase().trim())
+  );
+
+  // Find new unique articles
+  const newArticles = itemsWithDescriptions
+    .filter(item => !existingNames.has(item.description.toLowerCase().trim()))
+    .map((item, index) => ({
+      user_id: userData.user.id,
+      name: item.description.trim(),
+      description: null,
+      article_category: mapToArticleCategory(item.article),
+      unit: item.unit || "st",
+      default_price: item.unit_price,
+      sort_order: (existingArticles?.length || 0) + index,
+    }));
+
+  // Deduplicate within the batch
+  const uniqueNewArticles = newArticles.filter((article, index, self) =>
+    index === self.findIndex(a => a.name.toLowerCase() === article.name.toLowerCase())
+  );
+
+  // Insert new articles (fire-and-forget, don't block save)
+  if (uniqueNewArticles.length > 0) {
+    supabase.from("articles").insert(uniqueNewArticles);
+  }
+}
+```
+
+### 2. Lägg till mapToArticleCategory-funktion
+
+Mappar offertens "article"-fält till artikelbibliotekets kategorier:
+
+```typescript
+function mapToArticleCategory(article: string): string {
+  const mapping: Record<string, string> = {
+    "Arbete": "Arbete",
+    "Bygg": "Bygg",
+    "Deponi": "Deponi",
+    "Framkörning": "Övrigt",
+    "Förbrukning": "Material",
+    "Förvaltning": "Övrigt",
+    "Markarbete": "Bygg",
+    "Maskin": "Maskin",
+    "Material": "Material",
+    "Målning": "Målning",
+    "Snöröjning": "Övrigt",
+    "Städ": "Övrigt",
+    "Trädgårdsskötsel": "Övrigt",
+  };
+  return mapping[article] || "Övrigt";
+}
+```
+
+### 3. Invalidera articles-query efter save
+
+Uppdatera `onSuccess` i saveMutation för att trigga uppdatering av artikellistan:
+
+```typescript
+queryClient.invalidateQueries({ queryKey: ["articles"] });
+```
+
+---
+
+## Flödesdiagram
+
+```text
+┌─────────────────────────────────────┐
+│       Användaren sparar offert      │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Spara estimate + estimate_items   │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Filtrera rader med beskrivning    │
+│   och à-pris > 0                    │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Hämta befintliga artiklar         │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Jämför namn (case-insensitive)    │
+│   och filtrera ut nya               │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Deduplika inom batchen            │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Infoga nya artiklar i biblioteket │
+│   (fire-and-forget)                 │
+└────────────────┬────────────────────┘
+                 ▼
+┌─────────────────────────────────────┐
+│   Returnera success                 │
+└─────────────────────────────────────┘
+```
+
+---
+
+## Tekniska detaljer
+
+| Aspekt | Beslut |
+|--------|--------|
+| Blockerar save? | Nej - fire-and-forget för bättre UX |
+| Uppdaterar befintliga? | Nej - endast nya artiklar skapas |
+| Matcher på | name (description) case-insensitive |
+| Felhantering | Loggar fel men stoppar inte save |
 
 ---
 
@@ -76,4 +166,5 @@ onValueChange={(value) => {
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/landing/TrainingBookingDialog.tsx` | Dynamiska tidsintervall baserat på vald utbildningslängd |
+| `src/hooks/useEstimate.ts` | Lägg till synkroniseringslogik efter item-insert |
+
