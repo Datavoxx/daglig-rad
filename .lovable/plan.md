@@ -1,120 +1,106 @@
 
 
-# Plan: Lägg till ElevenLabs Scribe Realtime för iOS Safari
+# Plan: Fixa felaktig transkribering på iOS
 
-## Översikt
+## Problemanalys
 
-| Platform | Metod | Realtid | Kostnad |
-|----------|-------|---------|---------|
-| Desktop (Chrome/Edge) | Web Speech API | ✅ Ja | Gratis |
-| iOS Safari | ElevenLabs Scribe v2 Realtime | ✅ Ja | Per minut |
+Transkriberingen visar fel text på iOS. Detta beror sannolikt på:
 
-## Krav: ElevenLabs API-nyckel
+1. **Korrupt base64-encoding** - Nuvarande metod kan korrumpera ljuddata
+2. **Fel audio-format** - iOS Safari använder primärt MP4/AAC, men koden prioriterar inte detta korrekt
+3. **För strikt systemprompt** - AI:n är fokuserad på "byggbranschen" och kan missförstå generellt tal
 
-Du behöver en ElevenLabs API-nyckel för att detta ska fungera:
-1. Gå till [elevenlabs.io](https://elevenlabs.io) och skapa ett konto
-2. Navigera till "Profile" → "API Keys"
-3. Kopiera din API-nyckel
+## Lösning
 
-Jag kommer be dig lägga till nyckeln som en hemlighet i projektet.
+### Del 1: Fixa base64-encoding
 
-## Filer som skapas/ändras
+**Problem:** `btoa()` med `String.fromCharCode` kan korrumpera binärdata för stora filer.
 
-### 1. Ny Edge Function: `elevenlabs-scribe-token`
-
-Skapar engångstoken för säker anslutning till ElevenLabs WebSocket.
+**Lösning:** Använd chunk-baserad encoding som hanterar stora filer säkert:
 
 ```typescript
-// supabase/functions/elevenlabs-scribe-token/index.ts
-serve(async (req) => {
-  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+// Säker base64-encoding för stora filer
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunks: string[] = [];
+  const chunkSize = 8192;
   
-  const response = await fetch(
-    "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
-    {
-      method: "POST",
-      headers: { "xi-api-key": ELEVENLABS_API_KEY },
-    }
-  );
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    chunks.push(String.fromCharCode(...chunk));
+  }
   
-  const { token } = await response.json();
-  return new Response(JSON.stringify({ token }));
-});
-```
-
-### 2. Uppdatera `supabase/config.toml`
-
-Lägg till den nya funktionen.
-
-### 3. Nytt paket: `@elevenlabs/react`
-
-Lägg till ElevenLabs React SDK för `useScribe` hook.
-
-### 4. Uppdatera `src/hooks/useVoiceRecorder.ts`
-
-Byt ut MediaRecorder-fallback mot ElevenLabs Scribe Realtime för iOS:
-
-**Ny logik:**
-
-```text
-if (isIOSDevice) {
-  1. Hämta engångstoken från edge function
-  2. Anslut till ElevenLabs WebSocket med useScribe
-  3. Streama mikrofon-ljud till ElevenLabs
-  4. Visa partialTranscript i realtid (ord för ord!)
-  5. committedTranscript → finalTranscript
-} else {
-  Befintlig Web Speech API (oförändrad)
+  return btoa(chunks.join(""));
 }
 ```
 
-**Callbacks:**
-- `onPartialTranscript` → uppdaterar `interimTranscript` (realtid!)
-- `onCommittedTranscript` → uppdaterar `finalTranscript`
+### Del 2: Prioritera rätt audio-format för iOS
 
-### 5. Uppdatera `src/components/shared/VoiceInputOverlay.tsx`
+**Problem:** iOS Safari stöder primärt `audio/mp4` men koden testar andra format först.
 
-Ta bort meddelandet "Transkribering sker efter inspelning..." och visa istället realtidstext även på iOS:
+**Lösning:** Ändra prioritetsordningen för iOS:
 
-```tsx
-{/* Samma realtidsvy för både iOS och desktop */}
-{(finalTranscript || interimTranscript) && (
-  <div className="text-sm bg-muted/50 rounded p-2">
-    {finalTranscript && <span>{finalTranscript} </span>}
-    {interimTranscript && <span className="italic opacity-70">{interimTranscript}</span>}
-  </div>
-)}
+```typescript
+// För iOS, prioritera MP4 först
+let mimeType = "audio/webm";
+if (isIOSDevice && MediaRecorder.isTypeSupported("audio/mp4")) {
+  mimeType = "audio/mp4";
+} else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+  mimeType = "audio/mp4";
+} else if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+  mimeType = "audio/webm;codecs=opus";
+}
 ```
 
-## Tekniskt flöde för iOS (efter implementation)
+### Del 3: Förbättra systemprompt i edge function
 
-```text
-1. Användaren trycker "Spela in" på iPhone
-2. Hook detekterar iOS Safari
-3. Hämtar engångstoken från elevenlabs-scribe-token edge function
-4. Ansluter till ElevenLabs WebSocket
-5. Mikrofon startar → ljud streamas till ElevenLabs
-6. Partial transcripts kommer tillbaka i realtid (~150ms latens)
-7. Text visas ord för ord medan användaren pratar
-8. Användaren trycker "Stoppa"
-9. Final transcript visas i bekräftelsedialogrutan
+**Problem:** Prompten är för fokuserad på byggterminologi.
+
+**Lösning:** Gör prompten mer generell och fokuserad på exakthet:
+
+```typescript
+content: `Du är en transkriberings-assistent. 
+Din uppgift är att lyssna på ljudinspelningen och skriva ut EXAKT vad som sägs på svenska.
+- Skriv ut texten ORDAGRANT - ändra inte ord eller meningar
+- Använd korrekt interpunktion
+- Om det är svårt att höra något, skriv [ohörbart]
+- Returnera ENDAST den transkriberade texten, ingen annan text`
 ```
 
-## Sammanfattning av ändringar
+### Del 4: Lägg till bättre loggning
+
+Lägg till mer detaljerad loggning för att debugga framtida problem:
+
+```typescript
+console.log("Audio blob size:", audioBlob.size, "bytes");
+console.log("Audio mimeType:", mimeType);
+console.log("Base64 length:", base64Audio.length);
+```
+
+## Filer som ändras
 
 | Fil | Ändring |
 |-----|---------|
-| `package.json` | Lägg till `@elevenlabs/react` |
-| `supabase/functions/elevenlabs-scribe-token/index.ts` | **NY** - Token-generering |
-| `supabase/config.toml` | Lägg till ny function |
-| `src/hooks/useVoiceRecorder.ts` | Ersätt MediaRecorder med ElevenLabs Scribe |
-| `src/components/shared/VoiceInputOverlay.tsx` | Visa realtidstext för iOS |
+| `src/hooks/useVoiceRecorder.ts` | Fixa base64-encoding + prioritera MP4 för iOS |
+| `supabase/functions/transcribe-audio/index.ts` | Förbättra systemprompt + bättre loggning |
 
-## Resultat efter implementation
+## Tekniska ändringar
 
-- **Samma realtidsupplevelse** på iOS som på desktop
-- Text visas **ord för ord** medan du pratar (även på iPhone!)
-- **~150ms latens** på iOS via ElevenLabs
-- **Gratis** på desktop (Web Speech API)
-- **Automatisk VAD** (voice activity detection) för intelligent paus-hantering
+### useVoiceRecorder.ts
+
+1. Lägg till säker `arrayBufferToBase64` funktion
+2. Ändra format-prioritering för iOS (MP4 först)
+3. Lägg till loggning av blob-storlek och format
+
+### transcribe-audio/index.ts
+
+1. Ändra systemprompt till mer generell och exakt
+2. Lägg till loggning av audio-storlek
+3. Behåll stöd för alla format (mp4, webm, ogg, wav)
+
+## Förväntat resultat
+
+- **Korrekt transkribering** av det användaren faktiskt säger
+- **Fungerar på iOS Safari** med rätt audio-format
+- **Bättre debugging** genom utökad loggning
 
