@@ -90,6 +90,20 @@ export function useVoiceRecorder({
     };
   }, []);
 
+  // Safe base64 encoding for large audio files
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    const chunks: string[] = [];
+    const chunkSize = 8192;
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      chunks.push(String.fromCharCode(...chunk));
+    }
+    
+    return btoa(chunks.join(""));
+  };
+
   // Start recording with MediaRecorder (iOS fallback)
   const startMediaRecording = useCallback(async () => {
     try {
@@ -101,15 +115,19 @@ export function useVoiceRecorder({
       });
       streamRef.current = stream;
       
-      // Try to use a supported format
+      // Prioritize MP4 for iOS Safari (best compatibility)
       let mimeType = "audio/webm";
-      if (MediaRecorder.isTypeSupported("audio/mp4")) {
+      if (isIOSDevice && MediaRecorder.isTypeSupported("audio/mp4")) {
+        mimeType = "audio/mp4";
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
         mimeType = "audio/mp4";
       } else if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
         mimeType = "audio/webm;codecs=opus";
       } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
         mimeType = "audio/ogg;codecs=opus";
       }
+      
+      console.log("MediaRecorder using mimeType:", mimeType, "isIOS:", isIOSDevice);
       
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
@@ -134,6 +152,7 @@ export function useVoiceRecorder({
         }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log("Audio blob size:", audioBlob.size, "bytes, mimeType:", mimeType);
         await transcribeAudio(audioBlob, mimeType);
       };
       
@@ -154,21 +173,18 @@ export function useVoiceRecorder({
         toast.error("Kunde inte starta inspelning: " + error.message);
       }
     }
-  }, [agentName]);
+  }, [agentName, isIOSDevice]);
 
   // Transcribe audio using edge function
   const transcribeAudio = useCallback(async (audioBlob: Blob, mimeType: string) => {
     setIsTranscribing(true);
     
     try {
-      // Convert blob to base64
+      // Convert blob to base64 using safe chunked encoding
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(
-        new Uint8Array(arrayBuffer).reduce(
-          (data, byte) => data + String.fromCharCode(byte),
-          ""
-        )
-      );
+      const base64Audio = arrayBufferToBase64(arrayBuffer);
+      
+      console.log("Sending audio for transcription, base64 length:", base64Audio.length);
       
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audio: base64Audio, mimeType },
