@@ -37,6 +37,7 @@ import EmployeeDashboard from "@/pages/EmployeeDashboard";
 import PayrollExport from "@/pages/PayrollExport";
 import FeatureDetail from "@/pages/features/FeatureDetail";
 import AgentDetail from "@/pages/ai/AgentDetail";
+import GlobalAssistant from "@/pages/GlobalAssistant";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => {
               <Route path="/attendance" element={<ProtectedModuleRoute module="attendance"><Attendance /></ProtectedModuleRoute>} />
               <Route path="/daily-reports" element={<ProtectedModuleRoute module="daily-reports"><DailyReports /></ProtectedModuleRoute>} />
               <Route path="/payroll-export" element={<ProtectedModuleRoute module="payroll-export"><PayrollExport /></ProtectedModuleRoute>} />
+              <Route path="/global-assistant" element={<GlobalAssistant />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 

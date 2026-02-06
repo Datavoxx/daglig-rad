@@ -15,6 +15,7 @@ import {
   Clock,
   ClipboardCheck,
   FileSpreadsheet,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ const getNavItems = (isEmployee: boolean): NavItem[] => {
   // Admin/owner navigation
   return [
     { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
+    { label: "Assistent", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
     { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
     { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
     { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
