@@ -1,136 +1,99 @@
 
-# Plan: Fixa röstinspelning på mobil - Closure-bugg
+# Plan: Fixa röstinspelning på iPhone Safari
 
-## Problem
+## Problemidentifikation
 
-Röstinspelningen stoppar direkt på mobila enheter (men fungerar på desktop) på grund av ett **JavaScript closure-problem** i Web Speech API-hanteringen.
+iOS Safari har **begränsat stöd för Web Speech API**:
+- `continuous: true` fungerar INTE på iOS
+- Sessionen avslutas automatiskt efter ~5-10 sekunder
+- `onend`-händelser triggas aggressivt
 
-### Teknisk förklaring
+Detta förklarar varför röstinspelningen fungerar på desktop men inte på iPhone.
 
-När `startRecording()` körs:
-1. `setIsRecording(true)` anropas
-2. `recognition.onend` callback skapas - men den **fångar det gamla värdet** av `isRecording` (som var `false` när funktionen definierades)
-3. På mobil triggar Web Speech API `onend` nästan omedelbart (p.g.a. striktare strömhantering)
-4. Callback kollar `if (isRecording)` - men det är `false` (closure-värdet)!
-5. Inspelningen återstartas **inte** → den stoppar direkt
+## Lösning: Hybridmetod
 
-### Varför det fungerar på desktop
+Implementera en tvådelad strategi:
 
-Desktop-webbläsare är mer "generösa" och väntar längre innan de triggar `onend`. React hinner uppdatera state innan `onend` anropas första gången. På mobil är timing-fönstret mycket kortare.
+| Platform | Metod |
+|----------|-------|
+| Desktop (Chrome/Edge) | Web Speech API (funkar utmärkt) |
+| iOS Safari | MediaRecorder + AI-transkribering via edge function |
 
----
+## Teknisk Implementation
 
-## Lösning
+### Del 1: Skapa iOS-detektering
 
-Använd en **ref** (`useRef`) för att hålla reda på inspelningsstatus istället för att förlita sig på state i callbacks.
+Lägg till en hjälpfunktion för att detektera iOS:
 
----
-
-## Ändringar
-
-### 1. VoiceInputOverlay.tsx
-
-Lägg till `isRecordingRef` och synkronisera med state:
-
-**Lägg till ny ref (efter rad 27):**
 ```typescript
-const isRecordingRef = useRef(false);
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isIOSSafari = isIOS || (isSafari && 'ontouchend' in document);
 ```
 
-**Uppdatera startRecording (rad 100-101):**
-```typescript
-recognitionRef.current = recognition;
-recognition.start();
-isRecordingRef.current = true;
-setIsRecording(true);
-```
+### Del 2: Uppdatera transkriberings-edge function
 
-**Fixa onend callback (rad 89-96):**
-```typescript
-recognition.onend = () => {
-  if (isRecordingRef.current && recognitionRef.current) {
-    try {
-      recognitionRef.current.start();
-    } catch (e) {
-      // Already started
-    }
-  }
-};
-```
+Edge-funktionen `transcribe-audio` finns redan och använder Lovable AI Gateway. Behöver bara säkerställa att den fungerar med iPhone-inspelat ljud.
 
-**Uppdatera stopRecording (rad 107-108):**
-```typescript
-const stopRecording = () => {
-  if (recognitionRef.current) {
-    isRecordingRef.current = false;
-    setIsRecording(false);
-    // ...
-```
+### Del 3: Uppdatera röstkomponenter
 
-**Uppdatera cancelRecording (rad 138-139):**
-```typescript
-const cancelRecording = () => {
-  if (recognitionRef.current) {
-    isRecordingRef.current = false;
-    setIsRecording(false);
-    // ...
-```
+Alla komponenter med röstinspelning får en ny logik:
 
-### 2. InlineDiaryCreator.tsx
+**VoiceInputOverlay.tsx** (huvudkomponent för Saga):
+- iOS: Använd MediaRecorder → base64 ljud → transcribe-audio edge function
+- Desktop: Befintlig Web Speech API
 
-Samma mönster:
+**VoicePromptButton.tsx**:
+- Samma hybridlogik
 
-**Lägg till ny ref (efter rad ~91):**
-```typescript
-const isRecordingRef = useRef(false);
-```
+**InlineDiaryCreator.tsx** (Ulla):
+- Samma hybridlogik
 
-**Uppdatera startRecording (rad 207-208):**
-```typescript
-recognitionRef.current = recognition;
-recognition.start();
-isRecordingRef.current = true;
-setIsRecording(true);
-```
+**Planning.tsx** (Bo):
+- Samma hybridlogik + fixa isRecordingRef
 
-**Fixa onend callback (rad 195-203):**
-```typescript
-recognition.onend = () => {
-  if (isRecordingRef.current) {
-    try {
-      recognition.start();
-    } catch {
-      isRecordingRef.current = false;
-      setIsRecording(false);
-      setInterimTranscript("");
-    }
-  }
-};
-```
+**InspectionNew.tsx**:
+- Samma hybridlogik + fixa isRecordingRef
 
-**Uppdatera stopRecording (rad 219-221):**
-```typescript
-const stopRecording = () => {
-  if (recognitionRef.current) {
-    isRecordingRef.current = false;
-    setIsRecording(false);
-    // ...
-```
+**ProjectPlanningTab.tsx**:
+- Samma hybridlogik + fixa isRecordingRef
 
----
+**CreateTemplateDialog.tsx**:
+- Samma hybridlogik
+
+**TemplateEditor.tsx**:
+- Samma hybridlogik
 
 ## Filer som ändras
 
-| Fil | Ändring |
-|-----|---------|
-| `src/components/shared/VoiceInputOverlay.tsx` | Lägg till `isRecordingRef` och använd i callbacks |
-| `src/components/projects/InlineDiaryCreator.tsx` | Lägg till `isRecordingRef` och använd i callbacks |
+| Fil | Ändringar |
+|-----|-----------|
+| `src/components/shared/VoiceInputOverlay.tsx` | Lägg till iOS-fallback med MediaRecorder + transcribe-audio |
+| `src/components/shared/VoicePromptButton.tsx` | Lägg till isRecordingRef + iOS-fallback |
+| `src/components/projects/InlineDiaryCreator.tsx` | Lägg till iOS-fallback |
+| `src/pages/Planning.tsx` | Lägg till isRecordingRef + iOS-fallback |
+| `src/pages/InspectionNew.tsx` | Lägg till isRecordingRef + iOS-fallback |
+| `src/components/projects/ProjectPlanningTab.tsx` | Lägg till isRecordingRef + iOS-fallback |
+| `src/components/estimates/CreateTemplateDialog.tsx` | Lägg till iOS-fallback |
+| `src/components/estimates/TemplateEditor.tsx` | Lägg till isRecordingRef + iOS-fallback |
 
----
+## Nytt flöde för iOS
+
+```text
+1. Användaren trycker "Spela in"
+2. System detekterar iOS Safari
+3. MediaRecorder startar (spelar in ljud som webm/mp4)
+4. Användaren pratar...
+5. Användaren trycker "Stoppa"
+6. Ljud konverteras till base64
+7. Anrop till transcribe-audio edge function
+8. AI transkriberar ljud → text returneras
+9. Text visas i bekräftelsedialogrutan
+```
 
 ## Resultat efter fix
 
-- Röstinspelningen fungerar på **både mobil och desktop**
-- Web Speech API:s automatiska `onend`-händelser hanteras korrekt
-- Inspelningen återstartas automatiskt vid korta tystnader
-- Ingen förändring i användarupplevelsen på desktop (där det redan fungerade)
+- Röstinspelning fungerar på **iPhone Safari** (via AI-transkribering)
+- Röstinspelning fortsätter fungera på **desktop** (via Web Speech API)
+- Saga, Bo och Ulla fungerar på alla plattformar
+- Samma användarupplevelse oavsett enhet
