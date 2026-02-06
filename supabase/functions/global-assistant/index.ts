@@ -31,14 +31,14 @@ const tools = [
     type: "function",
     function: {
       name: "search_projects",
-      description: "Search for projects by name or client",
+      description: "Search for projects by name, client, or status. Use status alone to list all projects with that status.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query" },
-          status: { type: "string", description: "Filter by status (active, completed, etc.)" },
+          query: { type: "string", description: "Search query (optional - omit to list all)" },
+          status: { type: "string", description: "Filter by status: planning, active, closing, completed" },
         },
-        required: ["query"],
+        required: [],
       },
     },
   },
@@ -456,15 +456,20 @@ async function executeTool(
     }
 
     case "search_projects": {
-      const query = args.query as string;
+      const query = args.query as string | undefined;
       const status = args.status as string | undefined;
       
       let q = supabase
         .from("projects")
         .select("id, name, client_name, address, city, status")
         .eq("user_id", userId)
-        .or(`name.ilike.%${query}%,client_name.ilike.%${query}%`)
-        .limit(5);
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      // Only add search filter if query is provided
+      if (query && query.trim()) {
+        q = q.or(`name.ilike.%${query}%,client_name.ilike.%${query}%`);
+      }
       
       if (status) {
         q = q.eq("status", status);
