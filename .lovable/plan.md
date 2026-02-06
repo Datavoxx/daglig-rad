@@ -1,170 +1,103 @@
 
 
-# Plan: Automatisk synkronisering av offertrader till artikelbiblioteket
+# Plan: Fixa röstinspelning i hela applikationen + Ta bort felaktig artikelsynkronisering
 
-## Mål
-När en offert sparas ska alla nya unika artiklar automatiskt läggas till i användarens artikelbibliotek, så att de kan återanvändas i framtida offerter.
+## Sammanfattning
 
----
-
-## Synkroniseringslogik
-
-### Villkor för att synka en rad till biblioteket
-En offertrad synkas om:
-1. Den har en **beskrivning** (description) som inte är tom
-2. Den har ett **à-pris** (unit_price) som är större än 0
-3. Det finns **ingen befintlig artikel** med samma namn (case-insensitive match)
-
-### Fält som mappas
-
-| estimate_items | articles |
-|----------------|----------|
-| description | name |
-| (ingen) | description (null) |
-| article | article_category |
-| unit | unit |
-| unit_price | default_price |
+Röstinspelningen fungerar inte för Saga (Offert), Bo (Planering) eller Ulla (Arbetsorder/Dagrapport) på grund av ofullständiga CORS-headers i alla edge-funktioner. Dessutom ska den oönskade automatiska artikelsynkroniseringen tas bort.
 
 ---
 
-## Ändringar
+## Identifierat problem
 
-### 1. Uppdatera useEstimate.ts - saveMutation
+Alla röstrelaterade edge-funktioner har samma CORS-konfiguration:
 
-Efter att `estimate_items` har sparats (rad ~498), lägg till logik för att:
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+```
+
+Supabase-klienten skickar nu ytterligare headers som blockeras:
+- `x-supabase-client-platform`
+- `x-supabase-client-platform-version`
+- `x-supabase-client-runtime`
+- `x-supabase-client-runtime-version`
+
+---
+
+## Edge-funktioner som behöver fixas
+
+| Funktion | AI-agent | Används för |
+|----------|----------|-------------|
+| `apply-full-estimate-voice` | Saga | Offertbyggaren - fullständig röststyrning |
+| `apply-estimate-voice-edits` | Saga | Offertposter - röstredigering |
+| `apply-summary-voice-edits` | Saga | Offertsammanfattning - röstredigering |
+| `apply-voice-edits` | Saga/Bo/Ulla | Universell redigerare (rapport/planering/mall/arbetsorder/ÄTA) |
+| `generate-plan` | Bo | Planering - generera tidplan från röst |
+| `generate-report` | Ulla | Dagrapport - generera från röst |
+| `parse-template-voice` | Saga | Mallar - skapa mall från röst |
+| `prefill-inspection` | Ulla | Egenkontroll - förifylla från röst |
+
+---
+
+## Korrigerad CORS-konfiguration
+
+Alla funktioner ovan ska använda:
+
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+```
+
+---
+
+## Del 2: Ta bort artikelsynkronisering från useEstimate.ts
+
+### Kod som tas bort (rad 7-26)
+
+```typescript
+// Maps estimate article categories to article library categories
+function mapToArticleCategory(article: string | undefined): string {
+  ...
+}
+```
+
+### Kod som tas bort (rad 535-579)
 
 ```typescript
 // Sync new items to article library
 const itemsWithDescriptions = state.items.filter(
   item => item.description?.trim() && item.unit_price > 0
 );
-
-if (itemsWithDescriptions.length > 0) {
-  // Fetch existing articles for this user
-  const { data: existingArticles } = await supabase
-    .from("articles")
-    .select("name")
-    .eq("user_id", userData.user.id);
-
-  const existingNames = new Set(
-    (existingArticles || []).map(a => a.name.toLowerCase().trim())
-  );
-
-  // Find new unique articles
-  const newArticles = itemsWithDescriptions
-    .filter(item => !existingNames.has(item.description.toLowerCase().trim()))
-    .map((item, index) => ({
-      user_id: userData.user.id,
-      name: item.description.trim(),
-      description: null,
-      article_category: mapToArticleCategory(item.article),
-      unit: item.unit || "st",
-      default_price: item.unit_price,
-      sort_order: (existingArticles?.length || 0) + index,
-    }));
-
-  // Deduplicate within the batch
-  const uniqueNewArticles = newArticles.filter((article, index, self) =>
-    index === self.findIndex(a => a.name.toLowerCase() === article.name.toLowerCase())
-  );
-
-  // Insert new articles (fire-and-forget, don't block save)
-  if (uniqueNewArticles.length > 0) {
-    supabase.from("articles").insert(uniqueNewArticles);
-  }
-}
-```
-
-### 2. Lägg till mapToArticleCategory-funktion
-
-Mappar offertens "article"-fält till artikelbibliotekets kategorier:
-
-```typescript
-function mapToArticleCategory(article: string): string {
-  const mapping: Record<string, string> = {
-    "Arbete": "Arbete",
-    "Bygg": "Bygg",
-    "Deponi": "Deponi",
-    "Framkörning": "Övrigt",
-    "Förbrukning": "Material",
-    "Förvaltning": "Övrigt",
-    "Markarbete": "Bygg",
-    "Maskin": "Maskin",
-    "Material": "Material",
-    "Målning": "Målning",
-    "Snöröjning": "Övrigt",
-    "Städ": "Övrigt",
-    "Trädgårdsskötsel": "Övrigt",
-  };
-  return mapping[article] || "Övrigt";
-}
-```
-
-### 3. Invalidera articles-query efter save
-
-Uppdatera `onSuccess` i saveMutation för att trigga uppdatering av artikellistan:
-
-```typescript
-queryClient.invalidateQueries({ queryKey: ["articles"] });
+...
 ```
 
 ---
 
-## Flödesdiagram
-
-```text
-┌─────────────────────────────────────┐
-│       Användaren sparar offert      │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Spara estimate + estimate_items   │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Filtrera rader med beskrivning    │
-│   och à-pris > 0                    │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Hämta befintliga artiklar         │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Jämför namn (case-insensitive)    │
-│   och filtrera ut nya               │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Deduplika inom batchen            │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Infoga nya artiklar i biblioteket │
-│   (fire-and-forget)                 │
-└────────────────┬────────────────────┘
-                 ▼
-┌─────────────────────────────────────┐
-│   Returnera success                 │
-└─────────────────────────────────────┘
-```
-
----
-
-## Tekniska detaljer
-
-| Aspekt | Beslut |
-|--------|--------|
-| Blockerar save? | Nej - fire-and-forget för bättre UX |
-| Uppdaterar befintliga? | Nej - endast nya artiklar skapas |
-| Matcher på | name (description) case-insensitive |
-| Felhantering | Loggar fel men stoppar inte save |
-
----
-
-## Fil som ändras
+## Filer som ändras
 
 | Fil | Ändring |
 |-----|---------|
-| `src/hooks/useEstimate.ts` | Lägg till synkroniseringslogik efter item-insert |
+| `supabase/functions/apply-full-estimate-voice/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/apply-estimate-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/apply-summary-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/apply-voice-edits/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/generate-plan/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/generate-report/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/parse-template-voice/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `supabase/functions/prefill-inspection/index.ts` | Uppdatera CORS-headers (rad 3-6) |
+| `src/hooks/useEstimate.ts` | Ta bort mapToArticleCategory + synkroniseringslogik |
+
+---
+
+## Resultat efter fix
+
+- Saga (Offert) fungerar igen
+- Bo (Planering) fungerar igen
+- Ulla (Arbetsorder, Dagrapport, Egenkontroll, ÄTA) fungerar igen
+- Inga offertrader synkas automatiskt till artikelbiblioteket
 
