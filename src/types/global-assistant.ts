@@ -57,6 +57,10 @@ export interface MessageData {
   };
   nextActions?: NextAction[];
   
+  // For feedback
+  showFeedback?: boolean;
+  taskType?: string;
+  
   // For list
   listItems?: ListItem[];
   listType?: "project" | "customer" | "estimate" | "invoice" | "inspection" | "work_order" | "ata";

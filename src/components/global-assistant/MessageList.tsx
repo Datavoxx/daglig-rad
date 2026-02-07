@@ -71,6 +71,7 @@ interface WorkOrderFormData {
 
 interface MessageListProps {
   messages: Message[];
+  conversationId?: string | null;
   onProposalConfirm: (messageId: string) => void;
   onProposalCancel: (messageId: string) => void;
   onProposalModify: (messageId: string) => void;
@@ -102,6 +103,7 @@ interface MessageListProps {
 
 export function MessageList({
   messages,
+  conversationId,
   onProposalConfirm,
   onProposalCancel,
   onProposalModify,
@@ -196,7 +198,12 @@ export function MessageList({
 
                 {/* Result card */}
                 {message.type === "result" && message.data && (
-                  <ResultCard data={message.data} content={message.content} onNextAction={onNextAction} />
+                  <ResultCard 
+                    data={message.data} 
+                    content={message.content} 
+                    onNextAction={onNextAction} 
+                    conversationId={conversationId || undefined}
+                  />
                 )}
 
                 {/* List card */}

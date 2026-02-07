@@ -4,11 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import type { MessageData, NextAction } from "@/types/global-assistant";
+import { FeedbackSection } from "./FeedbackSection";
 
 interface ResultCardProps {
   data: MessageData;
   content?: string;
   onNextAction?: (action: NextAction) => void;
+  conversationId?: string;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -30,7 +32,7 @@ const iconMap: Record<string, React.ElementType> = {
   "plus-circle": PlusCircle,
 };
 
-export function ResultCard({ data, content, onNextAction }: ResultCardProps) {
+export function ResultCard({ data, content, onNextAction, conversationId }: ResultCardProps) {
   const navigate = useNavigate();
   const isSuccess = data.success !== false;
 
@@ -88,6 +90,14 @@ export function ResultCard({ data, content, onNextAction }: ResultCardProps) {
             )}
           </div>
         </div>
+        
+        {/* Feedback Section */}
+        {data.showFeedback && data.taskType && isSuccess && (
+          <FeedbackSection
+            taskType={data.taskType}
+            conversationId={conversationId}
+          />
+        )}
       </CardContent>
     </Card>
   );
