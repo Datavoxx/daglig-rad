@@ -3487,6 +3487,53 @@ serve(async (req) => {
     console.log("Received message:", message);
     console.log("Context:", context);
 
+    // === DIRECT COMMAND PATTERNS ===
+    // Bypass AI when message contains all required data for specific operations
+    // This prevents the AI from misinterpreting "Skapa offert X för kund med ID Y" as a form request
+    
+    // Pattern 1: Skapa offert "titel" för kund med ID uuid
+    const createEstimatePattern = /(?:skapa|create)\s*offert\s*[""]([^""]+)[""].*(?:kund med ID|customer_id)[=:\s]*([a-f0-9-]{36})/i;
+    const createEstimateMatch = message.match(createEstimatePattern);
+    
+    if (createEstimateMatch) {
+      const [, title, customerId] = createEstimateMatch;
+      const addressMatch = message.match(/(?:på adress|address)[=:\s]+(.+?)(?:\s+för|\s*$)/i);
+      const address = addressMatch?.[1]?.trim() || "";
+      
+      console.log("Direct pattern matched: create_estimate", { title, customerId, address });
+      
+      const result = await executeTool(supabase, userId, "create_estimate", {
+        customer_id: customerId,
+        title: title.trim(),
+        address,
+      });
+      
+      const formatted = formatToolResults("create_estimate", result);
+      return new Response(JSON.stringify(formatted), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    // Pattern 2: Lägg till poster på offert med ID uuid (with pending data in context)
+    const addItemsPattern = /(?:lägg till|add|spara)\s*(?:poster|items|offert).*(?:offert med ID|estimate_id)[=:\s]*([a-f0-9-]{36})/i;
+    const addItemsMatch = message.match(addItemsPattern);
+    
+    if (addItemsMatch && context?.pendingData) {
+      const estimateId = addItemsMatch[1] || context?.selectedEstimateId;
+      
+      console.log("Direct pattern matched: add_estimate_items", { estimateId, pendingData: context.pendingData });
+      
+      const result = await executeTool(supabase, userId, "add_estimate_items", {
+        estimate_id: estimateId,
+        ...context.pendingData,
+      });
+      
+      const formatted = formatToolResults("add_estimate_items", result);
+      return new Response(JSON.stringify(formatted), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Define which tools need auto-injection of IDs
     const PROJECT_TOOLS = [
       "create_work_order", "search_work_orders", 
@@ -3593,12 +3640,25 @@ ALDRIG visa projektet om användaren frågade om ekonomi/arbetsorder/etc!
 VISA FORMULÄR DIREKT för dessa:
 - "skapa arbetsorder" → get_projects_for_work_order
 - "registrera tid" → get_active_projects_for_time
-- "skapa offert" → get_customers_for_estimate
+- "skapa offert" (UTAN kund-ID) → get_customers_for_estimate
 - "ny dagrapport" → get_projects_for_daily_report
 - "checka in" / "personalliggare" → get_projects_for_check_in
 - "ny kund" → get_customer_form
 - "skapa projekt" → get_project_form
 </form_policy>
+
+<form_vs_create>
+VIKTIGT! SKILLNAD MELLAN FÖRFRÅGAN OCH SKAPANDE:
+
+VISA FORMULÄR (ingen data):
+- "skapa offert" → get_customers_for_estimate
+
+SKAPA DIREKT (data finns redan i meddelandet):
+- "Skapa offert X för kund med ID Y" → create_estimate
+- Om meddelandet innehåller kund-ID (UUID) → create_estimate
+
+REGEL: Om kund-ID (UUID) finns i meddelandet → INTE formulär, SKAPA direkt!
+</form_vs_create>
 
 <context>
 ${context?.selectedProjectId ? `✅ VALT PROJEKT-ID: ${context.selectedProjectId} → Använd automatiskt!` : "❌ Inget projekt valt."}

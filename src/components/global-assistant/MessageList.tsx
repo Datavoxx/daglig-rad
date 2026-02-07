@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import type { Message, VerificationMatch, NextAction } from "@/types/global-assistant";
 import { ProposalCard } from "./ProposalCard";
@@ -227,16 +228,38 @@ export function MessageList({
                   />
                 )}
 
-                {/* Estimate items form */}
+                {/* Estimate items form - with success banner */}
                 {message.type === "estimate_items_form" && message.data?.estimateId && onEstimateItemsFormSubmit && onEstimateItemsFormCancel && (
-                  <EstimateItemsFormCard
-                    estimateId={message.data.estimateId}
-                    offerNumber={message.data.offerNumber || ""}
-                    onSubmit={onEstimateItemsFormSubmit}
-                    onCancel={onEstimateItemsFormCancel}
-                    onOpenEstimate={() => onEstimateItemsFormOpen?.(message.data?.estimateId || "")}
-                    disabled={isLoading}
-                  />
+                  <div className="space-y-3">
+                    {/* Success banner showing estimate was created */}
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                          {message.content || `Offert ${message.data?.offerNumber || ""} skapad!`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 flex-shrink-0"
+                        onClick={() => onEstimateItemsFormOpen?.(message.data?.estimateId || "")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Öppna
+                      </Button>
+                    </div>
+                    
+                    {/* Items form */}
+                    <EstimateItemsFormCard
+                      estimateId={message.data.estimateId}
+                      offerNumber={message.data.offerNumber || ""}
+                      onSubmit={onEstimateItemsFormSubmit}
+                      onCancel={onEstimateItemsFormCancel}
+                      onOpenEstimate={() => onEstimateItemsFormOpen?.(message.data?.estimateId || "")}
+                      disabled={isLoading}
+                    />
+                  </div>
                 )}
 
                 {/* Daily report form */}
