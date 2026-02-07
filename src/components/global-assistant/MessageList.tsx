@@ -37,9 +37,16 @@ interface EstimateFormData {
 
 interface DailyReportFormData {
   projectId: string;
-  workDescription: string;
   headcount: number;
+  hoursPerPerson: number;
+  roles: string[];
   totalHours: number;
+  workItems: string[];
+  deviations: Array<{ type: string; description: string; hours: number | null }>;
+  ata: Array<{ reason: string; consequence: string; estimatedHours: number | null }>;
+  materialsDelivered: string;
+  materialsMissing: string;
+  notes: string;
 }
 
 interface CustomerFormData {

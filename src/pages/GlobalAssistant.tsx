@@ -270,14 +270,38 @@ export default function GlobalAssistant() {
 
   const handleDailyReportFormSubmit = async (formData: {
     projectId: string;
-    workDescription: string;
     headcount: number;
+    hoursPerPerson: number;
+    roles: string[];
     totalHours: number;
+    workItems: string[];
+    deviations: Array<{ type: string; description: string; hours: number | null }>;
+    ata: Array<{ reason: string; consequence: string; estimatedHours: number | null }>;
+    materialsDelivered: string;
+    materialsMissing: string;
+    notes: string;
   }) => {
-    await sendMessage(
-      `Skapa dagrapport för projekt med ID ${formData.projectId}. Arbete: ${formData.workDescription}. Personal: ${formData.headcount}. Timmar: ${formData.totalHours}`,
-      { selectedProjectId: formData.projectId }
-    );
+    // Build structured message for AI
+    const workSummary = formData.workItems.join(", ");
+    let msg = `Skapa dagrapport för projekt med ID ${formData.projectId}. Arbete: ${workSummary}. Personal: ${formData.headcount}. Timmar: ${formData.totalHours}`;
+
+    if (formData.roles.length > 0) {
+      msg += `. Roller: ${formData.roles.join(", ")}`;
+    }
+    if (formData.deviations.length > 0) {
+      msg += `. Avvikelser: ${formData.deviations.length} st`;
+    }
+    if (formData.ata.length > 0) {
+      msg += `. ÄTA: ${formData.ata.length} st`;
+    }
+    if (formData.notes) {
+      msg += `. Anteckningar: ${formData.notes}`;
+    }
+
+    await sendMessage(msg, {
+      selectedProjectId: formData.projectId,
+      pendingData: formData as unknown as Record<string, unknown>,
+    });
   };
 
   const handleDailyReportFormCancel = async () => {
