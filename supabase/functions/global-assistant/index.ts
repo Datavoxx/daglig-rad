@@ -1794,6 +1794,16 @@ VIKTIGT - SKILLNAD MELLAN HÄMTA/VISA OCH UPPDATERA:
 - ALDRIG använd update_* utan faktiska ändringar att göra
 - Om användaren säger "hämta offerten" eller "visa projektet" → använd get_* verktygen
 
+HANTERING AV BEKRÄFTELSER OCH VAL:
+- När användaren säger "visa information om X" och context innehåller ett ID:
+  - Om context.selectedCustomerId finns → anropa DIREKT get_customer med det ID:t
+  - Om context.selectedProjectId finns → anropa DIREKT get_project med det ID:t
+  - Om context.selectedEstimateId finns → anropa DIREKT get_estimate med det ID:t
+- Visa ALLTID fullständig information efter bekräftelse, inte bara "OK"
+
+NÄR DU BER OM KUNDINFORMATION:
+- Be ENDAST om kundens namn, inget annat (inte stad eller e-post)
+
 VIKTIGA REGLER:
 1. Svara alltid på svenska
 2. Var kortfattad och koncis (max 2-3 meningar)
