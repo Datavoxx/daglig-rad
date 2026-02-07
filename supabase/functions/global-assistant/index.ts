@@ -3361,6 +3361,18 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       const materialTotal = estimate.items?.reduce((sum: number, item: any) => 
         item.type === 'material' ? sum + (item.subtotal || 0) : sum, 0) || 0;
       
+      // Build item details with quantity
+      let itemsDetails = "";
+      if (estimate.items && estimate.items.length > 0) {
+        itemsDetails = "\n\n**Offertposter:**\n" + estimate.items.map((item: any, idx: number) => {
+          const qty = item.quantity ?? 1;
+          const unitPrice = item.unit_price ?? 0;
+          const subtotal = item.subtotal ?? (qty * unitPrice);
+          const desc = item.description || item.moment || "-";
+          return `${idx + 1}. ${desc} – ${qty} ${item.unit || 'st'} × ${unitPrice.toLocaleString('sv-SE')} kr = **${subtotal.toLocaleString('sv-SE')} kr**`;
+        }).join("\n");
+      }
+      
       return {
         type: "result",
         content: `**${estimate.offer_number || 'Offert'}**
@@ -3368,6 +3380,7 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
 **Projekt:** ${estimate.manual_project_name || 'Ej angivet'}
 **Kund:** ${estimate.manual_client_name || 'Ej angiven'}
 **Status:** ${estimate.status || 'Utkast'}
+${itemsDetails}
 
 **Summering:**
 - Arbete: ${laborTotal.toLocaleString('sv-SE')} kr
