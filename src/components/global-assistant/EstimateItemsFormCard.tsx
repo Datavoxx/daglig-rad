@@ -31,6 +31,7 @@ interface EstimateAddon {
 export interface EstimateItemsFormData {
   estimateId: string;
   introduction: string;
+  timeline: string;
   items: Array<{
     article: string;
     description: string;
@@ -71,6 +72,7 @@ export function EstimateItemsFormCard({
   disabled = false,
 }: EstimateItemsFormCardProps) {
   const [introduction, setIntroduction] = useState("");
+  const [timeline, setTimeline] = useState("");
   const [items, setItems] = useState<EstimateItem[]>([
     {
       id: crypto.randomUUID(),
@@ -155,6 +157,7 @@ export function EstimateItemsFormCard({
     onSubmit({
       estimateId,
       introduction,
+      timeline,
       items: validItems.map(({ id, ...rest }) => rest),
       addons: validAddons.map(({ id, ...rest }) => rest),
     });
@@ -204,6 +207,22 @@ export function EstimateItemsFormCard({
             placeholder="Beskriv projektet kort..."
             value={introduction}
             onChange={(e) => setIntroduction(e.target.value)}
+            disabled={disabled}
+            rows={2}
+            className="text-sm"
+          />
+        </div>
+
+        {/* Tidsplan */}
+        <div className="space-y-1.5">
+          <Label htmlFor="timeline" className="text-xs">
+            Tidsplan
+          </Label>
+          <Textarea
+            id="timeline"
+            placeholder="En punkt per rad..."
+            value={timeline}
+            onChange={(e) => setTimeline(e.target.value)}
             disabled={disabled}
             rows={2}
             className="text-sm"

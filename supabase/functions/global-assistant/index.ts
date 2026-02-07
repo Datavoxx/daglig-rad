@@ -598,7 +598,8 @@ const tools = [
         type: "object",
         properties: {
           estimate_id: { type: "string", description: "Estimate ID" },
-          introduction: { type: "string", description: "Project description / introduction text" },
+          introduction: { type: "string", description: "Project description (saved to scope field)" },
+          timeline: { type: "string", description: "Timeline/schedule - one item per line (saved to assumptions field)" },
           items: {
             type: "array",
             items: {
@@ -1569,9 +1570,10 @@ async function executeTool(
     }
 
     case "add_estimate_items": {
-      const { estimate_id, introduction, items, addons } = args as {
+      const { estimate_id, introduction, timeline, items, addons } = args as {
         estimate_id: string;
         introduction?: string;
+        timeline?: string;
         items?: Array<{
           article: string;
           description: string;
@@ -1597,11 +1599,20 @@ async function executeTool(
         throw new Error("Offert hittades inte");
       }
 
-      // Update introduction text if provided
+      // Update scope (project description) and assumptions (timeline) if provided
+      const estimateUpdateData: Record<string, unknown> = {};
       if (introduction) {
+        estimateUpdateData.scope = introduction;
+      }
+      if (timeline) {
+        // Convert timeline text to array (one line per item)
+        estimateUpdateData.assumptions = timeline.split("\n").filter((s: string) => s.trim());
+      }
+      
+      if (Object.keys(estimateUpdateData).length > 0) {
         await supabase
           .from("project_estimates")
-          .update({ introduction_text: introduction })
+          .update(estimateUpdateData)
           .eq("id", estimate_id);
       }
 
