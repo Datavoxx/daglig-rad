@@ -14,7 +14,9 @@ import {
   CalendarClock,
   Receipt,
   TrendingUp,
-  Plus
+  Plus,
+  ExternalLink,
+  ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,12 @@ import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardAssistantWidget } from "@/components/dashboard/DashboardAssistantWidget";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AttendanceRecord {
   id: string;
@@ -268,25 +276,25 @@ const Dashboard = () => {
       title: "Ny offert",
       icon: Calculator,
       href: "/estimates",
-      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      aiMessage: "Skapa ny offert",
     },
     {
       title: "Registrera tid",
       icon: Clock,
       href: "/time-reporting",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      aiMessage: "Registrera tid",
     },
     {
       title: "Nytt projekt",
       icon: FolderKanban,
       href: "/projects",
-      color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+      aiMessage: "Skapa nytt projekt",
     },
     {
       title: "Ny faktura",
       icon: Receipt,
       href: "/invoices",
-      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      aiMessage: "Skapa ny faktura",
     },
   ];
 
@@ -311,19 +319,32 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Quick action buttons */}
+          {/* Quick action buttons with dropdown */}
           <div className="flex flex-wrap gap-2">
             {quickActions.map((action) => (
-              <Button
-                key={action.title}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => navigate(action.href)}
-              >
-                <action.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{action.title}</span>
-              </Button>
+              <DropdownMenu key={action.title}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <action.icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{action.title}</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate(action.href)}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Gå direkt
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate("/global-assistant", { 
+                      state: { initialMessage: action.aiMessage } 
+                    })}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Låt AI lösa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ))}
           </div>
         </div>
