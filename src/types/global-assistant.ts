@@ -73,3 +73,12 @@ export interface ConversationContext {
   pendingAction?: string;
   pendingData?: Record<string, unknown>;
 }
+
+export interface Conversation {
+  id: string;
+  title: string | null;
+  messages: Message[];
+  context: ConversationContext;
+  created_at: string;
+  updated_at: string;
+}
