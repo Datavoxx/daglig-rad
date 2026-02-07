@@ -250,10 +250,10 @@ export function QuotePreviewSheet({
                     <tr key={item.id} className="border-b border-gray-200">
                       <td className="py-2 text-gray-800">{item.moment}</td>
                       <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? item.hours : item.quantity}
+                        {item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity}
                       </td>
                       <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? "h" : item.unit}
+                        {item.type === "labor" ? "tim" : item.unit}
                       </td>
                       <td className="py-2 text-right text-gray-600">
                         {formatCurrency(item.unit_price)}
