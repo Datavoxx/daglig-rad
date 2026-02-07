@@ -314,16 +314,11 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt kundskapande");
   };
 
-  const handleProjectFormSubmit = async (formData: {
-    name: string;
-    customerId: string;
-    address: string;
-  }) => {
-    let msg = `Skapa projekt "${formData.name}"`;
-    if (formData.customerId) msg += ` för kund med ID ${formData.customerId}`;
-    if (formData.address) msg += ` på adress ${formData.address}`;
-    
-    await sendMessage(msg, formData.customerId ? { selectedCustomerId: formData.customerId } : undefined);
+  const handleProjectFormSubmit = async (formData: { estimateId: string }) => {
+    await sendMessage(
+      `Skapa projekt från offert med ID ${formData.estimateId}`,
+      { selectedEstimateId: formData.estimateId }
+    );
   };
 
   const handleProjectFormCancel = async () => {
