@@ -1,167 +1,168 @@
 
 
-# Plan: Interaktiv tidsregistreringsruta i Global Assistant
+# Plan: Utöka Global Assistant med fler interaktiva formulärkort
 
-## Vad du vill
+## Sammanfattning
 
-Istället för detta flöde:
-```
-Du: "Registrera tid"
-AI: "Vilket projekt vill du registrera tid på?"
-Du: "Mahads renovering"
-AI: "Hur många timmar?"
-Du: "8"
-AI: "Klart!"
-```
+Skapa samma upplevelse som TimeFormCard för flera vanliga åtgärder, så att användaren kan slutföra hela uppgiften i ett enda kort istället för att skicka fram och tillbaka.
 
-Ska det bli ett **formulärkort** direkt i chatten:
-```
-Du: "Registrera tid"
-AI: [Visar en ruta med:]
-    ┌────────────────────────────────────────┐
-    │ 🕐 Registrera tid                      │
-    │                                        │
-    │ Projekt: [Dropdown med aktiva projekt] │
-    │ Timmar:  [8      ]                     │
-    │ Datum:   [2026-02-07]                  │
-    │ Beskr:   [Arbete med...]               │
-    │                                        │
-    │ [Avbryt]              [Registrera tid] │
-    └────────────────────────────────────────┘
-```
+## Nya Quick Suggestions-knappar
 
-## Design
+Lägg till i `QuickSuggestions.tsx`:
+- **"Skapa projekt"** - med FolderKanban-ikon
+- **"Ny kund"** - med UserPlus-ikon
 
-Samma stil som de andra korten (ProposalCard, VerificationCard, ListCard), men med interaktiva formulärfält istället för bara knappar.
+## Nya interaktiva formulärkort
 
-## Teknisk implementation
+### 1. EstimateFormCard (Skapa offert)
 
-### Del 1: Ny meddelandetyp "time_form"
+| Fält | Typ | Beskrivning |
+|------|-----|-------------|
+| Kund | Dropdown | Lista befintliga kunder |
+| Projektnamn | Textfält | Titel på offerten |
+| Adress | Textfält | Projektadress (valfritt) |
+
+**Knappar:** Avbryt, Skapa offert
+
+### 2. DailyReportFormCard (Ny dagrapport)
+
+| Fält | Typ | Beskrivning |
+|------|-----|-------------|
+| Projekt | Dropdown | Aktiva projekt |
+| Arbete utfört | Textarea | Vad som gjordes |
+| Personal | Nummer | Antal arbetare |
+| Timmar | Nummer | Totalt arbetade timmar |
+
+**Knappar:** Avbryt, Spara dagrapport
+
+### 3. CustomerSearchCard (Sök kund)
+
+Visar en scrollbar lista med befintliga kunder + sökfält överst.
+
+| Element | Beskrivning |
+|---------|-------------|
+| Sökfält | Filtrera kundlistan i realtid |
+| Kundlista | Scrollbar med namn, stad, email |
+| Klickbar rad | Väljer kunden och frågar "Vad vill du göra med denna kund?" |
+
+**Knappar:** Skapa ny kund (om ingen hittas)
+
+### 4. CustomerFormCard (Ny kund)
+
+| Fält | Typ | Beskrivning |
+|------|-----|-------------|
+| Namn | Textfält | Kundens namn (obligatoriskt) |
+| Email | Textfält | Email (valfritt) |
+| Telefon | Textfält | Telefonnummer (valfritt) |
+| Adress | Textfält | Adress (valfritt) |
+| Stad | Textfält | Stad (valfritt) |
+
+**Knappar:** Avbryt, Skapa kund
+
+### 5. ProjectFormCard (Skapa projekt)
+
+| Fält | Typ | Beskrivning |
+|------|-----|-------------|
+| Projektnamn | Textfält | Namn på projektet (obligatoriskt) |
+| Kund | Dropdown | Välj befintlig kund (valfritt) |
+| Adress | Textfält | Projektadress (valfritt) |
+
+**Knappar:** Avbryt, Skapa projekt
+
+## Nya meddelandetyper
 
 Lägg till i `src/types/global-assistant.ts`:
 
 ```typescript
-export interface Message {
-  // ...
-  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list" | "time_form";
-  // ...
-}
+type: "text" | "proposal" | "verification" | "next_actions" | "result" 
+    | "loading" | "list" | "time_form" 
+    | "estimate_form" | "daily_report_form" | "customer_search" 
+    | "customer_form" | "project_form";
 
-export interface MessageData {
-  // ... befintliga fält ...
+interface MessageData {
+  // Befintliga fält...
   
-  // For time_form
+  // For estimate_form
+  customers?: Array<{ id: string; name: string }>;
+  
+  // For daily_report_form
   projects?: Array<{ id: string; name: string }>;
-  defaultDate?: string;
+  
+  // For customer_search
+  allCustomers?: Array<{ 
+    id: string; 
+    name: string; 
+    city?: string; 
+    email?: string;
+  }>;
 }
 ```
 
-### Del 2: Ny komponent - TimeFormCard
+## Nya verktyg i Edge Function
 
-Skapa `src/components/global-assistant/TimeFormCard.tsx`:
+### get_customers_for_estimate
+Hämtar alla kunder för offertformulär.
 
-- Dropdown för att välja projekt (hämtar aktiva projekt)
-- Input för antal timmar (standard: 8)
-- Datumväljare (standard: idag)
-- Textfält för beskrivning (valfritt)
-- Knappar: Avbryt och Registrera
+### get_projects_for_daily_report
+Hämtar aktiva projekt för dagrapportformulär.
 
-När användaren klickar "Registrera" skickas ett automatiskt meddelande till chatten, t.ex:
-`"Registrera 8 timmar på projekt [projekt-id] för 2026-02-07"`
+### get_all_customers
+Hämtar alla kunder för sökning/visning.
 
-### Del 3: Uppdatera MessageList
+### get_customer_form
+Returnerar tomt formulär för att skapa ny kund.
 
-Lägg till rendering av TimeFormCard i `MessageList.tsx`:
+### get_project_form
+Returnerar kunder för projektformulär.
 
-```tsx
-{message.type === "time_form" && message.data && (
-  <TimeFormCard 
-    data={message.data}
-    onSubmit={onTimeFormSubmit}
-    onCancel={onTimeFormCancel}
-    disabled={isLoading}
-  />
-)}
+## Uppdaterad systemprompt
+
+```
+INTERAKTIVA FORMULÄR:
+- "registrera tid" utan projekt/timmar → get_active_projects_for_time
+- "skapa offert" utan specifik kund → get_customers_for_estimate  
+- "ny dagrapport" / "skapa dagrapport" utan projekt → get_projects_for_daily_report
+- "sök kund" → get_all_customers (visar sökbart kort)
+- "ny kund" / "skapa kund" → get_customer_form
+- "skapa projekt" utan specifik info → get_project_form
 ```
 
-### Del 4: Uppdatera GlobalAssistant.tsx
+## Filer att skapa
 
-Lägg till handlers:
+| Fil | Beskrivning |
+|-----|-------------|
+| `src/components/global-assistant/EstimateFormCard.tsx` | Offertformulär |
+| `src/components/global-assistant/DailyReportFormCard.tsx` | Dagrapportformulär |
+| `src/components/global-assistant/CustomerSearchCard.tsx` | Sökkort för kunder |
+| `src/components/global-assistant/CustomerFormCard.tsx` | Formulär för ny kund |
+| `src/components/global-assistant/ProjectFormCard.tsx` | Formulär för nytt projekt |
 
-```typescript
-const handleTimeFormSubmit = async (formData: {
-  projectId: string;
-  hours: number;
-  date: string;
-  description: string;
-}) => {
-  // Skicka direkt till register_time via en speciell prompt
-  await sendMessage(
-    `Registrera ${formData.hours} timmar på projektet med ID ${formData.projectId} för ${formData.date}${formData.description ? `. Beskrivning: ${formData.description}` : ""}`,
-    { selectedProjectId: formData.projectId }
-  );
-};
+## Filer att ändra
 
-const handleTimeFormCancel = async () => {
-  await sendMessage("Avbryt tidsregistrering");
-};
-```
+| Fil | Ändring |
+|-----|---------|
+| `src/types/global-assistant.ts` | Nya meddelandetyper och data-fält |
+| `src/components/global-assistant/QuickSuggestions.tsx` | Lägg till "Skapa projekt" och "Ny kund" |
+| `src/components/global-assistant/MessageList.tsx` | Rendera alla nya kort |
+| `src/pages/GlobalAssistant.tsx` | Handlers för alla nya formulär |
+| `supabase/functions/global-assistant/index.ts` | Nya verktyg + formatering |
 
-### Del 5: Uppdatera Edge Function
+## Visuell design
 
-Ändra systempromten så att vid `register_time`-intent returneras `type: "time_form"` istället för att ställa frågor.
-
-Ny verktyg `get_active_projects_for_time`:
-
-```typescript
-{
-  type: "function",
-  function: {
-    name: "get_active_projects_for_time",
-    description: "Get list of active projects for time registration form",
-    parameters: { type: "object", properties: {}, required: [] }
-  }
-}
-```
-
-I `formatToolResults` för detta verktyg:
-
-```typescript
-case "get_active_projects_for_time": {
-  const projects = results as Array<{ id: string; name: string }>;
-  return {
-    type: "time_form",
-    content: "",
-    data: {
-      projects,
-      defaultDate: new Date().toISOString().split('T')[0],
-    },
-  };
-}
-```
-
-Uppdatera systempromten:
-```
-NÄR ANVÄNDAREN VILL REGISTRERA TID:
-- Om användaren säger "registrera tid" utan specifikt projekt → anropa get_active_projects_for_time för att visa formuläret
-- Om användaren anger projekt och timmar → anropa register_time direkt
-```
-
-## Filer att skapa/ändra
-
-| Fil | Åtgärd |
-|-----|--------|
-| `src/types/global-assistant.ts` | ÄNDRA: Lägg till `time_form` typ och nya data-fält |
-| `src/components/global-assistant/TimeFormCard.tsx` | SKAPA: Ny komponent med formulär |
-| `src/components/global-assistant/MessageList.tsx` | ÄNDRA: Rendera TimeFormCard |
-| `src/pages/GlobalAssistant.tsx` | ÄNDRA: Lägg till handlers för formuläret |
-| `supabase/functions/global-assistant/index.ts` | ÄNDRA: Nytt verktyg + systemprompt |
+Alla kort följer samma design som TimeFormCard:
+- Rundade hörn (`rounded-xl`)
+- Subtil kant (`border-border/60`)
+- Ikon i header med bakgrund
+- Labels i `text-xs text-muted-foreground`
+- Avbryt-knapp till vänster, primär action till höger
 
 ## Resultat
 
-| Före | Efter |
-|------|-------|
-| 3-4 meddelanden fram och tillbaka | 1 meddelande + klick i formulär |
-| AI frågar "Vilket projekt?" | Formulär med dropdown direkt |
-| Manuell inmatning | Datumväljare och förval |
+| Åtgärd | Före | Efter |
+|--------|------|-------|
+| Skapa offert | 3-4 meddelanden | 1 formulärkort |
+| Ny dagrapport | 4-5 meddelanden | 1 formulärkort |
+| Sök kund | Frågar efter namn | Scrollbar lista + sökning |
+| Ny kund | Frågar fält för fält | 1 formulärkort |
+| Skapa projekt | 2-3 meddelanden | 1 formulärkort |
 
