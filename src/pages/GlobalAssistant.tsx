@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Sparkles, Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import type { Json } from "@/integrations/supabase/types";
 
 export default function GlobalAssistant() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -19,6 +20,7 @@ export default function GlobalAssistant() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const initialMessageProcessed = useRef(false);
 
   const handleNewChat = () => {
     setMessages([]);
@@ -54,6 +56,17 @@ export default function GlobalAssistant() {
     };
     fetchUser();
   }, []);
+
+  // Handle initial message from dashboard navigation
+  useEffect(() => {
+    const initialMessage = (location.state as { initialMessage?: string })?.initialMessage;
+    if (initialMessage && messages.length === 0 && !initialMessageProcessed.current) {
+      initialMessageProcessed.current = true;
+      // Clear navigation state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+      sendMessage(initialMessage);
+    }
+  }, [location.state, messages.length]);
 
   // Save conversation to database
   const saveConversation = useCallback(async (

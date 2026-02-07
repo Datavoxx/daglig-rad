@@ -23,6 +23,7 @@ import { formatDistanceToNow, subDays, startOfWeek, endOfWeek, format, isAfter, 
 import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DashboardAssistantWidget } from "@/components/dashboard/DashboardAssistantWidget";
 
 interface AttendanceRecord {
   id: string;
@@ -327,6 +328,9 @@ const Dashboard = () => {
           </div>
         </div>
       </section>
+
+      {/* Global Assistant Widget */}
+      <DashboardAssistantWidget />
 
       {/* Primary KPI Cards - Most important metrics */}
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
