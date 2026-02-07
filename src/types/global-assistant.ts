@@ -65,8 +65,18 @@ export interface MessageData {
   projects?: Array<{ id: string; name: string; address?: string }>;
   defaultDate?: string;
   
-  // For estimate_form and project_form
+  // For estimate_form
   customers?: Array<{ id: string; name: string }>;
+  
+  // For project_form (estimates to create project from)
+  estimates?: Array<{
+    id: string;
+    offer_number: string | null;
+    manual_project_name: string | null;
+    manual_client_name: string | null;
+    manual_address: string | null;
+    status: string;
+  }>;
   
   // For estimate_items_form
   estimateId?: string;

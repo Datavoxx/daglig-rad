@@ -469,15 +469,13 @@ const tools = [
     type: "function",
     function: {
       name: "create_project",
-      description: "Create a new project. Requires customer verification first.",
+      description: "Create a new project from an existing estimate. The project inherits all data from the estimate.",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Project name" },
-          customer_id: { type: "string", description: "Customer ID" },
-          address: { type: "string", description: "Project address" },
+          estimate_id: { type: "string", description: "Estimate ID to create project from" },
         },
-        required: ["name"],
+        required: ["estimate_id"],
       },
     },
   },
@@ -670,7 +668,7 @@ const tools = [
     type: "function",
     function: {
       name: "get_project_form",
-      description: "Get customers for project creation form. Use this when user wants to create a new project without specifying details.",
+      description: "Get available estimates (not yet linked to projects) for project creation form. Use this when user wants to create a new project.",
       parameters: {
         type: "object",
         properties: {},
@@ -1829,38 +1827,32 @@ async function executeTool(
     }
 
     case "create_project": {
-      const { name, customer_id, address } = args as {
-        name: string;
-        customer_id?: string;
-        address?: string;
-      };
+      const { estimate_id } = args as { estimate_id: string };
 
-      let clientName = "";
-      let projectAddress = address || "";
-      let projectCity = "";
+      // Fetch estimate data
+      const { data: estimate, error: estError } = await supabase
+        .from("project_estimates")
+        .select("manual_project_name, manual_client_name, manual_address, manual_postal_code, manual_city, manual_latitude, manual_longitude, offer_number")
+        .eq("id", estimate_id)
+        .single();
 
-      if (customer_id) {
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("name, address, city")
-          .eq("id", customer_id)
-          .single();
-        
-        if (customer) {
-          clientName = customer.name;
-          projectAddress = address || customer.address || "";
-          projectCity = customer.city || "";
-        }
+      if (estError || !estimate) {
+        throw new Error("Offerten hittades inte");
       }
 
+      // Create project with estimate data
       const { data, error } = await supabase
         .from("projects")
         .insert({
           user_id: userId,
-          name,
-          client_name: clientName,
-          address: projectAddress,
-          city: projectCity,
+          name: estimate.manual_project_name || estimate.offer_number || "Nytt projekt",
+          client_name: estimate.manual_client_name || null,
+          address: estimate.manual_address || null,
+          postal_code: estimate.manual_postal_code || null,
+          city: estimate.manual_city || null,
+          latitude: estimate.manual_latitude || null,
+          longitude: estimate.manual_longitude || null,
+          estimate_id,
           status: "active",
         })
         .select()
@@ -2056,14 +2048,30 @@ async function executeTool(
     }
 
     case "get_project_form": {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, name")
+      // Get estimates already linked to projects
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("estimate_id")
+        .eq("user_id", userId);
+      
+      const linkedEstimateIds = (projects || [])
+        .map(p => p.estimate_id)
+        .filter(Boolean) as string[];
+      
+      // Fetch estimates NOT linked to any project
+      let query = supabase
+        .from("project_estimates")
+        .select("id, offer_number, manual_project_name, manual_client_name, manual_address, status")
         .eq("user_id", userId)
-        .order("name");
-        
+        .order("created_at", { ascending: false });
+      
+      if (linkedEstimateIds.length > 0) {
+        query = query.not("id", "in", `(${linkedEstimateIds.join(",")})`);
+      }
+      
+      const { data: estimates, error } = await query;
       if (error) throw error;
-      return { customers: data || [] };
+      return { estimates: estimates || [] };
     }
 
     case "get_projects_for_work_order": {
@@ -3336,13 +3344,29 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
     }
 
     case "get_project_form": {
-      const result = results as { customers: Array<{ id: string; name: string }> };
+      const result = results as { 
+        estimates: Array<{ 
+          id: string; 
+          offer_number: string | null; 
+          manual_project_name: string | null;
+          manual_client_name: string | null;
+          manual_address: string | null;
+          status: string;
+        }> 
+      };
+      
+      if (result.estimates.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga tillgängliga offerter att skapa projekt från. Skapa en offert först, eller säg 'skapa offert'.",
+        };
+      }
       
       return {
         type: "project_form",
         content: "",
         data: {
-          customers: result.customers,
+          estimates: result.estimates,
         },
       };
     }

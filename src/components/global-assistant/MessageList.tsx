@@ -51,9 +51,7 @@ interface CustomerFormData {
 }
 
 interface ProjectFormData {
-  name: string;
-  customerId: string;
-  address: string;
+  estimateId: string;
 }
 
 interface WorkOrderFormData {
@@ -292,9 +290,9 @@ export function MessageList({
                 )}
 
                 {/* Project form */}
-                {message.type === "project_form" && message.data?.customers && onProjectFormSubmit && onProjectFormCancel && (
+                {message.type === "project_form" && message.data?.estimates && onProjectFormSubmit && onProjectFormCancel && (
                   <ProjectFormCard
-                    customers={message.data.customers}
+                    estimates={message.data.estimates}
                     onSubmit={onProjectFormSubmit}
                     onCancel={onProjectFormCancel}
                     disabled={isLoading}
