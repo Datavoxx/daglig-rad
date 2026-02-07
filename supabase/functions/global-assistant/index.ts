@@ -1646,18 +1646,31 @@ async function executeTool(
 
       // Add items
       if (items && items.length > 0) {
-        const itemsToInsert = items.map((item) => ({
-          estimate_id,
-          article: item.article || "labor",
-          description: item.description || "",
-          quantity: item.quantity || 1,
-          unit: item.unit || "st",
-          unit_price: item.unit_price || 0,
-          subtotal: (item.quantity || 1) * (item.unit_price || 0),
-          type: item.article || "labor",
-          moment: "Arbete",
-          sort_order: sortOrder++,
-        }));
+        const itemsToInsert = items.map((item) => {
+          // Map Swedish article category to type for summation
+          const articleLower = (item.article || "").toLowerCase();
+          let type = "labor";
+          if (["material", "bygg", "förbrukning", "maskin", "deponi"].includes(articleLower)) {
+            type = "material";
+          } else if (["ue", "underentreprenör"].includes(articleLower)) {
+            type = "subcontractor";
+          }
+
+          const qty = item.quantity || 1;
+          return {
+            estimate_id,
+            article: item.article || "Arbete",
+            description: item.description || "",
+            quantity: qty,
+            hours: qty, // Set hours = quantity for correct "Antal" display
+            unit: item.unit || "st",
+            unit_price: item.unit_price || 0,
+            subtotal: qty * (item.unit_price || 0),
+            type,
+            moment: item.description || "Arbete",
+            sort_order: sortOrder++,
+          };
+        });
 
         const { error: itemsError } = await supabase
           .from("estimate_items")
