@@ -2,7 +2,20 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list" | "time_form";
+  type: 
+    | "text" 
+    | "proposal" 
+    | "verification" 
+    | "next_actions" 
+    | "result" 
+    | "loading" 
+    | "list" 
+    | "time_form"
+    | "estimate_form"
+    | "daily_report_form"
+    | "customer_search"
+    | "customer_form"
+    | "project_form";
   data?: MessageData;
 }
 
@@ -42,6 +55,17 @@ export interface MessageData {
   // For time_form
   projects?: Array<{ id: string; name: string }>;
   defaultDate?: string;
+  
+  // For estimate_form and project_form
+  customers?: Array<{ id: string; name: string }>;
+  
+  // For customer_search
+  allCustomers?: Array<{ 
+    id: string; 
+    name: string; 
+    city?: string; 
+    email?: string;
+  }>;
 }
 
 export interface VerificationMatch {
