@@ -332,15 +332,17 @@ export default function GlobalAssistant() {
       {/* Header - always visible */}
       <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="h-8 w-8"
-            title="Tillbaka"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          {hasMessages && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="h-8 w-8"
+              title="Tillbaka"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -353,27 +355,28 @@ export default function GlobalAssistant() {
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">Global Assistant</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.location.reload()}
-            className="h-8 w-8"
-            title="Uppdatera"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8"
-            title="Ny chatt"
-            disabled={!hasMessages}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        {hasMessages && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.location.reload()}
+              className="h-8 w-8"
+              title="Uppdatera"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8"
+              title="Ny chatt"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Empty state - centered welcome */}
