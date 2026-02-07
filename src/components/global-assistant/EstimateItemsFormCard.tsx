@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface EstimateItem {
   id: string;
@@ -181,6 +182,41 @@ export function EstimateItemsFormCard({
     return itemsTotal + addonsTotal;
   };
 
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    // Fyll i projektbeskrivning
+    if (data.introduction && typeof data.introduction === "string") {
+      setIntroduction(data.introduction);
+    }
+    
+    // Fyll i tidsplan
+    if (data.timeline && typeof data.timeline === "string") {
+      setTimeline(data.timeline);
+    }
+    
+    // Fyll i offertposter
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      const newItems = data.items.map((item: Record<string, unknown>) => ({
+        id: crypto.randomUUID(),
+        article: (item.article as string) || "Arbete",
+        description: (item.description as string) || "",
+        quantity: (item.quantity as number) || null,
+        unit: (item.unit as string) || "tim",
+        unit_price: (item.unit_price as number) || 0,
+      }));
+      setItems(newItems);
+    }
+    
+    // Fyll i tillval
+    if (Array.isArray(data.addons) && data.addons.length > 0) {
+      const newAddons = data.addons.map((addon: Record<string, unknown>) => ({
+        id: crypto.randomUUID(),
+        name: (addon.name as string) || "",
+        price: (addon.price as number) || 0,
+      }));
+      setAddons(newAddons);
+    }
+  };
+
   return (
     <Card className="w-full border-primary/20 bg-gradient-to-br from-card to-primary/5">
       <CardHeader className="pb-3">
@@ -206,6 +242,13 @@ export function EstimateItemsFormCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Voice input section */}
+        <VoiceFormSection
+          formType="estimate-items"
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
+
         {/* Projektbeskrivning */}
         <div className="space-y-1.5">
           <Label htmlFor="introduction" className="text-xs">
