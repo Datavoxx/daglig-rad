@@ -45,7 +45,7 @@ export function ProjectFormCard({
     
     onSubmit({
       name: name.trim(),
-      customerId,
+      customerId: customerId === "none" ? "" : customerId,
       address: address.trim(),
     });
   };
@@ -93,7 +93,7 @@ export function ProjectFormCard({
               <SelectValue placeholder="Välj kund..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Ingen kund</SelectItem>
+              <SelectItem value="none">Ingen kund</SelectItem>
               {customers.map((customer) => (
                 <SelectItem key={customer.id} value={customer.id}>
                   {customer.name}
