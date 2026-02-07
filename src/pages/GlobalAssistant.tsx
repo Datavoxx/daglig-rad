@@ -363,6 +363,7 @@ export default function GlobalAssistant() {
   const handleEstimateItemsFormSubmit = async (formData: {
     estimateId: string;
     introduction: string;
+    timeline: string;
     items: Array<{
       article: string;
       description: string;
@@ -381,6 +382,9 @@ export default function GlobalAssistant() {
     let msg = `Lägg till ${itemsCount} poster på offert med ID ${formData.estimateId}`;
     if (formData.introduction) {
       msg += `. Projektbeskrivning: "${formData.introduction}"`;
+    }
+    if (formData.timeline) {
+      msg += `. Tidsplan: "${formData.timeline}"`;
     }
     if (addonsCount > 0) {
       msg += `. ${addonsCount} tillval`;
