@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Mic, MicOff, Loader2, X, Check, Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Mic, MicOff, Loader2, X, Check, Lightbulb, HandMetal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -19,19 +19,32 @@ interface VoiceFormSectionProps {
   onDataExtracted: (data: Record<string, unknown>) => void;
   projectId?: string;
   disabled?: boolean;
+  requiredSelection?: "project" | "customer";
+  selectionMade?: boolean;
 }
 
-type RecordingState = "idle" | "recording" | "confirming" | "processing";
+type RecordingState = "idle" | "recording" | "confirming" | "processing" | "completed";
 
 export function VoiceFormSection({
   formType,
   onDataExtracted,
   projectId,
   disabled,
+  requiredSelection,
+  selectionMade,
 }: VoiceFormSectionProps) {
   const [state, setState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
   const [editedTranscript, setEditedTranscript] = useState("");
+
+  // Reset to idle when selection is made while in completed state
+  useEffect(() => {
+    if (state === "completed" && selectionMade) {
+      setState("idle");
+      setTranscript("");
+      setEditedTranscript("");
+    }
+  }, [state, selectionMade]);
 
   const {
     isRecording,
@@ -107,14 +120,26 @@ export function VoiceFormSection({
 
       onDataExtracted(data);
       toast.success("Formuläret har fyllts i automatiskt");
-      setState("idle");
-      setTranscript("");
-      setEditedTranscript("");
+      
+      // Show completed state if there's a required selection that hasn't been made
+      if (requiredSelection && !selectionMade) {
+        setState("completed");
+      } else {
+        setState("idle");
+        setTranscript("");
+        setEditedTranscript("");
+      }
     } catch (error) {
       console.error("[VoiceFormSection] Error processing transcript:", error);
       toast.error("Kunde inte bearbeta röstmeddelandet");
       setState("confirming"); // Go back to confirmation state
     }
+  };
+
+  const handleRecordAgain = () => {
+    setState("idle");
+    setTranscript("");
+    setEditedTranscript("");
   };
 
   const getFormTypeLabel = () => {
@@ -131,6 +156,17 @@ export function VoiceFormSection({
         return "tidsregistrering";
       default:
         return "formulär";
+    }
+  };
+
+  const getReminderText = () => {
+    switch (requiredSelection) {
+      case "project":
+        return "Glöm inte att välja projekt nedan";
+      case "customer":
+        return "Glöm inte att välja kund nedan";
+      default:
+        return "";
     }
   };
 
@@ -288,6 +324,43 @@ export function VoiceFormSection({
             Byggio AI analyserar ditt meddelande...
           </span>
         </div>
+      </div>
+    );
+  }
+
+  // Completed state - show reminder if selection not made
+  if (state === "completed") {
+    return (
+      <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/20">
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </div>
+          <span className="text-sm font-medium text-foreground">
+            Formuläret har fyllts i
+          </span>
+        </div>
+
+        {requiredSelection && !selectionMade && (
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 mb-3">
+            <div className="flex items-center gap-2">
+              <HandMetal className="h-4 w-4 text-amber-600 shrink-0" />
+              <span className="text-sm text-amber-700 dark:text-amber-400">
+                {getReminderText()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <Button
+          onClick={handleRecordAgain}
+          disabled={disabled}
+          variant="outline"
+          className="w-full gap-2"
+        >
+          <Mic className="h-4 w-4" />
+          Spela in igen
+        </Button>
       </div>
     );
   }

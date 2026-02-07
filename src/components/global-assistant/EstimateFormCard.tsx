@@ -79,6 +79,8 @@ export function EstimateFormCard({
           formType="estimate"
           onDataExtracted={handleVoiceData}
           disabled={disabled}
+          requiredSelection="customer"
+          selectionMade={!!customerId}
         />
       </div>
 

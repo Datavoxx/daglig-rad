@@ -203,6 +203,8 @@ export function DailyReportFormCard({
           projectId={projectId || undefined}
           onDataExtracted={handleVoiceData}
           disabled={disabled}
+          requiredSelection="project"
+          selectionMade={!!projectId}
         />
 
         {/* Project selector */}
