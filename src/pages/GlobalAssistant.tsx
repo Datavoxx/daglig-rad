@@ -245,17 +245,16 @@ export default function GlobalAssistant() {
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">Global Assistant</span>
         </div>
-        {hasMessages && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8"
-            title="Ny chatt"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNewChat}
+          className="h-8 w-8"
+          title="Ny chatt"
+          disabled={!hasMessages}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Empty state - centered welcome */}
