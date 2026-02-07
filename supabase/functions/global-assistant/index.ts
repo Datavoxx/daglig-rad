@@ -290,6 +290,19 @@ const tools = [
       },
     },
   },
+  // === TIME REGISTRATION FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_active_projects_for_time",
+      description: "Get list of active projects to show in time registration form. Use this when user wants to register time without specifying a project.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
   // === GET (READ-ONLY) TOOLS ===
   {
     type: "function",
@@ -857,6 +870,19 @@ async function executeTool(
         
       if (error) throw error;
       return data;
+    }
+
+    case "get_active_projects_for_time": {
+      // Get all active projects for time registration form
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+        
+      if (error) throw error;
+      return data || [];
     }
 
     // === UPDATE ===
@@ -1535,6 +1561,26 @@ function formatToolResults(toolName: string, results: unknown): {
       };
     }
 
+    case "get_active_projects_for_time": {
+      const projects = results as Array<{ id: string; name: string }>;
+      
+      if (projects.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga aktiva projekt att registrera tid på. Skapa ett projekt först.",
+        };
+      }
+      
+      return {
+        type: "time_form",
+        content: "",
+        data: {
+          projects,
+          defaultDate: new Date().toISOString().split("T")[0],
+        },
+      };
+    }
+
     case "update_customer": {
       const customer = results as { id: string; name: string };
       return {
@@ -1809,6 +1855,11 @@ HANTERING AV BEKRÄFTELSER OCH VAL:
 
 NÄR DU BER OM KUNDINFORMATION:
 - Be ENDAST om kundens namn, inget annat (inte stad eller e-post)
+
+TIDSREGISTRERING - INTERAKTIVT FORMULÄR:
+- När användaren säger "registrera tid", "rapportera tid", "tidrapportera" UTAN att ange projekt och timmar → anropa get_active_projects_for_time för att visa formuläret
+- Om användaren anger projekt OCH timmar → anropa register_time direkt
+- Formuläret låter användaren välja projekt, timmar, datum och beskrivning i ett steg
 
 VIKTIGA REGLER:
 1. Svara alltid på svenska
