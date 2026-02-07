@@ -1,145 +1,87 @@
 
+# Plan: Villkorlig visning av navigeringsknappar
 
-# Plan: Fixa "Skapa projekt"-felet + Lägg till Bakåt/Refresh-knappar
+## Nuvarande beteende
+Alla knappar (Tillbaka, Historik, Refresh, Ny chatt) visas alltid i headern.
 
-## Problem 1: "Skapa projekt" kraschar appen
+## Önskat beteende
 
-### Orsak
-Felet är i `ProjectFormCard.tsx` på rad 96:
+| Läge | Vänster sida | Höger sida |
+|------|--------------|------------|
+| **Tom chatt** | Historik | (inget) |
+| **Aktiv chatt** | Tillbaka + Historik | Refresh + Ny chatt |
 
-```tsx
-<SelectItem value="">Ingen kund</SelectItem>
-```
+## Teknisk lösning
 
-Radix UI:s Select-komponent tillåter **inte** en tom sträng som `value`. Felet från konsolen:
-> "A Select.Item must have a value prop that is not an empty string."
-
-### Lösning
-Ändra `value=""` till `value="none"` och uppdatera logiken för att hantera detta:
-
-**Fil:** `src/components/global-assistant/ProjectFormCard.tsx`
-
-```tsx
-// FÖRE (rad 96):
-<SelectItem value="">Ingen kund</SelectItem>
-
-// EFTER:
-<SelectItem value="none">Ingen kund</SelectItem>
-```
-
-Och uppdatera `handleSubmit` för att konvertera "none" till tom sträng:
-
-```tsx
-// FÖRE (rad 43-50):
-const handleSubmit = () => {
-  if (!name.trim()) return;
-  
-  onSubmit({
-    name: name.trim(),
-    customerId,
-    address: address.trim(),
-  });
-};
-
-// EFTER:
-const handleSubmit = () => {
-  if (!name.trim()) return;
-  
-  onSubmit({
-    name: name.trim(),
-    customerId: customerId === "none" ? "" : customerId,
-    address: address.trim(),
-  });
-};
-```
-
----
-
-## Problem 2: Saknas Bakåt-knapp i topp-vänster
-
-### Nuvarande layout
-Global Assistant-headern har för närvarande:
-- **Vänster:** Historik-knapp + Sparkles-ikon + "Global Assistant"
-- **Höger:** Ny chatt-knapp
-
-### Lösning
-Lägg till en **tillbaka-knapp** (ArrowLeft-ikon) längst till vänster som navigerar till föregående sida via `navigate(-1)`.
+Använd befintlig `hasMessages`-variabel för att villkorligt rendera knapparna.
 
 **Fil:** `src/pages/GlobalAssistant.tsx`
 
 ```tsx
-// Lägg till import:
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, RefreshCw } from "lucide-react";
-
-// I komponenten:
-const navigate = useNavigate();
-
-// I header-diven:
-<Button
-  variant="ghost"
-  size="icon"
-  onClick={() => navigate(-1)}
-  className="h-8 w-8"
-  title="Tillbaka"
->
-  <ArrowLeft className="h-4 w-4" />
-</Button>
+{/* Header */}
+<div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+  <div className="flex items-center gap-2">
+    {/* Tillbaka-knapp - endast vid aktiv chatt */}
+    {hasMessages && (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => navigate(-1)}
+        className="h-8 w-8"
+        title="Tillbaka"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
+    )}
+    {/* Historik-knapp - alltid synlig */}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setHistoryOpen(true)}
+      className="h-8 w-8"
+      title="Visa historik"
+    >
+      <History className="h-4 w-4" />
+    </Button>
+    <Sparkles className="h-4 w-4 text-primary" />
+    <span className="text-sm font-medium">Global Assistant</span>
+  </div>
+  
+  {/* Höger sida - endast vid aktiv chatt */}
+  {hasMessages && (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => window.location.reload()}
+        className="h-8 w-8"
+        title="Uppdatera"
+      >
+        <RefreshCw className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleNewChat}
+        className="h-8 w-8"
+        title="Ny chatt"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  )}
+</div>
 ```
 
----
-
-## Problem 3: Saknas Refresh-knapp i topp-höger
-
-### Lösning
-Lägg till en **refresh-knapp** (RefreshCw-ikon) bredvid "Ny chatt"-knappen som laddar om sidan.
-
-**Fil:** `src/pages/GlobalAssistant.tsx`
-
-```tsx
-// I header-diven, höger sida:
-<Button
-  variant="ghost"
-  size="icon"
-  onClick={() => window.location.reload()}
-  className="h-8 w-8"
-  title="Uppdatera"
->
-  <RefreshCw className="h-4 w-4" />
-</Button>
-```
-
----
-
-## Ny header-layout
-
-```
-┌────────────────────────────────────────────────────────────┐
-│ [←] [Historik] ✨ Global Assistant      [Uppdatera] [+]   │
-└────────────────────────────────────────────────────────────┘
-```
-
-| Position | Element | Funktion |
-|----------|---------|----------|
-| Vänster 1 | ← (ArrowLeft) | Navigera tillbaka |
-| Vänster 2 | Historik-knapp | Öppna sidopanel |
-| Vänster 3 | ✨ + text | Branding |
-| Höger 1 | ↻ (RefreshCw) | Ladda om sidan |
-| Höger 2 | + (Plus) | Ny chatt |
-
----
-
-## Filer att ändra
+## Fil att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/global-assistant/ProjectFormCard.tsx` | Fixa SelectItem value="" → "none" |
-| `src/pages/GlobalAssistant.tsx` | Lägg till Bakåt + Refresh knappar |
+| `src/pages/GlobalAssistant.tsx` | Wrappa Tillbaka-knappen och höger-knapparna med `{hasMessages && (...)}` |
 
----
+## Resultat
 
-## Teknisk sammanfattning
-
-1. **Bug fix:** SelectItem med tom sträng orsakar krasch - ändra till "none" och hantera i submit
-2. **UX förbättring:** Lägg till navigeringsknapp (tillbaka) och refresh-knapp i headern
-
+| Tillstånd | Före | Efter |
+|-----------|------|-------|
+| Tom chatt | [←][📋]✨ ... [↻][+] | [📋]✨ ... |
+| Aktiv chatt | [←][📋]✨ ... [↻][+] | [←][📋]✨ ... [↻][+] |
