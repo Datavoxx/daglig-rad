@@ -128,24 +128,22 @@ serve(async (req) => {
 
     const systemPrompt = getSystemPrompt(formType);
 
-    // Use Lovable AI (OpenRouter)
-    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    // Use Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
-    if (!openRouterApiKey) {
-      console.error("[extract-form-data] OPENROUTER_API_KEY not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("[extract-form-data] LOVABLE_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "AI-tjänsten är inte konfigurerad" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${openRouterApiKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lovable.dev",
-        "X-Title": "Byggio AI - Form Data Extraction",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -154,8 +152,6 @@ serve(async (req) => {
           { role: "user", content: `Transkript: "${transcript}"` },
         ],
         temperature: 0.1,
-        max_tokens: 2000,
-        response_format: { type: "json_object" },
       }),
     });
 
