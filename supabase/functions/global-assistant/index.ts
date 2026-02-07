@@ -918,7 +918,8 @@ async function executeTool(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): Promise<unknown> {
   console.log(`Executing tool: ${toolName}`, args);
 
@@ -3799,7 +3800,7 @@ serve(async (req) => {
         customer_id: customerId,
         title: title.trim(),
         address,
-      });
+      }, context);
       
       const formatted = formatToolResults("create_estimate", result);
       return new Response(JSON.stringify(formatted), {
@@ -3835,7 +3836,7 @@ serve(async (req) => {
         timeline: context.pendingData.timeline,
         items: context.pendingData.items,
         addons: context.pendingData.addons,
-      });
+      }, context);
       
       const formatted = formatToolResults("add_estimate_items", result);
       
@@ -4143,7 +4144,7 @@ NÄRVARO: generate_attendance_qr, check_in, check_out
 
       console.log("Tool call:", toolName, toolArgs);
 
-      const toolResult = await executeTool(supabase, userId, toolName, toolArgs);
+      const toolResult = await executeTool(supabase, userId, toolName, toolArgs, context);
       const formattedResult = formatToolResults(toolName, toolResult);
       
       return new Response(JSON.stringify(formattedResult), {
