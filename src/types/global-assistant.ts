@@ -20,7 +20,8 @@ export interface Message {
     | "file_list"
     | "economy_overview"
     | "check_in_form"
-    | "invoice_filter_form";
+    | "invoice_filter_form"
+    | "work_order_form";
   data?: MessageData;
 }
 
@@ -60,11 +61,15 @@ export interface MessageData {
   listType?: "project" | "customer" | "estimate" | "invoice" | "inspection" | "work_order" | "ata";
   
   // For time_form
-  projects?: Array<{ id: string; name: string }>;
+  projects?: Array<{ id: string; name: string; address?: string }>;
   defaultDate?: string;
   
   // For estimate_form and project_form
   customers?: Array<{ id: string; name: string }>;
+  
+  // For work_order_form
+  employees?: Array<{ id: string; name: string }>;
+  preselectedProjectId?: string;
   
   // For customer_search
   allCustomers?: Array<{ 
