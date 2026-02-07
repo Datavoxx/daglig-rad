@@ -12,6 +12,7 @@ export interface Message {
     | "list" 
     | "time_form"
     | "estimate_form"
+    | "estimate_items_form"
     | "daily_report_form"
     | "customer_search"
     | "customer_form"
@@ -66,6 +67,10 @@ export interface MessageData {
   
   // For estimate_form and project_form
   customers?: Array<{ id: string; name: string }>;
+  
+  // For estimate_items_form
+  estimateId?: string;
+  offerNumber?: string;
   
   // For work_order_form
   employees?: Array<{ id: string; name: string }>;

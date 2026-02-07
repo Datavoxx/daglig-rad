@@ -9,6 +9,7 @@ import { ResultCard } from "./ResultCard";
 import { ListCard } from "./ListCard";
 import { TimeFormCard } from "./TimeFormCard";
 import { EstimateFormCard } from "./EstimateFormCard";
+import { EstimateItemsFormCard, type EstimateItemsFormData } from "./EstimateItemsFormCard";
 import { DailyReportFormCard } from "./DailyReportFormCard";
 import { CustomerSearchCard } from "./CustomerSearchCard";
 import { CustomerFormCard } from "./CustomerFormCard";
@@ -87,6 +88,9 @@ interface MessageListProps {
   onCheckInFormCancel?: () => void;
   onWorkOrderFormSubmit?: (data: WorkOrderFormData) => void;
   onWorkOrderFormCancel?: () => void;
+  onEstimateItemsFormSubmit?: (data: EstimateItemsFormData) => void;
+  onEstimateItemsFormCancel?: () => void;
+  onEstimateItemsFormOpen?: (estimateId: string) => void;
   isLoading?: boolean;
 }
 
@@ -115,6 +119,9 @@ export function MessageList({
   onCheckInFormCancel,
   onWorkOrderFormSubmit,
   onWorkOrderFormCancel,
+  onEstimateItemsFormSubmit,
+  onEstimateItemsFormCancel,
+  onEstimateItemsFormOpen,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -216,6 +223,18 @@ export function MessageList({
                     customers={message.data.customers}
                     onSubmit={onEstimateFormSubmit}
                     onCancel={onEstimateFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Estimate items form */}
+                {message.type === "estimate_items_form" && message.data?.estimateId && onEstimateItemsFormSubmit && onEstimateItemsFormCancel && (
+                  <EstimateItemsFormCard
+                    estimateId={message.data.estimateId}
+                    offerNumber={message.data.offerNumber || ""}
+                    onSubmit={onEstimateItemsFormSubmit}
+                    onCancel={onEstimateItemsFormCancel}
+                    onOpenEstimate={() => onEstimateItemsFormOpen?.(message.data?.estimateId || "")}
                     disabled={isLoading}
                   />
                 )}
