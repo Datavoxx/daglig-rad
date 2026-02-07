@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type FormType = "daily-report" | "estimate" | "work-order" | "customer" | "time";
+type FormType = "daily-report" | "estimate" | "work-order" | "customer" | "time" | "estimate-items";
 
 interface RequestBody {
   transcript: string;
@@ -93,6 +93,33 @@ Extrahera tidsregistreringsdata från transkriptet. Returnera JSON med följande
   "description": string,      // Beskrivning av arbetet
   "date": string | null       // Datum i format YYYY-MM-DD om nämnt
 }`;
+
+    case "estimate-items":
+      return `${basePrompt}
+
+Extrahera offertposter från transkriptet. Returnera JSON med följande struktur:
+{
+  "introduction": string,    // Projektbeskrivning
+  "timeline": string,        // Tidsplan (en punkt per rad)
+  "items": [
+    {
+      "article": string,     // Kategori: Arbete, Bygg, Material, etc.
+      "description": string, // Beskrivning av arbetet
+      "quantity": number | null,    // Antal
+      "unit": string,        // Enhet: tim, st, m, m², etc.
+      "unit_price": number   // Pris per enhet
+    }
+  ],
+  "addons": [
+    {
+      "name": string,        // Namn på tillval
+      "price": number        // Pris för tillval
+    }
+  ]
+}
+
+Vanliga kategorier (article): Arbete, Bygg, Deponi, Framkörning, Förbrukning, Förvaltning, Markarbete, Maskin, Material, Målning, Snöröjning, Städ, Trädgårdsskötsel
+Vanliga enheter (unit): tim, st, m, m², m³, kg, kpl`;
 
     default:
       return basePrompt;

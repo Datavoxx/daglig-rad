@@ -12,7 +12,8 @@ export type VoiceFormType =
   | "estimate" 
   | "work-order" 
   | "customer" 
-  | "time";
+  | "time"
+  | "estimate-items";
 
 interface VoiceFormSectionProps {
   formType: VoiceFormType;
@@ -154,6 +155,8 @@ export function VoiceFormSection({
         return "kundinformation";
       case "time":
         return "tidsregistrering";
+      case "estimate-items":
+        return "offertposter";
       default:
         return "formulär";
     }
