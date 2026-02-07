@@ -1,120 +1,119 @@
 
+# Plan: Fixa så Byggio AI hittar projekt-ID från projektnamn
 
-# Plan: Fixa automatisk projekt-kontext i Byggio AI
+## Problem identifierat
 
-## Problemanalys
+Användaren skrev: **"hämta qr kod för projekt tony-test"**
 
-Byggio AI frågar om projekt-ID även när ett projekt redan är valt i konversationen. Detta beror på tre saker:
+AI:n anropade: `get_attendance_qr({ project_id: "tony-test" })`
 
-### 1. Systemprompt saknar tydliga instruktioner
-Kontexten skrivs ut i systemprompt men AI:n får ingen explicit instruktion att **använda den automatiskt**.
+Men "tony-test" är ett **projektnamn**, inte ett UUID. Databasen kräver UUID för `project_id`-kolumnen, vilket gav felet:
+```
+invalid input syntax for type uuid: "tony-test"
+```
 
-### 2. Tool-anrop ignorerar context
-När AI:n anropar verktyg som `create_work_order` eller `get_project_economy` måste den ha `project_id`. Men även om context innehåller `selectedProjectId` så används det inte automatiskt.
+## Varför detta hände
 
-### 3. Historik saknar strukturerad info
-Bara `msg.content` (texten) skickas - inte metadata om vilket projekt som diskuterats.
+1. **Kontexten var tom** - Inget projekt var valt i sessionen (`Context: {}`)
+2. **AI:n antog att "tony-test" var ett ID** istället för att först söka efter projektet
+3. **Systemprompt saknar instruktion** om att AI:n måste använda `search_projects` först för att lösa projektnamn till UUID
 
-## Teknisk lösning
+## Lösning
 
-### Ändring 1: Förtydliga systemprompt
+### Alternativ 1: Förbättra systemprompt (Rekommenderas)
 
-Lägg till explicit instruktion:
+Lägg till explicit instruktion i systemprompt som säger:
+- Om användaren anger ett projektnamn (inte UUID), använd ALLTID `search_projects` först
+- Ett UUID har formatet `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+- Allt annat är ett projektnamn som måste slås upp
 
+**Systemprompt-tillägg:**
 ```text
-VIKTIGAST - AUTOMATISK KONTEXT:
-Om ett projekt-ID finns i KONTEXT-sektionen nedan, ANVÄND DET AUTOMATISKT 
-för alla projektrelaterade operationer utan att fråga användaren.
-
-Om en kund-ID finns i KONTEXT, ANVÄND DET för kundrelaterade operationer.
-
-FRÅGA ALDRIG om projekt-ID eller kund-ID om det redan finns i kontexten!
+VIKTIGT OM PROJEKT-ID OCH NAMN:
+- Ett projekt-ID (UUID) har formatet: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+- Om användaren anger något annat (t.ex. "tony-test", "Solvik", "Projekt 123") 
+  är det ett PROJEKTNAMN, inte ett ID!
+- Du MÅSTE använda search_projects för att hitta rätt projekt-ID först
+- Använd sedan det hittade UUID:t för alla efterföljande operationer
 ```
 
-### Ändring 2: Auto-inject project_id i tool-anrop
+### Alternativ 2: Backend-resolver (Mer robust)
 
-När AI:n anropar ett verktyg som behöver `project_id` men inte anger det, fyll i det automatiskt från context:
-
-```typescript
-// Innan: toolArgs kommer direkt från AI:n
-const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
-
-// Efter: Fyll i saknade IDs från context
-const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
-
-// Auto-inject project_id om det saknas men finns i context
-if (!toolArgs.project_id && context?.selectedProjectId && 
-    PROJECT_TOOLS.includes(toolName)) {
-  toolArgs.project_id = context.selectedProjectId;
-}
-
-// Auto-inject customer_id om det saknas men finns i context  
-if (!toolArgs.customer_id && context?.selectedCustomerId &&
-    CUSTOMER_TOOLS.includes(toolName)) {
-  toolArgs.customer_id = context.selectedCustomerId;
-}
-```
-
-### Ändring 3: Förbättra historik-meddelanden
-
-Inkludera projektnamn/kundnamn i historiken så AI:n "ser" kontexten:
+Lägg till en hjälpfunktion i edge function som automatiskt löser projektnamn till UUID:
 
 ```typescript
-for (const msg of history) {
-  if (msg.role === "user" || msg.role === "assistant") {
-    let content = msg.content || "";
-    
-    // Lägg till kontext-info från tidigare meddelanden
-    if (msg.data?.project_name) {
-      content += ` [Projekt: ${msg.data.project_name}]`;
-    }
-    if (msg.data?.customer_name) {
-      content += ` [Kund: ${msg.data.customer_name}]`;
-    }
-    
-    conversationMessages.push({ role: msg.role, content });
+async function resolveProjectId(supabase, input: string): Promise<string | null> {
+  // Check if input is already a UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(input)) {
+    return input; // Already a valid UUID
   }
+  
+  // Search for project by name
+  const { data } = await supabase
+    .from("projects")
+    .select("id")
+    .ilike("name", `%${input}%`)
+    .limit(1)
+    .single();
+    
+  return data?.id || null;
 }
 ```
 
-## Fil att ändra
+Sedan i verktygsanropen:
+```typescript
+case "get_attendance_qr": {
+  let { project_id } = args;
+  
+  // Resolve name to UUID if needed
+  project_id = await resolveProjectId(supabase, project_id);
+  if (!project_id) {
+    return { error: "Projektet hittades inte" };
+  }
+  // ... continue with database query
+}
+```
+
+## Rekommenderad implementation
+
+Jag rekommenderar **både Alternativ 1 och 2** för maximal robusthet:
+
+1. **Systemprompt** - Lär AI:n korrekt beteende
+2. **Backend-resolver** - Fångar upp fall där AI:n ändå gör fel
+
+## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | 1. Förtydliga systemprompt med auto-kontext instruktioner |
-| | 2. Auto-inject project_id/customer_id i tool-anrop |
-| | 3. Berika historik-meddelanden med kontext-info |
+| `supabase/functions/global-assistant/index.ts` | 1. Utöka systemprompt med UUID vs namn-instruktioner |
+| | 2. Lägg till `resolveProjectId` hjälpfunktion |
+| | 3. Använd resolver i alla projekt-relaterade verktyg |
 
-## Lista över verktyg som behöver auto-inject
+## Lista över verktyg som behöver resolver
 
-**Projekt-relaterade (project_id):**
-- create_work_order
-- search_work_orders  
-- create_ata
-- search_ata
-- get_project_plan
-- create_plan
-- update_plan
-- list_project_files
-- generate_attendance_qr
-- get_attendance_qr
-- check_in
-- check_out
-- get_active_attendance
-- get_project_economy
-- search_daily_reports
-- search_inspections
-- create_inspection
+Alla verktyg som tar `project_id` som parameter:
+- `get_attendance_qr`
+- `generate_attendance_qr`
+- `create_work_order`
+- `search_work_orders`
+- `create_ata`
+- `search_ata`
+- `get_project_plan`
+- `create_plan`
+- `update_plan`
+- `list_project_files`
+- `check_in`
+- `check_out`
+- `get_active_attendance`
+- `get_project_economy`
+- `search_daily_reports`
+- `create_daily_report`
 
-**Kund-relaterade (customer_id):**
-- create_estimate
-- create_project
-
-## Resultat
+## Förväntat resultat efter fix
 
 | Före | Efter |
 |------|-------|
-| "Visa ekonomin" → "Vilket projekt vill du se ekonomin för?" | "Visa ekonomin" → Visar automatiskt för valt projekt |
-| "Skapa arbetsorder" → "Ange projekt-ID" | "Skapa arbetsorder" → Skapar på aktuellt projekt |
-| AI "glömmer" projektet mellan meddelanden | AI minns och använder valt projekt automatiskt |
-
+| "hämta qr kod för projekt tony-test" → Krasch (invalid UUID) | "hämta qr kod för projekt tony-test" → Hittar projekt, visar QR-kod |
+| AI:n antar att namn är UUID | AI:n söker först, använder sedan UUID |
+| Context-beroende | Fungerar även utan context |
