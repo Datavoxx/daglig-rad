@@ -2,187 +2,118 @@
 
 ## Mål
 
-Lägga till en påminnelse ("reminder") efter röstinspelningen för formulär som har Select-komponenter (dropdown/"banderoll") för projekt eller kund. Påminnelsen ska uppmana användaren att välja rätt värde i dropdown-menyn.
+Fixa felet "duplicate key value violates unique constraint" när man försöker skapa en dagrapport för ett projekt som redan har en rapport för dagens datum. Istället för att krascha, ska systemet uppdatera den befintliga rapporten.
 
 ---
 
-## Analys av formulär med dropdowns
+## Problemanalys
 
-| Formulär | Dropdown-typ | Behöver påminnelse |
-|----------|--------------|-------------------|
-| `DailyReportFormCard` | Projekt | ✅ Ja |
-| `WorkOrderFormCard` | Projekt | ✅ Ja |
-| `TimeFormCard` | Projekt | ✅ Ja |
-| `EstimateFormCard` | Kund | ✅ Ja |
-| `CustomerFormCard` | Ingen | ❌ Nej |
+| Problem | Orsak |
+|---------|-------|
+| Felmeddelande: `duplicate key value violates unique constraint "daily_reports_project_id_report_date_key"` | Databasen förhindrar flera dagrapporter för samma projekt på samma dag |
+| Kod (rad 2024): `report_date: new Date().toISOString().split('T')[0]` | Datumet sätts alltid till idag |
+| Resultat | Om du redan skapat en dagrapport för projektet idag → krasch |
 
 ---
 
-## Lösning
+## Lösning: "Upsert" logik
 
-### 1. Utöka `VoiceFormSection` med ny prop
+Istället för att bara göra en `INSERT`, kontrollera först om det redan finns en rapport:
 
-Lägg till en ny prop `requiredSelection` som talar om vilken typ av val som krävs (t.ex. "project" eller "customer").
+1. **Sök efter befintlig rapport** för samma projekt + datum
+2. **Om den finns** → Uppdatera (`UPDATE`)
+3. **Om den inte finns** → Skapa ny (`INSERT`)
 
+---
+
+## Ändringar i filen
+
+### `supabase/functions/global-assistant/index.ts`
+
+**Nuvarande logik (rad 2009-2030):**
 ```typescript
-interface VoiceFormSectionProps {
-  formType: VoiceFormType;
-  onDataExtracted: (data: Record<string, unknown>) => void;
-  projectId?: string;
-  disabled?: boolean;
-  requiredSelection?: "project" | "customer" | "estimate";  // NY
+const { data, error } = await supabase
+  .from("daily_reports")
+  .insert({...})
+  .select()
+  .single();
+  
+if (error) throw error;
+return data;
+```
+
+**Ny logik:**
+```typescript
+const reportDate = new Date().toISOString().split('T')[0];
+
+// Kolla om det redan finns en rapport för detta projekt idag
+const { data: existing } = await supabase
+  .from("daily_reports")
+  .select("id")
+  .eq("project_id", project_id)
+  .eq("report_date", reportDate)
+  .eq("user_id", userId)
+  .maybeSingle();
+
+if (existing) {
+  // Uppdatera befintlig rapport
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .update({
+      work_items: finalWorkItems,
+      headcount: finalHeadcount,
+      // ... övriga fält
+    })
+    .eq("id", existing.id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return { ...data, updated: true };
+} else {
+  // Skapa ny rapport
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .insert({...})
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
 }
 ```
 
-### 2. Lägg till intern state för att spåra om data har extraherats
+### Uppdatera response-hantering (rad 3292-3300)
+
+Lägg till information om att rapporten uppdaterades:
 
 ```typescript
-const [hasExtracted, setHasExtracted] = useState(false);
+case "create_daily_report": {
+  const report = results as { id: string; updated?: boolean };
+  const action = report.updated ? "uppdaterade" : "skapade";
+  return {
+    type: "text",
+    content: `✅ Jag ${action} din dagrapport! Den innehåller...`,
+    // ...
+  };
+}
 ```
-
-När `onDataExtracted` körs framgångsrikt, sätt `hasExtracted = true`.
-
-### 3. Visa påminnelse efter lyckad extraktion
-
-Efter att formuläret fyllts i, visa en alert/påminnelse med:
-- En ikon (t.ex. pekande hand eller pil)
-- Text som säger "Glöm inte att välja projekt" eller "Glöm inte att välja kund"
-
-```text
-┌─────────────────────────────────────────────────┐
-│ ☝️  Glöm inte att välja projekt nedan          │
-└─────────────────────────────────────────────────┘
-```
-
-### 4. Dölj påminnelsen när valet är gjort
-
-Lägg till en ny prop `selectionMade` som indikerar om användaren redan har valt i dropdown-menyn:
-
-```typescript
-requiredSelection?: "project" | "customer" | "estimate";
-selectionMade?: boolean;
-```
-
-Om `selectionMade` är `true`, visa inte påminnelsen.
 
 ---
 
-## Ändringar per fil
-
-### 1. `VoiceFormSection.tsx`
-
-- Lägg till props: `requiredSelection`, `selectionMade`
-- Lägg till state: `hasExtracted`
-- Uppdatera `handleProcessTranscript` för att sätta `hasExtracted = true`
-- Lägg till "completed" state som visar påminnelsen när `hasExtracted && requiredSelection && !selectionMade`
-
-**Ny vy efter lyckad extraktion:**
-
-```text
-┌─────────────────────────────────────────────────┐
-│  ✓ Formuläret har fyllts i                      │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │ ☝️ Glöm inte att välja projekt nedan     │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  [ 🎤 Spela in igen ]                           │
-└─────────────────────────────────────────────────┘
-```
-
-### 2. `DailyReportFormCard.tsx`
-
-Uppdatera VoiceFormSection-användningen:
-```tsx
-<VoiceFormSection
-  formType="daily-report"
-  projectId={projectId || undefined}
-  onDataExtracted={handleVoiceData}
-  disabled={disabled}
-  requiredSelection="project"        // NY
-  selectionMade={!!projectId}        // NY
-/>
-```
-
-### 3. `WorkOrderFormCard.tsx`
-
-```tsx
-<VoiceFormSection
-  formType="work-order"
-  projectId={projectId || undefined}
-  onDataExtracted={handleVoiceData}
-  disabled={disabled}
-  requiredSelection={!preselectedProjectId ? "project" : undefined}
-  selectionMade={!!projectId}
-/>
-```
-
-### 4. `TimeFormCard.tsx`
-
-```tsx
-<VoiceFormSection
-  formType="time"
-  projectId={projectId || undefined}
-  onDataExtracted={handleVoiceData}
-  disabled={disabled}
-  requiredSelection="project"
-  selectionMade={!!projectId}
-/>
-```
-
-### 5. `EstimateFormCard.tsx`
-
-```tsx
-<VoiceFormSection
-  formType="estimate"
-  onDataExtracted={handleVoiceData}
-  disabled={disabled}
-  requiredSelection="customer"
-  selectionMade={!!customerId}
-/>
-```
-
-### 6. `CustomerFormCard.tsx`
-
-Ingen ändring behövs - formuläret har ingen dropdown.
-
----
-
-## Påminnelsens design
-
-```text
-┌─────────────────────────────────────────────────────┐
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ ☝️  Glöm inte att välja projekt nedan          │ │
-│ └─────────────────────────────────────────────────┘ │
-│                                                     │
-│           [ 🎤 Spela in igen ]                      │
-└─────────────────────────────────────────────────────┘
-```
-
-- Bakgrundsfärg: `bg-amber-50/50` eller `bg-warning/10`
-- Ikon: `PointingUp` eller liknande
-- Text: Dynamisk baserat på `requiredSelection`
-
----
-
-## Sammanfattning av filer att ändra
+## Sammanfattning
 
 | # | Fil | Ändring |
 |---|-----|---------|
-| 1 | `src/components/global-assistant/VoiceFormSection.tsx` | Lägg till props, state och "completed" vy med påminnelse |
-| 2 | `src/components/global-assistant/DailyReportFormCard.tsx` | Lägg till `requiredSelection="project"` och `selectionMade` |
-| 3 | `src/components/global-assistant/WorkOrderFormCard.tsx` | Lägg till conditional `requiredSelection` och `selectionMade` |
-| 4 | `src/components/global-assistant/TimeFormCard.tsx` | Lägg till `requiredSelection="project"` och `selectionMade` |
-| 5 | `src/components/global-assistant/EstimateFormCard.tsx` | Lägg till `requiredSelection="customer"` och `selectionMade` |
+| 1 | `supabase/functions/global-assistant/index.ts` | Lägg till upsert-logik i `create_daily_report` (rad ~2009-2030) |
+| 2 | `supabase/functions/global-assistant/index.ts` | Uppdatera response-meddelande för att visa om det var uppdatering eller ny (rad ~3292-3300) |
 
 ---
 
 ## Resultat
 
-1. Efter att röstinspelningen bearbetat och fyllt i formuläret, visas en tydlig påminnelse
-2. Påminnelsen säger "Glöm inte att välja projekt nedan" eller "Glöm inte att välja kund nedan"
-3. Påminnelsen försvinner automatiskt när användaren valt i dropdown-menyn
-4. Användaren kan spela in igen om de vill
-5. Konsekvent upplevelse i alla formulär med dropdowns
+1. Användaren kan skapa dagrapporter utan att få felmeddelande
+2. Om det redan finns en rapport för samma projekt och dag → den uppdateras
+3. Tydligt meddelande om vad som hände: "Jag skapade..." eller "Jag uppdaterade..."
+4. Ingen data går förlorad
 
