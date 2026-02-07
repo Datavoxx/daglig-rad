@@ -275,7 +275,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
               <VoicePromptButton
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
-                agentName="Ulla AI"
+                agentName="Byggio AI"
                 agentAvatar={AI_AGENTS.diary.avatar}
               />
               

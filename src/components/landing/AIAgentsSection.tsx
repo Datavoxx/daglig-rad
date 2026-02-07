@@ -1,40 +1,30 @@
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles } from "lucide-react";
-import sagaAvatar from "@/assets/saga-avatar-transparent.png";
-import boAvatar from "@/assets/bo-avatar.png";
-import ullaAvatar from "@/assets/ulla-avatar.png";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Sparkles, Mic, FileText, CalendarDays, ClipboardList } from "lucide-react";
+import { Link } from "react-router-dom";
+import byggioLogo from "@/assets/byggio-logo.png";
 
-const agents = [
+const capabilities = [
   {
-    slug: "saga",
-    name: "Saga",
-    title: "Kalkylexpert",
-    description: "Du pratar in projektet – Saga skapar offerten. Slipp sitta och skriva varje post manuellt.",
-    avatar: sagaAvatar,
-    skills: ["Offerter", "Kalkylmallar", "ROT/RUT-beräkning"],
+    icon: FileText,
+    title: "Offerter",
+    description: "Prata in projektet – AI:n skapar offerten med poster, mängder och belopp.",
   },
   {
-    slug: "bo",
-    name: "Bo",
-    title: "Projektplanerare",
-    description: "Du beskriver projektet – Bo ritar upp tidplanen. Faser, veckor och parallella arbeten på plats direkt.",
-    avatar: boAvatar,
-    skills: ["Tidsplaner", "Gantt-schema", "Fasplanering"],
+    icon: CalendarDays,
+    title: "Tidsplaner",
+    description: "Beskriv projektet – AI:n ritar upp Gantt-schemat med faser och veckor.",
   },
   {
-    slug: "ulla",
-    name: "Ulla",
-    title: "Dokumentationsassistent",
-    description: "Du berättar vad som hänt – Ulla skapar rapporten. Dagbok, ÄTA och arbetsorder utan pappersarbete.",
-    avatar: ullaAvatar,
-    skills: ["Dagrapporter", "ÄTA-hantering", "Arbetsorder"],
+    icon: ClipboardList,
+    title: "Dokumentation",
+    description: "Berätta vad som hänt – AI:n skapar dagrapporter, ÄTA och arbetsorder.",
   },
 ];
 
 const AIAgentsSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-foreground/[0.02] relative overflow-hidden">
+    <section id="ai-agents" className="py-20 md:py-28 bg-foreground/[0.02] relative overflow-hidden">
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating orbs */}
@@ -46,71 +36,91 @@ const AIAgentsSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <Sparkles className="w-4 h-4" />
+            AI-driven
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Möt dina AI-kollegor
+            Möt Byggio AI
           </h2>
+          <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
+            Din kompletta AI-assistent för byggprojekt. Prata in vad som behövs – Byggio AI sköter resten.
+          </p>
         </div>
 
+        {/* Main card */}
+        <div className="max-w-4xl mx-auto">
+          <div className="relative bg-card rounded-2xl border border-border/50 p-8 md:p-12 transition-all duration-300 hover:border-primary/30 hover:shadow-2xl">
+            {/* Top highlight */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent rounded-t-2xl" />
 
-        {/* Agents grid */}
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-          {agents.map((agent) => (
-            <Link
-              key={agent.slug}
-              to={`/ai/${agent.slug}`}
-              className="group relative"
-            >
-              {/* Hover glow */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-              <div className="relative bg-card rounded-2xl border border-border/50 p-6 sm:p-8 transition-all duration-300 group-hover:border-primary/30 group-hover:shadow-2xl group-hover:-translate-y-1 h-full">
-                {/* Top highlight */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent rounded-t-2xl" />
-
-                {/* Avatar with glow */}
-                <div className="relative mb-6 flex justify-center">
-                  <div className="absolute inset-0 flex justify-center items-center">
-                    <div className="w-32 h-32 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
-                  </div>
-                  <img
-                    src={agent.avatar}
-                    alt={agent.name}
-                    className="w-36 h-36 md:w-44 md:h-44 object-contain drop-shadow-2xl relative z-10 transition-transform duration-300 group-hover:scale-110"
-                  />
+            {/* Content */}
+            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              {/* Avatar with glow */}
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 flex justify-center items-center">
+                  <div className="w-40 h-40 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
                 </div>
+                <img
+                  src={byggioLogo}
+                  alt="Byggio AI"
+                  className="w-44 h-44 md:w-56 md:h-56 object-contain drop-shadow-2xl relative z-10"
+                />
+              </div>
 
-                {/* Name & Title */}
-                <div className="text-center mb-4">
-                  <h3 className="text-2xl font-bold text-primary mb-1">{agent.name}</h3>
-                  <p className="text-muted-foreground font-medium">{agent.title}</p>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-muted-foreground text-center mb-6 leading-relaxed">
-                  {agent.description}
+              {/* Text content */}
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl md:text-3xl font-bold text-primary mb-2">Byggio AI</h3>
+                <p className="text-muted-foreground font-medium mb-4">Din AI-assistent för byggprojekt</p>
+                
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  Slipp sitta vid datorn och skriva. Prata in vad som hänt eller vad projektet innehåller – 
+                  Byggio AI strukturerar allt åt dig. Offerter, tidsplaner, dagrapporter och mer.
                 </p>
 
-                {/* Skills */}
-                <div className="flex flex-wrap justify-center gap-2 mb-6">
-                  {agent.skills.map((skill) => (
-                    <Badge 
-                      key={skill} 
-                      variant="secondary"
-                      className="bg-primary/10 text-primary border-0 text-xs"
-                    >
-                      {skill}
-                    </Badge>
-                  ))}
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-6">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
+                    <Mic className="w-3 h-3 mr-1" />
+                    Röststyrd
+                  </Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
+                    Snabb
+                  </Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
+                    Smart
+                  </Badge>
                 </div>
 
-                {/* CTA */}
-                <div className="flex items-center justify-center gap-2 text-sm font-medium text-primary group-hover:gap-3 transition-all">
-                  Läs mer
-                  <ArrowRight className="w-4 h-4" />
-                </div>
+                <Button size="lg" asChild>
+                  <Link to="/register">
+                    Kom igång gratis
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
               </div>
-            </Link>
-          ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Capabilities grid */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
+          {capabilities.map((capability, index) => {
+            const Icon = capability.icon;
+            return (
+              <div
+                key={index}
+                className="bg-card rounded-xl border border-border/50 p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg"
+              >
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-primary" />
+                </div>
+                <h4 className="text-lg font-semibold mb-2">{capability.title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {capability.description}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -61,7 +61,7 @@ const getNavItems = (isEmployee: boolean): NavItem[] => {
   // Admin/owner navigation
   return [
     { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
-    { label: "Assistent", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
+    { label: "Byggio AI", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
     { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
     { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
     { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },

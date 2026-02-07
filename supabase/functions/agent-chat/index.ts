@@ -96,7 +96,7 @@ function buildSagaSystemPrompt(context: SagaContext): string {
 
   const assumptionsList = context.assumptions.map((a) => `- ${a}`).join("\n");
 
-  return `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt i Sverige.
+  return `Du är Byggio AI, en expert på offerter och kalkyler för byggprojekt i Sverige.
 
 Du har full tillgång till den aktuella offerten som användaren arbetar med. Du kan:
 - Förklara vilka poster som ingår och deras kostnader
@@ -177,7 +177,7 @@ function buildBoSystemPrompt(context: BoContext): string {
     completed: "Avslutat",
   };
 
-  return `Du heter Bo och är en expert på byggprojektplanering och dokumentation.
+  return `Du är Byggio AI, en expert på byggprojektplanering och dokumentation.
 
 Du har full tillgång till det aktuella projektet. Du kan:
 - Förklara projektets tidplan och faser

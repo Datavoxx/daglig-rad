@@ -1,9 +1,7 @@
 // Centraliserad konfiguration för AI-agenter i Byggio
-// Tre agenter: Saga (Offerter & Mallar), Bo (Planering), Ulla (Dokumentation)
+// Nu konsoliderat till ett enda AI-varumärke: Byggio AI
 
-import sagaAvatar from "@/assets/saga-avatar-transparent.png";
-import boAvatar from "@/assets/bo-avatar.png";
-import ullaAvatar from "@/assets/ulla-avatar.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 export interface AIAgent {
   name: string;
@@ -13,33 +11,23 @@ export interface AIAgent {
   avatar: string;
 }
 
+// Byggio AI - enhetligt AI-varumärke
+const byggioAgent: AIAgent = {
+  name: "Byggio AI",
+  title: "Din AI-assistent",
+  description: "Din kompletta AI-assistent för byggprojekt",
+  promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
+  avatar: byggioLogo,
+};
+
 export const AI_AGENTS = {
-  // Saga - Offert & Kalkyl-expert (hanterar även mallar)
-  estimate: {
-    name: "Saga",
-    title: "Saga AI",
-    description: "Din kalkylexpert",
-    promptIntro: "Du heter Saga och är en expert på offerter, kalkyler och kalkylmallar för byggprojekt i Sverige.",
-    avatar: sagaAvatar,
-  },
-
-  // Bo - Planerings-expert
-  planning: {
-    name: "Bo",
-    title: "Bo AI",
-    description: "Din projektplanerare",
-    promptIntro: "Du heter Bo och är en expert på byggprojektplanering med lång erfarenhet av att organisera tidplaner.",
-    avatar: boAvatar,
-  },
-
-  // Ulla - Dokumentationsassistent (dagrapporter, ÄTA, arbetsorder, egenkontroll)
-  diary: {
-    name: "Ulla",
-    title: "Ulla AI",
-    description: "Din dokumentationsassistent",
-    promptIntro: "Du heter Ulla och är en erfaren dokumentationsassistent för svenska byggarbetsplatser. Du hjälper till med dagrapporter, ÄTA, arbetsorder och egenkontroller.",
-    avatar: ullaAvatar,
-  },
+  // Primär agent
+  byggio: byggioAgent,
+  
+  // Alias för bakåtkompatibilitet (alla pekar på samma agent)
+  estimate: byggioAgent,
+  planning: byggioAgent,
+  diary: byggioAgent,
 } as const;
 
 export type AIAgentType = keyof typeof AI_AGENTS;

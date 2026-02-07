@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { AI_AGENTS } from "@/config/aiAgents";
 
+// Note: VoiceInputOverlay will need to be updated to use Byggio AI branding
+
 interface Deviation {
   type: string;
   description: string;
