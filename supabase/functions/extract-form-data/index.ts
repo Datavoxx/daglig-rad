@@ -1,0 +1,213 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+type FormType = "daily-report" | "estimate" | "work-order" | "customer" | "time";
+
+interface RequestBody {
+  transcript: string;
+  formType: FormType;
+  context?: {
+    projectId?: string;
+  };
+}
+
+function getSystemPrompt(formType: FormType): string {
+  const basePrompt = `Du är en AI-assistent som extraherar strukturerad data från rösttranskriptioner för byggföretag i Sverige. 
+Svara ENDAST med giltig JSON, ingen annan text.
+Om information saknas, använd null eller tomma strängar.
+Tolka svenska mått, tider och termer korrekt.`;
+
+  switch (formType) {
+    case "daily-report":
+      return `${basePrompt}
+
+Extrahera dagrapportdata från transkriptet. Returnera JSON med följande struktur:
+{
+  "headcount": number | null,           // Antal personer som jobbade
+  "hoursPerPerson": number | null,      // Timmar per person
+  "roles": string[],                     // Yrkesroller (t.ex. ["snickare", "elektriker"])
+  "workItems": string[],                 // Lista med utfört arbete
+  "materialsDelivered": string,          // Material som levererats
+  "materialsMissing": string,            // Material som saknas
+  "notes": string,                       // Övriga anteckningar
+  "deviations": [                        // Avvikelser
+    {
+      "type": "waiting_time" | "material_delay" | "weather" | "coordination" | "equipment" | "safety" | "quality" | "other",
+      "description": string,
+      "hours": number | null
+    }
+  ],
+  "ata": [                               // ÄTA-arbeten
+    {
+      "reason": string,
+      "consequence": string,
+      "estimatedHours": number | null
+    }
+  ]
+}`;
+
+    case "estimate":
+      return `${basePrompt}
+
+Extrahera offertdata från transkriptet. Returnera JSON med följande struktur:
+{
+  "title": string,           // Projektnamn/titel
+  "address": string,         // Projektadress
+  "description": string      // Beskrivning av arbetet
+}`;
+
+    case "work-order":
+      return `${basePrompt}
+
+Extrahera arbetsorderdata från transkriptet. Returnera JSON med följande struktur:
+{
+  "title": string,           // Titel på arbetsordern
+  "description": string,     // Detaljerad beskrivning
+  "dueDate": string | null   // Förfallodatum i format YYYY-MM-DD om nämnt
+}`;
+
+    case "customer":
+      return `${basePrompt}
+
+Extrahera kundinformation från transkriptet. Returnera JSON med följande struktur:
+{
+  "name": string,            // Kundens namn
+  "email": string,           // E-postadress
+  "phone": string,           // Telefonnummer
+  "address": string,         // Gatuadress
+  "city": string             // Stad
+}`;
+
+    case "time":
+      return `${basePrompt}
+
+Extrahera tidsregistreringsdata från transkriptet. Returnera JSON med följande struktur:
+{
+  "hours": number | null,     // Antal timmar
+  "description": string,      // Beskrivning av arbetet
+  "date": string | null       // Datum i format YYYY-MM-DD om nämnt
+}`;
+
+    default:
+      return basePrompt;
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const { transcript, formType, context } = (await req.json()) as RequestBody;
+
+    console.log("[extract-form-data] Processing transcript for formType:", formType);
+    console.log("[extract-form-data] Transcript length:", transcript?.length);
+    console.log("[extract-form-data] Context:", JSON.stringify(context));
+
+    if (!transcript?.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Inget transkript att bearbeta" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    if (!formType) {
+      return new Response(
+        JSON.stringify({ error: "Formulärtyp saknas" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    const systemPrompt = getSystemPrompt(formType);
+
+    // Use Lovable AI (OpenRouter)
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    
+    if (!openRouterApiKey) {
+      console.error("[extract-form-data] OPENROUTER_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "AI-tjänsten är inte konfigurerad" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openRouterApiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://lovable.dev",
+        "X-Title": "Byggio AI - Form Data Extraction",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Transkript: "${transcript}"` },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[extract-form-data] OpenRouter API error:", response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "AI-tjänsten kunde inte nås" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    console.log("[extract-form-data] AI response:", content);
+
+    if (!content) {
+      return new Response(
+        JSON.stringify({ error: "Inget svar från AI" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    // Parse the JSON response
+    let extractedData;
+    try {
+      extractedData = JSON.parse(content);
+    } catch (parseError) {
+      console.error("[extract-form-data] Failed to parse AI response:", parseError);
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        extractedData = JSON.parse(jsonMatch[0]);
+      } else {
+        return new Response(
+          JSON.stringify({ error: "Kunde inte tolka AI-svaret" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+    }
+
+    console.log("[extract-form-data] Extracted data:", JSON.stringify(extractedData));
+
+    return new Response(JSON.stringify(extractedData), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("[extract-form-data] Error:", error);
+    return new Response(
+      JSON.stringify({ error: "Ett fel uppstod vid bearbetning" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+});

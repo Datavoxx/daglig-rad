@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Calendar, FileText, X } from "lucide-react";
+import { Clock, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface Project {
   id: string;
@@ -47,6 +48,12 @@ export function TimeFormCard({
   const [date, setDate] = useState<string>(today);
   const [description, setDescription] = useState<string>("");
 
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    if (data.hours != null) setHours(String(data.hours));
+    if (typeof data.description === "string") setDescription(data.description);
+    if (typeof data.date === "string" && data.date) setDate(data.date);
+  };
+
   const handleSubmit = () => {
     if (!projectId || !hours) return;
     
@@ -73,6 +80,16 @@ export function TimeFormCard({
           <Clock className="h-4 w-4 text-primary" />
         </div>
         <h3 className="font-medium text-foreground">Registrera tid</h3>
+      </div>
+
+      {/* Voice Form Section */}
+      <div className="mb-4">
+        <VoiceFormSection
+          formType="time"
+          projectId={projectId || undefined}
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
       </div>
 
       {/* Form */}

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface Project {
   id: string;
@@ -93,6 +94,32 @@ export function DailyReportFormCard({
 
   // Calculated total hours
   const totalHours = (parseInt(headcount) || 0) * (parseFloat(hoursPerPerson) || 0);
+
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    if (data.headcount != null) setHeadcount(String(data.headcount));
+    if (data.hoursPerPerson != null) setHoursPerPerson(String(data.hoursPerPerson));
+    if (Array.isArray(data.roles) && data.roles.length > 0) {
+      setRoles(data.roles.join(", "));
+    }
+    if (Array.isArray(data.workItems) && data.workItems.length > 0) {
+      setWorkItems(data.workItems as string[]);
+    }
+    if (typeof data.materialsDelivered === "string") {
+      setMaterialsDelivered(data.materialsDelivered);
+    }
+    if (typeof data.materialsMissing === "string") {
+      setMaterialsMissing(data.materialsMissing);
+    }
+    if (typeof data.notes === "string") {
+      setNotes(data.notes);
+    }
+    if (Array.isArray(data.deviations) && data.deviations.length > 0) {
+      setDeviations(data.deviations as Deviation[]);
+    }
+    if (Array.isArray(data.ata) && data.ata.length > 0) {
+      setAta(data.ata as AtaItem[]);
+    }
+  };
 
   const handleSubmit = () => {
     if (!projectId) return;
@@ -170,6 +197,14 @@ export function DailyReportFormCard({
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Voice Form Section */}
+        <VoiceFormSection
+          formType="daily-report"
+          projectId={projectId || undefined}
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
+
         {/* Project selector */}
         <div className="space-y-1.5">
           <Label htmlFor="project" className="text-xs text-muted-foreground">
@@ -493,42 +528,42 @@ export function DailyReportFormCard({
           <CardHeader className="pb-2 pt-3 px-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <FileText className="h-4 w-4 text-primary" />
-              Övrigt / Anteckningar
+              Övriga anteckningar
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3">
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Övriga kommentarer..."
+              placeholder="Eventuella kommentarer eller noteringar..."
               disabled={disabled}
               className="min-h-[60px] resize-none text-sm"
             />
           </CardContent>
         </Card>
-      </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2 border-t border-border/40 bg-muted/30 px-4 py-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCancel}
-          disabled={disabled}
-          className="text-muted-foreground"
-        >
-          <X className="mr-1.5 h-3.5 w-3.5" />
-          Avbryt
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleSubmit}
-          disabled={disabled || !isValid}
-          className="gap-1.5"
-        >
-          <ClipboardList className="h-3.5 w-3.5" />
-          Spara dagrapport
-        </Button>
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={disabled}
+            className="text-muted-foreground"
+          >
+            <X className="mr-1.5 h-3.5 w-3.5" />
+            Avbryt
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={disabled || !isValid}
+            className="gap-1.5"
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            Skapa dagrapport
+          </Button>
+        </div>
       </div>
     </div>
   );
