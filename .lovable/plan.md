@@ -1,238 +1,114 @@
 
-# Plan: Fixa offertposter-sparande + lägg till Tidsplan
+## Vad som faktiskt händer (orsak)
+Du har rätt i din gissning: det blir **0 poster** eftersom backend just nu **inte kör “add_estimate_items” med dina riktiga rad-data** när du klickar **Spara offert**.
 
-## Problemanalys
+Vi kan se i edge-loggarna att `context.pendingData` faktiskt innehåller allt du fyllde i (projektbeskrivning, tidsplan, items med antal/á-pris osv). Men vi ser **inga loggar** som visar att “Direct pattern matched: add_estimate_items” körs.
 
-Jag har identifierat **tre problem** som gör att datan inte sparas korrekt:
+Det betyder att vår “direct execution”-regel (regex) för add_estimate_items **inte matchar meddelandet** som frontenden skickar, så backend går vidare till AI-tolkning. AI:n ser bara texten:
+> “Lägg till 1 poster på offert med ID … Projektbeskrivning… Tidsplan…”
 
-### Problem 1: Fel databasfält används
-**Backend sparar till:**
-- `introduction_text` ← "Projektbeskrivning" i formuläret
+…men den ser **inte** `items[]` och `addons[]` som ligger i `context.pendingData`. Resultatet blir att tool-anropet (om det ens görs) saknar rad-data ⇒ **0 poster sparas**, och offerten blir 0 överallt.
 
-**Men EstimateBuilder använder:**
-- `scope` ← Projektbeskrivning
-- `assumptions` (JSON array) ← Tidsplan
+### Varför regexen missar
+Meddelandet börjar med:
+> “Lägg till **1** poster på offert med ID …”
 
-Så datan sparas i fel fält och syns därför inte i offerten!
-
-### Problem 2: Tidsplan-fält saknas helt
-Formuläret `EstimateItemsFormCard` har inget tidsplan-fält. Screenshoten från /estimates visar att det finns både "Projektbeskrivning" och "Tidsplan" - men chatformulären har bara "Projektbeskrivning".
-
-### Problem 3: Fältnamn i toolet stämmer inte
-Backend-toolet `add_estimate_items` tar emot `introduction` men sparar det till `introduction_text` istället för `scope`.
+Vår nuvarande regex för add-estimate-items förväntar sig att det kommer “poster/items/offert” direkt efter “lägg till”, men här kommer en siffra emellan (”1”). Därför matchar den inte.
 
 ---
 
-## Lösning
+## Mål
+1) När användaren klickar **Spara offert** ska backend alltid köra `add_estimate_items` med datan i `context.pendingData` (inkl. raderna).
+2) Projektbeskrivning ska hamna i `scope`, tidsplan i `assumptions[]`, rader i `estimate_items`, tillval i `estimate_addons`.
+3) Bekräftelsen “uppdaterad med X poster” ska visa korrekt antal och motsvara det som faktiskt sparats.
+4) (Bonus) Meddelandet som skickas från UI kan gärna innehålla en kort sammanfattning av raderna så att det fungerar även om pendingData saknas.
 
-### 1. Lägg till Tidsplan-fält i EstimateItemsFormCard.tsx
+---
 
-**Före:**
-```
-[Projektbeskrivning] → introduction
-[Offertposter]
-[Tillval]
-```
+## Implementation (vad jag kommer ändra)
 
-**Efter:**
-```
-[Projektbeskrivning] → introduction (mappar till scope)
-[Tidsplan] → timeline (mappar till assumptions)
-[Offertposter]
-[Tillval]
-```
+### A) Backend: gör direct pattern robust (fixar 0 poster)
+**Fil:** `supabase/functions/global-assistant/index.ts`
 
-### 2. Uppdatera EstimateItemsFormData-typen
-
-Lägg till `timeline` fält:
-```typescript
-export interface EstimateItemsFormData {
-  estimateId: string;
-  introduction: string;   // → sparas till "scope"
-  timeline: string;       // → sparas till "assumptions" (som array)
-  items: Array<...>;
-  addons: Array<...>;
-}
+1) Uppdatera `addItemsPattern` så att den matchar även när det finns en siffra efter “Lägg till”.
+   - Nuvarande:
+     - `/(?:lägg till|add|spara)\s*(?:poster|items|offert).../`
+   - Ny (exempel):
+     - Tillåt valfri mängd “antal + ord” efter “lägg till”, t.ex. `Lägg till 1 poster ...`
+```ts
+const addItemsPattern =
+  /(?:lägg till|add|spara)\s*(?:\d+\s*)?(?:poster|rader|offertposter|items|offert)\b.*?(?:offert med ID|estimate_id)\s*[:=]?\s*([a-f0-9-]{36})/i;
 ```
 
-### 3. Uppdatera backend-toolet add_estimate_items
+2) Lägg till en extra “failsafe”-match:
+   - Om `context.pendingData` finns och innehåller `items`/`addons` och meddelandet innehåller ett UUID (estimateId), så kör `add_estimate_items` ändå.
+   - Detta gör att även om texten ändras lite i framtiden, så sparas datan ändå.
 
-Ändra vilka fält som sparas:
-```typescript
-// Spara till RÄTT fält
-if (introduction) {
-  await supabase
-    .from("project_estimates")
-    .update({ 
-      scope: introduction,  // ← Projektbeskrivning
-    })
-    .eq("id", estimate_id);
-}
+3) Normalisera payload innan `executeTool`:
+   - Säkerställ att vi skickar:
+     - `estimate_id` = uuid från texten (eller `context.selectedEstimateId`)
+     - `introduction`, `timeline`, `items`, `addons` från `context.pendingData`
+   - Ignorera extra fält (som `estimateId`) utan att det påverkar.
 
-if (timeline) {
-  // Konvertera till array (en rad per punkt)
-  const assumptionsArray = timeline.split("\n").filter(s => s.trim());
-  await supabase
-    .from("project_estimates")
-    .update({ 
-      assumptions: assumptionsArray,  // ← Tidsplan
-    })
-    .eq("id", estimate_id);
-}
-```
-
-### 4. Uppdatera tool definition
-
-Lägg till `timeline` parameter:
-```typescript
-{
-  name: "add_estimate_items",
-  parameters: {
-    properties: {
-      estimate_id: { type: "string" },
-      introduction: { type: "string", description: "Project description (scope)" },
-      timeline: { type: "string", description: "Timeline/schedule (one item per line)" },  // NY!
-      items: { ... },
-      addons: { ... },
-    },
+4) Efter lyckad körning: returnera `context` som rensar `pendingData` så att ett efterföljande “Visa offerten” inte riskerar att trigga en duplicering senare.
+```ts
+return {
+  ...formatted,
+  context: {
+    pendingData: null,
   },
-}
+};
 ```
-
-### 5. Uppdatera GlobalAssistant.tsx
-
-Inkludera timeline i formData-typen och skicka med i pendingData.
+(Exakt form beror på hur ni vill representera “tomt”, men idén är att pendingData inte ska ligga kvar.)
 
 ---
 
-## Filer att ändra
+### B) Frontend: gör användarmeddelandet mer självbärande (valfritt men rekommenderat)
+**Fil:** `src/pages/GlobalAssistant.tsx`
 
-| Fil | Ändring |
-|-----|---------|
-| `src/components/global-assistant/EstimateItemsFormCard.tsx` | 1. Lägg till `timeline` state |
-| | 2. Lägg till Tidsplan textarea efter Projektbeskrivning |
-| | 3. Inkludera `timeline` i handleSubmit |
-| `src/pages/GlobalAssistant.tsx` | 4. Uppdatera handleEstimateItemsFormSubmit med timeline |
-| `supabase/functions/global-assistant/index.ts` | 5. Uppdatera tool definition med timeline |
-| | 6. Ändra sparlogik: introduction → scope, timeline → assumptions |
+Just nu skickas en text som inte nämner raderna, vilket gör att om direct pattern missar så “ser AI:n” aldrig rad-datan.
 
----
+Jag uppdaterar `handleEstimateItemsFormSubmit` så att meddelandet inkluderar en kort sammanfattning av raderna, t.ex.:
+- “Rad 1: Arbete, st, 10 x 650, ‘ddd’”
+- “Tillval: …”
 
-## Detaljerad implementation
-
-### EstimateItemsFormCard.tsx
-
-**Ny UI efter Projektbeskrivning:**
-```tsx
-{/* Tidsplan */}
-<div className="space-y-1.5">
-  <Label htmlFor="timeline" className="text-xs">
-    Tidsplan
-  </Label>
-  <Textarea
-    id="timeline"
-    placeholder="En punkt per rad..."
-    value={timeline}
-    onChange={(e) => setTimeline(e.target.value)}
-    disabled={disabled}
-    rows={2}
-    className="text-sm"
-  />
-</div>
-```
-
-### Backend (index.ts)
-
-**Tool definition (rad ~600):**
-```typescript
-{
-  name: "add_estimate_items",
-  parameters: {
-    properties: {
-      estimate_id: { type: "string" },
-      introduction: { type: "string", description: "Project description (scope)" },
-      timeline: { type: "string", description: "Timeline/schedule text" },
-      items: { ... },
-      addons: { ... },
-    },
-    required: ["estimate_id"],
-  },
-}
-```
-
-**executeTool (rad ~1570):**
-```typescript
-case "add_estimate_items": {
-  const { estimate_id, introduction, timeline, items, addons } = args as {
-    estimate_id: string;
-    introduction?: string;
-    timeline?: string;
-    items?: Array<...>;
-    addons?: Array<...>;
-  };
-
-  // Verifiera offert...
-
-  // Uppdatera scope (projektbeskrivning) och assumptions (tidsplan)
-  const updateData: Record<string, unknown> = {};
-  if (introduction) {
-    updateData.scope = introduction;
-  }
-  if (timeline) {
-    // Konvertera till array
-    updateData.assumptions = timeline.split("\n").filter(s => s.trim());
-  }
-
-  if (Object.keys(updateData).length > 0) {
-    await supabase
-      .from("project_estimates")
-      .update(updateData)
-      .eq("id", estimate_id);
-  }
-
-  // Resten av logiken för items och addons...
-}
-```
+Detta är inte primär fix (pendingData är primär), men det ger en extra fallback och gör att chatloggen blir tydligare.
 
 ---
 
-## Förväntat resultat
+### C) Verifiering: bevisa att det sparas på riktigt
+När ändringen är på plats testar vi (end-to-end i chatten):
+1) Skapa offert via formuläret (som tidigare).
+2) Fyll i projektbeskrivning + tidsplan + minst 1 rad.
+3) Klicka **Spara offert**.
+4) Kontrollera i loggarna att vi får:
+   - `Direct pattern matched: add_estimate_items` (eller failsafe-path)
+   - att `pendingData.items.length` är 1+
+5) Klicka “Öppna offert” och kontrollera:
+   - Projektbeskrivning visar texten du skrev (scope)
+   - Tidsplan visar punkter (assumptions)
+   - Offertposter visar raderna med korrekt antal/á-pris
+   - Summor är > 0
 
-| Fält i formulär | Sparas till | Visas i offert |
-|-----------------|-------------|----------------|
-| Projektbeskrivning | `scope` | ✅ Projektbeskrivning |
-| Tidsplan | `assumptions` (JSON array) | ✅ Tidsplan |
-| Offertposter | `estimate_items` tabell | ✅ Offertposter |
-| Tillval | `estimate_addons` tabell | ✅ Tillval |
+Om det fortfarande skulle bli 0, kommer nästa steg vara att kontrollera:
+- om insert i `estimate_items` faktiskt sker (och om någon RLS-policy stoppar inserts), men eftersom koden idag skulle kasta error vid insert-fel är det mer sannolikt att det är “regex miss → tool körs utan items”.
 
 ---
 
-## UI efter fix
+## Exakt vilka filer jag kommer ändra
+1) `supabase/functions/global-assistant/index.ts`
+   - Uppdatera addItemsPattern (tillåt “Lägg till 1 …”)
+   - Lägg till failsafe baserat på `context.pendingData`
+   - Rensa `pendingData` efter lyckad uppdatering
+   - (Behåll befintlig create_estimate direct pattern)
 
-```text
-┌─────────────────────────────────────┐
-│ [📝] Lägg till offertposter         │
-│     OFF-2026-0036                   │
-│                                     │
-│ Projektbeskrivning                  │
-│ ┌─────────────────────────────────┐ │
-│ │ VVV                             │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ Tidsplan                     ← NY!  │
-│ ┌─────────────────────────────────┐ │
-│ │ En punkt per rad...             │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ ───── Offertposter ─────            │
-│ Rad 1: [Arbete] [tim] [test] [850] │
-│ + Lägg till rad                     │
-│                                     │
-│ ───── Tillval ─────                 │
-│ + Lägg till tillval                 │
-│                                     │
-│ Totalt: 850 kr                      │
-│                                     │
-│       [Avbryt]  [Spara offert]      │
-└─────────────────────────────────────┘
-```
+2) `src/pages/GlobalAssistant.tsx`
+   - Förbättra text-meddelandet på “Spara offert” så att raderna sammanfattas (fallback + tydlighet)
+
+---
+
+## Varför detta löser problemet du ser på screenshots
+- Dina inmatade rader **finns redan** i `context.pendingData` (vi har logg som bevisar det).
+- Det som saknas är att backend **använder** pendingData för att kalla `add_estimate_items`.
+- När regexen börjar matcha “Lägg till 1 poster …” kommer backend att köra `add_estimate_items` med `items[]` och då blir “uppdaterad med 1 poster” och offerten får verkligt innehåll.
+
