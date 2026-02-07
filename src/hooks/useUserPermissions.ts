@@ -65,7 +65,13 @@ export function useUserPermissions() {
           // No permissions set = use all modules for non-employees (admins/owners)
           setPermissions(ALL_MODULES);
         } else {
-          setPermissions(data.modules);
+          // If user has dashboard access (admin), always give full module access
+          // This ensures new modules are automatically available to admins
+          if (data.modules.includes("dashboard")) {
+            setPermissions(ALL_MODULES);
+          } else {
+            setPermissions(data.modules);
+          }
         }
       } catch (err) {
         console.error("Error in fetchPermissions:", err);
