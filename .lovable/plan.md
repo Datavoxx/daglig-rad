@@ -1,143 +1,94 @@
 
 
-# Plan: Säkerställ konsekventa formulär i Byggio AI
+# Plan: Skapa CheckInFormCard (Personalliggare) i Byggio AI
 
 ## Sammanfattning
 
-Du vill att Byggio AI **alltid** visar interaktiva formulär (kort) istället för textfrågor för dessa åtgärder:
-1. Skapa offert
-2. Skapa projekt
-3. Sök kund
-4. Ny kund
-5. Ny dagrapport
-6. Registrera tid
-7. Visa fakturor
-8. Checka in
+Du vill att check-in-kortet i chatten ska:
+1. Likna Personalliggare-designen med header-ikon och titel
+2. Ha etiketten "Checka in (Personalliggare)" istället för bara "Checka in"
+3. Visa projektväljare med "Välj arbetsplats"
+4. Ha en stor grön "Checka in"-knapp
 
-Problemet idag är att AI:n ibland visar formulär och ibland ställer textfrågor - detta är inkonsekvent.
+## Vad som behöver göras
 
-## Teknisk lösning
+### 1. Skapa ny komponent: CheckInFormCard.tsx
 
-### Del 1: Stärkt systemprompt (hårdare regler)
-
-Lägg till en ny sektion i systemprompt som **förbjuder** AI:n från att ställa textfrågor:
+En ny fil som liknar designen i referensbilden:
 
 ```text
-═══════════════════════════════════════════════════════════════════════════════
-STRIKT REGEL: ALLTID FORMULÄR - ALDRIG TEXTFRÅGOR!
-═══════════════════════════════════════════════════════════════════════════════
-
-Du får ALDRIG svara med textfrågor om du kan visa ett formulär istället.
-
-FÖRBJUDNA SVAR (GÖR ALDRIG DETTA):
-- "Vilken kund gäller offerten?"
-- "Vilket projekt vill du registrera tid på?"
-- "Kan du berätta vilken kund..."
-- "För att skapa en offert behöver jag veta..."
-
-ISTÄLLET - ANROPA ALLTID DESSA VERKTYG:
-| Användarens intent | Verktyg att anropa |
-|-------------------|-------------------|
-| "skapa offert", "ny offert" | get_customers_for_estimate |
-| "skapa projekt", "nytt projekt" | get_project_form |
-| "sök kund", "visa kunder" | get_all_customers |
-| "ny kund", "lägg till kund" | get_customer_form |
-| "ny dagrapport", "skapa rapport" | get_projects_for_daily_report |
-| "registrera tid", "logga tid" | get_active_projects_for_time |
-| "visa fakturor", "mina fakturor" | get_invoice_filter_form |
-| "checka in", "stämpla in" | get_projects_for_check_in |
-
-DETTA ÄR ETT ABSOLUT KRAV - INGA UNDANTAG!
+┌─────────────────────────────────────┐
+│ [✓] Personalliggare                 │
+│     Elektronisk närvaro enligt...   │
+│                                     │
+│ Checka in                           │
+│                                     │
+│ Välj arbetsplats                    │
+│ ┌─────────────────────────────┐     │
+│ │ Välj projekt...           ▼ │     │
+│ └─────────────────────────────┘     │
+│                                     │
+│ ┌─────────────────────────────┐     │
+│ │    ➜  Checka in             │     │
+│ └─────────────────────────────┘     │
+└─────────────────────────────────────┘
 ```
 
-### Del 2: Lägg till saknade verktyg
+Komponenten tar in en lista av projekt och callbacks för submit/cancel.
 
-Vi saknar två verktyg:
+### 2. Uppdatera types (global-assistant.ts)
 
-**1. `get_invoice_filter_form`** - visar faktura-filter (status, kund)
+Lägg till `check_in_form` i Message type-unionen.
 
-```typescript
-{
-  type: "function",
-  function: {
-    name: "get_invoice_filter_form",
-    description: "Show invoice filter form. Use when user wants to view/search invoices.",
-    parameters: { type: "object", properties: {}, required: [] },
-  },
-}
-```
+### 3. Uppdatera MessageList.tsx
 
-**2. `get_projects_for_check_in`** - visar projekt att checka in på
+Importera `CheckInFormCard` och rendera det för `check_in_form` meddelandetyp.
 
-```typescript
-{
-  type: "function",
-  function: {
-    name: "get_projects_for_check_in",
-    description: "Get active projects for check-in. Use when user wants to check in without specifying project.",
-    parameters: { type: "object", properties: {}, required: [] },
-  },
-}
-```
+### 4. Uppdatera GlobalAssistant.tsx
 
-### Del 3: Lägg till frontend-komponenter
+Lägg till:
+- `handleCheckInFormSubmit` - skickar meddelande till AI:n för att checka in på valt projekt
+- `handleCheckInFormCancel` - avbryter incheckning
+- Skicka dessa som props till MessageList
 
-**1. Ny meddelandetyp `check_in_form`**
-- Lägg till i `types/global-assistant.ts`
-- Visa projektlista med "Checka in"-knapp
-
-**2. Ny meddelandetyp `invoice_filter_form`**
-- Lägg till i `types/global-assistant.ts`
-- Visa filter (status: alla/utkast/skickade/betalda)
-
-### Del 4: Backend fallback (säkerhetsnät)
-
-Om AI:n ändå svarar med text när den borde visa formulär, detektera detta och tvinga fram formulär:
-
-```typescript
-// Före textsvaret (rad ~3590)
-const forceFormPatterns = [
-  { pattern: /skapa (ny |en )?offert/i, tool: "get_customers_for_estimate" },
-  { pattern: /(ny|skapa|nytt) projekt/i, tool: "get_project_form" },
-  { pattern: /(sök|hitta|visa).*(kund|kunder)/i, tool: "get_all_customers" },
-  { pattern: /(ny|skapa|lägg till).*(kund)/i, tool: "get_customer_form" },
-  { pattern: /(skapa|ny).*(dag)?rapport/i, tool: "get_projects_for_daily_report" },
-  { pattern: /registrera.*tid|logga.*tid|rapportera.*timmar/i, tool: "get_active_projects_for_time" },
-  { pattern: /visa.*faktur|mina.*faktur/i, tool: "get_invoice_filter_form" },
-  { pattern: /checka? in|stämpla in/i, tool: "get_projects_for_check_in" },
-];
-
-const lowerMessage = message.toLowerCase();
-for (const { pattern, tool } of forceFormPatterns) {
-  if (pattern.test(lowerMessage)) {
-    // Kör verktyget och returnera formulär
-    const toolResult = await executeTool(supabase, userId, tool, {});
-    return formatToolResults(tool, toolResult);
-  }
-}
-```
-
-## Filer att ändra
+## Filer att skapa/ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | 1. Stärkt systemprompt |
-| | 2. Nya verktyg: `get_invoice_filter_form`, `get_projects_for_check_in` |
-| | 3. Verktygsimplementationer i `executeTool` |
-| | 4. Formattering i `formatToolResults` |
-| | 5. Fallback-logik före textsvar |
-| `src/types/global-assistant.ts` | Lägg till `check_in_form` och `invoice_filter_form` typer |
-| `src/components/global-assistant/MessageList.tsx` | Rendera nya kort-typer |
-| `src/components/global-assistant/CheckInFormCard.tsx` | **NY FIL** - projektlista med checka-in knapp |
-| `src/components/global-assistant/InvoiceFilterCard.tsx` | **NY FIL** - fakturafilter |
-| `src/pages/GlobalAssistant.tsx` | Hantera submit/cancel för nya formulär |
+| `src/components/global-assistant/CheckInFormCard.tsx` | **NY FIL** - Personalliggare-liknande kort med projektväljare |
+| `src/types/global-assistant.ts` | Lägg till `check_in_form` i Message type |
+| `src/components/global-assistant/MessageList.tsx` | Importera och rendera CheckInFormCard |
+| `src/pages/GlobalAssistant.tsx` | Lägg till handleCheckInFormSubmit och handleCheckInFormCancel |
 
-## Resultat
+## Tekniska detaljer
+
+**CheckInFormCard props:**
+```typescript
+interface CheckInFormCardProps {
+  projects: Array<{ id: string; name: string; address?: string }>;
+  onSubmit: (projectId: string) => void;
+  onCancel: () => void;
+  disabled?: boolean;
+}
+```
+
+**handleCheckInFormSubmit:**
+```typescript
+const handleCheckInFormSubmit = async (projectId: string) => {
+  await sendMessage(
+    `Checka in på projekt med ID ${projectId}`,
+    { selectedProjectId: projectId }
+  );
+};
+```
+
+## Förväntat resultat
 
 | Före | Efter |
 |------|-------|
-| "Skapa offert" → Text "Vilken kund?" (ibland) | "Skapa offert" → Formulär (alltid) |
-| "Registrera tid" → Text (ibland) | "Registrera tid" → Formulär (alltid) |
-| "Visa fakturor" → Lista (inkonsekvent) | "Visa fakturor" → Filterformulär |
-| "Checka in" → Text "Vilket projekt?" | "Checka in" → Projektformulär |
+| Kort saknas helt för check-in | Snyggt Personalliggare-kort visas |
+| Text "Checka in" utan kontext | Header: "Personalliggare (Elektronisk närvaro)" |
+| — | Underrubrik: "Checka in" |
+| — | Dropdown: "Välj arbetsplats" |
+| — | Grön knapp: "Checka in" |
 
