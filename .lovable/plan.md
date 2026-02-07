@@ -2,167 +2,198 @@
 
 ## Mål
 
-Lägga till röstinspelning i "Lägg till offertposter"-kortet (`EstimateItemsFormCard`) så att användaren kan prata in projektbeskrivning, tidsplan och offertposter istället för att fylla i allt manuellt.
+1. **Lägga till feedback-funktionalitet** efter att en uppgift är helt slutförd i Byggio AI
+2. **Ta bort "Sök kund"-knappen** från snabbförslagen
 
 ---
 
-## Analys
+## Feedback-design
 
-| Komponent | Status | Åtgärd |
-|-----------|--------|--------|
-| `EstimateItemsFormCard.tsx` | Ingen röstfunktion | Lägg till `VoiceFormSection` |
-| `VoiceFormSection.tsx` | Stöder ej `estimate-items` | Lägg till ny formType |
-| `extract-form-data/index.ts` | Stöder ej `estimate-items` | Lägg till nytt prompt |
+### Tvåstegsflöde
+
+**Steg 1: Stjärnbetyg (1-5)**
+```text
+┌─────────────────────────────────────────────────────────┐
+│ ✓ Offert OFF-2026-0042 uppdaterad med 1 poster!         │
+│                                                         │
+│   [Öppna offert]                                        │
+│                                                         │
+│ ────────────────────────────────────────────────────── │
+│                                                         │
+│   Hur nöjd är du med AI-assistenten?                   │
+│                                                         │
+│   ☆  ☆  ☆  ☆  ☆                                       │
+│   1  2  3  4  5                                         │
+│                                                         │
+│                                      [Hoppa över]       │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Steg 2: Textkommentar (efter val av stjärnor)**
+- Om **4-5 stjärnor**: "Vad var det du tyckte var så bra?"
+- Om **1-3 stjärnor**: "Vad tyckte du var så mindre bra?"
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│   Tack! ★★★★★                                          │
+│                                                         │
+│   Vad var det du tyckte var så bra?                    │
+│                                                         │
+│   ┌───────────────────────────────────────────────┐    │
+│   │                                               │    │
+│   │                                               │    │
+│   └───────────────────────────────────────────────┘    │
+│                                                         │
+│                        [Skicka]  [Hoppa över]          │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Lösning
+## Vilka resultattyper ska visa feedback?
 
-### 1. Uppdatera `VoiceFormSection.tsx`
+| Resultattyp | Visa feedback? | Motivering |
+|-------------|----------------|------------|
+| `create_estimate` | ❌ Nej | Följs direkt av "lägg till offertposter" |
+| `add_estimate_items` | ✅ Ja | Offertarbetet är klart |
+| `create_daily_report` | ✅ Ja | Rapporten är skapad |
+| `register_time` | ✅ Ja | Tidsregistreringen är klar |
+| `create_customer` | ✅ Ja | Kunden är skapad |
+| `create_project` | ✅ Ja | Projektet är skapat |
+| `create_work_order` | ✅ Ja | Arbetsordern är skapad |
+| `check_in_complete` | ✅ Ja | Incheckningen är klar |
+| `check_out_complete` | ✅ Ja | Utcheckningen är klar |
 
-Lägg till ny formType:
+---
 
-```typescript
-export type VoiceFormType = 
-  | "daily-report" 
-  | "estimate" 
-  | "work-order" 
-  | "customer" 
-  | "time"
-  | "estimate-items";  // NY
+## Teknisk implementation
+
+### 1. Skapa ny databastabell `ai_feedback`
+
+```sql
+CREATE TABLE public.ai_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES public.assistant_conversations(id) ON DELETE SET NULL,
+  task_type TEXT NOT NULL,  -- t.ex. "add_estimate_items", "create_daily_report"
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS-policy
+ALTER TABLE public.ai_feedback ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert own feedback"
+  ON public.ai_feedback FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can read own feedback"
+  ON public.ai_feedback FOR SELECT
+  USING (auth.uid() = user_id);
 ```
 
-Uppdatera `getFormTypeLabel()`:
+### 2. Skapa ny komponent `FeedbackSection.tsx`
+
+**Placering:** `src/components/global-assistant/FeedbackSection.tsx`
 
 ```typescript
-case "estimate-items":
-  return "offertposter";
-```
-
-### 2. Uppdatera edge-funktionen `extract-form-data`
-
-Lägg till ny case i `getSystemPrompt()`:
-
-```typescript
-case "estimate-items":
-  return `${basePrompt}
-
-Extrahera offertposter från transkriptet. Returnera JSON med följande struktur:
-{
-  "introduction": string,    // Projektbeskrivning
-  "timeline": string,        // Tidsplan (en punkt per rad)
-  "items": [
-    {
-      "article": string,     // Kategori: Arbete, Bygg, Material, etc.
-      "description": string, // Beskrivning av arbetet
-      "quantity": number | null,    // Antal
-      "unit": string,        // Enhet: tim, st, m, m², etc.
-      "unit_price": number   // Pris per enhet
-    }
-  ],
-  "addons": [
-    {
-      "name": string,        // Namn på tillval
-      "price": number        // Pris för tillval
-    }
-  ]
+interface FeedbackSectionProps {
+  taskType: string;           // "add_estimate_items", "create_daily_report", etc.
+  conversationId?: string;
+  onComplete?: () => void;
 }
-
-Vanliga kategorier (article): Arbete, Bygg, Deponi, Framkörning, Förbrukning, Förvaltning, Markarbete, Maskin, Material, Målning, Snöröjning, Städ, Trädgårdsskötsel
-Vanliga enheter (unit): tim, st, m, m², m³, kg, kpl`;
 ```
 
-### 3. Integrera röstinspelning i `EstimateItemsFormCard.tsx`
+**Funktionalitet:**
+- State för `step`: "rating" | "comment" | "complete"
+- State för `rating`: number (1-5)
+- State för `comment`: string
+- Sparar till databasen via Supabase
+- Visar "Tack för din feedback!" när klart
 
-Lägg till import och VoiceFormSection:
+### 3. Uppdatera `ResultCard.tsx`
 
-```tsx
-import { VoiceFormSection } from "./VoiceFormSection";
-```
-
-Lägg till handler för extraherad data:
+Lägg till prop för att visa feedback:
 
 ```typescript
-const handleVoiceData = (data: Record<string, unknown>) => {
-  // Fyll i projektbeskrivning
-  if (data.introduction && typeof data.introduction === "string") {
-    setIntroduction(data.introduction);
-  }
-  
-  // Fyll i tidsplan
-  if (data.timeline && typeof data.timeline === "string") {
-    setTimeline(data.timeline);
-  }
-  
-  // Fyll i offertposter
-  if (Array.isArray(data.items) && data.items.length > 0) {
-    const newItems = data.items.map((item: any) => ({
-      id: crypto.randomUUID(),
-      article: item.article || "Arbete",
-      description: item.description || "",
-      quantity: item.quantity || null,
-      unit: item.unit || "tim",
-      unit_price: item.unit_price || 0,
-    }));
-    setItems(newItems);
-  }
-  
-  // Fyll i tillval
-  if (Array.isArray(data.addons) && data.addons.length > 0) {
-    const newAddons = data.addons.map((addon: any) => ({
-      id: crypto.randomUUID(),
-      name: addon.name || "",
-      price: addon.price || 0,
-    }));
-    setAddons(newAddons);
-  }
-};
+interface ResultCardProps {
+  data: MessageData;
+  content?: string;
+  onNextAction?: (action: NextAction) => void;
+  showFeedback?: boolean;       // NY
+  taskType?: string;            // NY
+  conversationId?: string;      // NY
+}
 ```
 
-Placera `VoiceFormSection` högst upp i CardContent:
+Inkludera `FeedbackSection` i kortets botten när `showFeedback === true`.
 
-```tsx
-<CardContent className="space-y-4">
-  {/* Voice input section */}
-  <VoiceFormSection
-    formType="estimate-items"
-    onDataExtracted={handleVoiceData}
-    disabled={disabled}
-  />
-  
-  {/* Befintliga fält... */}
-</CardContent>
+### 4. Uppdatera `MessageData` i types
+
+Lägg till ny flagga:
+
+```typescript
+interface MessageData {
+  // ... befintliga fält
+  showFeedback?: boolean;  // NY: visar feedback-sektion
+  taskType?: string;       // NY: identifierar uppgiftstypen
+}
+```
+
+### 5. Uppdatera edge-funktionen (global-assistant)
+
+För varje slutförd uppgift, lägg till `showFeedback: true` och `taskType`:
+
+```typescript
+case "add_estimate_items": {
+  return {
+    type: "result",
+    content: "",
+    data: {
+      success: true,
+      resultMessage: `Offert ${result.offer_number} uppdaterad...`,
+      showFeedback: true,          // NY
+      taskType: "add_estimate_items", // NY
+      // ...
+    },
+  };
+}
+```
+
+### 6. Ta bort "Sök kund" från QuickSuggestions
+
+I `QuickSuggestions.tsx`, ta bort objektet:
+
+```typescript
+// TA BORT:
+{
+  label: "Sök kund",
+  icon: Users,
+  prompt: "Sök efter en kund",
+},
 ```
 
 ---
 
-## Filer att ändra
+## Sammanfattning av filer att ändra
 
 | # | Fil | Ändring |
 |---|-----|---------|
-| 1 | `src/components/global-assistant/VoiceFormSection.tsx` | Lägg till `estimate-items` formType och label |
-| 2 | `supabase/functions/extract-form-data/index.ts` | Lägg till prompt för `estimate-items` |
-| 3 | `src/components/global-assistant/EstimateItemsFormCard.tsx` | Integrera `VoiceFormSection` med data-handler |
-
----
-
-## Användarflöde efter implementation
-
-1. Användare skapar en offert → får meddelande "Offert skapad! Lägg till offertposter nedan"
-2. "Lägg till offertposter"-kortet visas med röstinspelningssektion högst upp
-3. Användaren spelar in: *"Projektbeskrivning är renovering av kök. Tidsplan är vecka 12 till vecka 14. Vi behöver 40 timmar arbete för 650 kr per timme, och material för badrum cirka 15 000 kronor."*
-4. AI:n extraherar och fyller i:
-   - Projektbeskrivning: "Renovering av kök"
-   - Tidsplan: "Vecka 12-14"
-   - Offertposter: Arbete 40 tim × 650 kr, Material 1 st × 15000 kr
-5. Användaren granskar och trycker "Spara offert"
+| 1 | **Databas** | Skapa tabell `ai_feedback` med RLS |
+| 2 | `src/components/global-assistant/FeedbackSection.tsx` | **NY FIL** – Feedback UI-komponent |
+| 3 | `src/types/global-assistant.ts` | Lägg till `showFeedback` och `taskType` i `MessageData` |
+| 4 | `src/components/global-assistant/ResultCard.tsx` | Integrera `FeedbackSection` |
+| 5 | `supabase/functions/global-assistant/index.ts` | Lägg till feedback-flaggor i slutförda uppgifter |
+| 6 | `src/components/global-assistant/QuickSuggestions.tsx` | Ta bort "Sök kund" |
 
 ---
 
 ## Resultat
 
-- Röstinspelning tillgänglig i "Lägg till offertposter"-kortet
-- AI:n förstår byggtermer och mappar till rätt kategorier/enheter
-- Konsekvent upplevelse med övriga formulär i appen
-- Sparar tid för användaren
+1. Feedback-ruta visas **endast** efter att uppgifter är helt slutförda
+2. Tvåstegsflöde: Stjärnor först, sedan fråga baserad på betyget
+3. Data sparas i `ai_feedback`-tabellen för analys
+4. "Sök kund"-knappen är borttagen från snabbförslagen
+5. Användaren kan hoppa över feedback om de vill
 
