@@ -2,166 +2,134 @@
 
 ## Mål
 
-Fixa så att artikeln som väljs i Byggio AI-chatten (t.ex. "Arbete") sparas korrekt och visas i offerten.
+Fixa blinknings-buggen där offertlistan visas för en millisekund innan offerten öppnas via "Öppna offert"-knappen.
 
 ---
 
 ## Rotorsak
 
-Det finns en **mismatch mellan värden**:
+Problemet uppstår på grund av renderingsordningen i `Estimates.tsx`:
 
-| Plats | article-värde |
-|-------|---------------|
-| Chat-formulär (EstimateItemsFormCard) | `"labor"`, `"material"`, `"subcontractor"`, `"other"` |
-| Offert-byggare (EstimateTable) | `"Arbete"`, `"Bygg"`, `"Material"`, `"Deponi"` osv |
-| Databas | Tillåter båda, men UI visar fel |
+```
+1. Sidan renderas med manualStarted = false
+2. → Offertlistan visas (synlig i ~50-200ms)
+3. useEffect körs efter renderingen
+4. useEffect väntar på savedEstimates från useQuery
+5. När data laddats: setManualStarted(true)
+6. → EstimateBuilder visas
+```
 
-**Resultat**: När man väljer "Arbete" i chatten sparas `"labor"` → I offerten visas inget (matchar inte listan)
+Resultatet är en kort "blixt" av offertlistan innan själva offerten visas.
 
 ---
 
-## Lösning: Synkronisera artikelkategorierna
+## Lösning
 
-Vi gör så att **samma artikelkategorier** används överallt:
+**Initiera state synkront baserat på URL-parametrar** - inte i useEffect.
 
-1. **Uppdatera chat-formuläret** att använda de svenska kategorierna (`"Arbete"`, `"Material"`, etc)
-2. **Lägg till alla saknade kategorier** i chat-formuläret
-3. **Säkerställ** att backend sparar exakt det värde som skickas (inget mapping-behov)
+Vi gör följande ändringar:
+
+1. **Flytta initial state-logik** från `useEffect` till komponentens initiala state
+2. **Använd `useMemo` eller lazy initialization** för att direkt detektera om vi har en estimateId i URL:en
+3. **Visa loading/skeleton** tills data finns, om vi vet att vi ska öppna en specifik offert
+4. **Undvik att rendera offertlistan** när URL-parameter finns
 
 ---
 
-## Ändringar
+## Teknisk implementation
 
-### 1. EstimateItemsFormCard.tsx (Chat-formulär)
+### Före (nuvarande kod):
+```tsx
+const [manualStarted, setManualStarted] = useState(false);
+const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
 
-Ersätt nuvarande `ARTICLE_TYPES`:
-
-**Från:**
-```typescript
-const ARTICLE_TYPES = [
-  { value: "labor", label: "Arbete" },
-  { value: "material", label: "Material" },
-  { value: "subcontractor", label: "Underentreprenör" },
-  { value: "other", label: "Övrigt" },
-];
-```
-
-**Till:**
-```typescript
-const ARTICLE_OPTIONS = [
-  "Arbete",
-  "Bygg", 
-  "Deponi",
-  "Framkörning",
-  "Förbrukning",
-  "Förvaltning",
-  "Markarbete",
-  "Maskin",
-  "Material",
-  "Målning",
-  "Snöröjning",
-  "Städ",
-  "Trädgårdsskötsel",
-];
-```
-
-Uppdatera Select-komponenten att använda samma värde för `value` och visning.
-
-### 2. Backend: add_estimate_items (global-assistant/index.ts)
-
-Uppdatera mappningen så att `type` sätts baserat på den svenska kategorin:
-
-```typescript
-const itemsToInsert = items.map((item) => {
-  // Mappa svensk kategori till typ
-  const articleLower = (item.article || "").toLowerCase();
-  let type = "labor";
-  if (["material", "bygg", "förbrukning", "maskin"].includes(articleLower)) {
-    type = "material";
-  } else if (["ue", "underentreprenör"].includes(articleLower)) {
-    type = "subcontractor";
+// useEffect körs EFTER första renderingen
+useEffect(() => {
+  const estimateIdFromUrl = searchParams.get("estimateId");
+  // ... väntar på savedEstimates ...
+  if (estimate) {
+    handleSelectEstimate(estimate);  // sätter manualStarted = true
   }
-
-  return {
-    estimate_id,
-    article: item.article,  // Behåll det svenska namnet
-    description: item.description || "",
-    quantity: item.quantity || 1,
-    hours: item.quantity || 1,  // Sätt hours också för att fixa antal-visning
-    unit: item.unit || "st",
-    unit_price: item.unit_price || 0,
-    subtotal: (item.quantity || 1) * (item.unit_price || 0),
-    type,  // Beräknad typ
-    moment: item.description || "Arbete",
-    sort_order: sortOrder++,
-  };
-});
+}, [searchParams, savedEstimates]);
 ```
 
-### 3. Standardvärde
+### Efter (föreslagen fix):
+```tsx
+// Läs URL-parametrar SYNKRONT vid initialisering
+const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
+const offerNumberFromUrl = searchParams.get("offerNumber");
+const hasDeepLink = Boolean(estimateIdFromUrl || offerNumberFromUrl);
 
-Ändra default-artikel i chat-formuläret från `"labor"` till `"Arbete"`:
+// Initiera state baserat på URL-parameter
+const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(
+  estimateIdFromUrl || null
+);
 
-```typescript
-const [items, setItems] = useState<EstimateItem[]>([
-  {
-    id: crypto.randomUUID(),
-    article: "Arbete",  // Svenska istället för engelska
-    description: "",
-    quantity: null,
-    unit: "tim",
-    unit_price: 0,
-  },
-]);
+// Om vi har en deep-link, börja direkt i "pending builder" läge
+const [manualStarted, setManualStarted] = useState(hasDeepLink);
+const [manualData, setManualData] = useState<ManualData | null>(
+  hasDeepLink ? { projectName: "", clientName: "", address: "" } : null
+);
 ```
 
+### Uppdaterad deep-link effekt:
+```tsx
+useEffect(() => {
+  // Om inga URL-params, inget att göra
+  if (!hasDeepLink) return;
+  if (deepLinkProcessedRef.current === paramKey) return;
+  
+  // Vänta på data innan vi kan popula manualData korrekt
+  if (!savedEstimates || savedEstimates.length === 0) return;
+  
+  const estimate = estimateIdFromUrl 
+    ? savedEstimates.find(e => e.id === estimateIdFromUrl)
+    : offerNumberFromUrl
+    ? savedEstimates.find(e => e.offer_number === offerNumberFromUrl)
+    : null;
+    
+  if (estimate) {
+    deepLinkProcessedRef.current = paramKey;
+    // Uppdatera bara manualData med korrekt info
+    setManualData({
+      projectName: estimate.manual_project_name || estimate.projects?.name || "",
+      clientName: estimate.manual_client_name || estimate.projects?.client_name || "",
+      address: "",
+    });
+    setSelectedEstimateId(estimate.id);
+    // manualStarted är redan true!
+  } else {
+    // Offerten hittades inte - gå tillbaka till listan
+    toast({ ... });
+    setManualStarted(false);
+    setManualData(null);
+    setSearchParams({}, { replace: true });
+  }
+}, [savedEstimates]);
+```
+
+### Resultat:
+- `manualStarted` initieras till `true` om URL har `estimateId`
+- Komponenten renderar direkt EstimateBuilder (med eventuellt tomma placeholder-data)
+- EstimateBuilder själv hämtar sin data baserat på `estimateId`
+- **Ingen blixt av offertlistan**
+
 ---
 
-## Tekniska detaljer
+## Fil att ändra
 
-### Mappning artikel → type
-
-| Artikel | type |
-|---------|------|
-| Arbete | labor |
-| Bygg | material |
-| Deponi | material |
-| Framkörning | labor |
-| Förbrukning | material |
-| Förvaltning | labor |
-| Markarbete | labor |
-| Maskin | material |
-| Material | material |
-| Målning | labor |
-| Snöröjning | labor |
-| Städ | labor |
-| Trädgårdsskötsel | labor |
-
-### Fält som sätts vid insert
-
-- `article`: Det svenska kategorivärdet (visas i offerten)
-- `type`: Beräknad typ för summering (labor/material/subcontractor)
-- `hours` + `quantity`: Båda sätts till samma värde → Antal visas korrekt
+**`src/pages/Estimates.tsx`**
+- Flytta URL-läsning till synkron initialisering
+- Initiera state baserat på URL-parametrar
+- Uppdatera useEffect att bara hantera data-populering (inte state-byte)
 
 ---
 
-## Filer att ändra
+## Förväntad beteende efter fix
 
-1. `src/components/global-assistant/EstimateItemsFormCard.tsx`
-   - Ersätt `ARTICLE_TYPES` med `ARTICLE_OPTIONS` (13 kategorier)
-   - Uppdatera Select-komponenten
-   - Ändra default-värde till `"Arbete"`
-
-2. `supabase/functions/global-assistant/index.ts`
-   - Uppdatera `add_estimate_items` för att mappa artikel → type
-   - Sätt `hours` = `quantity` för att fixa antal-display
-
----
-
-## Resultat
-
-- Alla 13 artikelkategorier finns i chat-formuläret
-- Vald artikel (t.ex. "Arbete") sparas och syns i offerten
-- Antal visas korrekt eftersom både `hours` och `quantity` sätts
-- Befintlig kod i offertbyggaren behöver inte ändras
+| Scenario | Före | Efter |
+|----------|------|-------|
+| Klick på "Öppna offert" | Lista blinkar → Offert | Offert visas direkt |
+| Direkt URL med estimateId | Lista blinkar → Offert | Offert visas direkt |
+| Navigera till /estimates | Lista visas | Lista visas (ingen ändring) |
 
