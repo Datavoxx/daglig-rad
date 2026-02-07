@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Sparkles, Plus, History } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Sparkles, Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/global-assistant/ChatInput";
@@ -10,6 +11,7 @@ import type { Message, VerificationMatch, NextAction, ConversationContext, Conve
 import type { Json } from "@/integrations/supabase/types";
 
 export default function GlobalAssistant() {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -333,6 +335,15 @@ export default function GlobalAssistant() {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => navigate(-1)}
+            className="h-8 w-8"
+            title="Tillbaka"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setHistoryOpen(true)}
             className="h-8 w-8"
             title="Visa historik"
@@ -342,16 +353,27 @@ export default function GlobalAssistant() {
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">Global Assistant</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNewChat}
-          className="h-8 w-8"
-          title="Ny chatt"
-          disabled={!hasMessages}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.location.reload()}
+            className="h-8 w-8"
+            title="Uppdatera"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewChat}
+            className="h-8 w-8"
+            title="Ny chatt"
+            disabled={!hasMessages}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Empty state - centered welcome */}
