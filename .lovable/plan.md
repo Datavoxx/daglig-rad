@@ -1,153 +1,167 @@
 
-Målet är att lösa två saker du visar i screenshots:
-1) **Antal (t.ex. 10) syns inte i själva offerten/estimatvyn**, trots att summan räknas som om det vore 10×.
-2) **“Ta bort rad 1” bekräftas i chatten men raden ligger kvar** när du sen “visar offerten”.
 
-Jag har hittat sannolik rotorsak för båda, och hur vi fixar det.
+## Mål
 
----
-
-## 1) Varför “Antal” blir tomt i offerten (men summan stämmer)
-
-### Vad som händer i datan
-I databasen finns dina rader och **quantity är ifyllt**:
-- OFF-2026-0039 har t.ex. rader med `quantity = 10` och `quantity = 5`
-- men `hours` är **null**
-
-Det här är exakt varför du ser:
-- **Summa visar 8 500 (10×850)** → subtotal är redan uträknad och sparad
-- men **Antal-kolumnen är tom** → UI visar fel fält
-
-### Varför UI visar fel fält
-I offert-/estimatkomponenterna används logiken:
-- om `item.type === "labor"` ⇒ visa `item.hours`
-- annars ⇒ visa `item.quantity`
-
-Det gäller både:
-- `src/components/estimates/EstimateTable.tsx` (tabellen i /estimates)
-- `src/components/estimates/QuotePreviewSheet.tsx` (förhandsgranskningen)
-
-Eftersom dina “labor”-rader råkar ha quantity ifyllt men hours = null blir antal tomt.
-
-### Fix-strategi (robust + bakåtkompatibel)
-Vi gör appen tolerant:
-- För “labor”-rader: **använd `hours` om den finns, annars fall back till `quantity`**
-- När vi laddar data: om en “labor”-rad har `hours = null` men `quantity` finns ⇒ **sätt hours = quantity** i state (så all beräkning + UI blir konsekvent)
-
-Detta gör att både gamla och nya offerter visar antal korrekt utan att du behöver ändra hur du matar in data.
+Fixa så att artikeln som väljs i Byggio AI-chatten (t.ex. "Arbete") sparas korrekt och visas i offerten.
 
 ---
 
-## 2) Varför “ta bort rad 1” inte faktiskt tar bort något
+## Rotorsak
 
-Jag ser att backend (server-funktionen) saknar ett riktigt “delete estimate row”-verktyg för offertposter:
-- Det finns verktyg för att skapa offert och lägga till rader (`add_estimate_items`)
-- Men det finns **ingen tool** som tar bort en rad ur `estimate_items`
+Det finns en **mismatch mellan värden**:
 
-Det betyder att chatten kan “låta som” den tog bort raden (text-svar), men inget kan faktiskt raderas i databasen.
+| Plats | article-värde |
+|-------|---------------|
+| Chat-formulär (EstimateItemsFormCard) | `"labor"`, `"material"`, `"subcontractor"`, `"other"` |
+| Offert-byggare (EstimateTable) | `"Arbete"`, `"Bygg"`, `"Material"`, `"Deponi"` osv |
+| Databas | Tillåter båda, men UI visar fel |
 
-### Fix-strategi
-Vi implementerar riktig radering med bekräftelseflöde:
-
-1) Lägg till ett nytt backend-verktyg:
-   - `delete_estimate_item`
-   - Tar emot `estimate_id` + `row_number` (1-baserad) eller `item_id`
-   - Hämtar raderna sorterade på `sort_order`
-   - Hittar rätt rad och `DELETE` på `estimate_items.id`
-   - Räknar om totalsummor (som `add_estimate_items` redan gör)
-
-2) Lägg till ett “confirm”-flöde i backend via `context.pendingAction`/`context.pendingData`:
-   - När användaren skriver “ta bort rad 1 …” svarar AI:n med ett **proposal**: “Bekräfta att jag ska ta bort rad 1 (10 tim) …”
-   - Om användaren svarar “Ja, kör på!” → backend kör `delete_estimate_item`
-   - Om användaren svarar “Avbryt/nej” → backend rensar pendingAction
-
-3) Uppdatera “Visa offert” så att den visar uppdaterad lista (den gör redan det, men nu kommer datan faktiskt vara borttagen).
+**Resultat**: När man väljer "Arbete" i chatten sparas `"labor"` → I offerten visas inget (matchar inte listan)
 
 ---
 
-## Exakta ändringar (filer)
+## Lösning: Synkronisera artikelkategorierna
 
-### A) Visa “antal” korrekt i offert/estimat UI
-1) `src/hooks/useEstimate.ts`
-   - När items mappas in i state:
-     - Om `item.type === "labor"` och `item.hours` är null men `item.quantity` finns:
-       - sätt `hours = Number(item.quantity)`
-       - (valfritt) lämna quantity kvar, men hours blir “source of truth” i UI
+Vi gör så att **samma artikelkategorier** används överallt:
 
-2) `src/components/estimates/EstimateTable.tsx`
-   - I desktop-rendern där “Antal” input/value sätts:
-     - ändra från: `labor ? hours : quantity`
-     - till: `labor ? (hours ?? quantity) : quantity`
-   - I `updateItem` subtotal-logiken för labor:
-     - använd “effectiveHours = updated.hours ?? updated.quantity ?? 0”
-   - I onChange för “Antal” när type = labor:
-     - skriv till `hours` (och ev. spegla till quantity om vi vill vara extra konsekventa)
-
-3) `src/components/estimates/QuotePreviewSheet.tsx`
-   - I tabellen:
-     - ändra antal-cell från `labor ? item.hours : item.quantity`
-     - till `labor ? (item.hours ?? item.quantity) : item.quantity`
-   - Enhet-cell:
-     - idag visas “h” för labor; det är ok. Men om ni vill visa “tim” kan vi göra det också.
-
-Resultat: “10” syns i “Antal” på offerten även när hours råkar vara null.
+1. **Uppdatera chat-formuläret** att använda de svenska kategorierna (`"Arbete"`, `"Material"`, etc)
+2. **Lägg till alla saknade kategorier** i chat-formuläret
+3. **Säkerställ** att backend sparar exakt det värde som skickas (inget mapping-behov)
 
 ---
 
-### B) Implementera riktig radering av offertpost från chatten
-1) `supabase/functions/global-assistant/index.ts` (backend-funktionen)
-   - Lägg till tool definition:
-     - `delete_estimate_item` med parametrar:
-       - `estimate_id: string` (required)
-       - `row_number: number` (optional)
-       - `item_id: string` (optional)
-   - Lägg till executeTool-case:
-     - Validera att offerten tillhör användaren (samma mönster som övriga estimate-tools)
-     - Om `item_id` finns: delete direkt
-     - Om `row_number` finns:
-       - select items order by sort_order
-       - hitta index = row_number - 1
-       - delete på item.id
-     - Efter delete: räkna om totals + uppdatera `project_estimates` (labor/material/subcontractor/total)
-     - Returnera `items_deleted: 1` och gärna vilken rad som togs bort
+## Ändringar
 
-   - Lägg till “pendingAction confirm handler” i request-flödet:
-     - Om `context.pendingAction === "delete_estimate_item"`:
-       - vid “ja/kör/ok” → kör tool med `context.pendingData`
-       - vid “avbryt/nej” → rensa pendingAction
+### 1. EstimateItemsFormCard.tsx (Chat-formulär)
 
-   - Lägg till parsing av användartext:
-     - Matcha fraser som “ta bort rad 1”, “ta bort första raden”, “delete row 1”
-     - Om vi hittar radnummer + estimateId (från text eller context.selectedEstimateId):
-       - returnera `type: "proposal"` + `context: { pendingAction: "delete_estimate_item", pendingData: {...} }`
+Ersätt nuvarande `ARTICLE_TYPES`:
 
-2) (Valfritt) `src/types/global-assistant.ts`
-   - Om vi vill typa pendingAction/pendingData bättre (inte nödvändigt, men gör det tydligare)
+**Från:**
+```typescript
+const ARTICLE_TYPES = [
+  { value: "labor", label: "Arbete" },
+  { value: "material", label: "Material" },
+  { value: "subcontractor", label: "Underentreprenör" },
+  { value: "other", label: "Övrigt" },
+];
+```
 
-Resultat: när chatten säger att den tagit bort raden så är den faktiskt raderad i databasen och “visa offerten” visar uppdaterad lista.
+**Till:**
+```typescript
+const ARTICLE_OPTIONS = [
+  "Arbete",
+  "Bygg", 
+  "Deponi",
+  "Framkörning",
+  "Förbrukning",
+  "Förvaltning",
+  "Markarbete",
+  "Maskin",
+  "Material",
+  "Målning",
+  "Snöröjning",
+  "Städ",
+  "Trädgårdsskötsel",
+];
+```
+
+Uppdatera Select-komponenten att använda samma värde för `value` och visning.
+
+### 2. Backend: add_estimate_items (global-assistant/index.ts)
+
+Uppdatera mappningen så att `type` sätts baserat på den svenska kategorin:
+
+```typescript
+const itemsToInsert = items.map((item) => {
+  // Mappa svensk kategori till typ
+  const articleLower = (item.article || "").toLowerCase();
+  let type = "labor";
+  if (["material", "bygg", "förbrukning", "maskin"].includes(articleLower)) {
+    type = "material";
+  } else if (["ue", "underentreprenör"].includes(articleLower)) {
+    type = "subcontractor";
+  }
+
+  return {
+    estimate_id,
+    article: item.article,  // Behåll det svenska namnet
+    description: item.description || "",
+    quantity: item.quantity || 1,
+    hours: item.quantity || 1,  // Sätt hours också för att fixa antal-visning
+    unit: item.unit || "st",
+    unit_price: item.unit_price || 0,
+    subtotal: (item.quantity || 1) * (item.unit_price || 0),
+    type,  // Beräknad typ
+    moment: item.description || "Arbete",
+    sort_order: sortOrder++,
+  };
+});
+```
+
+### 3. Standardvärde
+
+Ändra default-artikel i chat-formuläret från `"labor"` till `"Arbete"`:
+
+```typescript
+const [items, setItems] = useState<EstimateItem[]>([
+  {
+    id: crypto.randomUUID(),
+    article: "Arbete",  // Svenska istället för engelska
+    description: "",
+    quantity: null,
+    unit: "tim",
+    unit_price: 0,
+  },
+]);
+```
 
 ---
 
-## Tester (end-to-end) vi kör efteråt
-1) Öppna en offert med en “labor”-rad som har quantity men hours null (som i OFF-2026-0039).
-   - Verifiera att “Antal” visar 10 och 5 i /estimates och i förhandsgranskning.
+## Tekniska detaljer
 
-2) I chatten:
-   - “visa offerten”
-   - “ta bort rad 1”
-   - klicka bekräfta (proposal → Ja, kör på!)
-   - “visa offerten” igen
-   - Verifiera att raden verkligen är borta och totalsummor uppdaterade.
+### Mappning artikel → type
 
-3) Edge case:
-   - Försök ta bort rad 99 (för stort nummer) → få tydligt felmeddelande (“Hittar ingen rad 99”)
+| Artikel | type |
+|---------|------|
+| Arbete | labor |
+| Bygg | material |
+| Deponi | material |
+| Framkörning | labor |
+| Förbrukning | material |
+| Förvaltning | labor |
+| Markarbete | labor |
+| Maskin | material |
+| Material | material |
+| Målning | labor |
+| Snöröjning | labor |
+| Städ | labor |
+| Trädgårdsskötsel | labor |
+
+### Fält som sätts vid insert
+
+- `article`: Det svenska kategorivärdet (visas i offerten)
+- `type`: Beräknad typ för summering (labor/material/subcontractor)
+- `hours` + `quantity`: Båda sätts till samma värde → Antal visas korrekt
 
 ---
 
-## Varför detta är rätt fix för dina screenshots
-- Dina rader **har quantity sparat** men UI tittar på hours för labor → därför blir “Antal” tomt.
-- Chat-borttagning har inget riktigt delete-verktyg → därför kan den säga “borttagen” men inget ändras.
+## Filer att ändra
 
-När vi har gjort ovanstående kommer:
-- **Antal** synas som du förväntar dig (t.ex. “10”)
-- **Ta bort rad** fungerar på riktigt och syns direkt vid “visa offert”
+1. `src/components/global-assistant/EstimateItemsFormCard.tsx`
+   - Ersätt `ARTICLE_TYPES` med `ARTICLE_OPTIONS` (13 kategorier)
+   - Uppdatera Select-komponenten
+   - Ändra default-värde till `"Arbete"`
+
+2. `supabase/functions/global-assistant/index.ts`
+   - Uppdatera `add_estimate_items` för att mappa artikel → type
+   - Sätt `hours` = `quantity` för att fixa antal-display
+
+---
+
+## Resultat
+
+- Alla 13 artikelkategorier finns i chat-formuläret
+- Vald artikel (t.ex. "Arbete") sparas och syns i offerten
+- Antal visas korrekt eftersom både `hours` och `quantity` sätts
+- Befintlig kod i offertbyggaren behöver inte ändras
+
