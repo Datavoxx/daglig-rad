@@ -1,110 +1,186 @@
 
 
-## Problem
+## Mål
 
-Dagrapporter (`/daily-reports`) är blockerade för administratörer eftersom modulen `"daily-reports"` saknas i deras `user_permissions`-data i databasen.
-
-### Rotorsak
-
-| Plats | Värde |
-|-------|-------|
-| `ALL_MODULES` i kod | Inkluderar `"daily-reports"` |
-| Befintliga användare i DB | `[dashboard, projects, estimates, customers, guide, settings, invoices, time-reporting, attendance]` - **saknar `daily-reports`** |
-
-Koden använder bara `ALL_MODULES` om användaren **saknar** en rad i `user_permissions`. Om en rad finns läses den direkt - utan att lägga till nya moduler.
+Utöka "Ny dagrapport"-formuläret i Byggio AI (`DailyReportFormCard.tsx`) så att det inkluderar alla sektioner som visas i referensbilden - matchande det fullständiga `ReportEditor`-gränssnittet.
 
 ---
 
-## Lösning
+## Nuvarande vs Önskat
 
-### Steg 1: Uppdatera befintliga användare i databasen
+| Sektion | Nuvarande | Efter ändring |
+|---------|-----------|---------------|
+| Projekt | Dropdown | Dropdown (behålls) |
+| Bemanning | Enkel: "Personal" + "Totalt timmar" | Antal personer, Timmar/person, Roller, Totala timmar (beräknad) |
+| Utfört arbete | Ett textfält | Lista med + knapp för flera arbetsmoment |
+| Avvikelser | Saknas | Lista med typ-dropdown, beskrivning, timmar |
+| ÄTA | Saknas | Lista med anledning, konsekvens, uppskattade timmar |
+| Material | Saknas | Levererat + Saknas (två fält) |
+| Övrigt | Saknas | Textfält för anteckningar |
 
-Lägg till `"daily-reports"` och `"payroll-export"` till alla administratörers permissions:
+---
 
-```sql
--- Lägg till saknade moduler för admins som har permissions men saknar daily-reports
-UPDATE user_permissions
-SET modules = array_append(modules, 'daily-reports')
-WHERE NOT ('daily-reports' = ANY(modules))
-  AND 'dashboard' = ANY(modules);  -- Endast admins (har dashboard)
+## Ändringar
 
--- Lägg även till payroll-export om det saknas
-UPDATE user_permissions  
-SET modules = array_append(modules, 'payroll-export')
-WHERE NOT ('payroll-export' = ANY(modules))
-  AND 'dashboard' = ANY(modules);
+### 1. Frontend: Expandera `DailyReportFormCard.tsx`
+
+Bygg om komponenten med alla sektioner:
+
+```
+┌──────────────────────────────────────────────┐
+│  📋 Ny dagrapport                            │
+├──────────────────────────────────────────────┤
+│  Projekt: [Dropdown...]                      │
+├─────────────────────┬────────────────────────┤
+│  👥 BEMANNING       │  🔧 UTFÖRT ARBETE      │
+│  Antal: [1]         │  [Item 1]          [x] │
+│  Tim/pers: [8]      │  [Item 2]          [x] │
+│  Roller: [input]    │  [+ Lägg till]         │
+│  ────────────────── │                        │
+│  ⏱️ Totalt: 8h      │                        │
+├─────────────────────┼────────────────────────┤
+│  ⚠️ AVVIKELSER      │  📄 ÄTA               │
+│  Inga avvikelser... │  Inga ÄTA...          │
+│  [+ Lägg till]      │  [+ Lägg till]        │
+├─────────────────────┴────────────────────────┤
+│  📦 MATERIAL                                 │
+│  Levererat: [T.ex. virke, gipsskivor...]    │
+│  Saknas: [T.ex. beslag, el-material...]     │
+├──────────────────────────────────────────────┤
+│  📝 ÖVRIGT / ANTECKNINGAR                    │
+│  [Övriga kommentarer...]                     │
+├──────────────────────────────────────────────┤
+│                     [Avbryt] [Spara rapport] │
+└──────────────────────────────────────────────┘
 ```
 
-### Steg 2: Uppdatera koden för framtida säkerhet
+**Ny datastruktur:**
+```typescript
+interface DailyReportFormData {
+  projectId: string;
+  crew: {
+    headcount: number;
+    hoursPerPerson: number;
+    roles: string[];
+    totalHours: number;
+  };
+  workItems: string[];
+  deviations: Array<{
+    type: string;
+    description: string;
+    hours: number | null;
+  }>;
+  ata: Array<{
+    reason: string;
+    consequence: string;
+    estimatedHours: number | null;
+  }>;
+  materials: {
+    delivered: string[];
+    missing: string[];
+  };
+  notes: string;
+}
+```
 
-Ändra `useUserPermissions.ts` så att admins alltid får alla moduler, oavsett vad som finns i databasen:
+### 2. Backend: Uppdatera `create_daily_report` tool
+
+**Tool definition:**
+```typescript
+{
+  name: "create_daily_report",
+  parameters: {
+    properties: {
+      project_id: { type: "string" },
+      headcount: { type: "number" },
+      hours_per_person: { type: "number" },
+      roles: { type: "array", items: { type: "string" } },
+      work_items: { type: "array", items: { type: "string" } },
+      deviations: { type: "array", items: { type: "object" } },
+      ata: { type: "object" },
+      materials_delivered: { type: "array", items: { type: "string" } },
+      materials_missing: { type: "array", items: { type: "string" } },
+      notes: { type: "string" },
+    },
+    required: ["project_id"],
+  },
+}
+```
+
+**Implementation:**
+```typescript
+case "create_daily_report": {
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .insert({
+      user_id: userId,
+      project_id,
+      headcount,
+      hours_per_person: hours_per_person || null,
+      total_hours: headcount && hours_per_person 
+        ? headcount * hours_per_person 
+        : total_hours,
+      roles: roles || [],
+      work_items: work_items || [],
+      deviations: deviations || [],
+      ata: ata || null,
+      materials_delivered: materials_delivered || [],
+      materials_missing: materials_missing || [],
+      notes: notes || null,
+      report_date: new Date().toISOString().split('T')[0],
+    })
+    .select()
+    .single();
+  // ...
+}
+```
+
+### 3. Frontend: Uppdatera `GlobalAssistant.tsx`
+
+Anpassa submit-hanteraren för den nya datastrukturen:
 
 ```typescript
-// I useUserPermissions.ts, rad 59-68
-
-// Gammal logik:
-} else if (!data || !data.modules || data.modules.length === 0) {
-  setPermissions(ALL_MODULES);
-} else {
-  setPermissions(data.modules);  // <- Problemet: använder gamla data
-}
-
-// Ny logik:
-} else if (!data || !data.modules || data.modules.length === 0) {
-  setPermissions(ALL_MODULES);
-} else {
-  // Säkerställ att nya moduler alltid finns för admins
-  if (data.modules.includes("dashboard")) {
-    // Admin: använd ALL_MODULES som fallback
-    const mergedModules = [...new Set([...ALL_MODULES, ...data.modules])];
-    setPermissions(mergedModules);
-  } else {
-    setPermissions(data.modules);
-  }
-}
+const handleDailyReportFormSubmit = async (formData: DailyReportFormData) => {
+  // Skicka strukturerad data till backend
+  await sendMessage(
+    `Skapa dagrapport för projekt ${formData.projectId}`,
+    { dailyReportData: formData }
+  );
+};
 ```
 
-Alternativt: **Enklare lösning** - ge admins alltid `ALL_MODULES` om de har `dashboard`:
+### 4. Frontend: Uppdatera `MessageList.tsx`
 
-```typescript
-} else {
-  // Om användaren har dashboard-access (admin) → ge full åtkomst
-  if (data.modules.includes("dashboard")) {
-    setPermissions(ALL_MODULES);
-  } else {
-    setPermissions(data.modules);
-  }
-}
-```
+Uppdatera props-typen för den nya komponenten.
 
 ---
 
 ## Filer att ändra
 
-| Åtgärd | Beskrivning |
-|--------|-------------|
-| **Databasmigrering** | Lägg till `daily-reports` och `payroll-export` till befintliga admins |
-| `src/hooks/useUserPermissions.ts` | Ge admins full åtkomst till alla moduler automatiskt |
+| Fil | Ändring |
+|-----|---------|
+| `src/components/global-assistant/DailyReportFormCard.tsx` | Total omskrivning med alla sektioner |
+| `src/pages/GlobalAssistant.tsx` | Uppdatera submit-hanteraren |
+| `src/components/global-assistant/MessageList.tsx` | Uppdatera props-typer |
+| `supabase/functions/global-assistant/index.ts` | Uppdatera tool definition + implementation |
 
 ---
 
-## Tekniska detaljer
+## UI/UX-detaljer
 
-### Innan fix
-- Admin försöker gå till `/daily-reports`
-- `hasAccess("daily-reports")` → `false` (saknas i DB)
-- `ProtectedModuleRoute` blockerar och redirectar
-
-### Efter fix
-- Admin försöker gå till `/daily-reports`  
-- `hasAccess("daily-reports")` → `true` (ALL_MODULES används)
-- Sidan laddas korrekt
+- Behåll samma visuella stil som `ReportEditor.tsx`
+- Använd Cards för varje sektion
+- Ikoner: Users (bemanning), Hammer (arbete), AlertTriangle (avvikelser), FileWarning (ÄTA), Package (material), FileText (anteckningar)
+- Tom-state med "Inga X registrerade" + "Lägg till"-knapp
+- Responsivt grid-layout (2 kolumner på desktop, 1 på mobil)
+- Beräkna "Totala timmar" automatiskt från antal × timmar/person
 
 ---
 
 ## Resultat
 
-- Alla administratörer får automatiskt åtkomst till dagrapporter
-- Framtida nya moduler läggs automatiskt till för admins
-- Anställda påverkas inte (de har separat logik)
+1. Användare får ett komplett dagrapportformulär direkt i chatten
+2. Alla fält sparas korrekt till databasen
+3. Samma struktur som i projekt-vyn för konsistens
+4. Snabbare workflow utan att behöva navigera till separat sida
 
