@@ -3209,12 +3209,61 @@ serve(async (req) => {
     console.log("Received message:", message);
     console.log("Context:", context);
 
+    // Define which tools need auto-injection of IDs
+    const PROJECT_TOOLS = [
+      "create_work_order", "search_work_orders", 
+      "create_ata", "search_ata",
+      "get_project_plan", "create_plan", "update_plan",
+      "list_project_files",
+      "generate_attendance_qr", "get_attendance_qr",
+      "check_in", "check_out", "get_active_attendance",
+      "get_project_economy",
+      "search_daily_reports", "create_daily_report",
+      "search_inspections", "create_inspection",
+      "register_time", "get_time_summary",
+    ];
+    
+    const CUSTOMER_TOOLS = [
+      "create_estimate", "create_project",
+    ];
+
     const conversationMessages = [
       {
         role: "system",
         content: `Du är Byggio AI - en avancerad och kunnig AI-assistent för byggföretag. Du hjälper användaren att hantera HELA verksamheten effektivt.
 
 DU ÄR EN "KNOW-IT-ALL" AGENT - du kan svara på frågor och ge detaljerad information om alla aspekter av verksamheten.
+
+═══════════════════════════════════════════════════════════════════════════════
+🚨 VIKTIGAST - AUTOMATISK KONTEXT - LÄS DETTA FÖRST! 🚨
+═══════════════════════════════════════════════════════════════════════════════
+
+FRÅGA ALDRIG användaren om projekt-ID, kund-ID eller liknande OM kontexten redan innehåller det!
+
+${context?.selectedProjectId ? `
+✅ VALT PROJEKT-ID: ${context.selectedProjectId}
+→ Använd AUTOMATISKT detta ID för ALLA projektrelaterade operationer!
+→ Du BEHÖVER INTE fråga "Vilket projekt?" - ANVÄND BARA ID:t direkt!
+` : "❌ Inget projekt valt i kontexten."}
+
+${context?.selectedCustomerId ? `
+✅ VALD KUND-ID: ${context.selectedCustomerId}
+→ Använd AUTOMATISKT detta ID för ALLA kundrelaterade operationer!
+→ Du BEHÖVER INTE fråga "Vilken kund?" - ANVÄND BARA ID:t direkt!
+` : "❌ Ingen kund vald i kontexten."}
+
+${context?.selectedEstimateId ? `
+✅ VALD OFFERT-ID: ${context.selectedEstimateId}
+→ Använd AUTOMATISKT detta ID för ALLA offertrelaterade operationer!
+` : ""}
+
+REGLER FÖR KONTEXT-ANVÄNDNING:
+1. Om selectedProjectId finns → ANVÄND DET för alla project_id-fält UTAN att fråga
+2. Om selectedCustomerId finns → ANVÄND DET för alla customer_id-fält UTAN att fråga
+3. FRÅGA BARA om ID om det INTE finns i kontexten ovan!
+4. Säg "för det aktuella projektet" eller "för aktuell kund" istället för att fråga om ID
+
+═══════════════════════════════════════════════════════════════════════════════
 
 FUNKTIONER DU KAN UTFÖRA:
 
@@ -3245,30 +3294,30 @@ FUNKTIONER DU KAN UTFÖRA:
 ✅ **EGENKONTROLLER**
 - Skapa och söka inspektioner/kontroller
 
-👷 **ARBETSORDRAR** (NYTT!)
+👷 **ARBETSORDRAR**
 - Skapa arbetsordrar för projekt
 - Sök, visa och uppdatera arbetsordrar
 - Markera som klara
 
-💰 **ÄTA-ARBETEN** (NYTT!)
+💰 **ÄTA-ARBETEN**
 - Skapa ÄTA (ändrings- och tilläggsarbeten)
 - Sök och hantera ÄTA-ärenden
 - Uppdatera status och kostnader
 
-📅 **PLANERING** (NYTT!)
+📅 **PLANERING**
 - Skapa projektplaneringar med faser
 - Uppdatera och visa planeringsdata
 - Se Gantt-liknande översikt
 
-📎 **FILER** (NYTT!)
+📎 **FILER**
 - Lista alla filer för ett projekt
 - Ta bort filer
 
-📱 **QR-KODER FÖR NÄRVARO** (NYTT!)
+📱 **QR-KODER FÖR NÄRVARO**
 - Generera QR-koder för närvaroregistrering
 - Visa befintliga QR-koder
 
-💵 **EKONOMIÖVERSIKT** (NYTT!)
+💵 **EKONOMIÖVERSIKT**
 - Visa fullständig ekonomisk sammanfattning
 - Budget vs offert vs fakturerat
 - ÄTA-summering
@@ -3285,7 +3334,7 @@ VIKTIGT - SKILLNAD MELLAN HÄMTA/VISA OCH UPPDATERA:
 - När användaren vill "ändra", "uppdatera" → använd update_* verktyg
 - ALDRIG använd update_* utan faktiska ändringar
 
-HANTERING AV PROJEKT-RELATERADE FRÅGOR:
+HANTERING AV PROJEKT-RELATERADE FRÅGOR (använd kontextens projekt-ID automatiskt):
 - "Skapa arbetsorder för projektet" → create_work_order
 - "Visa arbetsordrar" → search_work_orders
 - "Lägg till ÄTA" → create_ata
@@ -3295,10 +3344,10 @@ HANTERING AV PROJEKT-RELATERADE FRÅGOR:
 - "Generera QR-kod" → generate_attendance_qr
 - "Visa filer" → list_project_files
 
-INTERAKTIVA FORMULÄR - ANVÄND DESSA NÄR ANVÄNDAREN INTE GER SPECIFIK INFO:
-- "registrera tid" (utan projekt) → get_active_projects_for_time
-- "skapa offert" (utan kund) → get_customers_for_estimate
-- "ny dagrapport" (utan projekt) → get_projects_for_daily_report
+INTERAKTIVA FORMULÄR - ANVÄND DESSA NÄR ANVÄNDAREN INTE GER SPECIFIK INFO OCH KONTEXT SAKNAR ID:
+- "registrera tid" (utan projekt OCH inget selectedProjectId) → get_active_projects_for_time
+- "skapa offert" (utan kund OCH inget selectedCustomerId) → get_customers_for_estimate
+- "ny dagrapport" (utan projekt OCH inget selectedProjectId) → get_projects_for_daily_report
 - "sök kund", "visa kunder" → get_all_customers
 - "ny kund" → get_customer_form
 - "skapa projekt" (utan info) → get_project_form
@@ -3309,23 +3358,29 @@ REGLER:
 3. Föreslå alltid relevanta nästa steg efter en åtgärd
 4. Vid radering, varna alltid användaren
 5. Använd rätt verktyg för rätt uppgift
-
-KONTEXT:
-${context?.selectedCustomerId ? `- Vald kund-ID: ${context.selectedCustomerId}` : ""}
-${context?.selectedProjectId ? `- Valt projekt-ID: ${context.selectedProjectId}` : ""}
-${context?.selectedEstimateId ? `- Vald offert-ID: ${context.selectedEstimateId}` : ""}
-${context?.pendingAction ? `- Väntande åtgärd: ${context.pendingAction}` : ""}
+6. ANVÄND ALLTID kontext-IDs istället för att fråga användaren!
 
 Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
       },
     ];
 
+    // Enrich history with context information so AI "sees" which entities were discussed
     if (history && Array.isArray(history)) {
       for (const msg of history) {
         if (msg.role === "user" || msg.role === "assistant") {
+          let content = msg.content || "";
+          
+          // Append context info from message data if available
+          if (msg.data?.project_name) {
+            content += ` [Projekt: ${msg.data.project_name}]`;
+          }
+          if (msg.data?.customer_name) {
+            content += ` [Kund: ${msg.data.customer_name}]`;
+          }
+          
           conversationMessages.push({
             role: msg.role,
-            content: msg.content || "",
+            content,
           });
         }
       }
@@ -3376,6 +3431,18 @@ Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
       const toolCall = choice.message.tool_calls[0];
       const toolName = toolCall.function.name;
       const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
+
+      // AUTO-INJECT project_id if missing but exists in context
+      if (!toolArgs.project_id && context?.selectedProjectId && PROJECT_TOOLS.includes(toolName)) {
+        toolArgs.project_id = context.selectedProjectId;
+        console.log(`Auto-injected project_id: ${context.selectedProjectId} for tool: ${toolName}`);
+      }
+      
+      // AUTO-INJECT customer_id if missing but exists in context
+      if (!toolArgs.customer_id && context?.selectedCustomerId && CUSTOMER_TOOLS.includes(toolName)) {
+        toolArgs.customer_id = context.selectedCustomerId;
+        console.log(`Auto-injected customer_id: ${context.selectedCustomerId} for tool: ${toolName}`);
+      }
 
       console.log("Tool call:", toolName, toolArgs);
 
