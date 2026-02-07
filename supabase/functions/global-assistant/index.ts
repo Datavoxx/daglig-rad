@@ -588,6 +588,47 @@ const tools = [
       },
     },
   },
+  // === ESTIMATE ITEMS ===
+  {
+    type: "function",
+    function: {
+      name: "add_estimate_items",
+      description: "Add items (rows) to an existing estimate. Use when user provides estimate items data after creating an estimate.",
+      parameters: {
+        type: "object",
+        properties: {
+          estimate_id: { type: "string", description: "Estimate ID" },
+          introduction: { type: "string", description: "Project description / introduction text" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                article: { type: "string", description: "Article type: labor, material, subcontractor, other" },
+                description: { type: "string", description: "Item description" },
+                quantity: { type: "number", description: "Quantity" },
+                unit: { type: "string", description: "Unit (tim, st, m, etc.)" },
+                unit_price: { type: "number", description: "Unit price" },
+              },
+            },
+            description: "List of estimate items",
+          },
+          addons: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Addon name" },
+                price: { type: "number", description: "Addon price" },
+              },
+            },
+            description: "Optional addons",
+          },
+        },
+        required: ["estimate_id"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -1525,6 +1566,125 @@ async function executeTool(
 
       if (error) throw error;
       return data;
+    }
+
+    case "add_estimate_items": {
+      const { estimate_id, introduction, items, addons } = args as {
+        estimate_id: string;
+        introduction?: string;
+        items?: Array<{
+          article: string;
+          description: string;
+          quantity?: number | null;
+          unit: string;
+          unit_price: number;
+        }>;
+        addons?: Array<{
+          name: string;
+          price: number;
+        }>;
+      };
+
+      // First, verify the estimate belongs to the user
+      const { data: estimate, error: fetchError } = await supabase
+        .from("project_estimates")
+        .select("id, offer_number")
+        .eq("id", estimate_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError || !estimate) {
+        throw new Error("Offert hittades inte");
+      }
+
+      // Update introduction text if provided
+      if (introduction) {
+        await supabase
+          .from("project_estimates")
+          .update({ introduction_text: introduction })
+          .eq("id", estimate_id);
+      }
+
+      // Get current max sort_order for items
+      const { data: existingItems } = await supabase
+        .from("estimate_items")
+        .select("sort_order")
+        .eq("estimate_id", estimate_id)
+        .order("sort_order", { ascending: false })
+        .limit(1);
+
+      let sortOrder = (existingItems?.[0]?.sort_order || 0) + 1;
+      let itemsAdded = 0;
+
+      // Add items
+      if (items && items.length > 0) {
+        const itemsToInsert = items.map((item) => ({
+          estimate_id,
+          article: item.article || "labor",
+          description: item.description || "",
+          quantity: item.quantity || 1,
+          unit: item.unit || "st",
+          unit_price: item.unit_price || 0,
+          subtotal: (item.quantity || 1) * (item.unit_price || 0),
+          type: item.article || "labor",
+          moment: "Arbete",
+          sort_order: sortOrder++,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("estimate_items")
+          .insert(itemsToInsert);
+
+        if (itemsError) throw itemsError;
+        itemsAdded = items.length;
+      }
+
+      // Add addons
+      if (addons && addons.length > 0) {
+        const addonsToInsert = addons.map((addon, index) => ({
+          estimate_id,
+          name: addon.name,
+          price: addon.price,
+          is_selected: false,
+          sort_order: index + 1,
+        }));
+
+        const { error: addonsError } = await supabase
+          .from("estimate_addons")
+          .insert(addonsToInsert);
+
+        if (addonsError) throw addonsError;
+        itemsAdded += addons.length;
+      }
+
+      // Recalculate totals
+      const { data: allItems } = await supabase
+        .from("estimate_items")
+        .select("subtotal, type")
+        .eq("estimate_id", estimate_id);
+
+      const laborCost = allItems?.reduce((sum, i) => i.type === "labor" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const materialCost = allItems?.reduce((sum, i) => i.type === "material" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const subcontractorCost = allItems?.reduce((sum, i) => i.type === "subcontractor" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const totalExclVat = allItems?.reduce((sum, i) => sum + (i.subtotal || 0), 0) || 0;
+      const totalInclVat = totalExclVat * 1.25;
+
+      await supabase
+        .from("project_estimates")
+        .update({
+          labor_cost: laborCost,
+          material_cost: materialCost,
+          subcontractor_cost: subcontractorCost,
+          total_excl_vat: totalExclVat,
+          total_incl_vat: totalInclVat,
+        })
+        .eq("id", estimate_id);
+
+      return {
+        id: estimate.id,
+        offer_number: estimate.offer_number,
+        items_added: itemsAdded,
+      };
     }
 
     case "create_project": {
@@ -2769,19 +2929,35 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
     // === CREATE ===
     case "create_estimate": {
       const estimate = results as { id: string; offer_number: string };
+      // Return estimate_items_form to continue the flow
+      return {
+        type: "estimate_items_form",
+        content: `Offert ${estimate.offer_number} skapad! Lägg till offertposter nedan.`,
+        data: {
+          estimateId: estimate.id,
+          offerNumber: estimate.offer_number,
+        },
+        context: {
+          selectedEstimateId: estimate.id,
+        },
+      };
+    }
+
+    case "add_estimate_items": {
+      const result = results as { id: string; offer_number: string; items_added: number };
       return {
         type: "result",
         content: "",
         data: {
           success: true,
-          resultMessage: `Offert ${estimate.offer_number} har skapats!`,
+          resultMessage: `Offert ${result.offer_number} uppdaterad med ${result.items_added} poster!`,
           link: {
             label: "Öppna offert",
-            href: `/estimates?estimateId=${estimate.id}`,
+            href: `/estimates?estimateId=${result.id}`,
           },
           nextActions: [
+            { label: "Visa offert", icon: "file-text", prompt: "Visa offerten" },
             { label: "Skapa ny offert", icon: "plus", prompt: "Skapa en ny offert" },
-            { label: "Visa alla offerter", icon: "list", prompt: "Visa mina offerter" },
           ],
         },
       };

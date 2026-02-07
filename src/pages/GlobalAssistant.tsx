@@ -360,6 +360,47 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt arbetsorderskapande");
   };
 
+  const handleEstimateItemsFormSubmit = async (formData: {
+    estimateId: string;
+    introduction: string;
+    items: Array<{
+      article: string;
+      description: string;
+      quantity: number | null;
+      unit: string;
+      unit_price: number;
+    }>;
+    addons: Array<{
+      name: string;
+      price: number;
+    }>;
+  }) => {
+    const itemsCount = formData.items.length;
+    const addonsCount = formData.addons.length;
+    
+    let msg = `Lägg till ${itemsCount} poster på offert med ID ${formData.estimateId}`;
+    if (formData.introduction) {
+      msg += `. Projektbeskrivning: "${formData.introduction}"`;
+    }
+    if (addonsCount > 0) {
+      msg += `. ${addonsCount} tillval`;
+    }
+    
+    // Pass structured data for the AI to process
+    await sendMessage(msg, { 
+      selectedEstimateId: formData.estimateId,
+      pendingData: formData as unknown as Record<string, unknown>,
+    });
+  };
+
+  const handleEstimateItemsFormCancel = async () => {
+    await sendMessage("Avbryt tillägg av offertposter");
+  };
+
+  const handleEstimateItemsFormOpen = (estimateId: string) => {
+    navigate(`/estimates?estimateId=${estimateId}`);
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -469,6 +510,9 @@ export default function GlobalAssistant() {
             onCheckInFormCancel={handleCheckInFormCancel}
             onWorkOrderFormSubmit={handleWorkOrderFormSubmit}
             onWorkOrderFormCancel={handleWorkOrderFormCancel}
+            onEstimateItemsFormSubmit={handleEstimateItemsFormSubmit}
+            onEstimateItemsFormCancel={handleEstimateItemsFormCancel}
+            onEstimateItemsFormOpen={handleEstimateItemsFormOpen}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">
