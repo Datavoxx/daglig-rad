@@ -3526,21 +3526,44 @@ serve(async (req) => {
     }
     
     // Pattern 2: Lägg till poster på offert med ID uuid (with pending data in context)
-    const addItemsPattern = /(?:lägg till|add|spara)\s*(?:poster|items|offert).*(?:offert med ID|estimate_id)[=:\s]*([a-f0-9-]{36})/i;
+    // Updated regex to allow numbers between "lägg till" and "poster" (e.g., "Lägg till 1 poster...")
+    const addItemsPattern = /(?:lägg till|add|spara)\s*(?:\d+\s*)?(?:poster|rader|offertposter|items|offert)\b.*?(?:offert med ID|estimate_id)\s*[:=]?\s*([a-f0-9-]{36})/i;
     const addItemsMatch = message.match(addItemsPattern);
     
-    if (addItemsMatch && context?.pendingData) {
-      const estimateId = addItemsMatch[1] || context?.selectedEstimateId;
+    // Also extract UUID from message for failsafe
+    const uuidInMessage = message.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i)?.[1];
+    
+    // Failsafe: If pendingData has items/addons AND message contains UUID, execute directly
+    const hasPendingEstimateData = context?.pendingData && 
+      (Array.isArray(context.pendingData.items) || Array.isArray(context.pendingData.addons));
+    const estimateIdFromContext = context?.pendingData?.estimateId || context?.selectedEstimateId;
+    
+    if ((addItemsMatch || (hasPendingEstimateData && (uuidInMessage || estimateIdFromContext))) && context?.pendingData) {
+      const estimateId = addItemsMatch?.[1] || uuidInMessage || estimateIdFromContext;
       
-      console.log("Direct pattern matched: add_estimate_items", { estimateId, pendingData: context.pendingData });
+      console.log("Direct pattern matched: add_estimate_items", { 
+        estimateId, 
+        pendingData: context.pendingData,
+        matchMethod: addItemsMatch ? "regex" : "failsafe"
+      });
       
       const result = await executeTool(supabase, userId, "add_estimate_items", {
         estimate_id: estimateId,
-        ...context.pendingData,
+        introduction: context.pendingData.introduction,
+        timeline: context.pendingData.timeline,
+        items: context.pendingData.items,
+        addons: context.pendingData.addons,
       });
       
       const formatted = formatToolResults("add_estimate_items", result);
-      return new Response(JSON.stringify(formatted), {
+      
+      // Clear pendingData after successful execution to prevent duplicates
+      return new Response(JSON.stringify({
+        ...formatted,
+        context: {
+          pendingData: null,
+        },
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

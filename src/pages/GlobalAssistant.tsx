@@ -379,18 +379,30 @@ export default function GlobalAssistant() {
     const itemsCount = formData.items.length;
     const addonsCount = formData.addons.length;
     
-    let msg = `Lägg till ${itemsCount} poster på offert med ID ${formData.estimateId}`;
+    // Build message with detailed row summary (fallback for AI if pendingData is missed)
+    let msg = `Lägg till ${itemsCount} offertposter på offert med ID ${formData.estimateId}`;
     if (formData.introduction) {
       msg += `. Projektbeskrivning: "${formData.introduction}"`;
     }
     if (formData.timeline) {
       msg += `. Tidsplan: "${formData.timeline}"`;
     }
-    if (addonsCount > 0) {
-      msg += `. ${addonsCount} tillval`;
+    
+    // Include short summary of each row for visibility in chat and AI fallback
+    if (formData.items.length > 0) {
+      const rowSummaries = formData.items.map((item, i) => {
+        const qty = item.quantity ?? 1;
+        return `Rad ${i + 1}: ${item.article}, ${item.unit}, ${qty} x ${item.unit_price} kr, "${item.description || "-"}"`;
+      });
+      msg += `. Rader: ${rowSummaries.join("; ")}`;
     }
     
-    // Pass structured data for the AI to process
+    if (addonsCount > 0) {
+      const addonSummaries = formData.addons.map(a => `${a.name}: ${a.price} kr`);
+      msg += `. Tillval: ${addonSummaries.join(", ")}`;
+    }
+    
+    // Pass structured data for the backend to process directly
     await sendMessage(msg, { 
       selectedEstimateId: formData.estimateId,
       pendingData: formData as unknown as Record<string, unknown>,
