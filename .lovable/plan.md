@@ -1,165 +1,127 @@
 
 
-# Plan: Förbättra Global Assistant UX
+# Plan: Fixa kundvisning vid val i verifikationskort
 
-## Problem 1: Ingen knapp för ny chatt
-Det finns ingen möjlighet att rensa konversationen och starta om. Användaren fastnar i samma chatthistorik.
+## Problem
 
-## Problem 2: Ineffektiv projektlistning
-När användaren säger "Visa mina aktiva projekt" och får en träff, visar assistenten ett verifikationskort som kräver att man trycker på det och bekräftar "Ja, det är Tony Test". Det är onödigt när man bara vill **se** sina projekt.
+| Vad som händer nu | Förväntat beteende |
+|-------------------|-------------------|
+| Klickar på kund → "Ja, det är Mahad" → AI svarar konstigt | Klickar på kund → Visar kundens fullständiga info direkt |
+| Prompten säger "kundens namn, stad eller e-post" | Ska bara be om "kundens namn" |
 
-| Nuvarande flöde | Önskat flöde |
-|-----------------|--------------|
-| 1. "Visa aktiva projekt" | 1. "Visa aktiva projekt" |
-| 2. Visar verifikationskort med "Välj projekt" | 2. Visar projektlista med detaljer direkt |
-| 3. Användaren klickar på projekt | - |
-| 4. "Ja, det är Tony Test" skickas | - |
-| 5. AI bekräftar val | - |
+## Rotorsak
+
+1. **Prompten instruerar inte AI:n** att direkt använda `get_customer` när en kund bekräftas
+2. **Meddelandet "Ja, det är X"** ger AI:n fritt spelrum att svara vad som helst
+3. AI:n försöker tolka bekräftelsen och fortsätter med nästa steg (t.ex. offert) istället för att visa kundinformationen
 
 ## Lösning
 
-### 1. Lägg till "Ny chatt"-knapp
-Placera en knapp i headern (bredvid chattfältet) som rensar `messages` och `context`.
+### Alternativ A: Skicka strukturerat kommando istället för fritext
+
+Ändra så att frontend skickar ett tydligt kommando med ID:t istället för "Ja, det är Mahad":
+
+```typescript
+// FÖRE (GlobalAssistant.tsx rad 147):
+await sendMessage(`Ja, det är ${match.title}`, newContext);
+
+// EFTER:
+await sendMessage(`[SELECT_CUSTOMER:${match.id}] ${match.title}`, newContext);
+```
+
+Uppdatera sedan edge-funktionens prompt för att hantera detta:
+
+```typescript
+// I system-prompten:
+Om meddelandet börjar med [SELECT_CUSTOMER:uuid], anropa DIREKT get_customer med det ID:t.
+Visa sedan kundens fullständiga information.
+```
+
+### Alternativ B: (Bättre) Anropa API direkt från frontend
+
+Istället för att skicka ett meddelande och låta AI tolka det, kan vi anropa `get_customer` direkt från frontend när användaren klickar:
+
+```typescript
+// handleVerificationSelect för "customer":
+// 1. Anropa edge function med action: "get_customer" och customer_id
+// 2. Visa resultatet direkt som ett nytt meddelande
+```
+
+### Alternativ C: (Rekommenderat) Förbättra prompten + kontextmedvetenhet
+
+Uppdatera edge-funktionens system-prompt:
 
 ```text
-┌─────────────────────────────────────┐
-│  [Sparkles]  Global Assistant  [+]  │  <-- "+" knapp för ny chatt
-├─────────────────────────────────────┤
-│                                     │
-│  Chattmeddelanden...                │
-│                                     │
-└─────────────────────────────────────┘
+NÄR ANVÄNDAREN BEKRÄFTAR VAL:
+- Om context.selectedCustomerId finns och användaren bekräftar ("Ja", "det är X"):
+  → Anropa OMEDELBART get_customer med selectedCustomerId
+- Visa alltid fullständig information efter bekräftelse
 ```
 
-### 2. Ny meddelandetyp: "list" 
-Skapa en ny meddelandetyp `list` som visar projekt/offerter/kunder i ett snyggt format utan att kräva interaktion.
+## Teknisk implementation (Alternativ C)
 
-**Logik i Edge Function:**
-- Om användaren frågar "Visa X" (list intent) → returnera `type: "list"` med detaljerad info
-- Om användaren behöver välja för att göra något (t.ex. skapa offert) → fortsätt med `type: "verification"`
+### Fil 1: `supabase/functions/global-assistant/index.ts`
 
-## Teknisk implementation
-
-### Fil 1: `src/types/global-assistant.ts`
-
-Lägg till ny meddelandetyp:
+#### Ändring 1: Uppdatera prompt-texten (rad ~1779-1812)
 
 ```typescript
-export interface Message {
-  // ...
-  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list";
-}
+// FÖRE:
+`Innan jag kan skapa en offert, behöver jag veta vilken kund offerten ska skapas för. Har du en befintlig kund, eller ska jag skapa en ny? Om befintlig, vänligen ange **kundens namn, stad eller e-post**.`
 
-export interface MessageData {
-  // ... befintliga fält
-  
-  // För list
-  listItems?: ListItem[];
-  listType?: "project" | "customer" | "estimate" | "invoice" | "inspection";
-}
-
-export interface ListItem {
-  id: string;
-  title: string;
-  subtitle?: string;
-  status?: string;
-  statusColor?: "green" | "yellow" | "blue" | "gray";
-  details?: { label: string; value: string }[];
-  link?: string;
-}
+// EFTER (sök efter denna text i filen och ändra):
+`Innan jag kan skapa en offert, behöver jag veta vilken kund offerten ska skapas för. Har du en befintlig kund, eller ska jag skapa en ny? Om befintlig, vänligen ange **kundens namn**.`
 ```
 
-### Fil 2: `src/components/global-assistant/ListCard.tsx` (NY FIL)
-
-Ny komponent för att visa listor:
+#### Ändring 2: Lägg till regel i system-prompten (rad ~1790-1812)
 
 ```typescript
-// Visar projekt/offerter/etc i ett rent listformat
-// Varje rad har:
-// - Ikon baserat på listType
-// - Titel + subtitle
-// - Status-badge
-// - Detaljer (adress, belopp, datum, etc.)
-// - "Öppna"-länk
+// LÄGG TILL i system-prompten:
+HANTERING AV BEKRÄFTELSER:
+- När användaren bekräftar ett val (säger "ja", "det är X", "korrekt", "rätt"):
+  - Om context.selectedCustomerId finns → anropa get_customer med det ID:t
+  - Om context.selectedProjectId finns → anropa get_project med det ID:t  
+  - Om context.selectedEstimateId finns → anropa get_estimate med det ID:t
+- Visa ALLTID fullständig information efter bekräftelse, inte bara "OK"
 ```
 
-### Fil 3: `src/components/global-assistant/MessageList.tsx`
+### Fil 2: `src/pages/GlobalAssistant.tsx`
 
-Lägg till rendering för `type === "list"`:
+#### Ändring: Skicka tydligare meddelande (rad 147)
 
 ```typescript
-{message.type === "list" && message.data && (
-  <ListCard data={message.data} />
-)}
+// FÖRE:
+await sendMessage(`Ja, det är ${match.title}`, newContext);
+
+// EFTER:
+await sendMessage(`Visa information om ${match.title}`, newContext);
 ```
 
-### Fil 4: `src/pages/GlobalAssistant.tsx`
+## Förväntad flödesförbättring
 
-Lägg till:
-1. `handleNewChat`-funktion som rensar state
-2. Header med ny chatt-knapp
-
-```typescript
-const handleNewChat = () => {
-  setMessages([]);
-  setContext({});
-};
-
-// I JSX, lägg till header när hasMessages:
-<div className="flex items-center justify-between border-b px-4 py-2">
-  <h1>Global Assistant</h1>
-  <Button variant="ghost" size="icon" onClick={handleNewChat}>
-    <Plus className="h-4 w-4" />
-  </Button>
-</div>
-```
-
-### Fil 5: `supabase/functions/global-assistant/index.ts`
-
-Uppdatera `formatToolResults` för `search_projects`:
-
-```typescript
-case "search_projects": {
-  const projects = results as Array<{...}>;
-  
-  // Returnera som list istället för verification
-  return {
-    type: "list",
-    content: `Här är dina ${status || ""} projekt:`,
-    data: {
-      listType: "project",
-      listItems: projects.map((p) => ({
-        id: p.id,
-        title: p.name,
-        subtitle: p.client_name || "Ingen kund",
-        status: translateStatus(p.status),
-        statusColor: getStatusColor(p.status),
-        details: [
-          { label: "Adress", value: p.address || "-" },
-          { label: "Stad", value: p.city || "-" },
-        ],
-        link: `/projects/${p.id}`,
-      })),
-    },
-  };
-}
+```text
+┌─────────────────────────────────────────────────────────┐
+│ FÖRE:                                                   │
+│ 1. Användare klickar på "Mahad"                        │
+│ 2. Skickar "Ja, det är Mahad"                          │
+│ 3. AI svarar konstigt eller frågar igen                │
+│                                                         │
+│ EFTER:                                                  │
+│ 1. Användare klickar på "Mahad"                        │
+│ 2. Skickar "Visa information om Mahad"                 │
+│    + context: { selectedCustomerId: "uuid-123" }       │
+│ 3. AI anropar get_customer("uuid-123")                 │
+│ 4. Visar: Mahad, email, telefon, adress, projekt, etc. │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `src/types/global-assistant.ts` | Lägg till `list` type och `ListItem` interface |
-| `src/components/global-assistant/ListCard.tsx` | NY: Komponent för listvisning |
-| `src/components/global-assistant/MessageList.tsx` | Rendera ListCard för `type === "list"` |
-| `src/pages/GlobalAssistant.tsx` | Lägg till header med "Ny chatt"-knapp |
-| `supabase/functions/global-assistant/index.ts` | Returnera `list` istället för `verification` vid sökningar |
+| `supabase/functions/global-assistant/index.ts` | Uppdatera system-prompt med bekräftelsehantering + ändra "namn, stad eller e-post" till bara "namn" |
+| `src/pages/GlobalAssistant.tsx` | Ändra bekräftelsemeddelandet till "Visa information om X" |
 
-## Resultat
+## Sammanfattning
 
-| Före | Efter |
-|------|-------|
-| Ingen ny chatt-knapp | [+] knapp i header rensar chatten |
-| "Visa aktiva projekt" → verifikationskort → klicka → bekräfta | "Visa aktiva projekt" → projektlista med detaljer |
-| Kräver 3+ steg för att se info | Visar info direkt |
+Den viktigaste ändringen är att **ändra meddelandet som skickas vid val** från "Ja, det är X" till "Visa information om X", samt ge AI:n tydligare instruktioner i prompten om att använda `get_customer` direkt när ett ID finns i kontexten.
 
