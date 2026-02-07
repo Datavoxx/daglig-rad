@@ -7,7 +7,15 @@ import { VerificationCard } from "./VerificationCard";
 import { NextActionsCard } from "./NextActionsCard";
 import { ResultCard } from "./ResultCard";
 import { ListCard } from "./ListCard";
+import { TimeFormCard } from "./TimeFormCard";
 import { cn } from "@/lib/utils";
+
+interface TimeFormData {
+  projectId: string;
+  hours: number;
+  date: string;
+  description: string;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -18,6 +26,8 @@ interface MessageListProps {
   onVerificationSearchOther: (messageId: string) => void;
   onVerificationCreateNew: (messageId: string) => void;
   onNextAction: (action: NextAction) => void;
+  onTimeFormSubmit?: (data: TimeFormData) => void;
+  onTimeFormCancel?: () => void;
   isLoading?: boolean;
 }
 
@@ -30,6 +40,8 @@ export function MessageList({
   onVerificationSearchOther,
   onVerificationCreateNew,
   onNextAction,
+  onTimeFormSubmit,
+  onTimeFormCancel,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -111,6 +123,17 @@ export function MessageList({
                   <NextActionsCard
                     actions={message.data.actions}
                     onSelect={onNextAction}
+                  />
+                )}
+
+                {/* Time form */}
+                {message.type === "time_form" && message.data?.projects && onTimeFormSubmit && onTimeFormCancel && (
+                  <TimeFormCard
+                    projects={message.data.projects}
+                    defaultDate={message.data.defaultDate}
+                    onSubmit={onTimeFormSubmit}
+                    onCancel={onTimeFormCancel}
+                    disabled={isLoading}
                   />
                 )}
               </div>

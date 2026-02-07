@@ -2,7 +2,7 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list";
+  type: "text" | "proposal" | "verification" | "next_actions" | "result" | "loading" | "list" | "time_form";
   data?: MessageData;
 }
 
@@ -38,6 +38,10 @@ export interface MessageData {
   // For list
   listItems?: ListItem[];
   listType?: "project" | "customer" | "estimate" | "invoice" | "inspection";
+  
+  // For time_form
+  projects?: Array<{ id: string; name: string }>;
+  defaultDate?: string;
 }
 
 export interface VerificationMatch {

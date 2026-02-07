@@ -218,6 +218,25 @@ export default function GlobalAssistant() {
     await sendMessage(action.prompt);
   };
 
+  const handleTimeFormSubmit = async (formData: {
+    projectId: string;
+    hours: number;
+    date: string;
+    description: string;
+  }) => {
+    const descPart = formData.description 
+      ? `. Beskrivning: ${formData.description}` 
+      : "";
+    await sendMessage(
+      `Registrera ${formData.hours} timmar på projektet med ID ${formData.projectId} för ${formData.date}${descPart}`,
+      { selectedProjectId: formData.projectId }
+    );
+  };
+
+  const handleTimeFormCancel = async () => {
+    await sendMessage("Avbryt tidsregistrering");
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -288,6 +307,8 @@ export default function GlobalAssistant() {
             onVerificationSearchOther={handleVerificationSearchOther}
             onVerificationCreateNew={handleVerificationCreateNew}
             onNextAction={handleNextAction}
+            onTimeFormSubmit={handleTimeFormSubmit}
+            onTimeFormCancel={handleTimeFormCancel}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">
