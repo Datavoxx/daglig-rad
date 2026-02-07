@@ -1,74 +1,228 @@
 
-
 ## Mål
 
-Ersätta den nuvarande Byggio-loggan med den nya "Byggio AI"-loggan (med hjärna och trappor) på alla ställen där Byggio AI visas i appen.
+1. **Lägga till röstinspelningssektion i varje formulärkort i Global Assistant** - En tydlig ruta/sektion med Byggio AI-loggan som låter användaren spela in ett röstmeddelande
+2. **Samma realtidstranskribering** - Använder samma `useVoiceRecorder` hook som redan finns
+3. **Kontextberoende AI-bearbetning** - Beroende på formulärtyp (dagrapport, offert, arbetsorder, etc.) används rätt Edge Function och prompt
+4. **Automatisk ifyllning** - Efter transkribering processas texten av AI och fyller i formuläret automatiskt
+5. **Ta bort mic-knappen från ChatInput** - Den nuvarande röstknappen i chattfältet tas bort
 
 ---
 
-## Ny logga
+## Nuvarande arkitektur
 
-Den nya loggan visar:
-- En grön hjärna med nätverksmönster (AI-symbol)
-- Gröna byggtrappor (byggbransch-symbol)
-- Texten "Byggio AI" i grönt/blått gradient
+| Komponent | Funktion |
+|-----------|----------|
+| `useVoiceRecorder` | Hook för röstinspelning med realtids-transkribering (Web Speech API / MediaRecorder) |
+| `VoicePromptButton` | Återanvändbar knapp med inspelning → bekräftelse → kör-flöde |
+| `generate-report` Edge Function | AI-bearbetning av dagrapporter |
+| Formulärkort | `DailyReportFormCard`, `EstimateFormCard`, `WorkOrderFormCard`, etc. |
 
 ---
 
 ## Ändringar
 
-### 1. Lägg till den nya loggan i projektet
+### 1. Skapa en ny komponent: `VoiceFormSection`
 
-Kopiera den uppladdade bilden till:
+**Fil:** `src/components/global-assistant/VoiceFormSection.tsx`
+
+En återanvändbar sektion som kan läggas till i varje formulär:
+- Visar Byggio AI-loggan
+- "Spela in röstmeddelande" knapp
+- Realtidstranskribering visas
+- Bekräftelsevy där användaren kan redigera transkriptet
+- Kör AI-bearbetning och returnerar strukturerad data
+
+```text
++--------------------------------------------------+
+| [Byggio AI Logo]                                 |
+|                                                  |
+|  "Låt Byggio AI hjälpa dig"                     |
+|  "Spela in ett röstmeddelande"                  |
+|                                                  |
+|  [ 🎤 Starta inspelning ]                        |
++--------------------------------------------------+
 ```
-src/assets/byggio-ai-logo.png
-```
 
-### 2. Uppdatera AI-agentens konfiguration
-
-**Fil:** `src/config/aiAgents.ts`
-
+Props:
 ```typescript
-// FÖRE:
-import byggioLogo from "@/assets/byggio-logo.png";
-
-// EFTER:
-import byggioAILogo from "@/assets/byggio-ai-logo.png";
-
-const byggioAgent: AIAgent = {
-  name: "Byggio AI",
-  title: "Din AI-assistent",
-  description: "Din kompletta AI-assistent för byggprojekt",
-  promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
-  avatar: byggioAILogo,  // <-- NY LOGGA
-};
+interface VoiceFormSectionProps {
+  formType: "daily-report" | "estimate" | "work-order" | "customer" | "time";
+  onDataExtracted: (data: Record<string, any>) => void;
+  projectId?: string;
+  disabled?: boolean;
+}
 ```
 
-### 3. Uppdatera enskilda komponenter som använder loggan direkt
+### 2. Uppdatera formulärkorten
 
-| Fil | Användning | Ändring |
-|-----|------------|---------|
-| `src/components/shared/AgentChatBubble.tsx` | Chat-bubblans avatar | Byt import till `byggio-ai-logo.png` |
-| `src/components/landing/AIAgentsSection.tsx` | Landing page AI-sektion | Byt import till `byggio-ai-logo.png` |
-| `src/components/landing/FreeTrainingSection.tsx` | Träningssektion (om det visar AI) | Kontrollera om det är AI-kontext |
-| `src/components/dashboard/DashboardAssistantWidget.tsx` | Eventuellt lägga till loggan här | Kontrollera behov |
+Lägg till `VoiceFormSection` i varje formulärkort:
+
+| Formulär | AI-funktion | Befintlig Edge Function |
+|----------|-------------|-------------------------|
+| `DailyReportFormCard` | Dagrapport → strukturerad data | `generate-report` |
+| `WorkOrderFormCard` | Arbetsorder → titel, beskrivning | Ny funktion behövs |
+| `EstimateFormCard` | Offert → titel, adress | Ny funktion behövs |
+| `TimeFormCard` | Tid → timmar, beskrivning | Ny funktion behövs |
+| `CustomerFormCard` | Kund → namn, kontaktinfo | Ny funktion behövs |
+
+### 3. Skapa generell Edge Function för formulärbearbetning
+
+**Fil:** `supabase/functions/extract-form-data/index.ts`
+
+En generell funktion som tar emot:
+- `transcript`: Rösttranskriptet
+- `formType`: Typ av formulär
+- `context`: Extra kontext (projekt-ID, etc.)
+
+Returnerar strukturerad data baserat på formulärtyp.
+
+### 4. Ta bort mic-knappen från ChatInput
+
+**Fil:** `src/components/global-assistant/ChatInput.tsx`
+
+- Ta bort `useVoiceRecorder` import och användning
+- Ta bort mic-knappen från UI
+- Behåll plus-knappen och send-knappen
 
 ---
 
-## Filer att ändra
+## Filer att ändra/skapa
 
-| # | Fil | Ändring |
-|---|-----|---------|
-| 1 | `src/assets/byggio-ai-logo.png` | Ny fil (kopieras från uppladdning) |
-| 2 | `src/config/aiAgents.ts` | Byt avatar till ny logga |
-| 3 | `src/components/shared/AgentChatBubble.tsx` | Byt import till ny logga |
-| 4 | `src/components/landing/AIAgentsSection.tsx` | Byt import till ny logga |
+| # | Fil | Åtgärd |
+|---|-----|--------|
+| 1 | `src/components/global-assistant/VoiceFormSection.tsx` | **Skapa** ny komponent |
+| 2 | `supabase/functions/extract-form-data/index.ts` | **Skapa** ny Edge Function |
+| 3 | `src/components/global-assistant/DailyReportFormCard.tsx` | **Uppdatera** - lägg till VoiceFormSection |
+| 4 | `src/components/global-assistant/WorkOrderFormCard.tsx` | **Uppdatera** - lägg till VoiceFormSection |
+| 5 | `src/components/global-assistant/EstimateFormCard.tsx` | **Uppdatera** - lägg till VoiceFormSection |
+| 6 | `src/components/global-assistant/TimeFormCard.tsx` | **Uppdatera** - lägg till VoiceFormSection |
+| 7 | `src/components/global-assistant/CustomerFormCard.tsx` | **Uppdatera** - lägg till VoiceFormSection |
+| 8 | `src/components/global-assistant/ChatInput.tsx` | **Uppdatera** - ta bort mic-knappen |
+
+---
+
+## VoiceFormSection - Designdetaljer
+
+### Idle-läge
+```text
+┌─────────────────────────────────────────────────┐
+│  ┌──────┐                                       │
+│  │ 🧠🪜 │  Låt Byggio AI hjälpa dig            │
+│  │      │  Spela in ett röstmeddelande         │
+│  └──────┘                                       │
+│                                                 │
+│           [ 🎤 Starta inspelning ]              │
+│                                                 │
+│  💡 Spara 70% av din tid genom att prata       │
+└─────────────────────────────────────────────────┘
+```
+
+### Inspelningsläge
+```text
+┌─────────────────────────────────────────────────┐
+│  🔴 Spelar in...                         [ X ] │
+│                                                 │
+│  ┌─────────────────────────────────────────┐   │
+│  │ "Idag jobbade vi fem snickare..."      │   │
+│  │ (realtidstranskribering)               │   │
+│  └─────────────────────────────────────────┘   │
+│                                                 │
+│           [ ⏹ Stoppa inspelning ]              │
+└─────────────────────────────────────────────────┘
+```
+
+### Bekräftelseläge
+```text
+┌─────────────────────────────────────────────────┐
+│  Bekräfta röstmeddelande                 [ X ] │
+│                                                 │
+│  Redigera vid behov:                           │
+│  ┌─────────────────────────────────────────┐   │
+│  │ Idag jobbade vi fem snickare, åtta     │   │
+│  │ timmar per person. Vi installerade     │   │
+│  │ fönster på andra våningen...           │   │
+│  └─────────────────────────────────────────┘   │
+│                                                 │
+│  [ Avbryt ]           [ ✓ Fyll i formulär ]    │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## Edge Function: extract-form-data
+
+### Request
+```json
+{
+  "transcript": "Idag jobbade vi fem snickare...",
+  "formType": "daily-report",
+  "context": {
+    "projectId": "uuid-123"
+  }
+}
+```
+
+### Response (dagrapport)
+```json
+{
+  "headcount": 5,
+  "hoursPerPerson": 8,
+  "roles": ["snickare"],
+  "workItems": ["installerade fönster"],
+  "materialsDelivered": "",
+  "materialsMissing": "",
+  "notes": ""
+}
+```
+
+### Response (arbetsorder)
+```json
+{
+  "title": "Byt fönster på andra våningen",
+  "description": "Detaljerad beskrivning..."
+}
+```
+
+---
+
+## DailyReportFormCard - Integration
+
+Skillnad från nuvarande `InlineDiaryCreator`:
+- `InlineDiaryCreator` har ett separat flöde (transkript → generera rapport → granska)
+- `DailyReportFormCard` ska ha röstinspelning som **fyller i formulärfälten** så att användaren kan justera innan submit
+
+```tsx
+// DailyReportFormCard.tsx
+
+import { VoiceFormSection } from "./VoiceFormSection";
+
+// Inuti komponenten:
+const handleVoiceData = (data: any) => {
+  if (data.headcount) setHeadcount(String(data.headcount));
+  if (data.hoursPerPerson) setHoursPerPerson(String(data.hoursPerPerson));
+  if (data.roles) setRoles(data.roles.join(", "));
+  if (data.workItems) setWorkItems(data.workItems);
+  // ... etc
+};
+
+// I JSX, lägg till sektionen högst upp efter header:
+<VoiceFormSection
+  formType="daily-report"
+  projectId={projectId}
+  onDataExtracted={handleVoiceData}
+  disabled={disabled}
+/>
+```
 
 ---
 
 ## Resultat
 
-- Alla ställen som visar Byggio AI (chat-bubbla, landing page, sidmeny-avatar etc.) kommer använda den nya loggan med hjärna och trappor
-- Den ursprungliga `byggio-logo.png` behålls för allmän Byggio-varumärkning (header, footer, auth-sidor etc.)
-- Tydlig visuell skillnad mellan företagsloggan och AI-assistentens avatar
-
+1. Varje formulär i Global Assistant får en tydlig röstinspelningssektion
+2. Byggio AI-loggan visas med uppmaning att spela in
+3. Realtidstranskribering visas medan man pratar
+4. Efter inspelning kan man redigera transkriptet
+5. AI bearbetar transkriptet och fyller i formuläret automatiskt
+6. Mic-knappen i chattrutan tas bort (den var "meningslös" enligt dig)
+7. Konsekvent upplevelse genom alla formulär
