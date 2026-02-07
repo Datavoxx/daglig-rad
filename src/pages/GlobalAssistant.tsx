@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
+import { Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/global-assistant/ChatInput";
@@ -9,6 +9,7 @@ import { QuickSuggestions } from "@/components/global-assistant/QuickSuggestions
 import { ChatHistorySidebar } from "@/components/global-assistant/ChatHistorySidebar";
 import type { Message, VerificationMatch, NextAction, ConversationContext, Conversation } from "@/types/global-assistant";
 import type { Json } from "@/integrations/supabase/types";
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 export default function GlobalAssistant() {
   const navigate = useNavigate();
@@ -471,7 +472,7 @@ export default function GlobalAssistant() {
           >
             <History className="h-4 w-4" />
           </Button>
-          <Sparkles className="h-4 w-4 text-primary" />
+          <img src={byggioAILogo} alt="Byggio AI" className="h-5 w-5 object-contain" />
           <span className="text-sm font-medium">Byggio AI</span>
         </div>
         {hasMessages && (
@@ -502,7 +503,7 @@ export default function GlobalAssistant() {
       {!hasMessages && (
         <div className="flex flex-1 flex-col items-center justify-center px-4">
           <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
-            <Sparkles className="h-8 w-8 text-primary" />
+            <img src={byggioAILogo} alt="Byggio AI" className="h-10 w-10 object-contain" />
           </div>
           <h1 className="mb-2 text-2xl font-semibold text-foreground">
             Vad kan jag hjälpa dig med{userName ? `, ${userName}` : ""}?
