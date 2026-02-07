@@ -3534,6 +3534,49 @@ serve(async (req) => {
       });
     }
 
+    // Pattern 3: Enkla offert-förfrågningar (visa formulär direkt utan AI)
+    // Matchar: "skapa offert", "ny offert", "create estimate", etc.
+    const simpleEstimateFormPattern = /^(?:skapa|ny|new|create)\s*(?:en\s+)?offert(?:\s*$|[?.!]\s*$)/i;
+    const simpleEstimateFormMatch = message.match(simpleEstimateFormPattern);
+
+    if (simpleEstimateFormMatch) {
+      console.log("Direct pattern matched: get_customers_for_estimate (simple request)");
+      
+      // Hämta kunder direkt
+      const { data: customers, error } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("user_id", userId)
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching customers:", error);
+        return new Response(JSON.stringify({
+          type: "text",
+          content: "Kunde inte hämta kunder. Försök igen.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      if (!customers || customers.length === 0) {
+        return new Response(JSON.stringify({
+          type: "text",
+          content: "Du har inga kunder ännu. Skapa en kund först.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      return new Response(JSON.stringify({
+        type: "estimate_form",
+        content: "",
+        data: { customers },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Define which tools need auto-injection of IDs
     const PROJECT_TOOLS = [
       "create_work_order", "search_work_orders", 
