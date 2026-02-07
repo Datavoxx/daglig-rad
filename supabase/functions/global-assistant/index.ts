@@ -442,7 +442,22 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          project_id: { type: "string", description: "Project ID" },
+          project_id: { type: "string", description: "Project ID or name" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // === PROJECT OVERVIEW (conversational) ===
+  {
+    type: "function",
+    function: {
+      name: "get_project_overview",
+      description: "Hämta komplett projektöversikt för att svara på öppna frågor som 'hur går projektet?', 'berätta om projektet', 'vad har hänt?'. Returnerar ekonomi, dagrapporter, ÄTA, tidsplan och vad som saknas.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID or name" },
         },
         required: ["project_id"],
       },
@@ -1585,6 +1600,128 @@ async function executeTool(
         invoiced_amount: invoicedAmount,
         paid_amount: paidAmount,
         invoice_count: invoices?.length || 0,
+      };
+    }
+
+    // === PROJECT OVERVIEW (conversational) ===
+    case "get_project_overview": {
+      const { project_id } = args as { project_id: string };
+      
+      // Get project with all basic info
+      const { data: project } = await supabase
+        .from("projects")
+        .select("id, name, status, address, city, start_date, budget, client_name")
+        .eq("id", project_id)
+        .single();
+      
+      if (!project) {
+        throw new Error("Projekt hittades inte");
+      }
+      
+      // Get estimate if linked
+      const { data: estimate } = await supabase
+        .from("project_estimates")
+        .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+        .eq("project_id", project_id)
+        .single();
+      
+      // Get time entries
+      const { data: timeEntries } = await supabase
+        .from("time_entries")
+        .select("hours")
+        .eq("project_id", project_id);
+      
+      const totalHours = (timeEntries || []).reduce((sum, e) => sum + (e.hours || 0), 0);
+      
+      // Get ÄTA items
+      const { data: ataItems } = await supabase
+        .from("project_ata")
+        .select("estimated_cost, status")
+        .eq("project_id", project_id);
+      
+      const approvedAtaCost = (ataItems || [])
+        .filter((a) => a.status === "approved" || a.status === "completed")
+        .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+      
+      const pendingAtaCount = (ataItems || []).filter((a) => a.status === "pending").length;
+      const approvedAtaCount = (ataItems || []).filter((a) => a.status === "approved" || a.status === "completed").length;
+      
+      // Get invoiced amount
+      const { data: invoices } = await supabase
+        .from("customer_invoices")
+        .select("total_inc_vat, status")
+        .eq("project_id", project_id);
+      
+      const invoicedAmount = (invoices || [])
+        .filter((i) => i.status === "sent" || i.status === "paid")
+        .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
+      
+      const paidAmount = (invoices || [])
+        .filter((i) => i.status === "paid")
+        .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
+      
+      // Get daily reports (recent activity)
+      const { data: reports, count: reportsCount } = await supabase
+        .from("daily_reports")
+        .select("id, report_date, total_hours", { count: "exact" })
+        .eq("project_id", project_id)
+        .order("report_date", { ascending: false })
+        .limit(5);
+      
+      const recentReportsHours = (reports || []).reduce((sum, r) => sum + (r.total_hours || 0), 0);
+      
+      // Get project plan
+      const { data: plan } = await supabase
+        .from("project_plans")
+        .select("start_date, total_weeks, phases")
+        .eq("project_id", project_id)
+        .single();
+      
+      // Generate warnings
+      const warnings: string[] = [];
+      if (!project.start_date) warnings.push("Startdatum saknas");
+      if (!plan) warnings.push("Ingen tidsplan");
+      if (invoicedAmount === 0 && (estimate?.total_incl_vat || 0) > 0) warnings.push("Inget fakturerat ännu");
+      if (totalHours === 0) warnings.push("Ingen tid registrerad");
+      
+      return {
+        project: {
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          address: project.address,
+          city: project.city,
+          start_date: project.start_date,
+          client_name: project.client_name,
+        },
+        economy: {
+          budget: project.budget || 0,
+          estimate_total: estimate?.total_incl_vat || 0,
+          estimate_labor: estimate?.labor_cost || 0,
+          estimate_material: estimate?.material_cost || 0,
+          invoiced_amount: invoicedAmount,
+          paid_amount: paidAmount,
+          invoice_count: invoices?.length || 0,
+        },
+        time: {
+          total_hours: totalHours,
+          recent_hours: recentReportsHours,
+        },
+        reports: {
+          count: reportsCount || 0,
+          recent: reports || [],
+        },
+        ata: {
+          approved_count: approvedAtaCount,
+          pending_count: pendingAtaCount,
+          approved_value: approvedAtaCost,
+        },
+        plan: plan ? {
+          start_date: plan.start_date,
+          total_weeks: plan.total_weeks,
+          phases_count: Array.isArray(plan.phases) ? plan.phases.length : 0,
+        } : null,
+        warnings,
       };
     }
 
@@ -3207,6 +3344,116 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       };
     }
 
+    // === PROJECT OVERVIEW (conversational) ===
+    case "get_project_overview": {
+      const data = results as {
+        project: {
+          id: string;
+          name: string;
+          status: string;
+          address?: string;
+          city?: string;
+          start_date?: string;
+          client_name?: string;
+        };
+        economy: {
+          budget: number;
+          estimate_total: number;
+          estimate_labor: number;
+          estimate_material: number;
+          invoiced_amount: number;
+          paid_amount: number;
+          invoice_count: number;
+        };
+        time: {
+          total_hours: number;
+          recent_hours: number;
+        };
+        reports: {
+          count: number;
+          recent: Array<{ id: string; report_date: string; total_hours: number }>;
+        };
+        ata: {
+          approved_count: number;
+          pending_count: number;
+          approved_value: number;
+        };
+        plan: {
+          start_date: string;
+          total_weeks: number;
+          phases_count: number;
+        } | null;
+        warnings: string[];
+      };
+      
+      // Translate status
+      const translateStatus = (status: string): string => {
+        const statusMap: Record<string, string> = {
+          planning: "i planeringsfas",
+          active: "pågående",
+          closing: "i avslutningsfas",
+          completed: "avslutat",
+        };
+        return statusMap[status] || status || "okänd status";
+      };
+      
+      // Build conversational summary
+      let summary = `**${data.project.name}** är ${translateStatus(data.project.status)}.`;
+      
+      // Economy section
+      if (data.economy.estimate_total > 0) {
+        const invoicedPct = Math.round((data.economy.invoiced_amount / data.economy.estimate_total) * 100);
+        summary += ` Fakturerat ${invoicedPct}% av offerten (${data.economy.invoiced_amount.toLocaleString("sv-SE")} av ${data.economy.estimate_total.toLocaleString("sv-SE")} kr).`;
+      } else if (data.economy.budget > 0) {
+        summary += ` Budget: ${data.economy.budget.toLocaleString("sv-SE")} kr.`;
+      }
+      
+      // Activity section
+      if (data.reports.count > 0 || data.time.total_hours > 0) {
+        summary += ` ${data.reports.count} dagrapport${data.reports.count !== 1 ? "er" : ""}, ${data.time.total_hours} timmar registrerade.`;
+      }
+      
+      // ÄTA section
+      if (data.ata.approved_count > 0 || data.ata.pending_count > 0) {
+        const ataParts = [];
+        if (data.ata.approved_count > 0) {
+          ataParts.push(`${data.ata.approved_count} godkända (+${data.ata.approved_value.toLocaleString("sv-SE")} kr)`);
+        }
+        if (data.ata.pending_count > 0) {
+          ataParts.push(`${data.ata.pending_count} väntande`);
+        }
+        summary += ` ÄTA: ${ataParts.join(", ")}.`;
+      }
+      
+      // Plan section
+      if (data.plan) {
+        summary += ` Planering: ${data.plan.phases_count} faser, ${data.plan.total_weeks} veckor.`;
+      }
+      
+      // Warnings section
+      if (data.warnings.length > 0) {
+        summary += ` ⚠️ ${data.warnings.join(", ")}.`;
+      }
+      
+      return {
+        type: "text",
+        content: summary,
+        data: {
+          project_name: data.project.name,
+          ...data.economy,
+          total_hours: data.time.total_hours,
+          ata_approved: data.ata.approved_value,
+          ata_count: data.ata.approved_count + data.ata.pending_count,
+          warnings: data.warnings,
+          nextActions: [
+            { label: "Visa ekonomi", icon: "dollar-sign", prompt: `ekonomi för ${data.project.name}` },
+            { label: "Öppna projekt", icon: "folder", prompt: `visa ${data.project.name}` },
+            { label: "Skapa dagrapport", icon: "file-text", prompt: `ny dagrapport för ${data.project.name}` },
+          ],
+        },
+      };
+    }
+
     // === CREATE ===
     case "create_estimate": {
       const estimate = results as { id: string; offer_number: string };
@@ -3911,7 +4158,7 @@ serve(async (req) => {
       "list_project_files",
       "generate_attendance_qr", "get_attendance_qr",
       "check_in", "check_out", "get_active_attendance",
-      "get_project_economy",
+      "get_project_economy", "get_project_overview",
       "search_daily_reports", "create_daily_report",
       "search_inspections", "create_inspection",
       "register_time", "get_time_summary",
@@ -3986,21 +4233,58 @@ Du är Byggio AI - en effektiv assistent för byggföretag. Korta svar, snabba v
 </role>
 
 <brevity>
-KRITISKT - SVARSSTIL:
-- MAX 1-2 meningar per svar
-- Inga inledande fraser ("Jag ska hjälpa dig...", "Självklart!", "Absolut!")
-- Visa formulär DIREKT - förklara inte vad du ska göra
-- Efter en lyckad åtgärd: endast bekräftelse, inga långa förklaringar
+SVARSSTIL baserat på frågetyp:
+
+KOMMANDON (skapa, registrera, checka in):
+- MAX 1-2 meningar
+- Visa formulär DIREKT
+- Inga inledande fraser ("Jag ska hjälpa dig...", "Självklart!")
+
+ÖPPNA FRÅGOR (hur går det, berätta om, vad har hänt, status):
+- 3-5 meningar OK
+- Ge kontext och insikt
+- Nämn varningar om något saknas
 </brevity>
+
+<auto_resolve>
+VIKTIGT: Backend konverterar automatiskt projektnamn till UUID!
+
+När du kör get_project_economy, get_project, get_project_overview, etc. med ett NAMN:
+→ Backend hittar rätt projekt automatiskt
+→ Du behöver INTE köra search_projects först!
+
+Exempel:
+- "ekonomi för Tony Test" → get_project_economy(project_id: "Tony Test") ✅
+- "visa projekt Solvik" → get_project(project_id: "Solvik") ✅
+- "hur går det för projektet X" → get_project_overview(project_id: "X") ✅
+</auto_resolve>
+
+<conversational_mode>
+ÖPPNA FRÅGOR - svara mer utförligt:
+
+När användaren frågar:
+- "hur går det för X?" → get_project_overview → ge sammanfattning
+- "berätta om projektet" → get_project_overview → ge sammanfattning  
+- "vad har hänt på X?" → get_project_overview → fokusera på aktivitet
+- "status för projektet" → get_project_overview → ge sammanfattning
+
+Sammanfattning ska innehålla:
+1. Nuvarande status i en mening
+2. Ekonomisk situation (fakturerat vs offert)
+3. Aktivitet (dagrapporter, timmar)
+4. Eventuella varningar (saknas startdatum, etc.)
+5. ÄTA om det finns
+</conversational_mode>
 
 <intent_detection>
 PROJEKTNAMN ÄR PARAMETER, INTE INSTRUKTION!
 
 När användaren säger:
-- "ekonomi för projekt X" → INTENT=ekonomi → get_project_economy (sök X först)
-- "arbetsorder på X" → INTENT=arbetsorder → get_projects_for_work_order
-- "visa projekt X" → INTENT=visa → get_project (sök X först)
-- "dagrapport för X" → INTENT=dagrapport → get_projects_for_daily_report
+- "ekonomi för projekt X" → get_project_economy(project_id: "X")
+- "hur går det för X?" → get_project_overview(project_id: "X")
+- "arbetsorder på X" → get_projects_for_work_order
+- "visa projekt X" → get_project(project_id: "X")
+- "dagrapport för X" → get_projects_for_daily_report
 
 ALDRIG visa projektet om användaren frågade om ekonomi/arbetsorder/etc!
 </intent_detection>
@@ -4035,16 +4319,10 @@ ${context?.selectedCustomerId ? `✅ VALD KUND-ID: ${context.selectedCustomerId}
 ${context?.selectedEstimateId ? `✅ VALD OFFERT-ID: ${context.selectedEstimateId}` : ""}
 </context>
 
-<uuid_rule>
-UUID-format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-Om användaren anger ETT NAMN (t.ex. "Tony Test", "Solvik"), SÖK FÖRST med search_projects!
-Skicka ALDRIG ett namn som project_id - det ger fel.
-</uuid_rule>
-
 <tools_quick_ref>
 SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
 SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
-VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_plan, list_project_files
+VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_overview, get_project_plan, list_project_files
 FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form
 UPPDATERA: update_work_order, update_ata, update_customer, update_project
 NÄRVARO: generate_attendance_qr, check_in, check_out
@@ -4053,9 +4331,10 @@ NÄRVARO: generate_attendance_qr, check_in, check_out
 <rules>
 1. Svara på svenska
 2. ANVÄND kontext-ID automatiskt
-3. Vid namn → sök först
+3. Vid namn → skicka direkt (backend resolver)
 4. Visa formulär utan förklaring
 5. Korta bekräftelser efter åtgärd
+6. Öppna frågor → använd get_project_overview för konversation
 </rules>`,
       },
     ];
