@@ -2067,13 +2067,25 @@ async function executeTool(
         project_id?: string;
       };
       
+      // Check if user is admin (no employer_id) or employee
+      const { data: userData } = await supabase.auth.getUser();
+      const employerId = userData?.user?.user_metadata?.employer_id;
+      const isAdmin = !employerId;
+      
       let q = supabase
         .from("time_entries")
-        .select("id, date, hours, description, project_id, projects(name)")
-        .eq("user_id", userId)
+        .select("id, date, hours, description, project_id, user_id, employer_id, projects(name)")
         .gte("date", start_date)
         .lte("date", end_date)
         .order("date", { ascending: false });
+      
+      if (isAdmin) {
+        // Admin: fetch own entries + employee entries (where employer_id = admin's user id)
+        q = q.or(`user_id.eq.${userId},employer_id.eq.${userId}`);
+      } else {
+        // Employee: only own entries
+        q = q.eq("user_id", userId);
+      }
       
       if (project_id) q = q.eq("project_id", project_id);
       
