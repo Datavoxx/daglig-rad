@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
+import { useConversationFeedback } from "@/contexts/ConversationFeedbackContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/global-assistant/ChatInput";
@@ -14,6 +15,7 @@ import type { Json } from "@/integrations/supabase/types";
 export default function GlobalAssistant() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setLastConversation } = useConversationFeedback();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -22,6 +24,26 @@ export default function GlobalAssistant() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const initialMessageProcessed = useRef(false);
+  
+  // Use refs to track current values for cleanup
+  const conversationIdRef = useRef<string | null>(null);
+  const messagesLengthRef = useRef<number>(0);
+  
+  // Keep refs in sync
+  useEffect(() => {
+    conversationIdRef.current = currentConversationId;
+    messagesLengthRef.current = messages.length;
+  }, [currentConversationId, messages.length]);
+  
+  // Trigger feedback popup when leaving the page
+  useEffect(() => {
+    return () => {
+      // Only trigger if there was a real conversation (more than 1 message = user + assistant)
+      if (conversationIdRef.current && messagesLengthRef.current > 1) {
+        setLastConversation(conversationIdRef.current);
+      }
+    };
+  }, [setLastConversation]);
 
   const handleNewChat = () => {
     setMessages([]);
