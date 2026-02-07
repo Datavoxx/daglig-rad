@@ -519,6 +519,7 @@ export default function GlobalAssistant() {
         <>
           <MessageList
             messages={messages}
+            conversationId={currentConversationId}
             onProposalConfirm={handleProposalConfirm}
             onProposalCancel={handleProposalCancel}
             onProposalModify={handleProposalModify}

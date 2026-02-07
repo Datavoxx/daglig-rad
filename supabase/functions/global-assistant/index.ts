@@ -2706,6 +2706,8 @@ function formatToolResults(toolName: string, results: unknown): {
             { label: "Skapa ny arbetsorder", icon: "plus", prompt: "Skapa en ny arbetsorder" },
             { label: "Visa arbetsordrar", icon: "list", prompt: "Visa mina arbetsordrar" },
           ],
+          showFeedback: true,
+          taskType: "create_work_order",
         },
       };
     }
@@ -3102,6 +3104,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Checka ut", icon: "log-out", prompt: "Checka ut mig" },
             { label: "Visa närvaro", icon: "users", prompt: "Visa vem som är incheckad" },
           ],
+          showFeedback: true,
+          taskType: "check_in",
         },
       };
     }
@@ -3121,6 +3125,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Checka in igen", icon: "log-in", prompt: "Checka in mig" },
             { label: "Registrera tid", icon: "clock", prompt: "Registrera tid" },
           ],
+          showFeedback: true,
+          taskType: "check_out",
         },
       };
     }
@@ -3234,6 +3240,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Visa offert", icon: "file-text", prompt: "Visa offerten" },
             { label: "Skapa ny offert", icon: "plus", prompt: "Skapa en ny offert" },
           ],
+          showFeedback: true,
+          taskType: "add_estimate_items",
         },
       };
     }
@@ -3280,6 +3288,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på projektet" },
             { label: "Skapa arbetsorder", icon: "clipboard", prompt: "Skapa arbetsorder för projektet" },
           ],
+          showFeedback: true,
+          taskType: "create_project",
         },
       };
     }
@@ -3300,6 +3310,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Registrera mer tid", icon: "plus", prompt: "Registrera mer tid" },
             { label: "Visa veckans tid", icon: "calendar", prompt: "Visa veckans tidrapport" },
           ],
+          showFeedback: true,
+          taskType: "register_time",
         },
       };
     }
@@ -3341,6 +3353,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Skapa ny rapport", icon: "plus", prompt: "Skapa en till dagrapport" },
             { label: "Visa alla rapporter", icon: "list", prompt: "Visa mina dagrapporter" },
           ],
+          showFeedback: true,
+          taskType: "create_daily_report",
         },
       };
     }
@@ -3556,6 +3570,8 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för denna kund" },
             { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt för denna kund" },
           ],
+          showFeedback: true,
+          taskType: "create_customer",
         },
       };
     }
