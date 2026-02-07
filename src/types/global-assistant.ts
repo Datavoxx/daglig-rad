@@ -15,7 +15,10 @@ export interface Message {
     | "daily_report_form"
     | "customer_search"
     | "customer_form"
-    | "project_form";
+    | "project_form"
+    | "qr_code"
+    | "file_list"
+    | "economy_overview";
   data?: MessageData;
 }
 
@@ -34,7 +37,9 @@ export interface MessageData {
     | "invoice"
     | "inspection"
     | "daily_report"
-    | "time_entry";
+    | "time_entry"
+    | "work_order"
+    | "ata";
   
   // For next_actions
   actions?: NextAction[];
@@ -50,7 +55,7 @@ export interface MessageData {
   
   // For list
   listItems?: ListItem[];
-  listType?: "project" | "customer" | "estimate" | "invoice" | "inspection";
+  listType?: "project" | "customer" | "estimate" | "invoice" | "inspection" | "work_order" | "ata";
   
   // For time_form
   projects?: Array<{ id: string; name: string }>;
@@ -66,6 +71,35 @@ export interface MessageData {
     city?: string; 
     email?: string;
   }>;
+  
+  // For qr_code
+  token?: string;
+  url?: string;
+  project_id?: string;
+  
+  // For file_list
+  files?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    size?: number;
+    category?: string;
+    date: string;
+  }>;
+  
+  // For economy_overview
+  project_name?: string;
+  budget?: number;
+  estimate_total?: number;
+  estimate_labor?: number;
+  estimate_material?: number;
+  total_hours?: number;
+  ata_approved?: number;
+  ata_pending?: number;
+  ata_count?: number;
+  invoiced_amount?: number;
+  paid_amount?: number;
+  invoice_count?: number;
 }
 
 export interface VerificationMatch {
@@ -98,6 +132,8 @@ export interface ConversationContext {
   selectedInvoiceId?: string;
   selectedInspectionId?: string;
   selectedTimeEntryId?: string;
+  selectedWorkOrderId?: string;
+  selectedAtaId?: string;
   pendingAction?: string;
   pendingData?: Record<string, unknown>;
 }

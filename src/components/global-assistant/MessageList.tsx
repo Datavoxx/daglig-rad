@@ -13,6 +13,9 @@ import { DailyReportFormCard } from "./DailyReportFormCard";
 import { CustomerSearchCard } from "./CustomerSearchCard";
 import { CustomerFormCard } from "./CustomerFormCard";
 import { ProjectFormCard } from "./ProjectFormCard";
+import { QRCodeCard } from "./QRCodeCard";
+import { FileListCard } from "./FileListCard";
+import { EconomyCard } from "./EconomyCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -162,7 +165,7 @@ export function MessageList({
 
                 {/* Result card */}
                 {message.type === "result" && message.data && (
-                  <ResultCard data={message.data} onNextAction={onNextAction} />
+                  <ResultCard data={message.data} content={message.content} onNextAction={onNextAction} />
                 )}
 
                 {/* List card */}
@@ -235,6 +238,32 @@ export function MessageList({
                     onSubmit={onProjectFormSubmit}
                     onCancel={onProjectFormCancel}
                     disabled={isLoading}
+                  />
+                )}
+
+                {/* QR Code card */}
+                {message.type === "qr_code" && message.data?.token && message.data?.url && (
+                  <QRCodeCard
+                    content={message.content}
+                    token={message.data.token}
+                    url={message.data.url}
+                    projectId={message.data.project_id}
+                  />
+                )}
+
+                {/* File list card */}
+                {message.type === "file_list" && message.data?.files && (
+                  <FileListCard
+                    content={message.content}
+                    files={message.data.files}
+                  />
+                )}
+
+                {/* Economy overview card */}
+                {message.type === "economy_overview" && message.data && (
+                  <EconomyCard
+                    content={message.content}
+                    data={message.data}
                   />
                 )}
               </div>
