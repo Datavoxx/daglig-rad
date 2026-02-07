@@ -1,114 +1,153 @@
 
-## Vad som faktiskt händer (orsak)
-Du har rätt i din gissning: det blir **0 poster** eftersom backend just nu **inte kör “add_estimate_items” med dina riktiga rad-data** när du klickar **Spara offert**.
+Målet är att lösa två saker du visar i screenshots:
+1) **Antal (t.ex. 10) syns inte i själva offerten/estimatvyn**, trots att summan räknas som om det vore 10×.
+2) **“Ta bort rad 1” bekräftas i chatten men raden ligger kvar** när du sen “visar offerten”.
 
-Vi kan se i edge-loggarna att `context.pendingData` faktiskt innehåller allt du fyllde i (projektbeskrivning, tidsplan, items med antal/á-pris osv). Men vi ser **inga loggar** som visar att “Direct pattern matched: add_estimate_items” körs.
-
-Det betyder att vår “direct execution”-regel (regex) för add_estimate_items **inte matchar meddelandet** som frontenden skickar, så backend går vidare till AI-tolkning. AI:n ser bara texten:
-> “Lägg till 1 poster på offert med ID … Projektbeskrivning… Tidsplan…”
-
-…men den ser **inte** `items[]` och `addons[]` som ligger i `context.pendingData`. Resultatet blir att tool-anropet (om det ens görs) saknar rad-data ⇒ **0 poster sparas**, och offerten blir 0 överallt.
-
-### Varför regexen missar
-Meddelandet börjar med:
-> “Lägg till **1** poster på offert med ID …”
-
-Vår nuvarande regex för add-estimate-items förväntar sig att det kommer “poster/items/offert” direkt efter “lägg till”, men här kommer en siffra emellan (”1”). Därför matchar den inte.
+Jag har hittat sannolik rotorsak för båda, och hur vi fixar det.
 
 ---
 
-## Mål
-1) När användaren klickar **Spara offert** ska backend alltid köra `add_estimate_items` med datan i `context.pendingData` (inkl. raderna).
-2) Projektbeskrivning ska hamna i `scope`, tidsplan i `assumptions[]`, rader i `estimate_items`, tillval i `estimate_addons`.
-3) Bekräftelsen “uppdaterad med X poster” ska visa korrekt antal och motsvara det som faktiskt sparats.
-4) (Bonus) Meddelandet som skickas från UI kan gärna innehålla en kort sammanfattning av raderna så att det fungerar även om pendingData saknas.
+## 1) Varför “Antal” blir tomt i offerten (men summan stämmer)
+
+### Vad som händer i datan
+I databasen finns dina rader och **quantity är ifyllt**:
+- OFF-2026-0039 har t.ex. rader med `quantity = 10` och `quantity = 5`
+- men `hours` är **null**
+
+Det här är exakt varför du ser:
+- **Summa visar 8 500 (10×850)** → subtotal är redan uträknad och sparad
+- men **Antal-kolumnen är tom** → UI visar fel fält
+
+### Varför UI visar fel fält
+I offert-/estimatkomponenterna används logiken:
+- om `item.type === "labor"` ⇒ visa `item.hours`
+- annars ⇒ visa `item.quantity`
+
+Det gäller både:
+- `src/components/estimates/EstimateTable.tsx` (tabellen i /estimates)
+- `src/components/estimates/QuotePreviewSheet.tsx` (förhandsgranskningen)
+
+Eftersom dina “labor”-rader råkar ha quantity ifyllt men hours = null blir antal tomt.
+
+### Fix-strategi (robust + bakåtkompatibel)
+Vi gör appen tolerant:
+- För “labor”-rader: **använd `hours` om den finns, annars fall back till `quantity`**
+- När vi laddar data: om en “labor”-rad har `hours = null` men `quantity` finns ⇒ **sätt hours = quantity** i state (så all beräkning + UI blir konsekvent)
+
+Detta gör att både gamla och nya offerter visar antal korrekt utan att du behöver ändra hur du matar in data.
 
 ---
 
-## Implementation (vad jag kommer ändra)
+## 2) Varför “ta bort rad 1” inte faktiskt tar bort något
 
-### A) Backend: gör direct pattern robust (fixar 0 poster)
-**Fil:** `supabase/functions/global-assistant/index.ts`
+Jag ser att backend (server-funktionen) saknar ett riktigt “delete estimate row”-verktyg för offertposter:
+- Det finns verktyg för att skapa offert och lägga till rader (`add_estimate_items`)
+- Men det finns **ingen tool** som tar bort en rad ur `estimate_items`
 
-1) Uppdatera `addItemsPattern` så att den matchar även när det finns en siffra efter “Lägg till”.
-   - Nuvarande:
-     - `/(?:lägg till|add|spara)\s*(?:poster|items|offert).../`
-   - Ny (exempel):
-     - Tillåt valfri mängd “antal + ord” efter “lägg till”, t.ex. `Lägg till 1 poster ...`
-```ts
-const addItemsPattern =
-  /(?:lägg till|add|spara)\s*(?:\d+\s*)?(?:poster|rader|offertposter|items|offert)\b.*?(?:offert med ID|estimate_id)\s*[:=]?\s*([a-f0-9-]{36})/i;
-```
+Det betyder att chatten kan “låta som” den tog bort raden (text-svar), men inget kan faktiskt raderas i databasen.
 
-2) Lägg till en extra “failsafe”-match:
-   - Om `context.pendingData` finns och innehåller `items`/`addons` och meddelandet innehåller ett UUID (estimateId), så kör `add_estimate_items` ändå.
-   - Detta gör att även om texten ändras lite i framtiden, så sparas datan ändå.
+### Fix-strategi
+Vi implementerar riktig radering med bekräftelseflöde:
 
-3) Normalisera payload innan `executeTool`:
-   - Säkerställ att vi skickar:
-     - `estimate_id` = uuid från texten (eller `context.selectedEstimateId`)
-     - `introduction`, `timeline`, `items`, `addons` från `context.pendingData`
-   - Ignorera extra fält (som `estimateId`) utan att det påverkar.
+1) Lägg till ett nytt backend-verktyg:
+   - `delete_estimate_item`
+   - Tar emot `estimate_id` + `row_number` (1-baserad) eller `item_id`
+   - Hämtar raderna sorterade på `sort_order`
+   - Hittar rätt rad och `DELETE` på `estimate_items.id`
+   - Räknar om totalsummor (som `add_estimate_items` redan gör)
 
-4) Efter lyckad körning: returnera `context` som rensar `pendingData` så att ett efterföljande “Visa offerten” inte riskerar att trigga en duplicering senare.
-```ts
-return {
-  ...formatted,
-  context: {
-    pendingData: null,
-  },
-};
-```
-(Exakt form beror på hur ni vill representera “tomt”, men idén är att pendingData inte ska ligga kvar.)
+2) Lägg till ett “confirm”-flöde i backend via `context.pendingAction`/`context.pendingData`:
+   - När användaren skriver “ta bort rad 1 …” svarar AI:n med ett **proposal**: “Bekräfta att jag ska ta bort rad 1 (10 tim) …”
+   - Om användaren svarar “Ja, kör på!” → backend kör `delete_estimate_item`
+   - Om användaren svarar “Avbryt/nej” → backend rensar pendingAction
+
+3) Uppdatera “Visa offert” så att den visar uppdaterad lista (den gör redan det, men nu kommer datan faktiskt vara borttagen).
 
 ---
 
-### B) Frontend: gör användarmeddelandet mer självbärande (valfritt men rekommenderat)
-**Fil:** `src/pages/GlobalAssistant.tsx`
+## Exakta ändringar (filer)
 
-Just nu skickas en text som inte nämner raderna, vilket gör att om direct pattern missar så “ser AI:n” aldrig rad-datan.
+### A) Visa “antal” korrekt i offert/estimat UI
+1) `src/hooks/useEstimate.ts`
+   - När items mappas in i state:
+     - Om `item.type === "labor"` och `item.hours` är null men `item.quantity` finns:
+       - sätt `hours = Number(item.quantity)`
+       - (valfritt) lämna quantity kvar, men hours blir “source of truth” i UI
 
-Jag uppdaterar `handleEstimateItemsFormSubmit` så att meddelandet inkluderar en kort sammanfattning av raderna, t.ex.:
-- “Rad 1: Arbete, st, 10 x 650, ‘ddd’”
-- “Tillval: …”
+2) `src/components/estimates/EstimateTable.tsx`
+   - I desktop-rendern där “Antal” input/value sätts:
+     - ändra från: `labor ? hours : quantity`
+     - till: `labor ? (hours ?? quantity) : quantity`
+   - I `updateItem` subtotal-logiken för labor:
+     - använd “effectiveHours = updated.hours ?? updated.quantity ?? 0”
+   - I onChange för “Antal” när type = labor:
+     - skriv till `hours` (och ev. spegla till quantity om vi vill vara extra konsekventa)
 
-Detta är inte primär fix (pendingData är primär), men det ger en extra fallback och gör att chatloggen blir tydligare.
+3) `src/components/estimates/QuotePreviewSheet.tsx`
+   - I tabellen:
+     - ändra antal-cell från `labor ? item.hours : item.quantity`
+     - till `labor ? (item.hours ?? item.quantity) : item.quantity`
+   - Enhet-cell:
+     - idag visas “h” för labor; det är ok. Men om ni vill visa “tim” kan vi göra det också.
 
----
-
-### C) Verifiering: bevisa att det sparas på riktigt
-När ändringen är på plats testar vi (end-to-end i chatten):
-1) Skapa offert via formuläret (som tidigare).
-2) Fyll i projektbeskrivning + tidsplan + minst 1 rad.
-3) Klicka **Spara offert**.
-4) Kontrollera i loggarna att vi får:
-   - `Direct pattern matched: add_estimate_items` (eller failsafe-path)
-   - att `pendingData.items.length` är 1+
-5) Klicka “Öppna offert” och kontrollera:
-   - Projektbeskrivning visar texten du skrev (scope)
-   - Tidsplan visar punkter (assumptions)
-   - Offertposter visar raderna med korrekt antal/á-pris
-   - Summor är > 0
-
-Om det fortfarande skulle bli 0, kommer nästa steg vara att kontrollera:
-- om insert i `estimate_items` faktiskt sker (och om någon RLS-policy stoppar inserts), men eftersom koden idag skulle kasta error vid insert-fel är det mer sannolikt att det är “regex miss → tool körs utan items”.
+Resultat: “10” syns i “Antal” på offerten även när hours råkar vara null.
 
 ---
 
-## Exakt vilka filer jag kommer ändra
-1) `supabase/functions/global-assistant/index.ts`
-   - Uppdatera addItemsPattern (tillåt “Lägg till 1 …”)
-   - Lägg till failsafe baserat på `context.pendingData`
-   - Rensa `pendingData` efter lyckad uppdatering
-   - (Behåll befintlig create_estimate direct pattern)
+### B) Implementera riktig radering av offertpost från chatten
+1) `supabase/functions/global-assistant/index.ts` (backend-funktionen)
+   - Lägg till tool definition:
+     - `delete_estimate_item` med parametrar:
+       - `estimate_id: string` (required)
+       - `row_number: number` (optional)
+       - `item_id: string` (optional)
+   - Lägg till executeTool-case:
+     - Validera att offerten tillhör användaren (samma mönster som övriga estimate-tools)
+     - Om `item_id` finns: delete direkt
+     - Om `row_number` finns:
+       - select items order by sort_order
+       - hitta index = row_number - 1
+       - delete på item.id
+     - Efter delete: räkna om totals + uppdatera `project_estimates` (labor/material/subcontractor/total)
+     - Returnera `items_deleted: 1` och gärna vilken rad som togs bort
 
-2) `src/pages/GlobalAssistant.tsx`
-   - Förbättra text-meddelandet på “Spara offert” så att raderna sammanfattas (fallback + tydlighet)
+   - Lägg till “pendingAction confirm handler” i request-flödet:
+     - Om `context.pendingAction === "delete_estimate_item"`:
+       - vid “ja/kör/ok” → kör tool med `context.pendingData`
+       - vid “avbryt/nej” → rensa pendingAction
+
+   - Lägg till parsing av användartext:
+     - Matcha fraser som “ta bort rad 1”, “ta bort första raden”, “delete row 1”
+     - Om vi hittar radnummer + estimateId (från text eller context.selectedEstimateId):
+       - returnera `type: "proposal"` + `context: { pendingAction: "delete_estimate_item", pendingData: {...} }`
+
+2) (Valfritt) `src/types/global-assistant.ts`
+   - Om vi vill typa pendingAction/pendingData bättre (inte nödvändigt, men gör det tydligare)
+
+Resultat: när chatten säger att den tagit bort raden så är den faktiskt raderad i databasen och “visa offerten” visar uppdaterad lista.
 
 ---
 
-## Varför detta löser problemet du ser på screenshots
-- Dina inmatade rader **finns redan** i `context.pendingData` (vi har logg som bevisar det).
-- Det som saknas är att backend **använder** pendingData för att kalla `add_estimate_items`.
-- När regexen börjar matcha “Lägg till 1 poster …” kommer backend att köra `add_estimate_items` med `items[]` och då blir “uppdaterad med 1 poster” och offerten får verkligt innehåll.
+## Tester (end-to-end) vi kör efteråt
+1) Öppna en offert med en “labor”-rad som har quantity men hours null (som i OFF-2026-0039).
+   - Verifiera att “Antal” visar 10 och 5 i /estimates och i förhandsgranskning.
 
+2) I chatten:
+   - “visa offerten”
+   - “ta bort rad 1”
+   - klicka bekräfta (proposal → Ja, kör på!)
+   - “visa offerten” igen
+   - Verifiera att raden verkligen är borta och totalsummor uppdaterade.
+
+3) Edge case:
+   - Försök ta bort rad 99 (för stort nummer) → få tydligt felmeddelande (“Hittar ingen rad 99”)
+
+---
+
+## Varför detta är rätt fix för dina screenshots
+- Dina rader **har quantity sparat** men UI tittar på hours för labor → därför blir “Antal” tomt.
+- Chat-borttagning har inget riktigt delete-verktyg → därför kan den säga “borttagen” men inget ändras.
+
+När vi har gjort ovanstående kommer:
+- **Antal** synas som du förväntar dig (t.ex. “10”)
+- **Ta bort rad** fungerar på riktigt och syns direkt vid “visa offert”
