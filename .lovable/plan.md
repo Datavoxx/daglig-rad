@@ -1,119 +1,143 @@
 
-# Plan: Fixa så Byggio AI hittar projekt-ID från projektnamn
 
-## Problem identifierat
+# Plan: Säkerställ konsekventa formulär i Byggio AI
 
-Användaren skrev: **"hämta qr kod för projekt tony-test"**
+## Sammanfattning
 
-AI:n anropade: `get_attendance_qr({ project_id: "tony-test" })`
+Du vill att Byggio AI **alltid** visar interaktiva formulär (kort) istället för textfrågor för dessa åtgärder:
+1. Skapa offert
+2. Skapa projekt
+3. Sök kund
+4. Ny kund
+5. Ny dagrapport
+6. Registrera tid
+7. Visa fakturor
+8. Checka in
 
-Men "tony-test" är ett **projektnamn**, inte ett UUID. Databasen kräver UUID för `project_id`-kolumnen, vilket gav felet:
-```
-invalid input syntax for type uuid: "tony-test"
-```
+Problemet idag är att AI:n ibland visar formulär och ibland ställer textfrågor - detta är inkonsekvent.
 
-## Varför detta hände
+## Teknisk lösning
 
-1. **Kontexten var tom** - Inget projekt var valt i sessionen (`Context: {}`)
-2. **AI:n antog att "tony-test" var ett ID** istället för att först söka efter projektet
-3. **Systemprompt saknar instruktion** om att AI:n måste använda `search_projects` först för att lösa projektnamn till UUID
+### Del 1: Stärkt systemprompt (hårdare regler)
 
-## Lösning
+Lägg till en ny sektion i systemprompt som **förbjuder** AI:n från att ställa textfrågor:
 
-### Alternativ 1: Förbättra systemprompt (Rekommenderas)
-
-Lägg till explicit instruktion i systemprompt som säger:
-- Om användaren anger ett projektnamn (inte UUID), använd ALLTID `search_projects` först
-- Ett UUID har formatet `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- Allt annat är ett projektnamn som måste slås upp
-
-**Systemprompt-tillägg:**
 ```text
-VIKTIGT OM PROJEKT-ID OCH NAMN:
-- Ett projekt-ID (UUID) har formatet: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-- Om användaren anger något annat (t.ex. "tony-test", "Solvik", "Projekt 123") 
-  är det ett PROJEKTNAMN, inte ett ID!
-- Du MÅSTE använda search_projects för att hitta rätt projekt-ID först
-- Använd sedan det hittade UUID:t för alla efterföljande operationer
+═══════════════════════════════════════════════════════════════════════════════
+STRIKT REGEL: ALLTID FORMULÄR - ALDRIG TEXTFRÅGOR!
+═══════════════════════════════════════════════════════════════════════════════
+
+Du får ALDRIG svara med textfrågor om du kan visa ett formulär istället.
+
+FÖRBJUDNA SVAR (GÖR ALDRIG DETTA):
+- "Vilken kund gäller offerten?"
+- "Vilket projekt vill du registrera tid på?"
+- "Kan du berätta vilken kund..."
+- "För att skapa en offert behöver jag veta..."
+
+ISTÄLLET - ANROPA ALLTID DESSA VERKTYG:
+| Användarens intent | Verktyg att anropa |
+|-------------------|-------------------|
+| "skapa offert", "ny offert" | get_customers_for_estimate |
+| "skapa projekt", "nytt projekt" | get_project_form |
+| "sök kund", "visa kunder" | get_all_customers |
+| "ny kund", "lägg till kund" | get_customer_form |
+| "ny dagrapport", "skapa rapport" | get_projects_for_daily_report |
+| "registrera tid", "logga tid" | get_active_projects_for_time |
+| "visa fakturor", "mina fakturor" | get_invoice_filter_form |
+| "checka in", "stämpla in" | get_projects_for_check_in |
+
+DETTA ÄR ETT ABSOLUT KRAV - INGA UNDANTAG!
 ```
 
-### Alternativ 2: Backend-resolver (Mer robust)
+### Del 2: Lägg till saknade verktyg
 
-Lägg till en hjälpfunktion i edge function som automatiskt löser projektnamn till UUID:
+Vi saknar två verktyg:
+
+**1. `get_invoice_filter_form`** - visar faktura-filter (status, kund)
 
 ```typescript
-async function resolveProjectId(supabase, input: string): Promise<string | null> {
-  // Check if input is already a UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(input)) {
-    return input; // Already a valid UUID
-  }
-  
-  // Search for project by name
-  const { data } = await supabase
-    .from("projects")
-    .select("id")
-    .ilike("name", `%${input}%`)
-    .limit(1)
-    .single();
-    
-  return data?.id || null;
+{
+  type: "function",
+  function: {
+    name: "get_invoice_filter_form",
+    description: "Show invoice filter form. Use when user wants to view/search invoices.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
 }
 ```
 
-Sedan i verktygsanropen:
+**2. `get_projects_for_check_in`** - visar projekt att checka in på
+
 ```typescript
-case "get_attendance_qr": {
-  let { project_id } = args;
-  
-  // Resolve name to UUID if needed
-  project_id = await resolveProjectId(supabase, project_id);
-  if (!project_id) {
-    return { error: "Projektet hittades inte" };
-  }
-  // ... continue with database query
+{
+  type: "function",
+  function: {
+    name: "get_projects_for_check_in",
+    description: "Get active projects for check-in. Use when user wants to check in without specifying project.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
 }
 ```
 
-## Rekommenderad implementation
+### Del 3: Lägg till frontend-komponenter
 
-Jag rekommenderar **både Alternativ 1 och 2** för maximal robusthet:
+**1. Ny meddelandetyp `check_in_form`**
+- Lägg till i `types/global-assistant.ts`
+- Visa projektlista med "Checka in"-knapp
 
-1. **Systemprompt** - Lär AI:n korrekt beteende
-2. **Backend-resolver** - Fångar upp fall där AI:n ändå gör fel
+**2. Ny meddelandetyp `invoice_filter_form`**
+- Lägg till i `types/global-assistant.ts`
+- Visa filter (status: alla/utkast/skickade/betalda)
+
+### Del 4: Backend fallback (säkerhetsnät)
+
+Om AI:n ändå svarar med text när den borde visa formulär, detektera detta och tvinga fram formulär:
+
+```typescript
+// Före textsvaret (rad ~3590)
+const forceFormPatterns = [
+  { pattern: /skapa (ny |en )?offert/i, tool: "get_customers_for_estimate" },
+  { pattern: /(ny|skapa|nytt) projekt/i, tool: "get_project_form" },
+  { pattern: /(sök|hitta|visa).*(kund|kunder)/i, tool: "get_all_customers" },
+  { pattern: /(ny|skapa|lägg till).*(kund)/i, tool: "get_customer_form" },
+  { pattern: /(skapa|ny).*(dag)?rapport/i, tool: "get_projects_for_daily_report" },
+  { pattern: /registrera.*tid|logga.*tid|rapportera.*timmar/i, tool: "get_active_projects_for_time" },
+  { pattern: /visa.*faktur|mina.*faktur/i, tool: "get_invoice_filter_form" },
+  { pattern: /checka? in|stämpla in/i, tool: "get_projects_for_check_in" },
+];
+
+const lowerMessage = message.toLowerCase();
+for (const { pattern, tool } of forceFormPatterns) {
+  if (pattern.test(lowerMessage)) {
+    // Kör verktyget och returnera formulär
+    const toolResult = await executeTool(supabase, userId, tool, {});
+    return formatToolResults(tool, toolResult);
+  }
+}
+```
 
 ## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | 1. Utöka systemprompt med UUID vs namn-instruktioner |
-| | 2. Lägg till `resolveProjectId` hjälpfunktion |
-| | 3. Använd resolver i alla projekt-relaterade verktyg |
+| `supabase/functions/global-assistant/index.ts` | 1. Stärkt systemprompt |
+| | 2. Nya verktyg: `get_invoice_filter_form`, `get_projects_for_check_in` |
+| | 3. Verktygsimplementationer i `executeTool` |
+| | 4. Formattering i `formatToolResults` |
+| | 5. Fallback-logik före textsvar |
+| `src/types/global-assistant.ts` | Lägg till `check_in_form` och `invoice_filter_form` typer |
+| `src/components/global-assistant/MessageList.tsx` | Rendera nya kort-typer |
+| `src/components/global-assistant/CheckInFormCard.tsx` | **NY FIL** - projektlista med checka-in knapp |
+| `src/components/global-assistant/InvoiceFilterCard.tsx` | **NY FIL** - fakturafilter |
+| `src/pages/GlobalAssistant.tsx` | Hantera submit/cancel för nya formulär |
 
-## Lista över verktyg som behöver resolver
-
-Alla verktyg som tar `project_id` som parameter:
-- `get_attendance_qr`
-- `generate_attendance_qr`
-- `create_work_order`
-- `search_work_orders`
-- `create_ata`
-- `search_ata`
-- `get_project_plan`
-- `create_plan`
-- `update_plan`
-- `list_project_files`
-- `check_in`
-- `check_out`
-- `get_active_attendance`
-- `get_project_economy`
-- `search_daily_reports`
-- `create_daily_report`
-
-## Förväntat resultat efter fix
+## Resultat
 
 | Före | Efter |
 |------|-------|
-| "hämta qr kod för projekt tony-test" → Krasch (invalid UUID) | "hämta qr kod för projekt tony-test" → Hittar projekt, visar QR-kod |
-| AI:n antar att namn är UUID | AI:n söker först, använder sedan UUID |
-| Context-beroende | Fungerar även utan context |
+| "Skapa offert" → Text "Vilken kund?" (ibland) | "Skapa offert" → Formulär (alltid) |
+| "Registrera tid" → Text (ibland) | "Registrera tid" → Formulär (alltid) |
+| "Visa fakturor" → Lista (inkonsekvent) | "Visa fakturor" → Filterformulär |
+| "Checka in" → Text "Vilket projekt?" | "Checka in" → Projektformulär |
+
