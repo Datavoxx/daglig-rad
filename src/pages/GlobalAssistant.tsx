@@ -501,9 +501,6 @@ export default function GlobalAssistant() {
       {/* Empty state - centered welcome */}
       {!hasMessages && (
         <div className="flex flex-1 flex-col items-center justify-center px-4">
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
-            <span className="text-2xl font-bold text-primary">AI</span>
-          </div>
           <h1 className="mb-2 text-2xl font-semibold text-foreground">
             Vad kan jag hjälpa dig med{userName ? `, ${userName}` : ""}?
           </h1>
