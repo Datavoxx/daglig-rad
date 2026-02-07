@@ -16,6 +16,7 @@ import { ProjectFormCard } from "./ProjectFormCard";
 import { QRCodeCard } from "./QRCodeCard";
 import { FileListCard } from "./FileListCard";
 import { EconomyCard } from "./EconomyCard";
+import { CheckInFormCard } from "./CheckInFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -73,6 +74,8 @@ interface MessageListProps {
   onCustomerFormCancel?: () => void;
   onProjectFormSubmit?: (data: ProjectFormData) => void;
   onProjectFormCancel?: () => void;
+  onCheckInFormSubmit?: (projectId: string) => void;
+  onCheckInFormCancel?: () => void;
   isLoading?: boolean;
 }
 
@@ -97,6 +100,8 @@ export function MessageList({
   onCustomerFormCancel,
   onProjectFormSubmit,
   onProjectFormCancel,
+  onCheckInFormSubmit,
+  onCheckInFormCancel,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -264,6 +269,16 @@ export function MessageList({
                   <EconomyCard
                     content={message.content}
                     data={message.data}
+                  />
+                )}
+
+                {/* Check-in form card */}
+                {message.type === "check_in_form" && message.data?.projects && onCheckInFormSubmit && onCheckInFormCancel && (
+                  <CheckInFormCard
+                    projects={message.data.projects}
+                    onSubmit={onCheckInFormSubmit}
+                    onCancel={onCheckInFormCancel}
+                    disabled={isLoading}
                   />
                 )}
               </div>
