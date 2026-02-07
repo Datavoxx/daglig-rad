@@ -18,7 +18,9 @@ export interface Message {
     | "project_form"
     | "qr_code"
     | "file_list"
-    | "economy_overview";
+    | "economy_overview"
+    | "check_in_form"
+    | "invoice_filter_form";
   data?: MessageData;
 }
 

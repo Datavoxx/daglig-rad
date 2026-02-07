@@ -330,6 +330,17 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt projektskapande");
   };
 
+  const handleCheckInFormSubmit = async (projectId: string) => {
+    await sendMessage(
+      `Checka in på projekt med ID ${projectId}`,
+      { selectedProjectId: projectId }
+    );
+  };
+
+  const handleCheckInFormCancel = async () => {
+    await sendMessage("Avbryt incheckning");
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -435,6 +446,8 @@ export default function GlobalAssistant() {
             onCustomerFormCancel={handleCustomerFormCancel}
             onProjectFormSubmit={handleProjectFormSubmit}
             onProjectFormCancel={handleProjectFormCancel}
+            onCheckInFormSubmit={handleCheckInFormSubmit}
+            onCheckInFormCancel={handleCheckInFormCancel}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">
