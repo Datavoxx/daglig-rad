@@ -1,280 +1,278 @@
 
-# Plan: Flerstegsfler för offertskapande i chatten
+# Plan: Fixa offert-loop + Tvåstegs-output
 
-## Sammanfattning
+## Sammanfattning av problem
 
-Du vill att offertflödet i chatten ska vara:
-1. Skapa offert (kund, titel, adress) → Bekräftelse
-2. **Direkt visa formulär för att lägga till rader** (inte "Skapa ny offert")
-3. Efter att rader läggs till → Bekräftelse "Uppdaterat offert"
+1. **Buggen**: När du klickar "Skapa offert" i formuläret skickas meddelandet `Skapa offert "X" för kund med ID Y`, men AI:n anropar `get_customers_for_estimate` (formuläret) istället för `create_estimate`
+2. **Önskat flöde**: Efter skapande ska det komma BÅDE bekräftelse OCH items-formuläret direkt
 
-### Problem idag
-- Efter offert skapas visas "Skapa ny offert" som nästa åtgärd
-- Ingen möjlighet att lägga till rader direkt i chatten
+## Lösning: Tvådelad
 
-### Önskat flöde
-```text
-[Skapa offert formulär]
-         ↓
-[Offert OFF-2026-0032 skapad!]
-         ↓
-[Lägg till offertposter formulär]   ← NYTT!
-  • Projektbeskrivning (text)
-  • Tidsplan (text)
-  • Offertpåställ (rader)
-  • Tillval (checkbox-lista)
-         ↓
-[Uppdaterat offert!]                ← NYTT!
-```
+### Del 1: Fixa loopen med Direct Pattern Matching
 
----
+Lägg till pattern-matching i edge function som fångar upp meddelanden med kund-ID och kör `create_estimate` direkt - utan att gå via AI:n:
 
-## Teknisk lösning
-
-### 1. Skapa ny komponent: EstimateItemsFormCard.tsx
-
-```text
-┌─────────────────────────────────────────┐
-│ [📝] Lägg till offertposter             │
-│     Offert: OFF-2026-0032               │
-│                                         │
-│ Projektbeskrivning                      │
-│ ┌─────────────────────────────────────┐ │
-│ │ Beskriv projektet...              │ │
-│ └─────────────────────────────────────┘ │
-│                                         │
-│ Tidsplan                                │
-│ ┌─────────────────────────────────────┐ │
-│ │ Uppskattad tid...                  │ │
-│ └─────────────────────────────────────┘ │
-│                                         │
-│ ───────── Offertposter ─────────        │
-│ ┌──────────────────────────────────┐    │
-│ │ Arbete   │Beskrivning │Pris     │    │
-│ │ + Lägg till rad                  │    │
-│ └──────────────────────────────────┘    │
-│                                         │
-│ ───────── Tillval ─────────             │
-│ [+] Lägg till tillval                   │
-│                                         │
-│         [Avbryt]  [✓ Spara offert]      │
-└─────────────────────────────────────────┘
-```
-
-**Props:**
 ```typescript
-interface EstimateItemsFormCardProps {
-  estimateId: string;
-  offerNumber: string;
-  onSubmit: (data: EstimateItemsData) => void;
-  onCancel: () => void;
-  onOpenEstimate: () => void;  // "Öppna offert" länk
-  disabled?: boolean;
-}
+// FÖRE AI-anropet
+const directCreateEstimate = /(?:skapa|create)\s*offert\s*"([^"]+)".*(?:kund med ID|customer_id)[=:\s]*([a-f0-9-]{36})/i;
+const match = message.match(directCreateEstimate);
 
-interface EstimateItemsData {
-  estimateId: string;
-  introduction: string;      // Projektbeskrivning
-  timeline: string;          // Tidsplan
-  items: Array<{
-    article: string;
-    description: string;
-    quantity: number | null;
-    unit: string;
-    unit_price: number;
-  }>;
-  addons: Array<{
-    name: string;
-    price: number;
-  }>;
+if (match) {
+  const [, title, customerId] = match;
+  const address = message.match(/(?:på adress|address)\s+(.+?)(?:\s+för|\s*$)/i)?.[1] || "";
+  
+  // Kör create_estimate direkt!
+  const result = await executeTool(supabase, userId, "create_estimate", {
+    customer_id: customerId,
+    title: title.trim(),
+    address: address.trim(),
+  });
+  
+  return formatToolResults("create_estimate", result);
 }
 ```
 
-### 2. Uppdatera typer i global-assistant.ts
+### Del 2: Tvåstegs-output (bekräftelse + formulär)
 
-Lägg till ny meddelandetyp:
+Uppdatera `formatToolResults` för `create_estimate` att returnera ett svar som frontend tolkar som två delar:
+
+**Nuvarande output:**
 ```typescript
-type: ... | "estimate_items_form"
-
-// I MessageData:
-estimateId?: string;
-offerNumber?: string;
-```
-
-### 3. Ändra create_estimate-resultatet (backend)
-
-**Före:** (rad 2770-2787 i index.ts)
-```typescript
-case "create_estimate": {
-  return {
-    type: "result",
-    data: {
-      resultMessage: `Offert ${estimate.offer_number} har skapats!`,
-      nextActions: [
-        { label: "Skapa ny offert", ...}  // ❌ Fel!
-      ],
-    },
-  };
-}
-```
-
-**Efter:**
-```typescript
-case "create_estimate": {
-  return {
-    type: "estimate_items_form",  // ← Nytt!
-    content: `Offert ${estimate.offer_number} har skapats! Lägg till offertposter nedan.`,
-    data: {
-      estimateId: estimate.id,
-      offerNumber: estimate.offer_number,
-    },
-    context: {
-      selectedEstimateId: estimate.id,
-    },
-  };
-}
-```
-
-### 4. Nytt verktyg: add_estimate_items
-
-**Tool definition:**
-```typescript
-{
-  name: "add_estimate_items",
-  description: "Add items to an existing estimate",
-  parameters: {
-    type: "object",
-    properties: {
-      estimate_id: { type: "string" },
-      introduction: { type: "string" },
-      timeline: { type: "string" },
-      items: { type: "array", items: { ... } },
-      addons: { type: "array", items: { ... } },
-    },
-    required: ["estimate_id"],
-  },
-}
-```
-
-**Resultat:**
-```typescript
-case "add_estimate_items": {
-  return {
-    type: "result",
-    content: "",
-    data: {
-      success: true,
-      resultMessage: "Offert uppdaterad!",  // ← "Uppdaterat" inte "Skapat"
-      link: {
-        label: "Öppna offert",
-        href: `/estimates?estimateId=${estimate_id}`,
-      },
-      nextActions: [
-        { label: "Visa offert", ... },
-        { label: "Skapa ny offert", ... },
-      ],
-    },
-  };
-}
-```
-
-### 5. Frontend-hantering
-
-**MessageList.tsx:**
-```typescript
-// Rendera EstimateItemsFormCard för estimate_items_form
-{message.type === "estimate_items_form" && (
-  <EstimateItemsFormCard
-    estimateId={message.data?.estimateId || ""}
-    offerNumber={message.data?.offerNumber || ""}
-    onSubmit={onEstimateItemsFormSubmit}
-    onCancel={onEstimateItemsFormCancel}
-    onOpenEstimate={() => navigate(`/estimates?estimateId=${message.data?.estimateId}`)}
-  />
-)}
-```
-
-**GlobalAssistant.tsx:**
-```typescript
-const handleEstimateItemsFormSubmit = async (data: EstimateItemsData) => {
-  // Bygg meddelande och skicka till AI
-  await sendMessage(
-    `Lägg till poster på offert med ID ${data.estimateId}...`,
-    { selectedEstimateId: data.estimateId }
-  );
+return {
+  type: "estimate_items_form",
+  content: "Offert OFF-2026-0032 skapad! Lägg till offertposter nedan.",
+  data: { estimateId, offerNumber },
 };
 ```
 
+**Ny approach - returnera result-typ med inbäddad form:**
+
+```typescript
+return {
+  type: "result_with_form",  // Ny typ!
+  content: "",
+  data: {
+    success: true,
+    resultMessage: `Offert ${estimate.offer_number} skapad!`,
+    link: {
+      label: "Öppna offert",
+      href: `/estimates?estimateId=${estimate.id}`,
+    },
+    // Inbäddad form-data
+    nextForm: {
+      type: "estimate_items_form",
+      estimateId: estimate.id,
+      offerNumber: estimate.offer_number,
+    },
+  },
+  context: {
+    selectedEstimateId: estimate.id,
+  },
+};
+```
+
+Alternativt (enklare approach) - låt frontend rendera BÅDE ResultCard OCH EstimateItemsFormCard för typen `estimate_items_form`:
+
+```typescript
+// I MessageList.tsx
+{message.type === "estimate_items_form" && (
+  <>
+    {/* Bekräftelse först */}
+    <ResultCard 
+      success={true}
+      message={message.content}
+      link={{ label: "Öppna offert", href: `/estimates?estimateId=${message.data?.estimateId}` }}
+    />
+    {/* Sen formuläret */}
+    <EstimateItemsFormCard
+      estimateId={message.data?.estimateId || ""}
+      offerNumber={message.data?.offerNumber || ""}
+      onSubmit={onEstimateItemsFormSubmit}
+      onCancel={onEstimateItemsFormCancel}
+      onOpenEstimate={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
+    />
+  </>
+)}
+```
+
 ---
 
-## Filer att skapa/ändra
+## Filer att ändra
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/global-assistant/EstimateItemsFormCard.tsx` | **NY FIL** - formulär för offertposter |
-| `src/types/global-assistant.ts` | Lägg till `estimate_items_form` typ |
-| `src/components/global-assistant/MessageList.tsx` | Rendera `EstimateItemsFormCard` |
-| `src/pages/GlobalAssistant.tsx` | Hantera submit/cancel |
-| `supabase/functions/global-assistant/index.ts` | 1. Ändra `create_estimate` resultat |
-| | 2. Lägg till `add_estimate_items` verktyg |
-| | 3. Implementera verktyget i `executeTool` |
-| | 4. Formatera resultat i `formatToolResults` |
+| `supabase/functions/global-assistant/index.ts` | 1. Lägg till direct pattern matching för create_estimate |
+| | 2. Lägg även till pattern för add_estimate_items |
+| | 3. Uppdatera prompten med explicit regel: "kund-ID = create_estimate" |
+| `src/components/global-assistant/MessageList.tsx` | 4. Rendera ResultCard INNAN EstimateItemsFormCard för typen `estimate_items_form` |
 
 ---
 
-## Förväntat resultat
+## Detaljerad implementation
 
-| Steg | Före | Efter |
-|------|------|-------|
-| 1. Skapa offert | Formulär visas | Formulär visas ✓ |
-| 2. Efter skapande | "Skapa ny offert"-knapp | **Poster-formulär visas** |
-| 3. Lägga till rader | Ej möjligt i chatten | **Inline i chatten** |
-| 4. Efter uppdatering | — | **"Offert uppdaterad!"** |
+### 1. Direct Pattern Matching (index.ts)
 
----
-
-## Tekniska detaljer
-
-### EstimateItemsFormCard struktur:
+Lägg till efter CORS-hantering, före AI-anrop:
 
 ```typescript
-// Förenklad version för MVP
-interface EstimateItemsFormCardProps {
-  estimateId: string;
-  offerNumber: string;
-  onSubmit: (data: {
-    estimateId: string;
-    introduction: string;
-    items: Array<{
-      article: string;
-      description: string;
-      quantity: number | null;
-      unit: string;
-      unit_price: number;
-    }>;
-  }) => void;
-  onCancel: () => void;
-  onOpenEstimate: () => void;
-  disabled?: boolean;
+// === DIRECT COMMAND PATTERNS ===
+// Bypass AI when message contains all required data
+
+// Pattern: Skapa offert "titel" för kund med ID uuid
+const createEstimatePattern = /(?:skapa|create)\s*offert\s*["""]([^"""]+)["""].*(?:kund med ID|customer_id)[=:\s]*([a-f0-9-]{36})/i;
+const createEstimateMatch = message.match(createEstimatePattern);
+
+if (createEstimateMatch) {
+  const [, title, customerId] = createEstimateMatch;
+  const addressMatch = message.match(/(?:på adress|address)[=:\s]+(.+?)(?:\s+för|$)/i);
+  const address = addressMatch?.[1]?.trim() || "";
+  
+  console.log("Direct create_estimate:", { title, customerId, address });
+  
+  const result = await executeTool(supabase, userId, "create_estimate", {
+    customer_id: customerId,
+    title: title.trim(),
+    address,
+  });
+  
+  const formatted = formatToolResults("create_estimate", result);
+  return new Response(JSON.stringify(formatted), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// Pattern: Lägg till poster på offert med ID uuid
+const addItemsPattern = /(?:lägg till|add)\s*(?:poster|items).*(?:offert med ID|estimate_id)[=:\s]*([a-f0-9-]{36})/i;
+const addItemsMatch = message.match(addItemsPattern);
+
+if (addItemsMatch && context?.pendingData) {
+  const estimateId = addItemsMatch[1] || context.selectedEstimateId;
+  
+  console.log("Direct add_estimate_items:", { estimateId, pendingData: context.pendingData });
+  
+  const result = await executeTool(supabase, userId, "add_estimate_items", {
+    estimate_id: estimateId,
+    ...context.pendingData,
+  });
+  
+  const formatted = formatToolResults("add_estimate_items", result);
+  return new Response(JSON.stringify(formatted), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 ```
 
-**UI-sektioner:**
-1. **Header**: Titel + offertnummer
-2. **Projektbeskrivning**: Textarea för inledande text
-3. **Offertposter**: Tabell med + Lägg till rad
-   - Artikel (dropdown: Arbete, Material, etc.)
-   - Beskrivning (text)
-   - Antal (nummer, valfritt)
-   - Enhet (text)
-   - Pris (nummer)
-4. **Tillval**: Enkel lista med namn + pris
-5. **Actions**: Avbryt + Spara
+### 2. Uppdatera Systemprompt (index.ts)
 
-### Backend: add_estimate_items
+Lägg till explicit regel:
 
-Verktyget ska:
-1. Uppdatera `introduction_text` i `project_estimates`
-2. Lägga till rader i `estimate_items`
-3. Lägga till tillval i `estimate_addons`
-4. Returnera bekräftelse
+```text
+<form_vs_create>
+SKILLNAD MELLAN FORMULÄR OCH SKAPANDE:
+
+VISA FORMULÄR (ingen data):
+- "skapa offert" → get_customers_for_estimate
+
+SKAPA DIREKT (data finns):
+- "Skapa offert X för kund med ID Y" → create_estimate
+- Om meddelandet innehåller UUID → använd create_* eller register_*
+
+REGEL: Om kund-ID (UUID) finns i meddelandet → INTE formulär, SKAPA direkt!
+</form_vs_create>
+```
+
+### 3. Tvådelad Rendering (MessageList.tsx)
+
+Uppdatera renderingen av `estimate_items_form`:
+
+```tsx
+{message.type === "estimate_items_form" && (
+  <div className="space-y-3">
+    {/* Success banner */}
+    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
+      <CheckCircle2 className="h-5 w-5 text-green-600" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+          {message.content || `Offert ${message.data?.offerNumber} skapad!`}
+        </p>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-green-700 hover:text-green-800"
+        onClick={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
+      >
+        <ExternalLink className="h-4 w-4 mr-1" />
+        Öppna
+      </Button>
+    </div>
+    
+    {/* Items form */}
+    <EstimateItemsFormCard
+      estimateId={message.data?.estimateId || ""}
+      offerNumber={message.data?.offerNumber || ""}
+      onSubmit={onEstimateItemsFormSubmit}
+      onCancel={onEstimateItemsFormCancel}
+      onOpenEstimate={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
+    />
+  </div>
+)}
+```
+
+---
+
+## Flöde efter fix
+
+```text
+1. Användaren: "Skapa offert"
+   → AI: get_customers_for_estimate
+   → Frontend: Visar EstimateFormCard
+
+2. Användaren klickar "Skapa offert" i formuläret
+   → Frontend skickar: 'Skapa offert "Renovering" för kund med ID abc-123'
+   → Backend: Pattern match! Kör create_estimate direkt
+   → Backend returnerar: estimate_items_form med estimateId
+
+3. Frontend renderar:
+   ┌──────────────────────────────────────┐
+   │ ✓ Offert OFF-2026-0032 skapad!      │
+   │                         [Öppna]     │
+   └──────────────────────────────────────┘
+   ┌──────────────────────────────────────┐
+   │ Lägg till offertposter               │
+   │ ┌──────────────────────────────────┐ │
+   │ │ Projektbeskrivning              │ │
+   │ └──────────────────────────────────┘ │
+   │ ┌──────────────────────────────────┐ │
+   │ │ Offertposter [+ Lägg till rad]  │ │
+   │ └──────────────────────────────────┘ │
+   │ ┌──────────────────────────────────┐ │
+   │ │ Tillval [+ Lägg till]           │ │
+   │ └──────────────────────────────────┘ │
+   │         [Avbryt]  [Spara offert]    │
+   └──────────────────────────────────────┘
+
+4. Användaren fyller i och klickar "Spara offert"
+   → Frontend skickar: 'Lägg till poster på offert med ID xyz...'
+   → Backend: Pattern match! Kör add_estimate_items direkt
+   → Backend returnerar: result med "Offert uppdaterad!"
+
+5. Frontend renderar:
+   ┌──────────────────────────────────────┐
+   │ ✓ Offert OFF-2026-0032 uppdaterad   │
+   │ med 3 poster!                        │
+   │                         [Öppna]     │
+   │                                      │
+   │ [Visa offert] [Skapa ny offert]     │
+   └──────────────────────────────────────┘
+```
+
+---
+
+## Teknisk sammanfattning
+
+| Problem | Lösning |
+|---------|---------|
+| AI anropar fel verktyg | Direct pattern matching före AI-anrop |
+| Bara formulär visas, ingen bekräftelse | Tvådelad rendering: Success banner + Form |
+| Loopen fortsätter | Pattern tar över INNAN AI får chansen |
