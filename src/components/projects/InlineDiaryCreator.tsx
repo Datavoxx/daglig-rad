@@ -95,7 +95,7 @@ export function InlineDiaryCreator({
     isSupported,
     isIOSDevice,
   } = useVoiceRecorder({
-    agentName: "Ulla",
+    agentName: "Byggio AI",
     onTranscriptUpdate: (newTranscript) => {
       setTranscript(newTranscript);
     },
@@ -295,11 +295,11 @@ export function InlineDiaryCreator({
               <div className="flex items-center gap-4 p-4 mt-2 bg-primary/5 border border-dashed border-primary/30 rounded-lg">
                 <img 
                   src={AI_AGENTS.diary.avatar} 
-                  alt="Ulla AI" 
+                  alt="Byggio AI" 
                   className="w-32 h-32 object-contain drop-shadow-lg"
                 />
                 <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-primary">Låt Ulla AI hjälpa dig</span>
+                  <span className="text-sm font-medium text-primary">Låt Byggio AI hjälpa dig</span>
                   <span className="text-xs text-muted-foreground">
                     Spara 70% av din tid genom att prata
                     {isIOSDevice && " (transkribering efter inspelning)"}

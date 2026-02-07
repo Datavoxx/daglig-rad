@@ -362,7 +362,7 @@ export function PlanEditor({
         ))}
       </div>
 
-      {/* Voice prompt with Bo avatar */}
+      {/* Voice prompt with Byggio AI avatar */}
       <div 
         className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
         onClick={() => {
@@ -372,13 +372,13 @@ export function PlanEditor({
       >
         <img 
           src={AI_AGENTS.planning.avatar}
-          alt="Bo AI"
+          alt="Byggio AI"
           className="w-32 h-32 object-contain drop-shadow-lg"
         />
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-primary">
             <Mic className="h-5 w-5" />
-            <span className="font-medium">Låt Bo AI hjälpa dig</span>
+            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
           </div>
           <span className="text-sm text-muted-foreground">Beskriv ändringar med rösten</span>
         </div>
@@ -397,7 +397,7 @@ export function PlanEditor({
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
-        agentName="Bo AI"
+        agentName="Byggio AI"
         agentAvatar={AI_AGENTS.planning.avatar}
       />
     </div>

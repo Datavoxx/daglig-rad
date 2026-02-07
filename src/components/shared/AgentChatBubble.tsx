@@ -8,9 +8,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
-// Import agent avatars
-import sagaAvatar from "@/assets/saga-avatar-transparent.png";
-import boAvatar from "@/assets/bo-avatar.png";
+// Import Byggio logo
+import byggioLogo from "@/assets/byggio-logo.png";
 
 interface Message {
   role: "user" | "assistant";
@@ -84,21 +83,13 @@ interface AgentChatBubbleProps {
   context: Omit<SagaContext, "type"> | Omit<BoContext, "type">;
 }
 
+// Byggio AI configuration (unified)
 const agentConfig = {
-  saga: {
-    name: "Saga",
-    title: "Kalkylexpert",
-    avatar: sagaAvatar,
-    greeting: "Hej! Jag är Saga, din kalkylexpert. Ställ frågor om offerten så hjälper jag dig!",
-    placeholder: "Fråga Saga om offerten...",
-  },
-  bo: {
-    name: "Bo",
-    title: "Projektplanerare",
-    avatar: boAvatar,
-    greeting: "Hej! Jag är Bo, din projektplanerare. Jag kan svara på frågor om projektet, tidsplanen, dagrapporter, ÄTA och arbetsorder!",
-    placeholder: "Fråga Bo om projektet...",
-  },
+  name: "Byggio AI",
+  title: "Din AI-assistent",
+  avatar: byggioLogo,
+  greeting: "Hej! Jag är Byggio AI, din assistent. Ställ frågor så hjälper jag dig!",
+  placeholder: "Fråga Byggio AI...",
 };
 
 export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
@@ -109,7 +100,6 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
   const [streamingContent, setStreamingContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const config = agentConfig[agent];
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -226,12 +216,12 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
         )}
       >
         <Avatar className="h-8 w-8 border-2 border-primary-foreground/20">
-          <AvatarImage src={config.avatar} alt={config.name} />
-          <AvatarFallback>{config.name[0]}</AvatarFallback>
+          <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
+          <AvatarFallback>{agentConfig.name[0]}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col items-start">
-          <span className="text-sm font-medium leading-none">Fråga {config.name}</span>
-          <span className="text-xs opacity-80">{config.title}</span>
+          <span className="text-sm font-medium leading-none">Fråga {agentConfig.name}</span>
+          <span className="text-xs opacity-80">{agentConfig.title}</span>
         </div>
         <MessageCircle className="h-4 w-4 ml-1 opacity-60" />
       </button>
@@ -251,14 +241,14 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border bg-muted/30">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
-            <AvatarImage src={config.avatar} alt={config.name} />
+            <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {config.name[0]}
+              {agentConfig.name[0]}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground">{config.name}</h3>
-            <p className="text-xs text-muted-foreground">{config.title}</p>
+            <h3 className="font-semibold text-foreground">{agentConfig.name}</h3>
+            <p className="text-xs text-muted-foreground">{agentConfig.title}</p>
           </div>
           <Button
             variant="ghost"
@@ -277,11 +267,11 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
             {messages.length === 0 && !streamingContent && (
               <div className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarImage src={config.avatar} alt={config.name} />
-                  <AvatarFallback>{config.name[0]}</AvatarFallback>
+                  <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
+                  <AvatarFallback>{agentConfig.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-                  <p className="text-sm text-foreground">{config.greeting}</p>
+                  <p className="text-sm text-foreground">{agentConfig.greeting}</p>
                 </div>
               </div>
             )}
@@ -297,8 +287,8 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
               >
                 {message.role === "assistant" && (
                   <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarImage src={config.avatar} alt={config.name} />
-                    <AvatarFallback>{config.name[0]}</AvatarFallback>
+                    <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
+                    <AvatarFallback>{agentConfig.name[0]}</AvatarFallback>
                   </Avatar>
                 )}
                 <div
@@ -324,8 +314,8 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
             {streamingContent && (
               <div className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarImage src={config.avatar} alt={config.name} />
-                  <AvatarFallback>{config.name[0]}</AvatarFallback>
+                  <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
+                  <AvatarFallback>{agentConfig.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
                   <div className="text-sm prose prose-sm max-w-none dark:prose-invert prose-p:my-1">
@@ -339,13 +329,13 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
             {isLoading && !streamingContent && (
               <div className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarImage src={config.avatar} alt={config.name} />
-                  <AvatarFallback>{config.name[0]}</AvatarFallback>
+                  <AvatarImage src={agentConfig.avatar} alt={agentConfig.name} />
+                  <AvatarFallback>{agentConfig.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">{config.name} skriver...</span>
+                    <span className="text-sm">{agentConfig.name} skriver...</span>
                   </div>
                 </div>
               </div>
@@ -361,7 +351,7 @@ export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={config.placeholder}
+              placeholder={agentConfig.placeholder}
               className="min-h-[44px] max-h-[120px] resize-none text-sm"
               disabled={isLoading}
             />

@@ -88,7 +88,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     isSupported,
     isIOSDevice,
   } = useVoiceRecorder({
-    agentName: "Bo",
+    agentName: "Byggio AI",
     onTranscriptUpdate: (newTranscript) => {
       setTranscript(newTranscript);
     },
@@ -282,17 +282,17 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
           onClick={isRecording ? stopRecording : startRecording}
         >
-          <img 
-            src={AI_AGENTS.planning.avatar}
-            alt="Bo AI"
-            className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
-          />
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-primary">
-              <Mic className="h-5 w-5" />
-              <Sparkles className="h-4 w-4" />
-              <span className="font-medium">Låt Bo AI hjälpa dig</span>
-            </div>
+        <img 
+          src={AI_AGENTS.planning.avatar}
+          alt="Byggio AI"
+          className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
+        />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-primary">
+            <Mic className="h-5 w-5" />
+            <Sparkles className="h-4 w-4" />
+            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
+          </div>
             <span className="text-sm text-muted-foreground">
               Beskriv planen med rösten{isIOSDevice && " (transkribering efter inspelning)"}
             </span>

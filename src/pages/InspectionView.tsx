@@ -460,7 +460,7 @@ export default function InspectionView() {
       <VoiceInputOverlay
         onTranscriptComplete={handleVoiceEdit}
         isProcessing={isApplyingVoice}
-        agentName="Ulla AI"
+        agentName="Byggio AI"
         agentAvatar={AI_AGENTS.diary.avatar}
       />
     </div>

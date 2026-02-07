@@ -400,13 +400,13 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       >
         <img 
           src={AI_AGENTS.estimate.avatar}
-          alt="Saga AI"
+          alt="Byggio AI"
           className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
         />
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-primary">
             <Mic className="h-5 w-5" />
-            <span className="font-medium">Låt Saga AI hjälpa dig</span>
+            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
           </div>
           <span className="text-sm text-muted-foreground">Spara 60% av din tid</span>
         </div>
