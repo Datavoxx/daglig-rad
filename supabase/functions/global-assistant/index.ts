@@ -1070,21 +1070,27 @@ function formatToolResults(toolName: string, results: unknown): {
         city: string;
         email?: string;
         phone?: string;
+        customer_type?: string;
       }>;
       
       return {
-        type: "verification",
-        content: `Jag hittade ${customers.length} matchande kund${customers.length > 1 ? "er" : ""}:`,
+        type: "list",
+        content: customers.length > 0 
+          ? `Här är ${customers.length} kund${customers.length > 1 ? "er" : ""}:`
+          : "Inga kunder hittades.",
         data: {
-          entityType: "customer",
-          matches: customers.map((c) => ({
+          listType: "customer",
+          listItems: customers.map((c) => ({
             id: c.id,
             title: c.name,
             subtitle: c.city || "Ingen stad angiven",
-            metadata: {
-              ...(c.phone && { phone: c.phone }),
-              ...(c.email && { email: c.email }),
-            },
+            status: c.customer_type === "business" ? "Företag" : "Privat",
+            statusColor: c.customer_type === "business" ? "blue" : "green",
+            details: [
+              ...(c.email ? [{ label: "E-post", value: c.email }] : []),
+              ...(c.phone ? [{ label: "Telefon", value: c.phone }] : []),
+            ],
+            link: `/customers?id=${c.id}`,
           })),
         },
       };

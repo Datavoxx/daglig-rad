@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Dialog states
   const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -55,6 +57,20 @@ export default function Customers() {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  // Handle URL parameter to open specific customer
+  useEffect(() => {
+    const customerId = searchParams.get("id");
+    if (customerId && customers.length > 0) {
+      const customer = customers.find((c) => c.id === customerId);
+      if (customer) {
+        setSelectedCustomer(customer);
+        setDetailSheetOpen(true);
+        // Clear the URL parameter
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [customers, searchParams, setSearchParams]);
 
   async function fetchCustomers() {
     try {
