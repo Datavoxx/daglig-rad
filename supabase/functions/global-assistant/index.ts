@@ -2005,29 +2005,64 @@ async function executeTool(
         : materials_missing || [];
       
       const finalNotes = pendingData?.notes as string || notes || "";
+      const reportDate = new Date().toISOString().split('T')[0];
       
-      const { data, error } = await supabase
+      // Check if a report already exists for this project + date + user
+      const { data: existing } = await supabase
         .from("daily_reports")
-        .insert({
-          user_id: userId,
-          project_id,
-          work_items: finalWorkItems,
-          headcount: finalHeadcount,
-          hours_per_person: finalHoursPerPerson,
-          total_hours: finalTotalHours,
-          roles: finalRoles,
-          deviations: finalDeviations as any,
-          ata: finalAta as any,
-          materials_delivered: finalMaterialsDelivered,
-          materials_missing: finalMaterialsMissing,
-          notes: finalNotes,
-          report_date: new Date().toISOString().split('T')[0],
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      return data;
+        .select("id")
+        .eq("project_id", project_id)
+        .eq("report_date", reportDate)
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (existing) {
+        // Update existing report
+        const { data, error } = await supabase
+          .from("daily_reports")
+          .update({
+            work_items: finalWorkItems,
+            headcount: finalHeadcount,
+            hours_per_person: finalHoursPerPerson,
+            total_hours: finalTotalHours,
+            roles: finalRoles,
+            deviations: finalDeviations as any,
+            ata: finalAta as any,
+            materials_delivered: finalMaterialsDelivered,
+            materials_missing: finalMaterialsMissing,
+            notes: finalNotes,
+          })
+          .eq("id", existing.id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        return { ...data, updated: true };
+      } else {
+        // Create new report
+        const { data, error } = await supabase
+          .from("daily_reports")
+          .insert({
+            user_id: userId,
+            project_id,
+            work_items: finalWorkItems,
+            headcount: finalHeadcount,
+            hours_per_person: finalHoursPerPerson,
+            total_hours: finalTotalHours,
+            roles: finalRoles,
+            deviations: finalDeviations as any,
+            ata: finalAta as any,
+            materials_delivered: finalMaterialsDelivered,
+            materials_missing: finalMaterialsMissing,
+            notes: finalNotes,
+            report_date: reportDate,
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        return data;
+      }
     }
 
     case "create_customer_invoice": {
@@ -3290,13 +3325,14 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
     }
 
     case "create_daily_report": {
-      const report = results as { id: string };
+      const report = results as { id: string; updated?: boolean };
+      const actionText = report.updated ? "uppdaterad" : "skapad";
       return {
         type: "result",
         content: "",
         data: {
           success: true,
-          resultMessage: "Dagrapport skapad!",
+          resultMessage: `Dagrapport ${actionText}!`,
           link: {
             label: "Öppna rapport",
             href: `/reports/${report.id}`,
