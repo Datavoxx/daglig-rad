@@ -41,12 +41,25 @@ interface SavedEstimate {
 
 export default function Estimates() {
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Read URL parameters SYNCHRONOUSLY for deep-linking
+  const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
+  const offerNumberFromUrl = searchParams.get("offerNumber");
+  const hasDeepLink = Boolean(estimateIdFromUrl || offerNumberFromUrl);
+  const paramKey = `${estimateIdFromUrl || ""}-${offerNumberFromUrl || ""}`;
+  
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
   
-  // Manual mode state for builder
+  // Initialize state based on URL parameters to prevent flicker
+  const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(
+    estimateIdFromUrl || null
+  );
+  
+  // Manual mode state for builder - start in builder mode if deep-link exists
   const [manualData, setManualData] = useState<{
     projectName: string;
     clientName: string;
@@ -55,14 +68,11 @@ export default function Estimates() {
     city?: string;
     latitude?: number;
     longitude?: number;
-  } | null>(null);
-  const [manualStarted, setManualStarted] = useState(false);
+  } | null>(hasDeepLink ? { projectName: "", clientName: "", address: "" } : null);
+  const [manualStarted, setManualStarted] = useState(hasDeepLink);
   
   // Guard ref to ensure deep-linking runs only once per URL param set
   const deepLinkProcessedRef = useRef<string | null>(null);
-  
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Fetch saved estimates
   const { data: savedEstimates, isLoading: estimatesLoading } = useQuery({
@@ -101,14 +111,13 @@ export default function Estimates() {
     : completed;
 
   // Handle URL parameter for direct estimate navigation (robust deep-linking)
+  // Only populates manualData - view switching is handled by initial state
   useEffect(() => {
-    const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
-    const offerNumberFromUrl = searchParams.get("offerNumber");
-    
-    // Skip if no params or already processed this exact param set
-    const paramKey = `${estimateIdFromUrl || ""}-${offerNumberFromUrl || ""}`;
-    if (!estimateIdFromUrl && !offerNumberFromUrl) return;
+    // Skip if no deep-link params
+    if (!hasDeepLink) return;
+    // Skip if already processed this exact param set
     if (deepLinkProcessedRef.current === paramKey) return;
+    // Wait for data before we can populate manualData correctly
     if (!savedEstimates || savedEstimates.length === 0) return;
     
     // Try to find by estimateId first
@@ -123,10 +132,15 @@ export default function Estimates() {
     
     if (estimate) {
       deepLinkProcessedRef.current = paramKey;
-      handleSelectEstimate(estimate);
-      // URL parameter stays - will be cleared on Back
+      // Update manualData with correct info (manualStarted is already true)
+      setManualData({
+        projectName: estimate.manual_project_name || estimate.projects?.name || "",
+        clientName: estimate.manual_client_name || estimate.projects?.client_name || "",
+        address: "",
+      });
+      setSelectedEstimateId(estimate.id);
     } else {
-      // Show error toast if neither ID nor offerNumber found the estimate
+      // Estimate not found - go back to list
       toast({
         title: "Kunde inte hitta offerten",
         description: offerNumberFromUrl 
@@ -134,10 +148,11 @@ export default function Estimates() {
           : "Den begärda offerten kunde inte hittas.",
         variant: "destructive",
       });
-      // Clear invalid params
+      setManualStarted(false);
+      setManualData(null);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, savedEstimates, toast]);
+  }, [savedEstimates, hasDeepLink, paramKey, estimateIdFromUrl, offerNumberFromUrl, toast, setSearchParams]);
 
   if (estimatesLoading) {
     return (
