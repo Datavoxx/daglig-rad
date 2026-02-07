@@ -1,125 +1,171 @@
 
+# Plan: Chatthistorik för Global Assistant
 
-# Plan: Fixa kundnavigering från Global Assistant
+## Sammanfattning
 
-## Problem
+Användaren vill:
+1. **Historik på alla chattar** - Möjlighet att se och återgå till tidigare konversationer
+2. **Refresha/starta ny chatt** - Detta finns redan (+-knappen), men vi förbättrar flödet
 
-| Nuvarande beteende | Förväntat beteende |
-|-------------------|-------------------|
-| Klick på kund → går till `/customers?id=xxx` → visar listan, inte kunden | Klick på kund → visar kundens detaljer direkt |
-| `search_customers` returnerar `type: "verification"` → kräver extra klick | Ska visa kundlista med direktlänkar |
+## Design
 
-## Rotorsak
+### UI-layout
 
-1. **Edge Function**: `search_customers` returnerar `type: "verification"` istället för `type: "list"` (som `search_projects` gör)
-2. **Kundsidan**: Hanterar inte `?id=xxx` URL-parametern för att automatiskt öppna kundens detaljsheet
+```text
+┌─────────────────────────────────────────────────────────┐
+│ [Historik-ikon]  Global Assistant  [+ Ny chatt]         │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Chattmeddelanden...                                    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 
-## Lösning
-
-### Del 1: Ändra `search_customers` till `type: "list"` (liksom `search_projects`)
-
-Uppdatera edge-funktionen så att kundsökningar returnerar en lista med direktlänkar istället för verifikationskort.
-
-### Del 2: Lägg till URL-parameterhantering i `Customers.tsx`
-
-Precis som offert-sidan nu hanterar `?id=xxx`, ska kundsidan:
-1. Läsa `id`-parametern från URL:en
-2. Hämta kunden med det ID:t
-3. Automatiskt öppna detaljsheeten
+Klick på Historik-ikon → Sheet öppnas från vänster:
+┌────────────────────────┐
+│ Chatthistorik          │
+├────────────────────────┤
+│ ○ Idag kl 14:32        │
+│   "Visa mina projekt"  │
+│                        │
+│ ○ Igår kl 09:15        │
+│   "Skapa offert..."    │
+│                        │
+│ ○ 3 feb 2026           │
+│   "Hitta kund Mahad"   │
+└────────────────────────┘
+```
 
 ## Teknisk implementation
 
-### Fil 1: `supabase/functions/global-assistant/index.ts`
+### Del 1: Databastabell för konversationer
 
-Ändra `formatToolResults` för `search_customers` (rad 1066-1091):
+Skapa ny tabell `assistant_conversations`:
+
+```sql
+CREATE TABLE assistant_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT,
+  messages JSONB NOT NULL DEFAULT '[]',
+  context JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS policies
+ALTER TABLE assistant_conversations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own conversations"
+  ON assistant_conversations FOR ALL
+  USING (auth.uid() = user_id);
+
+-- Index for fast lookup
+CREATE INDEX idx_conversations_user_id ON assistant_conversations(user_id);
+CREATE INDEX idx_conversations_updated ON assistant_conversations(updated_at DESC);
+```
+
+### Del 2: Typdefinitioner
+
+Uppdatera `src/types/global-assistant.ts`:
 
 ```typescript
-// FÖRE:
-case "search_customers": {
-  const customers = results as Array<{...}>;
-  
-  return {
-    type: "verification",  // <-- Problemet
-    content: `Jag hittade ${customers.length} matchande kund...`,
-    data: {
-      entityType: "customer",
-      matches: customers.map((c) => ({...})),
-    },
-  };
-}
-
-// EFTER:
-case "search_customers": {
-  const customers = results as Array<{
-    id: string;
-    name: string;
-    city: string;
-    email?: string;
-    phone?: string;
-    customer_type?: string;
-  }>;
-  
-  return {
-    type: "list",
-    content: customers.length > 0 
-      ? `Här är ${customers.length} kund${customers.length > 1 ? "er" : ""}:`
-      : "Inga kunder hittades.",
-    data: {
-      listType: "customer",
-      listItems: customers.map((c) => ({
-        id: c.id,
-        title: c.name,
-        subtitle: c.city || "Ingen stad angiven",
-        status: c.customer_type === "business" ? "Företag" : "Privat",
-        statusColor: c.customer_type === "business" ? "blue" : "green",
-        details: [
-          ...(c.email ? [{ label: "E-post", value: c.email }] : []),
-          ...(c.phone ? [{ label: "Telefon", value: c.phone }] : []),
-        ],
-        link: `/customers?id=${c.id}`,
-      })),
-    },
-  };
+export interface Conversation {
+  id: string;
+  title: string | null;
+  messages: Message[];
+  context: ConversationContext;
+  created_at: string;
+  updated_at: string;
 }
 ```
 
-### Fil 2: `src/pages/Customers.tsx`
+### Del 3: Ny komponent - ChatHistorySidebar
 
-Lägg till URL-parameterhantering (liknande Estimates-sidan):
+Skapa `src/components/global-assistant/ChatHistorySidebar.tsx`:
 
-```typescript
-import { useSearchParams } from "react-router-dom";
+- Visar lista över tidigare konversationer
+- Grupperar efter datum (Idag, Igår, Denna vecka, Äldre)
+- Visar titel baserat på första meddelandet
+- Möjlighet att radera konversationer
+- Klick laddar konversationen
 
-// Inuti komponenten:
-const [searchParams, setSearchParams] = useSearchParams();
+### Del 4: Uppdatera GlobalAssistant.tsx
 
-// I useEffect efter fetchCustomers:
-useEffect(() => {
-  const customerId = searchParams.get("id");
-  if (customerId && customers.length > 0) {
-    const customer = customers.find((c) => c.id === customerId);
-    if (customer) {
-      setSelectedCustomer(customer);
-      setDetailSheetOpen(true);
-      // Rensa URL-parametern
-      setSearchParams({}, { replace: true });
-    }
-  }
-}, [customers, searchParams, setSearchParams]);
+Huvudsakliga ändringar:
+
+1. **State för konversationer**:
+   ```typescript
+   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+   const [historyOpen, setHistoryOpen] = useState(false);
+   ```
+
+2. **Ladda/spara konversationer**:
+   - Vid första meddelandet: skapa ny konversation i DB
+   - Vid efterföljande meddelanden: uppdatera befintlig konversation
+   - Auto-generera titel från första användarmeddelandet
+
+3. **Ny chatt-funktion**:
+   ```typescript
+   const handleNewChat = () => {
+     setMessages([]);
+     setContext({});
+     setCurrentConversationId(null); // Nollställ för att skapa ny vid nästa meddelande
+   };
+   ```
+
+4. **Ladda konversation från historik**:
+   ```typescript
+   const handleLoadConversation = (conversation: Conversation) => {
+     setMessages(conversation.messages);
+     setContext(conversation.context);
+     setCurrentConversationId(conversation.id);
+     setHistoryOpen(false);
+   };
+   ```
+
+### Del 5: Header med historik-knapp
+
+```tsx
+<div className="flex items-center justify-between border-b px-4 py-2.5">
+  <div className="flex items-center gap-2">
+    <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}>
+      <History className="h-4 w-4" />
+    </Button>
+    <Sparkles className="h-4 w-4 text-primary" />
+    <span className="text-sm font-medium">Global Assistant</span>
+  </div>
+  <Button variant="ghost" size="icon" onClick={handleNewChat}>
+    <Plus className="h-4 w-4" />
+  </Button>
+</div>
+
+<ChatHistorySidebar 
+  open={historyOpen} 
+  onOpenChange={setHistoryOpen}
+  onSelectConversation={handleLoadConversation}
+  currentConversationId={currentConversationId}
+/>
 ```
 
-## Filer att ändra
+## Filer att skapa/ändra
 
-| Fil | Ändring |
-|-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Ändra `search_customers` från `verification` till `list` med länk |
-| `src/pages/Customers.tsx` | Lägg till hantering av `?id=xxx` URL-parameter |
+| Fil | Åtgärd |
+|-----|--------|
+| `assistant_conversations` tabell | SKAPA: Databasmigration |
+| `src/types/global-assistant.ts` | ÄNDRA: Lägg till Conversation interface |
+| `src/components/global-assistant/ChatHistorySidebar.tsx` | SKAPA: Ny komponent |
+| `src/pages/GlobalAssistant.tsx` | ÄNDRA: Integrera historik, spara/ladda konversationer |
+
+## Autospar-logik
+
+1. **Vid första meddelandet**: Skapa ny rad i `assistant_conversations`
+2. **Vid efterföljande meddelanden**: Uppdatera `messages` och `context` i befintlig rad
+3. **Titel**: Extraheras automatiskt från första användarmeddelandet (max 50 tecken)
 
 ## Resultat
 
 | Före | Efter |
 |------|-------|
-| Klick → `/customers?id=xxx` → visar lista | Klick → `/customers?id=xxx` → öppnar kundens sheet |
-| Kräver extra "Visa information om X" meddelande | Direktlänk öppnar kunden |
-| Kundlista visas som verifikationskort | Kundlista visas som snygga listkort med länkikoner |
-
+| Chattar försvinner vid siduppdatering | Chattar sparas automatiskt |
+| Ingen historik | Fullständig historik med sökmöjlighet |
+| Bara + knapp för ny chatt | + knapp + historik-ikon i header |
