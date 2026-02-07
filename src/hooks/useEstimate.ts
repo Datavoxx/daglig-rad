@@ -163,24 +163,31 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         closingText: (existingEstimate as any).closing_text || "",
         assumptions: (existingEstimate.assumptions as string[]) || [],
         uncertainties: (existingEstimate.uncertainties as string[]) || [],
-        items: existingEstimate.items.map((item: any) => ({
-          id: item.id,
-          article: item.article || "",
-          description: item.description || item.moment || "",
-          show_only_total: item.show_only_total || false,
-          moment: item.moment,
-          type: item.type,
-          quantity: item.quantity,
-          unit: item.unit,
-          hours: item.hours,
-          unit_price: Number(item.unit_price) || 0,
-          subtotal: Number(item.subtotal) || 0,
-          comment: item.comment || "",
-          uncertainty: item.uncertainty || "medium",
-          sort_order: item.sort_order,
-          rot_eligible: item.rot_eligible ?? false,
-          rut_eligible: item.rut_eligible ?? false,
-        })),
+        items: existingEstimate.items.map((item: any) => {
+          // For labor items: use hours if present, otherwise fall back to quantity
+          const effectiveHours = item.type === "labor" 
+            ? (item.hours ?? item.quantity ?? null)
+            : item.hours;
+          
+          return {
+            id: item.id,
+            article: item.article || "",
+            description: item.description || item.moment || "",
+            show_only_total: item.show_only_total || false,
+            moment: item.moment,
+            type: item.type,
+            quantity: item.quantity,
+            unit: item.unit,
+            hours: effectiveHours,
+            unit_price: Number(item.unit_price) || 0,
+            subtotal: Number(item.subtotal) || 0,
+            comment: item.comment || "",
+            uncertainty: item.uncertainty || "medium",
+            sort_order: item.sort_order,
+            rot_eligible: item.rot_eligible ?? false,
+            rut_eligible: item.rut_eligible ?? false,
+          };
+        }),
         addons: existingEstimate.addons.map((addon: any) => ({
           id: addon.id,
           name: addon.name,

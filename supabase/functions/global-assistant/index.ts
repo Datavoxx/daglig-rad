@@ -862,6 +862,23 @@ const tools = [
       },
     },
   },
+  // === DELETE ESTIMATE ITEM ===
+  {
+    type: "function",
+    function: {
+      name: "delete_estimate_item",
+      description: "Delete a specific row/item from an estimate. Use row_number (1-based) or item_id.",
+      parameters: {
+        type: "object",
+        properties: {
+          estimate_id: { type: "string", description: "Estimate ID" },
+          row_number: { type: "number", description: "Row number to delete (1-based)" },
+          item_id: { type: "string", description: "Item ID to delete (alternative to row_number)" },
+        },
+        required: ["estimate_id"],
+      },
+    },
+  },
 ];
 
 // Execute tool calls against the database
@@ -1695,6 +1712,106 @@ async function executeTool(
         id: estimate.id,
         offer_number: estimate.offer_number,
         items_added: itemsAdded,
+      };
+    }
+
+    case "delete_estimate_item": {
+      const { estimate_id, row_number, item_id } = args as {
+        estimate_id: string;
+        row_number?: number;
+        item_id?: string;
+      };
+
+      // Verify the estimate belongs to the user
+      const { data: estimate, error: fetchError } = await supabase
+        .from("project_estimates")
+        .select("id, offer_number")
+        .eq("id", estimate_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError || !estimate) {
+        throw new Error("Offert hittades inte");
+      }
+
+      let deletedItemId: string | null = null;
+      let deletedDescription = "";
+
+      if (item_id) {
+        // Delete by item ID
+        const { data: item } = await supabase
+          .from("estimate_items")
+          .select("id, description, moment")
+          .eq("id", item_id)
+          .eq("estimate_id", estimate_id)
+          .single();
+        
+        if (!item) throw new Error("Rad hittades inte");
+        deletedItemId = item.id;
+        deletedDescription = item.description || item.moment || "";
+        
+        await supabase
+          .from("estimate_items")
+          .delete()
+          .eq("id", item_id);
+      } else if (row_number) {
+        // Delete by row number (1-based)
+        const { data: items } = await supabase
+          .from("estimate_items")
+          .select("id, description, moment, sort_order")
+          .eq("estimate_id", estimate_id)
+          .order("sort_order", { ascending: true });
+
+        if (!items || items.length === 0) {
+          throw new Error("Offerten har inga rader");
+        }
+
+        const index = row_number - 1;
+        if (index < 0 || index >= items.length) {
+          throw new Error(`Rad ${row_number} finns inte. Offerten har ${items.length} rader.`);
+        }
+
+        const itemToDelete = items[index];
+        deletedItemId = itemToDelete.id;
+        deletedDescription = itemToDelete.description || itemToDelete.moment || "";
+
+        await supabase
+          .from("estimate_items")
+          .delete()
+          .eq("id", deletedItemId);
+      } else {
+        throw new Error("Ange antingen row_number eller item_id");
+      }
+
+      // Recalculate totals
+      const { data: allItems } = await supabase
+        .from("estimate_items")
+        .select("subtotal, type")
+        .eq("estimate_id", estimate_id);
+
+      const laborCost = allItems?.reduce((sum, i) => i.type === "labor" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const materialCost = allItems?.reduce((sum, i) => i.type === "material" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const subcontractorCost = allItems?.reduce((sum, i) => i.type === "subcontractor" ? sum + (i.subtotal || 0) : sum, 0) || 0;
+      const totalExclVat = allItems?.reduce((sum, i) => sum + (i.subtotal || 0), 0) || 0;
+      const totalInclVat = totalExclVat * 1.25;
+
+      await supabase
+        .from("project_estimates")
+        .update({
+          labor_cost: laborCost,
+          material_cost: materialCost,
+          subcontractor_cost: subcontractorCost,
+          total_excl_vat: totalExclVat,
+          total_incl_vat: totalInclVat,
+        })
+        .eq("id", estimate_id);
+
+      return {
+        deleted: true,
+        item_id: deletedItemId,
+        description: deletedDescription,
+        offer_number: estimate.offer_number,
+        remaining_items: allItems?.length || 0,
       };
     }
 
@@ -2970,6 +3087,31 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
             { label: "Visa offert", icon: "file-text", prompt: "Visa offerten" },
             { label: "Skapa ny offert", icon: "plus", prompt: "Skapa en ny offert" },
           ],
+        },
+      };
+    }
+
+    case "delete_estimate_item": {
+      const result = results as { 
+        deleted: boolean; 
+        item_id: string; 
+        description: string; 
+        offer_number: string;
+        remaining_items: number;
+      };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Rad "${result.description || "utan beskrivning"}" har tagits bort från ${result.offer_number}. ${result.remaining_items} rader kvar.`,
+          nextActions: [
+            { label: "Visa offert", icon: "file-text", prompt: "Visa offerten" },
+            { label: "Ta bort fler rader", icon: "trash", prompt: "Ta bort rad" },
+          ],
+        },
+        context: {
+          selectedEstimateId: undefined, // Keep context
         },
       };
     }

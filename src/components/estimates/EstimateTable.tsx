@@ -576,14 +576,14 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
             {/* Quantity / Hours */}
             {readOnly ? (
               <span className="text-[13px] text-right tabular-nums">
-                {item.type === "labor" ? item.hours : item.quantity}
+                {item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity}
               </span>
             ) : (
               <input
                 ref={(el) => el && inputRefs.current.set(`${item.id}-quantity`, el)}
                 type="text"
                 inputMode="decimal"
-                value={item.type === "labor" ? (item.hours ?? "") : (item.quantity ?? "")}
+                value={item.type === "labor" ? (item.hours ?? item.quantity ?? "") : (item.quantity ?? "")}
                 onChange={(e) => {
                   const val = e.target.value ? Number(e.target.value) : null;
                   if (item.type === "labor") {
