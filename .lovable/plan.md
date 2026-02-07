@@ -1,177 +1,120 @@
 
 
-# Plan: Utöka Byggio AI till en "Know-It-All" Agent
+# Plan: Fixa automatisk projekt-kontext i Byggio AI
 
-## Bakgrund
+## Problemanalys
 
-Din nuvarande Byggio AI har begränsade funktioner. Den kan hantera kunder, projekt, offerter, tid och dagrapporter, men saknar stöd för flera viktiga projektfunktioner.
+Byggio AI frågar om projekt-ID även när ett projekt redan är valt i konversationen. Detta beror på tre saker:
 
-## Vad som saknas idag
+### 1. Systemprompt saknar tydliga instruktioner
+Kontexten skrivs ut i systemprompt men AI:n får ingen explicit instruktion att **använda den automatiskt**.
 
-| Funktion | Status |
-|----------|--------|
-| Arbetsordrar | Saknas helt |
-| ÄTA-arbeten | Saknas helt |
-| Planering (Gantt) | Kan bara läsa, inte skapa/ändra |
-| Ladda upp filer/bilder | Saknas helt |
-| QR-koder för närvaro | Saknas helt |
-| Ekonomiöversikt | Begränsad info |
-| Mer informativ AI | Ger korta svar utan djup |
+### 2. Tool-anrop ignorerar context
+När AI:n anropar verktyg som `create_work_order` eller `get_project_economy` måste den ha `project_id`. Men även om context innehåller `selectedProjectId` så används det inte automatiskt.
 
-## Vad jag kommer implementera
+### 3. Historik saknar strukturerad info
+Bara `msg.content` (texten) skickas - inte metadata om vilket projekt som diskuterats.
 
-### 1. Arbetsordrar (Work Orders)
+## Teknisk lösning
 
-Nya verktyg:
-- `create_work_order` - Skapa arbetsorder för ett projekt
-- `search_work_orders` - Sök arbetsordrar
-- `get_work_order` - Visa detaljer om en arbetsorder
-- `update_work_order` - Uppdatera status/info
+### Ändring 1: Förtydliga systemprompt
 
-Exempel på användning:
-- "Skapa arbetsorder för projektet Solvik"
-- "Visa arbetsordrar för projekt X"
-- "Markera arbetsorder 123 som klar"
-
-### 2. ÄTA-arbeten (Ändrings- och Tilläggsarbeten)
-
-Nya verktyg:
-- `create_ata` - Skapa nytt ÄTA-ärende
-- `search_ata` - Sök ÄTA-ärenden
-- `get_ata` - Visa detaljer om ett ÄTA
-- `update_ata` - Uppdatera status/kostnad
-
-Exempel på användning:
-- "Lägg till ÄTA för extra elinstallation"
-- "Visa alla ÄTA för projekt X"
-- "Ändra status på ÄTA till godkänd"
-
-### 3. Planering (Projektplanering/Gantt)
-
-Nya verktyg:
-- `create_plan` - Skapa ny projektplanering
-- `update_plan` - Uppdatera faser och veckor
-- `get_plan` - Visa fullständig planering (finns redan, utökas)
-
-Exempel på användning:
-- "Skapa planering för projektet med 4 faser"
-- "Visa planeringen för projekt X"
-- "Lägg till en ny fas i planeringen"
-
-### 4. Filuppladdning
-
-Nya funktioner i frontend + backend:
-- Bilduppladdning i chatten (ny UI-komponent)
-- `upload_file` - Ladda upp fil till projekt
-- `list_project_files` - Lista filer för ett projekt
-
-Exempel på användning:
-- Ladda upp bild direkt i chatten → "Lägg till denna bild på projekt X"
-- "Visa bilder för projektet"
-
-### 5. QR-koder för Närvaroregistrering
-
-Nya verktyg:
-- `generate_attendance_qr` - Generera QR-kod för ett projekt
-- `get_attendance_qr` - Hämta befintlig QR-kod
-
-Exempel på användning:
-- "Skapa QR-kod för närvaro på projekt Solvik"
-- "Visa QR-koden för projektet"
-
-### 6. Utökad Ekonomiöversikt
-
-Utökade verktyg:
-- `get_project_economy` - Fullständig ekonomisk översikt
-  - Budget vs faktisk kostnad
-  - Registrerade timmar och kostnader
-  - ÄTA-summering
-  - Fakturerat belopp
-
-Exempel på användning:
-- "Hur ligger vi till ekonomiskt på projekt X?"
-- "Visa ekonomisk sammanfattning"
-
-### 7. Mer Informativ AI
-
-Uppdatera systemprompt för att:
-- Ge längre, mer detaljerade svar när användaren frågar om information
-- Förklara begrepp och ge kontext
-- Proaktivt föreslå nästa steg
-- Svara på frågor om hur saker fungerar
-
-## Teknisk implementation
-
-### Nya verktyg i Edge Function (ca 15 nya tools)
+Lägg till explicit instruktion:
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  ARBETSORDRAR                                           │
-│  - create_work_order                                    │
-│  - search_work_orders                                   │
-│  - get_work_order                                       │
-│  - update_work_order                                    │
-│  - delete_work_order                                    │
-├─────────────────────────────────────────────────────────┤
-│  ÄTA-ARBETEN                                            │
-│  - create_ata                                           │
-│  - search_ata                                           │
-│  - get_ata                                              │
-│  - update_ata                                           │
-├─────────────────────────────────────────────────────────┤
-│  PLANERING                                              │
-│  - create_plan                                          │
-│  - update_plan                                          │
-│  - add_phase                                            │
-├─────────────────────────────────────────────────────────┤
-│  FILER                                                  │
-│  - list_project_files                                   │
-│  - delete_project_file                                  │
-├─────────────────────────────────────────────────────────┤
-│  NÄRVARO                                                │
-│  - generate_attendance_qr                               │
-│  - get_attendance_qr                                    │
-├─────────────────────────────────────────────────────────┤
-│  EKONOMI                                                │
-│  - get_project_economy                                  │
-└─────────────────────────────────────────────────────────┘
+VIKTIGAST - AUTOMATISK KONTEXT:
+Om ett projekt-ID finns i KONTEXT-sektionen nedan, ANVÄND DET AUTOMATISKT 
+för alla projektrelaterade operationer utan att fråga användaren.
+
+Om en kund-ID finns i KONTEXT, ANVÄND DET för kundrelaterade operationer.
+
+FRÅGA ALDRIG om projekt-ID eller kund-ID om det redan finns i kontexten!
 ```
 
-### Nya UI-komponenter i Frontend
+### Ändring 2: Auto-inject project_id i tool-anrop
 
-1. **Bilduppladdning i ChatInput** - Möjlighet att bifoga bilder
-2. **FileUploadCard** - Visa uppladdade filer i chatten
-3. **QRCodeCard** - Visa genererade QR-koder
-4. **EconomyCard** - Visa ekonomisk sammanfattning
+När AI:n anropar ett verktyg som behöver `project_id` men inte anger det, fyll i det automatiskt från context:
 
-### Uppdateringar i systemprompt
+```typescript
+// Innan: toolArgs kommer direkt från AI:n
+const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
 
-- Utöka listan över funktioner AI:n kan utföra
-- Instruktioner för att ge mer detaljerade svar vid informationsfrågor
-- Bättre hantering av projektrelaterade frågor
+// Efter: Fyll i saknade IDs från context
+const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
 
-## Filer att ändra/skapa
+// Auto-inject project_id om det saknas men finns i context
+if (!toolArgs.project_id && context?.selectedProjectId && 
+    PROJECT_TOOLS.includes(toolName)) {
+  toolArgs.project_id = context.selectedProjectId;
+}
 
-| Fil | Åtgärd |
-|-----|--------|
-| `supabase/functions/global-assistant/index.ts` | Lägg till 15+ nya verktyg |
-| `src/pages/GlobalAssistant.tsx` | Hantera nya meddelandetyper |
-| `src/types/global-assistant.ts` | Lägg till nya typer |
-| `src/components/global-assistant/ChatInput.tsx` | Bilduppladdning |
-| `src/components/global-assistant/MessageList.tsx` | Nya korttyper |
-| `src/components/global-assistant/FileUploadCard.tsx` | **Ny** |
-| `src/components/global-assistant/QRCodeCard.tsx` | **Ny** |
-| `src/components/global-assistant/EconomyCard.tsx` | **Ny** |
+// Auto-inject customer_id om det saknas men finns i context  
+if (!toolArgs.customer_id && context?.selectedCustomerId &&
+    CUSTOMER_TOOLS.includes(toolName)) {
+  toolArgs.customer_id = context.selectedCustomerId;
+}
+```
 
-## Resultat efter implementation
+### Ändring 3: Förbättra historik-meddelanden
 
-Användaren kommer kunna:
-- "Skapa arbetsorder för projektet Solvik"
-- "Lägg till ÄTA för extra målning, 5000 kr"
-- "Visa ekonomisk översikt för projektet"
-- "Skapa QR-kod för närvaro"
-- "Visa alla filer för projektet"
-- "Skapa planering med 4 faser"
-- Ladda upp bilder direkt i chatten
-- Få mer detaljerade och informativa svar
+Inkludera projektnamn/kundnamn i historiken så AI:n "ser" kontexten:
+
+```typescript
+for (const msg of history) {
+  if (msg.role === "user" || msg.role === "assistant") {
+    let content = msg.content || "";
+    
+    // Lägg till kontext-info från tidigare meddelanden
+    if (msg.data?.project_name) {
+      content += ` [Projekt: ${msg.data.project_name}]`;
+    }
+    if (msg.data?.customer_name) {
+      content += ` [Kund: ${msg.data.customer_name}]`;
+    }
+    
+    conversationMessages.push({ role: msg.role, content });
+  }
+}
+```
+
+## Fil att ändra
+
+| Fil | Ändring |
+|-----|---------|
+| `supabase/functions/global-assistant/index.ts` | 1. Förtydliga systemprompt med auto-kontext instruktioner |
+| | 2. Auto-inject project_id/customer_id i tool-anrop |
+| | 3. Berika historik-meddelanden med kontext-info |
+
+## Lista över verktyg som behöver auto-inject
+
+**Projekt-relaterade (project_id):**
+- create_work_order
+- search_work_orders  
+- create_ata
+- search_ata
+- get_project_plan
+- create_plan
+- update_plan
+- list_project_files
+- generate_attendance_qr
+- get_attendance_qr
+- check_in
+- check_out
+- get_active_attendance
+- get_project_economy
+- search_daily_reports
+- search_inspections
+- create_inspection
+
+**Kund-relaterade (customer_id):**
+- create_estimate
+- create_project
+
+## Resultat
+
+| Före | Efter |
+|------|-------|
+| "Visa ekonomin" → "Vilket projekt vill du se ekonomin för?" | "Visa ekonomin" → Visar automatiskt för valt projekt |
+| "Skapa arbetsorder" → "Ange projekt-ID" | "Skapa arbetsorder" → Skapar på aktuellt projekt |
+| AI "glömmer" projektet mellan meddelanden | AI minns och använder valt projekt automatiskt |
 
