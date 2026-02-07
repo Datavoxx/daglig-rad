@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface CustomerFormData {
   name: string;
@@ -29,6 +30,14 @@ export function CustomerFormCard({
   const [phone, setPhone] = useState<string>("");
   const [address, setAddress] = useState<string>("");
   const [city, setCity] = useState<string>("");
+
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    if (typeof data.name === "string") setName(data.name);
+    if (typeof data.email === "string") setEmail(data.email);
+    if (typeof data.phone === "string") setPhone(data.phone);
+    if (typeof data.address === "string") setAddress(data.address);
+    if (typeof data.city === "string") setCity(data.city);
+  };
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -57,6 +66,15 @@ export function CustomerFormCard({
           <UserPlus className="h-4 w-4 text-primary" />
         </div>
         <h3 className="font-medium text-foreground">Ny kund</h3>
+      </div>
+
+      {/* Voice Form Section */}
+      <div className="mb-4">
+        <VoiceFormSection
+          formType="customer"
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
       </div>
 
       {/* Form */}

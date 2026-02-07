@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface Customer {
   id: string;
@@ -40,6 +41,11 @@ export function EstimateFormCard({
   const [title, setTitle] = useState<string>("");
   const [address, setAddress] = useState<string>("");
 
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    if (typeof data.title === "string") setTitle(data.title);
+    if (typeof data.address === "string") setAddress(data.address);
+  };
+
   const handleSubmit = () => {
     if (!customerId || !title) return;
     
@@ -65,6 +71,15 @@ export function EstimateFormCard({
           <FileText className="h-4 w-4 text-primary" />
         </div>
         <h3 className="font-medium text-foreground">Skapa offert</h3>
+      </div>
+
+      {/* Voice Form Section */}
+      <div className="mb-4">
+        <VoiceFormSection
+          formType="estimate"
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
       </div>
 
       {/* Form */}

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, X } from "lucide-react";
+import { VoiceFormSection } from "./VoiceFormSection";
 
 interface WorkOrderFormCardProps {
   projects: Array<{ id: string; name: string; address?: string }>;
@@ -35,6 +36,12 @@ export function WorkOrderFormCard({
   const [description, setDescription] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
   const [dueDate, setDueDate] = useState("");
+
+  const handleVoiceData = (data: Record<string, unknown>) => {
+    if (typeof data.title === "string") setTitle(data.title);
+    if (typeof data.description === "string") setDescription(data.description);
+    if (typeof data.dueDate === "string") setDueDate(data.dueDate);
+  };
 
   const handleSubmit = () => {
     if (!projectId || !title.trim()) return;
@@ -74,6 +81,14 @@ export function WorkOrderFormCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Voice Form Section */}
+        <VoiceFormSection
+          formType="work-order"
+          projectId={projectId || undefined}
+          onDataExtracted={handleVoiceData}
+          disabled={disabled}
+        />
+
         {/* Project selector - only show if no preselected project */}
         {!preselectedProjectId && (
           <div className="space-y-1.5">
