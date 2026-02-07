@@ -35,8 +35,8 @@ const HeroSection = () => {
       setTimeout(() => {
         setWordIndex((prev) => (prev + 1) % rotatingWords.length);
         setIsVisible(true);
-      }, 300);
-    }, 2500);
+      }, 200);
+    }, 1800);
 
     return () => clearInterval(interval);
   }, []);
@@ -58,7 +58,7 @@ const HeroSection = () => {
         </h1>
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold tracking-tighter mb-8 animate-fade-in">
           <span 
-            className={`text-gradient bg-gradient-to-r from-primary via-primary to-emerald-500 inline-block transition-all duration-300 ${
+            className={`text-gradient bg-gradient-to-r from-primary via-primary to-emerald-500 inline-block transition-all duration-200 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
             }`}
           >
