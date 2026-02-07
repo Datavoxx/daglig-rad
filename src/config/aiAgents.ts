@@ -1,7 +1,7 @@
 // Centraliserad konfiguration för AI-agenter i Byggio
 // Nu konsoliderat till ett enda AI-varumärke: Byggio AI
 
-import byggioLogo from "@/assets/byggio-logo.png";
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 export interface AIAgent {
   name: string;
@@ -17,7 +17,7 @@ const byggioAgent: AIAgent = {
   title: "Din AI-assistent",
   description: "Din kompletta AI-assistent för byggprojekt",
   promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
-  avatar: byggioLogo,
+  avatar: byggioAILogo,
 };
 
 export const AI_AGENTS = {

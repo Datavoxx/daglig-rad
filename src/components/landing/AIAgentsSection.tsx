@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Mic, FileText, CalendarDays, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
-import byggioLogo from "@/assets/byggio-logo.png";
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 const capabilities = [
   {
@@ -62,7 +62,7 @@ const AIAgentsSection = () => {
                   <div className="w-40 h-40 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
                 </div>
                 <img
-                  src={byggioLogo}
+                  src={byggioAILogo}
                   alt="Byggio AI"
                   className="w-44 h-44 md:w-56 md:h-56 object-contain drop-shadow-2xl relative z-10"
                 />
