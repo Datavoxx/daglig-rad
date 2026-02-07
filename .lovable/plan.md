@@ -1,99 +1,107 @@
 
-# Plan: Fixa offert-loop + Tvåstegs-output
+# Plan: Fixa offertposter-sparande + lägg till Tidsplan
 
-## Sammanfattning av problem
+## Problemanalys
 
-1. **Buggen**: När du klickar "Skapa offert" i formuläret skickas meddelandet `Skapa offert "X" för kund med ID Y`, men AI:n anropar `get_customers_for_estimate` (formuläret) istället för `create_estimate`
-2. **Önskat flöde**: Efter skapande ska det komma BÅDE bekräftelse OCH items-formuläret direkt
+Jag har identifierat **tre problem** som gör att datan inte sparas korrekt:
 
-## Lösning: Tvådelad
+### Problem 1: Fel databasfält används
+**Backend sparar till:**
+- `introduction_text` ← "Projektbeskrivning" i formuläret
 
-### Del 1: Fixa loopen med Direct Pattern Matching
+**Men EstimateBuilder använder:**
+- `scope` ← Projektbeskrivning
+- `assumptions` (JSON array) ← Tidsplan
 
-Lägg till pattern-matching i edge function som fångar upp meddelanden med kund-ID och kör `create_estimate` direkt - utan att gå via AI:n:
+Så datan sparas i fel fält och syns därför inte i offerten!
 
+### Problem 2: Tidsplan-fält saknas helt
+Formuläret `EstimateItemsFormCard` har inget tidsplan-fält. Screenshoten från /estimates visar att det finns både "Projektbeskrivning" och "Tidsplan" - men chatformulären har bara "Projektbeskrivning".
+
+### Problem 3: Fältnamn i toolet stämmer inte
+Backend-toolet `add_estimate_items` tar emot `introduction` men sparar det till `introduction_text` istället för `scope`.
+
+---
+
+## Lösning
+
+### 1. Lägg till Tidsplan-fält i EstimateItemsFormCard.tsx
+
+**Före:**
+```
+[Projektbeskrivning] → introduction
+[Offertposter]
+[Tillval]
+```
+
+**Efter:**
+```
+[Projektbeskrivning] → introduction (mappar till scope)
+[Tidsplan] → timeline (mappar till assumptions)
+[Offertposter]
+[Tillval]
+```
+
+### 2. Uppdatera EstimateItemsFormData-typen
+
+Lägg till `timeline` fält:
 ```typescript
-// FÖRE AI-anropet
-const directCreateEstimate = /(?:skapa|create)\s*offert\s*"([^"]+)".*(?:kund med ID|customer_id)[=:\s]*([a-f0-9-]{36})/i;
-const match = message.match(directCreateEstimate);
-
-if (match) {
-  const [, title, customerId] = match;
-  const address = message.match(/(?:på adress|address)\s+(.+?)(?:\s+för|\s*$)/i)?.[1] || "";
-  
-  // Kör create_estimate direkt!
-  const result = await executeTool(supabase, userId, "create_estimate", {
-    customer_id: customerId,
-    title: title.trim(),
-    address: address.trim(),
-  });
-  
-  return formatToolResults("create_estimate", result);
+export interface EstimateItemsFormData {
+  estimateId: string;
+  introduction: string;   // → sparas till "scope"
+  timeline: string;       // → sparas till "assumptions" (som array)
+  items: Array<...>;
+  addons: Array<...>;
 }
 ```
 
-### Del 2: Tvåstegs-output (bekräftelse + formulär)
+### 3. Uppdatera backend-toolet add_estimate_items
 
-Uppdatera `formatToolResults` för `create_estimate` att returnera ett svar som frontend tolkar som två delar:
-
-**Nuvarande output:**
+Ändra vilka fält som sparas:
 ```typescript
-return {
-  type: "estimate_items_form",
-  content: "Offert OFF-2026-0032 skapad! Lägg till offertposter nedan.",
-  data: { estimateId, offerNumber },
-};
+// Spara till RÄTT fält
+if (introduction) {
+  await supabase
+    .from("project_estimates")
+    .update({ 
+      scope: introduction,  // ← Projektbeskrivning
+    })
+    .eq("id", estimate_id);
+}
+
+if (timeline) {
+  // Konvertera till array (en rad per punkt)
+  const assumptionsArray = timeline.split("\n").filter(s => s.trim());
+  await supabase
+    .from("project_estimates")
+    .update({ 
+      assumptions: assumptionsArray,  // ← Tidsplan
+    })
+    .eq("id", estimate_id);
+}
 ```
 
-**Ny approach - returnera result-typ med inbäddad form:**
+### 4. Uppdatera tool definition
 
+Lägg till `timeline` parameter:
 ```typescript
-return {
-  type: "result_with_form",  // Ny typ!
-  content: "",
-  data: {
-    success: true,
-    resultMessage: `Offert ${estimate.offer_number} skapad!`,
-    link: {
-      label: "Öppna offert",
-      href: `/estimates?estimateId=${estimate.id}`,
-    },
-    // Inbäddad form-data
-    nextForm: {
-      type: "estimate_items_form",
-      estimateId: estimate.id,
-      offerNumber: estimate.offer_number,
+{
+  name: "add_estimate_items",
+  parameters: {
+    properties: {
+      estimate_id: { type: "string" },
+      introduction: { type: "string", description: "Project description (scope)" },
+      timeline: { type: "string", description: "Timeline/schedule (one item per line)" },  // NY!
+      items: { ... },
+      addons: { ... },
     },
   },
-  context: {
-    selectedEstimateId: estimate.id,
-  },
-};
+}
 ```
 
-Alternativt (enklare approach) - låt frontend rendera BÅDE ResultCard OCH EstimateItemsFormCard för typen `estimate_items_form`:
+### 5. Uppdatera GlobalAssistant.tsx
 
-```typescript
-// I MessageList.tsx
-{message.type === "estimate_items_form" && (
-  <>
-    {/* Bekräftelse först */}
-    <ResultCard 
-      success={true}
-      message={message.content}
-      link={{ label: "Öppna offert", href: `/estimates?estimateId=${message.data?.estimateId}` }}
-    />
-    {/* Sen formuläret */}
-    <EstimateItemsFormCard
-      estimateId={message.data?.estimateId || ""}
-      offerNumber={message.data?.offerNumber || ""}
-      onSubmit={onEstimateItemsFormSubmit}
-      onCancel={onEstimateItemsFormCancel}
-      onOpenEstimate={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
-    />
-  </>
-)}
-```
+Inkludera timeline i formData-typen och skicka med i pendingData.
 
 ---
 
@@ -101,178 +109,130 @@ Alternativt (enklare approach) - låt frontend rendera BÅDE ResultCard OCH Esti
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | 1. Lägg till direct pattern matching för create_estimate |
-| | 2. Lägg även till pattern för add_estimate_items |
-| | 3. Uppdatera prompten med explicit regel: "kund-ID = create_estimate" |
-| `src/components/global-assistant/MessageList.tsx` | 4. Rendera ResultCard INNAN EstimateItemsFormCard för typen `estimate_items_form` |
+| `src/components/global-assistant/EstimateItemsFormCard.tsx` | 1. Lägg till `timeline` state |
+| | 2. Lägg till Tidsplan textarea efter Projektbeskrivning |
+| | 3. Inkludera `timeline` i handleSubmit |
+| `src/pages/GlobalAssistant.tsx` | 4. Uppdatera handleEstimateItemsFormSubmit med timeline |
+| `supabase/functions/global-assistant/index.ts` | 5. Uppdatera tool definition med timeline |
+| | 6. Ändra sparlogik: introduction → scope, timeline → assumptions |
 
 ---
 
 ## Detaljerad implementation
 
-### 1. Direct Pattern Matching (index.ts)
+### EstimateItemsFormCard.tsx
 
-Lägg till efter CORS-hantering, före AI-anrop:
-
-```typescript
-// === DIRECT COMMAND PATTERNS ===
-// Bypass AI when message contains all required data
-
-// Pattern: Skapa offert "titel" för kund med ID uuid
-const createEstimatePattern = /(?:skapa|create)\s*offert\s*["""]([^"""]+)["""].*(?:kund med ID|customer_id)[=:\s]*([a-f0-9-]{36})/i;
-const createEstimateMatch = message.match(createEstimatePattern);
-
-if (createEstimateMatch) {
-  const [, title, customerId] = createEstimateMatch;
-  const addressMatch = message.match(/(?:på adress|address)[=:\s]+(.+?)(?:\s+för|$)/i);
-  const address = addressMatch?.[1]?.trim() || "";
-  
-  console.log("Direct create_estimate:", { title, customerId, address });
-  
-  const result = await executeTool(supabase, userId, "create_estimate", {
-    customer_id: customerId,
-    title: title.trim(),
-    address,
-  });
-  
-  const formatted = formatToolResults("create_estimate", result);
-  return new Response(JSON.stringify(formatted), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-// Pattern: Lägg till poster på offert med ID uuid
-const addItemsPattern = /(?:lägg till|add)\s*(?:poster|items).*(?:offert med ID|estimate_id)[=:\s]*([a-f0-9-]{36})/i;
-const addItemsMatch = message.match(addItemsPattern);
-
-if (addItemsMatch && context?.pendingData) {
-  const estimateId = addItemsMatch[1] || context.selectedEstimateId;
-  
-  console.log("Direct add_estimate_items:", { estimateId, pendingData: context.pendingData });
-  
-  const result = await executeTool(supabase, userId, "add_estimate_items", {
-    estimate_id: estimateId,
-    ...context.pendingData,
-  });
-  
-  const formatted = formatToolResults("add_estimate_items", result);
-  return new Response(JSON.stringify(formatted), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-```
-
-### 2. Uppdatera Systemprompt (index.ts)
-
-Lägg till explicit regel:
-
-```text
-<form_vs_create>
-SKILLNAD MELLAN FORMULÄR OCH SKAPANDE:
-
-VISA FORMULÄR (ingen data):
-- "skapa offert" → get_customers_for_estimate
-
-SKAPA DIREKT (data finns):
-- "Skapa offert X för kund med ID Y" → create_estimate
-- Om meddelandet innehåller UUID → använd create_* eller register_*
-
-REGEL: Om kund-ID (UUID) finns i meddelandet → INTE formulär, SKAPA direkt!
-</form_vs_create>
-```
-
-### 3. Tvådelad Rendering (MessageList.tsx)
-
-Uppdatera renderingen av `estimate_items_form`:
-
+**Ny UI efter Projektbeskrivning:**
 ```tsx
-{message.type === "estimate_items_form" && (
-  <div className="space-y-3">
-    {/* Success banner */}
-    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
-      <CheckCircle2 className="h-5 w-5 text-green-600" />
-      <div className="flex-1">
-        <p className="text-sm font-medium text-green-800 dark:text-green-200">
-          {message.content || `Offert ${message.data?.offerNumber} skapad!`}
-        </p>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-green-700 hover:text-green-800"
-        onClick={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
-      >
-        <ExternalLink className="h-4 w-4 mr-1" />
-        Öppna
-      </Button>
-    </div>
-    
-    {/* Items form */}
-    <EstimateItemsFormCard
-      estimateId={message.data?.estimateId || ""}
-      offerNumber={message.data?.offerNumber || ""}
-      onSubmit={onEstimateItemsFormSubmit}
-      onCancel={onEstimateItemsFormCancel}
-      onOpenEstimate={() => onEstimateItemsFormOpen(message.data?.estimateId || "")}
-    />
-  </div>
-)}
+{/* Tidsplan */}
+<div className="space-y-1.5">
+  <Label htmlFor="timeline" className="text-xs">
+    Tidsplan
+  </Label>
+  <Textarea
+    id="timeline"
+    placeholder="En punkt per rad..."
+    value={timeline}
+    onChange={(e) => setTimeline(e.target.value)}
+    disabled={disabled}
+    rows={2}
+    className="text-sm"
+  />
+</div>
+```
+
+### Backend (index.ts)
+
+**Tool definition (rad ~600):**
+```typescript
+{
+  name: "add_estimate_items",
+  parameters: {
+    properties: {
+      estimate_id: { type: "string" },
+      introduction: { type: "string", description: "Project description (scope)" },
+      timeline: { type: "string", description: "Timeline/schedule text" },
+      items: { ... },
+      addons: { ... },
+    },
+    required: ["estimate_id"],
+  },
+}
+```
+
+**executeTool (rad ~1570):**
+```typescript
+case "add_estimate_items": {
+  const { estimate_id, introduction, timeline, items, addons } = args as {
+    estimate_id: string;
+    introduction?: string;
+    timeline?: string;
+    items?: Array<...>;
+    addons?: Array<...>;
+  };
+
+  // Verifiera offert...
+
+  // Uppdatera scope (projektbeskrivning) och assumptions (tidsplan)
+  const updateData: Record<string, unknown> = {};
+  if (introduction) {
+    updateData.scope = introduction;
+  }
+  if (timeline) {
+    // Konvertera till array
+    updateData.assumptions = timeline.split("\n").filter(s => s.trim());
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    await supabase
+      .from("project_estimates")
+      .update(updateData)
+      .eq("id", estimate_id);
+  }
+
+  // Resten av logiken för items och addons...
+}
 ```
 
 ---
 
-## Flöde efter fix
+## Förväntat resultat
+
+| Fält i formulär | Sparas till | Visas i offert |
+|-----------------|-------------|----------------|
+| Projektbeskrivning | `scope` | ✅ Projektbeskrivning |
+| Tidsplan | `assumptions` (JSON array) | ✅ Tidsplan |
+| Offertposter | `estimate_items` tabell | ✅ Offertposter |
+| Tillval | `estimate_addons` tabell | ✅ Tillval |
+
+---
+
+## UI efter fix
 
 ```text
-1. Användaren: "Skapa offert"
-   → AI: get_customers_for_estimate
-   → Frontend: Visar EstimateFormCard
-
-2. Användaren klickar "Skapa offert" i formuläret
-   → Frontend skickar: 'Skapa offert "Renovering" för kund med ID abc-123'
-   → Backend: Pattern match! Kör create_estimate direkt
-   → Backend returnerar: estimate_items_form med estimateId
-
-3. Frontend renderar:
-   ┌──────────────────────────────────────┐
-   │ ✓ Offert OFF-2026-0032 skapad!      │
-   │                         [Öppna]     │
-   └──────────────────────────────────────┘
-   ┌──────────────────────────────────────┐
-   │ Lägg till offertposter               │
-   │ ┌──────────────────────────────────┐ │
-   │ │ Projektbeskrivning              │ │
-   │ └──────────────────────────────────┘ │
-   │ ┌──────────────────────────────────┐ │
-   │ │ Offertposter [+ Lägg till rad]  │ │
-   │ └──────────────────────────────────┘ │
-   │ ┌──────────────────────────────────┐ │
-   │ │ Tillval [+ Lägg till]           │ │
-   │ └──────────────────────────────────┘ │
-   │         [Avbryt]  [Spara offert]    │
-   └──────────────────────────────────────┘
-
-4. Användaren fyller i och klickar "Spara offert"
-   → Frontend skickar: 'Lägg till poster på offert med ID xyz...'
-   → Backend: Pattern match! Kör add_estimate_items direkt
-   → Backend returnerar: result med "Offert uppdaterad!"
-
-5. Frontend renderar:
-   ┌──────────────────────────────────────┐
-   │ ✓ Offert OFF-2026-0032 uppdaterad   │
-   │ med 3 poster!                        │
-   │                         [Öppna]     │
-   │                                      │
-   │ [Visa offert] [Skapa ny offert]     │
-   └──────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│ [📝] Lägg till offertposter         │
+│     OFF-2026-0036                   │
+│                                     │
+│ Projektbeskrivning                  │
+│ ┌─────────────────────────────────┐ │
+│ │ VVV                             │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ Tidsplan                     ← NY!  │
+│ ┌─────────────────────────────────┐ │
+│ │ En punkt per rad...             │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ ───── Offertposter ─────            │
+│ Rad 1: [Arbete] [tim] [test] [850] │
+│ + Lägg till rad                     │
+│                                     │
+│ ───── Tillval ─────                 │
+│ + Lägg till tillval                 │
+│                                     │
+│ Totalt: 850 kr                      │
+│                                     │
+│       [Avbryt]  [Spara offert]      │
+└─────────────────────────────────────┘
 ```
-
----
-
-## Teknisk sammanfattning
-
-| Problem | Lösning |
-|---------|---------|
-| AI anropar fel verktyg | Direct pattern matching före AI-anrop |
-| Bara formulär visas, ingen bekräftelse | Tvådelad rendering: Success banner + Form |
-| Loopen fortsätter | Pattern tar över INNAN AI får chansen |
