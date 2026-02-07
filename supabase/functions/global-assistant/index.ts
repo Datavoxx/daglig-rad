@@ -117,6 +117,337 @@ const tools = [
       },
     },
   },
+  // === WORK ORDERS ===
+  {
+    type: "function",
+    function: {
+      name: "create_work_order",
+      description: "Create a new work order for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          title: { type: "string", description: "Work order title" },
+          description: { type: "string", description: "Work description" },
+          assigned_to: { type: "string", description: "Employee ID to assign to" },
+          due_date: { type: "string", description: "Due date (YYYY-MM-DD)" },
+        },
+        required: ["project_id", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_work_orders",
+      description: "Search work orders by project or status",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID to filter by" },
+          status: { type: "string", description: "Filter by status (pending, in_progress, completed)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_work_order",
+      description: "Get details of a specific work order",
+      parameters: {
+        type: "object",
+        properties: {
+          work_order_id: { type: "string", description: "Work order ID" },
+        },
+        required: ["work_order_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_work_order",
+      description: "Update a work order (status, description, etc.)",
+      parameters: {
+        type: "object",
+        properties: {
+          work_order_id: { type: "string", description: "Work order ID" },
+          title: { type: "string", description: "New title" },
+          description: { type: "string", description: "New description" },
+          status: { type: "string", description: "New status (pending, in_progress, completed)" },
+          due_date: { type: "string", description: "New due date" },
+        },
+        required: ["work_order_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_work_order",
+      description: "Delete a work order. WARNING: This is permanent!",
+      parameters: {
+        type: "object",
+        properties: {
+          work_order_id: { type: "string", description: "Work order ID to delete" },
+        },
+        required: ["work_order_id"],
+      },
+    },
+  },
+  // === ÄTA (ÄNDRINGS- OCH TILLÄGGSARBETEN) ===
+  {
+    type: "function",
+    function: {
+      name: "create_ata",
+      description: "Create a new ÄTA (ändrings- och tilläggsarbete) for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          description: { type: "string", description: "Description of the extra work" },
+          estimated_cost: { type: "number", description: "Estimated cost in SEK" },
+          estimated_hours: { type: "number", description: "Estimated hours" },
+          reason: { type: "string", description: "Reason for the change" },
+        },
+        required: ["project_id", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_ata",
+      description: "Search ÄTA items by project or status",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID to filter by" },
+          status: { type: "string", description: "Filter by status (pending, approved, rejected, completed)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_ata",
+      description: "Get details of a specific ÄTA",
+      parameters: {
+        type: "object",
+        properties: {
+          ata_id: { type: "string", description: "ÄTA ID" },
+        },
+        required: ["ata_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_ata",
+      description: "Update an ÄTA (status, cost, etc.)",
+      parameters: {
+        type: "object",
+        properties: {
+          ata_id: { type: "string", description: "ÄTA ID" },
+          description: { type: "string", description: "New description" },
+          estimated_cost: { type: "number", description: "New estimated cost" },
+          estimated_hours: { type: "number", description: "New estimated hours" },
+          status: { type: "string", description: "New status (pending, approved, rejected, completed)" },
+        },
+        required: ["ata_id"],
+      },
+    },
+  },
+  // === PLANNING ===
+  {
+    type: "function",
+    function: {
+      name: "get_project_plan",
+      description: "Get project planning/Gantt chart data",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_plan",
+      description: "Create a new project plan with phases",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          start_date: { type: "string", description: "Project start date (YYYY-MM-DD)" },
+          phases: { 
+            type: "array", 
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Phase name" },
+                weeks: { type: "number", description: "Number of weeks" },
+              },
+            },
+            description: "List of phases with names and durations" 
+          },
+          notes: { type: "string", description: "Planning notes" },
+        },
+        required: ["project_id", "start_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_plan",
+      description: "Update an existing project plan",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          start_date: { type: "string", description: "New start date" },
+          phases: { 
+            type: "array", 
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Phase name" },
+                weeks: { type: "number", description: "Number of weeks" },
+              },
+            },
+            description: "Updated phases" 
+          },
+          notes: { type: "string", description: "Updated notes" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // === FILES ===
+  {
+    type: "function",
+    function: {
+      name: "list_project_files",
+      description: "List all files and images for a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+          category: { type: "string", description: "Filter by category (image, document, attachment)" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_project_file",
+      description: "Delete a file from a project",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "string", description: "File ID to delete" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
+  // === ATTENDANCE / QR ===
+  {
+    type: "function",
+    function: {
+      name: "generate_attendance_qr",
+      description: "Generate a QR code for attendance tracking on a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_attendance_qr",
+      description: "Get the existing QR code for a project's attendance",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_in",
+      description: "Check in to a project (start attendance)",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_out",
+      description: "Check out from a project (end attendance)",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_active_attendance",
+      description: "Get list of people currently checked in to a project",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // === ECONOMY ===
+  {
+    type: "function",
+    function: {
+      name: "get_project_economy",
+      description: "Get complete economic overview for a project including budget, costs, hours, ÄTA, and invoiced amounts",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project ID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
   // === CREATE TOOLS ===
   {
     type: "function",
@@ -232,65 +563,7 @@ const tools = [
       },
     },
   },
-  // === PLANNING ===
-  {
-    type: "function",
-    function: {
-      name: "get_project_plan",
-      description: "Get project planning/Gantt chart data",
-      parameters: {
-        type: "object",
-        properties: {
-          project_id: { type: "string", description: "Project ID" },
-        },
-        required: ["project_id"],
-      },
-    },
-  },
-  // === ATTENDANCE ===
-  {
-    type: "function",
-    function: {
-      name: "check_in",
-      description: "Check in to a project (start attendance)",
-      parameters: {
-        type: "object",
-        properties: {
-          project_id: { type: "string", description: "Project ID" },
-        },
-        required: ["project_id"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "check_out",
-      description: "Check out from a project (end attendance)",
-      parameters: {
-        type: "object",
-        properties: {
-          project_id: { type: "string", description: "Project ID" },
-        },
-        required: ["project_id"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_active_attendance",
-      description: "Get list of people currently checked in to a project",
-      parameters: {
-        type: "object",
-        properties: {
-          project_id: { type: "string", description: "Project ID" },
-        },
-        required: ["project_id"],
-      },
-    },
-  },
-  // === TIME REGISTRATION FORM ===
+  // === FORM TOOLS ===
   {
     type: "function",
     function: {
@@ -303,7 +576,6 @@ const tools = [
       },
     },
   },
-  // === ESTIMATE FORM ===
   {
     type: "function",
     function: {
@@ -316,7 +588,6 @@ const tools = [
       },
     },
   },
-  // === DAILY REPORT FORM ===
   {
     type: "function",
     function: {
@@ -329,7 +600,6 @@ const tools = [
       },
     },
   },
-  // === CUSTOMER SEARCH ===
   {
     type: "function",
     function: {
@@ -342,7 +612,6 @@ const tools = [
       },
     },
   },
-  // === CUSTOMER FORM ===
   {
     type: "function",
     function: {
@@ -355,7 +624,6 @@ const tools = [
       },
     },
   },
-  // === PROJECT FORM ===
   {
     type: "function",
     function: {
@@ -563,7 +831,6 @@ async function executeTool(
         .order("created_at", { ascending: false })
         .limit(10);
       
-      // Only add search filter if query is provided
       if (query && query.trim()) {
         q = q.or(`name.ilike.%${query}%,client_name.ilike.%${query}%`);
       }
@@ -627,7 +894,6 @@ async function executeTool(
       const { data, error } = await q;
       if (error) throw error;
       
-      // Filter by customer name if query provided
       if (query && data) {
         return data.filter((inv: any) => 
           inv.customers?.name?.toLowerCase().includes(query.toLowerCase())
@@ -672,6 +938,536 @@ async function executeTool(
       const { data, error } = await q;
       if (error) throw error;
       return data;
+    }
+
+    // === WORK ORDERS ===
+    case "create_work_order": {
+      const { project_id, title, description, assigned_to, due_date } = args as {
+        project_id: string;
+        title: string;
+        description?: string;
+        assigned_to?: string;
+        due_date?: string;
+      };
+      
+      // Generate order number
+      const { count } = await supabase
+        .from("project_work_orders")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId);
+      
+      const orderNumber = `AO-${String((count || 0) + 1).padStart(4, "0")}`;
+      
+      const { data, error } = await supabase
+        .from("project_work_orders")
+        .insert({
+          user_id: userId,
+          project_id,
+          title,
+          description: description || "",
+          assigned_to: assigned_to || null,
+          due_date: due_date || null,
+          order_number: orderNumber,
+          status: "pending",
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "search_work_orders": {
+      const projectId = args.project_id as string | undefined;
+      const status = args.status as string | undefined;
+      
+      let q = supabase
+        .from("project_work_orders")
+        .select("id, order_number, title, description, status, due_date, assigned_to, projects(name)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      if (projectId) q = q.eq("project_id", projectId);
+      if (status) q = q.eq("status", status);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_work_order": {
+      const { work_order_id } = args as { work_order_id: string };
+      
+      const { data, error } = await supabase
+        .from("project_work_orders")
+        .select("*, projects(name, address)")
+        .eq("id", work_order_id)
+        .eq("user_id", userId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "update_work_order": {
+      const { work_order_id, ...updates } = args as {
+        work_order_id: string;
+        title?: string;
+        description?: string;
+        status?: string;
+        due_date?: string;
+      };
+      
+      const updateData: Record<string, unknown> = {};
+      if (updates.title) updateData.title = updates.title;
+      if (updates.description) updateData.description = updates.description;
+      if (updates.status) updateData.status = updates.status;
+      if (updates.due_date) updateData.due_date = updates.due_date;
+      
+      const { data, error } = await supabase
+        .from("project_work_orders")
+        .update(updateData)
+        .eq("id", work_order_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "delete_work_order": {
+      const { work_order_id } = args as { work_order_id: string };
+      
+      const { error } = await supabase
+        .from("project_work_orders")
+        .delete()
+        .eq("id", work_order_id)
+        .eq("user_id", userId);
+        
+      if (error) throw error;
+      return { deleted: true, id: work_order_id };
+    }
+
+    // === ÄTA ===
+    case "create_ata": {
+      const { project_id, description, estimated_cost, estimated_hours, reason } = args as {
+        project_id: string;
+        description: string;
+        estimated_cost?: number;
+        estimated_hours?: number;
+        reason?: string;
+      };
+      
+      // Generate ATA number
+      const { count } = await supabase
+        .from("project_ata")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", project_id);
+      
+      const ataNumber = `ÄTA-${String((count || 0) + 1).padStart(3, "0")}`;
+      
+      const { data, error } = await supabase
+        .from("project_ata")
+        .insert({
+          user_id: userId,
+          project_id,
+          description,
+          estimated_cost: estimated_cost || null,
+          estimated_hours: estimated_hours || null,
+          reason: reason || "",
+          ata_number: ataNumber,
+          status: "pending",
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "search_ata": {
+      const projectId = args.project_id as string | undefined;
+      const status = args.status as string | undefined;
+      
+      let q = supabase
+        .from("project_ata")
+        .select("id, ata_number, description, estimated_cost, estimated_hours, status, projects(name)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      if (projectId) q = q.eq("project_id", projectId);
+      if (status) q = q.eq("status", status);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_ata": {
+      const { ata_id } = args as { ata_id: string };
+      
+      const { data, error } = await supabase
+        .from("project_ata")
+        .select("*, projects(name, address)")
+        .eq("id", ata_id)
+        .eq("user_id", userId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "update_ata": {
+      const { ata_id, ...updates } = args as {
+        ata_id: string;
+        description?: string;
+        estimated_cost?: number;
+        estimated_hours?: number;
+        status?: string;
+      };
+      
+      const updateData: Record<string, unknown> = {};
+      if (updates.description) updateData.description = updates.description;
+      if (updates.estimated_cost !== undefined) updateData.estimated_cost = updates.estimated_cost;
+      if (updates.estimated_hours !== undefined) updateData.estimated_hours = updates.estimated_hours;
+      if (updates.status) updateData.status = updates.status;
+      
+      const { data, error } = await supabase
+        .from("project_ata")
+        .update(updateData)
+        .eq("id", ata_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    // === PLANNING ===
+    case "get_project_plan": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("project_plans")
+        .select("id, phases, start_date, total_weeks, notes")
+        .eq("project_id", project_id)
+        .single();
+        
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    }
+
+    case "create_plan": {
+      const { project_id, start_date, phases, notes } = args as {
+        project_id: string;
+        start_date: string;
+        phases?: Array<{ name: string; weeks: number }>;
+        notes?: string;
+      };
+      
+      // Transform phases to the expected format with startWeek and color
+      const colors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+      let currentWeek = 1;
+      const formattedPhases = (phases || []).map((phase, index) => {
+        const formatted = {
+          id: crypto.randomUUID(),
+          name: phase.name,
+          startWeek: currentWeek,
+          weeks: phase.weeks,
+          color: colors[index % colors.length],
+        };
+        currentWeek += phase.weeks;
+        return formatted;
+      });
+      
+      const totalWeeks = formattedPhases.reduce((sum, p) => sum + p.weeks, 0);
+      
+      const { data, error } = await supabase
+        .from("project_plans")
+        .insert({
+          user_id: userId,
+          project_id,
+          start_date,
+          phases: formattedPhases,
+          total_weeks: totalWeeks,
+          notes: notes || "",
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "update_plan": {
+      const { project_id, start_date, phases, notes } = args as {
+        project_id: string;
+        start_date?: string;
+        phases?: Array<{ name: string; weeks: number }>;
+        notes?: string;
+      };
+      
+      const updateData: Record<string, unknown> = {};
+      if (start_date) updateData.start_date = start_date;
+      if (notes !== undefined) updateData.notes = notes;
+      
+      if (phases) {
+        const colors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+        let currentWeek = 1;
+        const formattedPhases = phases.map((phase, index) => {
+          const formatted = {
+            id: crypto.randomUUID(),
+            name: phase.name,
+            startWeek: currentWeek,
+            weeks: phase.weeks,
+            color: colors[index % colors.length],
+          };
+          currentWeek += phase.weeks;
+          return formatted;
+        });
+        updateData.phases = formattedPhases;
+        updateData.total_weeks = formattedPhases.reduce((sum, p) => sum + p.weeks, 0);
+      }
+      
+      const { data, error } = await supabase
+        .from("project_plans")
+        .update(updateData)
+        .eq("project_id", project_id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    // === FILES ===
+    case "list_project_files": {
+      const { project_id, category } = args as {
+        project_id: string;
+        category?: string;
+      };
+      
+      let q = supabase
+        .from("project_files")
+        .select("id, file_name, file_type, file_size, category, storage_path, created_at")
+        .eq("project_id", project_id)
+        .order("created_at", { ascending: false });
+      
+      if (category) q = q.eq("category", category);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    }
+
+    case "delete_project_file": {
+      const { file_id } = args as { file_id: string };
+      
+      // Get file info first
+      const { data: file } = await supabase
+        .from("project_files")
+        .select("storage_path")
+        .eq("id", file_id)
+        .single();
+      
+      if (file?.storage_path) {
+        // Delete from storage
+        await supabase.storage.from("project-files").remove([file.storage_path]);
+      }
+      
+      // Delete record
+      const { error } = await supabase
+        .from("project_files")
+        .delete()
+        .eq("id", file_id);
+        
+      if (error) throw error;
+      return { deleted: true, id: file_id };
+    }
+
+    // === ATTENDANCE / QR ===
+    case "generate_attendance_qr": {
+      const { project_id } = args as { project_id: string };
+      
+      // Check if token already exists
+      const { data: existing } = await supabase
+        .from("attendance_qr_tokens")
+        .select("id, token")
+        .eq("project_id", project_id)
+        .single();
+      
+      if (existing) {
+        return { token: existing.token, project_id, already_exists: true };
+      }
+      
+      // Generate new token
+      const token = crypto.randomUUID();
+      
+      const { data, error } = await supabase
+        .from("attendance_qr_tokens")
+        .insert({
+          project_id,
+          created_by: userId,
+          token,
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return { token: data.token, project_id };
+    }
+
+    case "get_attendance_qr": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("attendance_qr_tokens")
+        .select("id, token, created_at")
+        .eq("project_id", project_id)
+        .single();
+        
+      if (error && error.code !== "PGRST116") throw error;
+      
+      if (!data) {
+        return { exists: false, project_id };
+      }
+      
+      return { token: data.token, project_id, created_at: data.created_at };
+    }
+
+    case "check_in": {
+      const { project_id } = args as { project_id: string };
+      
+      // Check if already checked in
+      const { data: existing } = await supabase
+        .from("attendance_records")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("project_id", project_id)
+        .is("check_out", null)
+        .single();
+      
+      if (existing) {
+        return { already_checked_in: true, id: existing.id };
+      }
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .insert({
+          user_id: userId,
+          employer_id: userId,
+          project_id,
+          check_in: new Date().toISOString(),
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "check_out": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .update({ check_out: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("project_id", project_id)
+        .is("check_out", null)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+
+    case "get_active_attendance": {
+      const { project_id } = args as { project_id: string };
+      
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select("id, user_id, check_in, guest_name, profiles(full_name)")
+        .eq("project_id", project_id)
+        .is("check_out", null);
+        
+      if (error) throw error;
+      return data;
+    }
+
+    // === ECONOMY ===
+    case "get_project_economy": {
+      const { project_id } = args as { project_id: string };
+      
+      // Get project with budget
+      const { data: project } = await supabase
+        .from("projects")
+        .select("id, name, budget")
+        .eq("id", project_id)
+        .single();
+      
+      // Get estimate if linked
+      const { data: estimate } = await supabase
+        .from("project_estimates")
+        .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+        .eq("project_id", project_id)
+        .single();
+      
+      // Get time entries
+      const { data: timeEntries } = await supabase
+        .from("time_entries")
+        .select("hours")
+        .eq("project_id", project_id);
+      
+      const totalHours = (timeEntries || []).reduce((sum, e) => sum + (e.hours || 0), 0);
+      
+      // Get ÄTA items
+      const { data: ataItems } = await supabase
+        .from("project_ata")
+        .select("estimated_cost, status")
+        .eq("project_id", project_id);
+      
+      const approvedAtaCost = (ataItems || [])
+        .filter((a) => a.status === "approved" || a.status === "completed")
+        .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+      
+      const pendingAtaCost = (ataItems || [])
+        .filter((a) => a.status === "pending")
+        .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+      
+      // Get invoiced amount
+      const { data: invoices } = await supabase
+        .from("customer_invoices")
+        .select("total_inc_vat, status")
+        .eq("project_id", project_id);
+      
+      const invoicedAmount = (invoices || [])
+        .filter((i) => i.status === "sent" || i.status === "paid")
+        .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
+      
+      const paidAmount = (invoices || [])
+        .filter((i) => i.status === "paid")
+        .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
+      
+      return {
+        project_id,
+        project_name: project?.name,
+        budget: project?.budget || 0,
+        estimate_total: estimate?.total_incl_vat || 0,
+        estimate_labor: estimate?.labor_cost || 0,
+        estimate_material: estimate?.material_cost || 0,
+        total_hours: totalHours,
+        ata_approved: approvedAtaCost,
+        ata_pending: pendingAtaCost,
+        ata_count: ataItems?.length || 0,
+        invoiced_amount: invoicedAmount,
+        paid_amount: paidAmount,
+        invoice_count: invoices?.length || 0,
+      };
     }
 
     // === CREATE ===
@@ -856,7 +1652,6 @@ async function executeTool(
         inspector_name?: string;
       };
       
-      // Get template info
       const { data: template } = await supabase
         .from("inspection_templates")
         .select("name, category, checkpoints")
@@ -882,82 +1677,7 @@ async function executeTool(
       return data;
     }
 
-    case "get_project_plan": {
-      const { project_id } = args as { project_id: string };
-      
-      const { data, error } = await supabase
-        .from("project_plans")
-        .select("id, phases, start_date, total_weeks, notes")
-        .eq("project_id", project_id)
-        .single();
-        
-      if (error && error.code !== "PGRST116") throw error;
-      return data;
-    }
-
-    // === ATTENDANCE ===
-    case "check_in": {
-      const { project_id } = args as { project_id: string };
-      
-      // Check if already checked in
-      const { data: existing } = await supabase
-        .from("attendance_records")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("project_id", project_id)
-        .is("check_out", null)
-        .single();
-      
-      if (existing) {
-        return { already_checked_in: true, id: existing.id };
-      }
-      
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .insert({
-          user_id: userId,
-          employer_id: userId,
-          project_id,
-          check_in: new Date().toISOString(),
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      return data;
-    }
-
-    case "check_out": {
-      const { project_id } = args as { project_id: string };
-      
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .update({ check_out: new Date().toISOString() })
-        .eq("user_id", userId)
-        .eq("project_id", project_id)
-        .is("check_out", null)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      return data;
-    }
-
-    case "get_active_attendance": {
-      const { project_id } = args as { project_id: string };
-      
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .select("id, user_id, check_in, guest_name, profiles(full_name)")
-        .eq("project_id", project_id)
-        .is("check_out", null);
-        
-      if (error) throw error;
-      return data;
-    }
-
     case "get_active_projects_for_time": {
-      // Get all active projects for time registration form
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
@@ -970,7 +1690,6 @@ async function executeTool(
     }
 
     case "get_customers_for_estimate": {
-      // Get all customers for estimate form
       const { data, error } = await supabase
         .from("customers")
         .select("id, name")
@@ -982,7 +1701,6 @@ async function executeTool(
     }
 
     case "get_projects_for_daily_report": {
-      // Get all active projects for daily report form
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
@@ -995,7 +1713,6 @@ async function executeTool(
     }
 
     case "get_all_customers": {
-      // Get all customers for search card
       const { data, error } = await supabase
         .from("customers")
         .select("id, name, city, email")
@@ -1008,12 +1725,10 @@ async function executeTool(
     }
 
     case "get_customer_form": {
-      // Return empty - just triggers the form display
       return { showForm: true };
     }
 
     case "get_project_form": {
-      // Get customers for project form
       const { data, error } = await supabase
         .from("customers")
         .select("id, name")
@@ -1181,7 +1896,6 @@ async function executeTool(
         
       if (error) throw error;
       
-      // Get estimate items
       const { data: items } = await supabase
         .from("estimate_items")
         .select("*")
@@ -1217,7 +1931,6 @@ async function executeTool(
         
       if (error) throw error;
       
-      // Get related projects and estimates
       const { data: projects } = await supabase
         .from("projects")
         .select("id, name, status")
@@ -1297,7 +2010,6 @@ function formatToolResults(toolName: string, results: unknown): {
         status?: string;
       }>;
       
-      // Helper functions for status translation
       const translateStatus = (status: string | undefined): string => {
         const statusMap: Record<string, string> = {
           planning: "Planering",
@@ -1318,7 +2030,6 @@ function formatToolResults(toolName: string, results: unknown): {
         return colorMap[status || ""] || "gray";
       };
       
-      // Return as list for viewing, not verification
       return {
         type: "list",
         content: projects.length > 0 
@@ -1483,6 +2194,519 @@ function formatToolResults(toolName: string, results: unknown): {
       };
     }
 
+    // === WORK ORDERS ===
+    case "create_work_order": {
+      const wo = results as { id: string; order_number: string; title: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Arbetsorder ${wo.order_number} "${wo.title}" har skapats!`,
+          link: {
+            label: "Öppna projekt",
+            href: `/projects/${wo.id}`,
+          },
+          nextActions: [
+            { label: "Skapa ny arbetsorder", icon: "plus", prompt: "Skapa en ny arbetsorder" },
+            { label: "Visa arbetsordrar", icon: "list", prompt: "Visa mina arbetsordrar" },
+          ],
+        },
+      };
+    }
+
+    case "search_work_orders": {
+      const orders = results as Array<{
+        id: string;
+        order_number: string;
+        title: string;
+        status: string;
+        due_date?: string;
+        projects?: { name: string };
+      }>;
+      
+      const translateStatus = (status: string): string => {
+        const map: Record<string, string> = {
+          pending: "Väntande",
+          in_progress: "Pågående",
+          completed: "Klar",
+        };
+        return map[status] || status;
+      };
+      
+      const getStatusColor = (status: string): "green" | "yellow" | "blue" | "gray" => {
+        const map: Record<string, "green" | "yellow" | "blue" | "gray"> = {
+          pending: "yellow",
+          in_progress: "blue",
+          completed: "green",
+        };
+        return map[status] || "gray";
+      };
+      
+      return {
+        type: "list",
+        content: orders.length > 0 
+          ? `Här är ${orders.length} arbetsord${orders.length > 1 ? "rar" : "er"}:`
+          : "Inga arbetsordrar hittades.",
+        data: {
+          listType: "work_order",
+          listItems: orders.map((wo) => ({
+            id: wo.id,
+            title: `${wo.order_number}: ${wo.title}`,
+            subtitle: wo.projects?.name || "Okänt projekt",
+            status: translateStatus(wo.status),
+            statusColor: getStatusColor(wo.status),
+            details: wo.due_date ? [{ label: "Förfaller", value: wo.due_date }] : [],
+          })),
+        },
+      };
+    }
+
+    case "get_work_order": {
+      const wo = results as any;
+      return {
+        type: "result",
+        content: `**${wo.order_number}: ${wo.title}**
+
+**Projekt:** ${wo.projects?.name || "Ej angivet"}
+**Status:** ${wo.status === "pending" ? "Väntande" : wo.status === "in_progress" ? "Pågående" : "Klar"}
+**Förfallodatum:** ${wo.due_date || "Ej angivet"}
+
+**Beskrivning:**
+${wo.description || "Ingen beskrivning"}`,
+        data: {
+          success: true,
+          resultMessage: "",
+          nextActions: [
+            { label: "Markera som klar", icon: "check", prompt: "Markera arbetsorder som klar" },
+            { label: "Redigera", icon: "edit", prompt: "Uppdatera arbetsordern" },
+          ],
+        },
+      };
+    }
+
+    case "update_work_order": {
+      const wo = results as { id: string; order_number: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Arbetsorder ${wo.order_number} har uppdaterats!`,
+          nextActions: [
+            { label: "Visa arbetsordrar", icon: "list", prompt: "Visa arbetsordrar" },
+          ],
+        },
+      };
+    }
+
+    case "delete_work_order":
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Arbetsordern har tagits bort!",
+          nextActions: [
+            { label: "Visa arbetsordrar", icon: "list", prompt: "Visa arbetsordrar" },
+          ],
+        },
+      };
+
+    // === ÄTA ===
+    case "create_ata": {
+      const ata = results as { id: string; ata_number: string; description: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `ÄTA ${ata.ata_number} har skapats: "${ata.description}"`,
+          nextActions: [
+            { label: "Skapa ny ÄTA", icon: "plus", prompt: "Skapa en ny ÄTA" },
+            { label: "Visa alla ÄTA", icon: "list", prompt: "Visa alla ÄTA" },
+          ],
+        },
+      };
+    }
+
+    case "search_ata": {
+      const items = results as Array<{
+        id: string;
+        ata_number: string;
+        description: string;
+        estimated_cost?: number;
+        status: string;
+        projects?: { name: string };
+      }>;
+      
+      const translateStatus = (status: string): string => {
+        const map: Record<string, string> = {
+          pending: "Väntande",
+          approved: "Godkänd",
+          rejected: "Avvisad",
+          completed: "Utförd",
+        };
+        return map[status] || status;
+      };
+      
+      const getStatusColor = (status: string): "green" | "yellow" | "blue" | "gray" => {
+        const map: Record<string, "green" | "yellow" | "blue" | "gray"> = {
+          pending: "yellow",
+          approved: "green",
+          rejected: "gray",
+          completed: "blue",
+        };
+        return map[status] || "gray";
+      };
+      
+      return {
+        type: "list",
+        content: items.length > 0 
+          ? `Här är ${items.length} ÄTA-ärende${items.length > 1 ? "n" : ""}:`
+          : "Inga ÄTA-ärenden hittades.",
+        data: {
+          listType: "ata",
+          listItems: items.map((ata) => ({
+            id: ata.id,
+            title: `${ata.ata_number}: ${ata.description.slice(0, 50)}${ata.description.length > 50 ? "..." : ""}`,
+            subtitle: ata.projects?.name || "Okänt projekt",
+            status: translateStatus(ata.status),
+            statusColor: getStatusColor(ata.status),
+            details: ata.estimated_cost 
+              ? [{ label: "Kostnad", value: `${ata.estimated_cost.toLocaleString("sv-SE")} kr` }] 
+              : [],
+          })),
+        },
+      };
+    }
+
+    case "get_ata": {
+      const ata = results as any;
+      return {
+        type: "result",
+        content: `**${ata.ata_number}**
+
+**Projekt:** ${ata.projects?.name || "Ej angivet"}
+**Status:** ${ata.status === "pending" ? "Väntande godkännande" : ata.status === "approved" ? "Godkänd" : ata.status === "rejected" ? "Avvisad" : "Utförd"}
+
+**Beskrivning:**
+${ata.description}
+
+**Ekonomi:**
+- Beräknad kostnad: ${(ata.estimated_cost || 0).toLocaleString("sv-SE")} kr
+- Beräknade timmar: ${ata.estimated_hours || 0}h
+
+${ata.reason ? `**Anledning:** ${ata.reason}` : ""}`,
+        data: {
+          success: true,
+          resultMessage: "",
+          nextActions: [
+            { label: "Godkänn ÄTA", icon: "check", prompt: "Godkänn denna ÄTA" },
+            { label: "Uppdatera kostnad", icon: "edit", prompt: "Uppdatera kostnaden" },
+          ],
+        },
+      };
+    }
+
+    case "update_ata": {
+      const ata = results as { id: string; ata_number: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `ÄTA ${ata.ata_number} har uppdaterats!`,
+          nextActions: [
+            { label: "Visa alla ÄTA", icon: "list", prompt: "Visa ÄTA-ärenden" },
+          ],
+        },
+      };
+    }
+
+    // === PLANNING ===
+    case "get_project_plan": {
+      const plan = results as { id: string; phases: any[]; total_weeks: number; start_date?: string; notes?: string } | null;
+      if (!plan) {
+        return {
+          type: "text",
+          content: "Det finns ingen planering för detta projekt ännu. Vill du att jag skapar en?",
+        };
+      }
+      
+      const phaseList = (plan.phases || []).map((p: any) => `- ${p.name}: ${p.weeks} veckor`).join("\n");
+      
+      return {
+        type: "result",
+        content: `**Projektplanering**
+
+**Startdatum:** ${plan.start_date || "Ej angivet"}
+**Totalt:** ${plan.total_weeks || 0} veckor
+
+**Faser:**
+${phaseList || "Inga faser definierade"}
+
+${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
+        data: {
+          success: true,
+          resultMessage: "",
+          link: {
+            label: "Öppna planering",
+            href: `/planning`,
+          },
+          nextActions: [
+            { label: "Uppdatera planering", icon: "edit", prompt: "Uppdatera planeringen" },
+            { label: "Lägg till fas", icon: "plus", prompt: "Lägg till en ny fas" },
+          ],
+        },
+      };
+    }
+
+    case "create_plan": {
+      const plan = results as { id: string; total_weeks: number; phases: any[] };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Planering skapad med ${plan.phases?.length || 0} faser och totalt ${plan.total_weeks || 0} veckor!`,
+          link: {
+            label: "Öppna planering",
+            href: `/planning`,
+          },
+          nextActions: [
+            { label: "Visa planering", icon: "calendar", prompt: "Visa planeringen" },
+            { label: "Lägg till fas", icon: "plus", prompt: "Lägg till en fas" },
+          ],
+        },
+      };
+    }
+
+    case "update_plan": {
+      const plan = results as { id: string; total_weeks: number };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Planeringen har uppdaterats! Totalt ${plan.total_weeks || 0} veckor.`,
+          link: {
+            label: "Öppna planering",
+            href: `/planning`,
+          },
+          nextActions: [
+            { label: "Visa planering", icon: "calendar", prompt: "Visa planeringen" },
+          ],
+        },
+      };
+    }
+
+    // === FILES ===
+    case "list_project_files": {
+      const files = results as Array<{
+        id: string;
+        file_name: string;
+        file_type: string;
+        file_size?: number;
+        category?: string;
+        created_at: string;
+      }>;
+      
+      if (files.length === 0) {
+        return {
+          type: "text",
+          content: "Det finns inga filer för detta projekt ännu. Du kan ladda upp filer genom projektets filsektion.",
+        };
+      }
+      
+      return {
+        type: "file_list",
+        content: `Projektet har ${files.length} fil${files.length > 1 ? "er" : ""}:`,
+        data: {
+          files: files.map((f) => ({
+            id: f.id,
+            name: f.file_name,
+            type: f.file_type,
+            size: f.file_size,
+            category: f.category,
+            date: f.created_at,
+          })),
+        },
+      };
+    }
+
+    case "delete_project_file":
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Filen har tagits bort!",
+          nextActions: [
+            { label: "Visa filer", icon: "folder", prompt: "Visa projektets filer" },
+          ],
+        },
+      };
+
+    // === ATTENDANCE / QR ===
+    case "generate_attendance_qr": {
+      const result = results as { token: string; project_id: string; already_exists?: boolean };
+      return {
+        type: "qr_code",
+        content: result.already_exists 
+          ? "QR-kod för närvaro finns redan för detta projekt:"
+          : "QR-kod för närvaro har genererats!",
+        data: {
+          token: result.token,
+          project_id: result.project_id,
+          url: `https://datavoxx.se/attendance/scan?token=${result.token}`,
+        },
+      };
+    }
+
+    case "get_attendance_qr": {
+      const result = results as { token?: string; project_id: string; exists?: boolean };
+      
+      if (!result.token) {
+        return {
+          type: "text",
+          content: "Det finns ingen QR-kod för detta projekt ännu. Vill du att jag skapar en?",
+        };
+      }
+      
+      return {
+        type: "qr_code",
+        content: "Här är QR-koden för närvaro:",
+        data: {
+          token: result.token,
+          project_id: result.project_id,
+          url: `https://datavoxx.se/attendance/scan?token=${result.token}`,
+        },
+      };
+    }
+
+    case "check_in": {
+      const record = results as { id: string; already_checked_in?: boolean };
+      if (record.already_checked_in) {
+        return {
+          type: "text",
+          content: "Du är redan incheckad på detta projekt.",
+        };
+      }
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Du är nu incheckad!",
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka ut", icon: "log-out", prompt: "Checka ut mig" },
+            { label: "Visa närvaro", icon: "users", prompt: "Visa vem som är incheckad" },
+          ],
+        },
+      };
+    }
+
+    case "check_out": {
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: "Du är nu utcheckad!",
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka in igen", icon: "log-in", prompt: "Checka in mig" },
+            { label: "Registrera tid", icon: "clock", prompt: "Registrera tid" },
+          ],
+        },
+      };
+    }
+
+    case "get_active_attendance": {
+      const records = results as Array<{
+        id: string;
+        check_in: string;
+        guest_name?: string;
+        profiles?: { full_name: string };
+      }>;
+      
+      if (records.length === 0) {
+        return {
+          type: "text",
+          content: "Ingen är incheckad på detta projekt just nu.",
+        };
+      }
+      
+      const names = records.map(r => r.profiles?.full_name || r.guest_name || "Okänd").join(", ");
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `${records.length} person${records.length > 1 ? "er" : ""} incheckade: ${names}`,
+          link: {
+            label: "Öppna närvaro",
+            href: "/attendance",
+          },
+          nextActions: [
+            { label: "Checka in", icon: "log-in", prompt: "Checka in mig" },
+          ],
+        },
+      };
+    }
+
+    // === ECONOMY ===
+    case "get_project_economy": {
+      const eco = results as {
+        project_name?: string;
+        budget: number;
+        estimate_total: number;
+        estimate_labor: number;
+        estimate_material: number;
+        total_hours: number;
+        ata_approved: number;
+        ata_pending: number;
+        ata_count: number;
+        invoiced_amount: number;
+        paid_amount: number;
+        invoice_count: number;
+      };
+      
+      return {
+        type: "economy_overview",
+        content: `**Ekonomisk översikt: ${eco.project_name || "Projekt"}**
+
+**Budget & Offert:**
+- Budget: ${eco.budget.toLocaleString("sv-SE")} kr
+- Offert totalt: ${eco.estimate_total.toLocaleString("sv-SE")} kr
+- Varav arbete: ${eco.estimate_labor.toLocaleString("sv-SE")} kr
+- Varav material: ${eco.estimate_material.toLocaleString("sv-SE")} kr
+
+**Tidsredovisning:**
+- Totalt registrerade timmar: ${eco.total_hours}h
+
+**ÄTA-arbeten:** (${eco.ata_count} st)
+- Godkända: ${eco.ata_approved.toLocaleString("sv-SE")} kr
+- Väntande: ${eco.ata_pending.toLocaleString("sv-SE")} kr
+
+**Fakturering:** (${eco.invoice_count} fakturor)
+- Fakturerat: ${eco.invoiced_amount.toLocaleString("sv-SE")} kr
+- Betalt: ${eco.paid_amount.toLocaleString("sv-SE")} kr`,
+        data: {
+          ...eco,
+        },
+      };
+    }
+
+    // === CREATE ===
     case "create_estimate": {
       const estimate = results as { id: string; offer_number: string };
       return {
@@ -1518,6 +2742,7 @@ function formatToolResults(toolName: string, results: unknown): {
           nextActions: [
             { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för detta projekt" },
             { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på projektet" },
+            { label: "Skapa arbetsorder", icon: "clipboard", prompt: "Skapa arbetsorder för projektet" },
           ],
         },
       };
@@ -1618,109 +2843,6 @@ function formatToolResults(toolName: string, results: unknown): {
           nextActions: [
             { label: "Skapa ny kontroll", icon: "plus", prompt: "Skapa en till egenkontroll" },
             { label: "Visa kontroller", icon: "list", prompt: "Visa mina egenkontroller" },
-          ],
-        },
-      };
-    }
-
-    case "get_project_plan": {
-      const plan = results as { id: string; phases: any[]; total_weeks: number } | null;
-      if (!plan) {
-        return {
-          type: "text",
-          content: "Det finns ingen planering för detta projekt ännu. Vill du skapa en?",
-        };
-      }
-      return {
-        type: "result",
-        content: "",
-        data: {
-          success: true,
-          resultMessage: `Projektplanen har ${plan.phases?.length || 0} faser och ${plan.total_weeks || 0} veckor.`,
-          link: {
-            label: "Öppna planering",
-            href: `/planning?project=${plan.id}`,
-          },
-          nextActions: [
-            { label: "Visa projekt", icon: "folder", prompt: "Öppna projektet" },
-          ],
-        },
-      };
-    }
-
-    case "check_in": {
-      const record = results as { id: string; already_checked_in?: boolean };
-      if (record.already_checked_in) {
-        return {
-          type: "text",
-          content: "Du är redan incheckad på detta projekt.",
-        };
-      }
-      return {
-        type: "result",
-        content: "",
-        data: {
-          success: true,
-          resultMessage: "Du är nu incheckad!",
-          link: {
-            label: "Öppna närvaro",
-            href: "/attendance",
-          },
-          nextActions: [
-            { label: "Checka ut", icon: "log-out", prompt: "Checka ut mig" },
-            { label: "Visa närvaro", icon: "users", prompt: "Visa vem som är incheckad" },
-          ],
-        },
-      };
-    }
-
-    case "check_out": {
-      return {
-        type: "result",
-        content: "",
-        data: {
-          success: true,
-          resultMessage: "Du är nu utcheckad!",
-          link: {
-            label: "Öppna närvaro",
-            href: "/attendance",
-          },
-          nextActions: [
-            { label: "Checka in igen", icon: "log-in", prompt: "Checka in mig" },
-            { label: "Registrera tid", icon: "clock", prompt: "Registrera tid" },
-          ],
-        },
-      };
-    }
-
-    case "get_active_attendance": {
-      const records = results as Array<{
-        id: string;
-        check_in: string;
-        guest_name?: string;
-        profiles?: { full_name: string };
-      }>;
-      
-      if (records.length === 0) {
-        return {
-          type: "text",
-          content: "Ingen är incheckad på detta projekt just nu.",
-        };
-      }
-      
-      const names = records.map(r => r.profiles?.full_name || r.guest_name || "Okänd").join(", ");
-      return {
-        type: "result",
-        content: "",
-        data: {
-          success: true,
-          resultMessage: `${records.length} person${records.length > 1 ? "er" : ""} incheckade: ${names}`,
-          link: {
-            label: "Öppna närvaro",
-            href: "/attendance",
-          },
-          nextActions: [
-            { label: "Checka in", icon: "log-in", prompt: "Checka in mig" },
           ],
         },
       };
@@ -1945,7 +3067,6 @@ function formatToolResults(toolName: string, results: unknown): {
       const estimate = results as any;
       const totalRows = estimate.items?.length || 0;
       
-      // Calculate totals from items
       const laborTotal = estimate.items?.reduce((sum: number, item: any) => 
         item.type === 'labor' ? sum + (item.subtotal || 0) : sum, 0) || 0;
       const materialTotal = estimate.items?.reduce((sum: number, item: any) => 
@@ -2009,6 +3130,9 @@ function formatToolResults(toolName: string, results: unknown): {
             { label: "Skapa dagrapport", icon: "clipboard", prompt: "Skapa dagrapport för detta projekt" },
             { label: "Registrera tid", icon: "clock", prompt: "Registrera tid på detta projekt" },
             { label: "Visa planering", icon: "calendar", prompt: "Visa planeringen för detta projekt" },
+            { label: "Visa ekonomi", icon: "dollar-sign", prompt: "Visa ekonomisk översikt" },
+            { label: "Skapa arbetsorder", icon: "file-text", prompt: "Skapa arbetsorder" },
+            { label: "Lägg till ÄTA", icon: "plus-circle", prompt: "Lägg till ÄTA" },
           ],
         },
       };
@@ -2059,7 +3183,6 @@ serve(async (req) => {
   }
 
   try {
-    // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -2086,57 +3209,106 @@ serve(async (req) => {
     console.log("Received message:", message);
     console.log("Context:", context);
 
-    // Build conversation history for AI
     const conversationMessages = [
       {
         role: "system",
-        content: `Du är en hjälpsam AI-assistent för ett byggföretag. Du hjälper användaren att hantera hela verksamheten.
+        content: `Du är Byggio AI - en avancerad och kunnig AI-assistent för byggföretag. Du hjälper användaren att hantera HELA verksamheten effektivt.
+
+DU ÄR EN "KNOW-IT-ALL" AGENT - du kan svara på frågor och ge detaljerad information om alla aspekter av verksamheten.
 
 FUNKTIONER DU KAN UTFÖRA:
-- Kunder: Söka, visa, skapa, redigera, ta bort
-- Projekt: Söka, visa, skapa, redigera, ta bort  
-- Offerter: Söka, visa, skapa, redigera, ta bort
-- Tidsrapportering: Registrera tid, visa summeringar
-- Dagrapporter: Skapa och söka rapporter
-- Fakturor: Söka kund- och leverantörsfakturor, skapa kundfaktura
-- Egenkontroller: Skapa och söka inspektioner
-- Närvaro: Checka in/ut, visa aktiva på projekt
+
+📋 **KUNDER**
+- Söka, visa, skapa, redigera, ta bort kunder
+- Visa kundhistorik med projekt och offerter
+
+📁 **PROJEKT**
+- Söka, visa, skapa, redigera, ta bort projekt
+- Se projektöversikt med all relaterad data
+
+📊 **OFFERTER**
+- Söka, visa, skapa, redigera, ta bort offerter
+- Se detaljerad offertsummering
+
+⏰ **TIDSRAPPORTERING**
+- Registrera tid på projekt
+- Visa tidssammanställningar per period
+
+📝 **DAGRAPPORTER**
+- Skapa dagrapporter med arbetsbeskrivning
+- Söka och visa tidigare rapporter
+
+🧾 **FAKTUROR**
+- Söka kund- och leverantörsfakturor
+- Skapa kundfakturor
+
+✅ **EGENKONTROLLER**
+- Skapa och söka inspektioner/kontroller
+
+👷 **ARBETSORDRAR** (NYTT!)
+- Skapa arbetsordrar för projekt
+- Sök, visa och uppdatera arbetsordrar
+- Markera som klara
+
+💰 **ÄTA-ARBETEN** (NYTT!)
+- Skapa ÄTA (ändrings- och tilläggsarbeten)
+- Sök och hantera ÄTA-ärenden
+- Uppdatera status och kostnader
+
+📅 **PLANERING** (NYTT!)
+- Skapa projektplaneringar med faser
+- Uppdatera och visa planeringsdata
+- Se Gantt-liknande översikt
+
+📎 **FILER** (NYTT!)
+- Lista alla filer för ett projekt
+- Ta bort filer
+
+📱 **QR-KODER FÖR NÄRVARO** (NYTT!)
+- Generera QR-koder för närvaroregistrering
+- Visa befintliga QR-koder
+
+💵 **EKONOMIÖVERSIKT** (NYTT!)
+- Visa fullständig ekonomisk sammanfattning
+- Budget vs offert vs fakturerat
+- ÄTA-summering
+- Registrerade timmar
+
+GE INFORMATIVA SVAR:
+- När användaren frågar om information, ge DETALJERADE svar
+- Förklara begrepp och ge kontext när det behövs
+- Föreslå alltid relevanta nästa steg
+- Var proaktiv med att erbjuda hjälp
 
 VIKTIGT - SKILLNAD MELLAN HÄMTA/VISA OCH UPPDATERA:
-- När användaren vill "visa", "hämta", "se", "öppna" eller "kolla" → använd get_estimate/get_project/get_customer
-- När användaren vill "ändra", "uppdatera", "redigera" med specifika värden → använd update_*
-- ALDRIG använd update_* utan faktiska ändringar att göra
-- Om användaren säger "hämta offerten" eller "visa projektet" → använd get_* verktygen
+- När användaren vill "visa", "hämta", "se", "öppna" → använd get_* verktyg
+- När användaren vill "ändra", "uppdatera" → använd update_* verktyg
+- ALDRIG använd update_* utan faktiska ändringar
 
-HANTERING AV BEKRÄFTELSER OCH VAL:
-- När användaren säger "visa information om X" och context innehåller ett ID:
-  - Om context.selectedCustomerId finns → anropa DIREKT get_customer med det ID:t
-  - Om context.selectedProjectId finns → anropa DIREKT get_project med det ID:t
-  - Om context.selectedEstimateId finns → anropa DIREKT get_estimate med det ID:t
-- Visa ALLTID fullständig information efter bekräftelse, inte bara "OK"
-
-NÄR DU BER OM KUNDINFORMATION:
-- Be ENDAST om kundens namn, inget annat (inte stad eller e-post)
+HANTERING AV PROJEKT-RELATERADE FRÅGOR:
+- "Skapa arbetsorder för projektet" → create_work_order
+- "Visa arbetsordrar" → search_work_orders
+- "Lägg till ÄTA" → create_ata
+- "Visa ÄTA" → search_ata
+- "Skapa planering" → create_plan
+- "Visa ekonomin" → get_project_economy
+- "Generera QR-kod" → generate_attendance_qr
+- "Visa filer" → list_project_files
 
 INTERAKTIVA FORMULÄR - ANVÄND DESSA NÄR ANVÄNDAREN INTE GER SPECIFIK INFO:
-- "registrera tid", "rapportera tid" (utan projekt/timmar) → get_active_projects_for_time
-- "skapa offert", "ny offert" (utan specifik kund) → get_customers_for_estimate
-- "ny dagrapport", "skapa dagrapport" (utan projekt) → get_projects_for_daily_report
-- "sök kund", "hitta kund", "visa kunder" → get_all_customers
-- "ny kund", "skapa kund" → get_customer_form
-- "skapa projekt", "nytt projekt" (utan specifik info) → get_project_form
+- "registrera tid" (utan projekt) → get_active_projects_for_time
+- "skapa offert" (utan kund) → get_customers_for_estimate
+- "ny dagrapport" (utan projekt) → get_projects_for_daily_report
+- "sök kund", "visa kunder" → get_all_customers
+- "ny kund" → get_customer_form
+- "skapa projekt" (utan info) → get_project_form
 
-Om användaren ger fullständig information (t.ex. "skapa kund Johan Svensson email@test.se"), använd create_customer direkt.
-Om användaren anger projekt OCH timmar direkt, använd register_time direkt.
-
-VIKTIGA REGLER:
+REGLER:
 1. Svara alltid på svenska
-2. Var kortfattad och koncis (max 2-3 meningar)
-3. Använd interaktiva formulär för att samla in information effektivt
-4. Fråga aldrig om onödig information - använd det du har
-5. Om användaren bekräftar en kund/projekt, fortsätt med nästa steg
-6. Vid radering, varna alltid användaren och be om bekräftelse först
-7. Föreslå alltid nästa steg efter en slutförd åtgärd
+2. Ge informativa och hjälpsamma svar - förklara vad du gör
+3. Föreslå alltid relevanta nästa steg efter en åtgärd
+4. Vid radering, varna alltid användaren
+5. Använd rätt verktyg för rätt uppgift
 
 KONTEXT:
 ${context?.selectedCustomerId ? `- Vald kund-ID: ${context.selectedCustomerId}` : ""}
@@ -2144,11 +3316,10 @@ ${context?.selectedProjectId ? `- Valt projekt-ID: ${context.selectedProjectId}`
 ${context?.selectedEstimateId ? `- Vald offert-ID: ${context.selectedEstimateId}` : ""}
 ${context?.pendingAction ? `- Väntande åtgärd: ${context.pendingAction}` : ""}
 
-Använd verktygen för att söka och skapa data.`,
+Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
       },
     ];
 
-    // Add history
     if (history && Array.isArray(history)) {
       for (const msg of history) {
         if (msg.role === "user" || msg.role === "assistant") {
@@ -2160,10 +3331,8 @@ Använd verktygen för att söka och skapa data.`,
       }
     }
 
-    // Add current message
     conversationMessages.push({ role: "user", content: message });
 
-    // Call AI with tools
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -2203,7 +3372,6 @@ Använd verktygen för att söka och skapa data.`,
       throw new Error("No response from AI");
     }
 
-    // Check if AI wants to call tools
     if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
       const toolCall = choice.message.tool_calls[0];
       const toolName = toolCall.function.name;
@@ -2211,10 +3379,7 @@ Använd verktygen för att söka och skapa data.`,
 
       console.log("Tool call:", toolName, toolArgs);
 
-      // Execute the tool
       const toolResult = await executeTool(supabase, userId, toolName, toolArgs);
-      
-      // Format and return the result
       const formattedResult = formatToolResults(toolName, toolResult);
       
       return new Response(JSON.stringify(formattedResult), {
@@ -2222,7 +3387,6 @@ Använd verktygen för att söka och skapa data.`,
       });
     }
 
-    // Return text response
     return new Response(JSON.stringify({
       type: "text",
       content: choice.message.content || "Jag förstod inte. Kan du omformulera?",
