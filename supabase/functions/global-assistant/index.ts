@@ -3227,6 +3227,63 @@ serve(async (req) => {
       "create_estimate", "create_project",
     ];
 
+    // Helper function to resolve project name to UUID
+    async function resolveProjectId(input: string): Promise<{ id: string; name: string } | null> {
+      if (!input) return null;
+      
+      // Check if input is already a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(input)) {
+        // Verify the UUID exists and get its name
+        const { data } = await supabase
+          .from("projects")
+          .select("id, name")
+          .eq("id", input)
+          .eq("user_id", userId)
+          .maybeSingle();
+        return data;
+      }
+      
+      // Search for project by name (case-insensitive)
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userId)
+        .ilike("name", `%${input}%`)
+        .limit(1)
+        .maybeSingle();
+        
+      return data;
+    }
+    
+    // Helper function to resolve customer name to UUID
+    async function resolveCustomerId(input: string): Promise<{ id: string; name: string } | null> {
+      if (!input) return null;
+      
+      // Check if input is already a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(input)) {
+        const { data } = await supabase
+          .from("customers")
+          .select("id, name")
+          .eq("id", input)
+          .eq("user_id", userId)
+          .maybeSingle();
+        return data;
+      }
+      
+      // Search for customer by name
+      const { data } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("user_id", userId)
+        .ilike("name", `%${input}%`)
+        .limit(1)
+        .maybeSingle();
+        
+      return data;
+    }
+
     const conversationMessages = [
       {
         role: "system",
@@ -3257,11 +3314,32 @@ ${context?.selectedEstimateId ? `
 → Använd AUTOMATISKT detta ID för ALLA offertrelaterade operationer!
 ` : ""}
 
+═══════════════════════════════════════════════════════════════════════════════
+🔑 VIKTIGT OM PROJEKT-ID OCH NAMN (UUID vs NAMN)
+═══════════════════════════════════════════════════════════════════════════════
+
+Ett projekt-ID (UUID) ser ut så här: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+Exempel: 8f42b1c3-5d9e-4a7b-b2e1-9c3f4d5a6e7b
+
+OM användaren anger något ANNAT, t.ex. "tony-test", "Solvik", "Projekt 123", "villa nyberg"
+→ Det är ett PROJEKTNAMN, INTE ett ID!
+→ Du MÅSTE först använda search_projects för att hitta rätt projekt-ID
+→ Använd sedan det hittade UUID:t för efterföljande operationer
+
+SAMMA GÄLLER FÖR KUNDER:
+Om användaren säger "kund Andersson" eller "företaget ABC" → Använd search_customers först!
+
+REGEL: Skicka ALDRIG ett projektnamn direkt som project_id - det kommer att orsaka fel!
+Sök alltid först om du inte har ett giltigt UUID.
+
+═══════════════════════════════════════════════════════════════════════════════
+
 REGLER FÖR KONTEXT-ANVÄNDNING:
 1. Om selectedProjectId finns → ANVÄND DET för alla project_id-fält UTAN att fråga
 2. Om selectedCustomerId finns → ANVÄND DET för alla customer_id-fält UTAN att fråga
 3. FRÅGA BARA om ID om det INTE finns i kontexten ovan!
 4. Säg "för det aktuella projektet" eller "för aktuell kund" istället för att fråga om ID
+5. Om användaren anger ett NAMN (inte UUID), SÖK FÖRST med search_projects eller search_customers
 
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -3359,6 +3437,7 @@ REGLER:
 4. Vid radering, varna alltid användaren
 5. Använd rätt verktyg för rätt uppgift
 6. ANVÄND ALLTID kontext-IDs istället för att fråga användaren!
+7. Om användaren anger ett NAMN (inte UUID), SÖK FÖRST för att hitta rätt ID!
 
 Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
       },
@@ -3442,6 +3521,60 @@ Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
       if (!toolArgs.customer_id && context?.selectedCustomerId && CUSTOMER_TOOLS.includes(toolName)) {
         toolArgs.customer_id = context.selectedCustomerId;
         console.log(`Auto-injected customer_id: ${context.selectedCustomerId} for tool: ${toolName}`);
+      }
+      
+      // RESOLVE project_id from name to UUID if it's not a valid UUID
+      if (toolArgs.project_id && PROJECT_TOOLS.includes(toolName)) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(toolArgs.project_id)) {
+          console.log(`Resolving project name "${toolArgs.project_id}" to UUID...`);
+          const resolved = await resolveProjectId(toolArgs.project_id);
+          if (resolved) {
+            console.log(`Resolved to: ${resolved.id} (${resolved.name})`);
+            toolArgs.project_id = resolved.id;
+          } else {
+            console.log(`Project not found: ${toolArgs.project_id}`);
+            return new Response(JSON.stringify({
+              type: "text",
+              content: `Jag kunde inte hitta något projekt med namnet "${toolArgs.project_id}". Försök med ett annat namn eller välj ett projekt från listan.`,
+              data: {
+                nextActions: [
+                  { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+                  { label: "Sök projekt", icon: "search", prompt: "Sök efter projekt" },
+                ],
+              },
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+      }
+      
+      // RESOLVE customer_id from name to UUID if it's not a valid UUID
+      if (toolArgs.customer_id && CUSTOMER_TOOLS.includes(toolName)) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(toolArgs.customer_id)) {
+          console.log(`Resolving customer name "${toolArgs.customer_id}" to UUID...`);
+          const resolved = await resolveCustomerId(toolArgs.customer_id);
+          if (resolved) {
+            console.log(`Resolved to: ${resolved.id} (${resolved.name})`);
+            toolArgs.customer_id = resolved.id;
+          } else {
+            console.log(`Customer not found: ${toolArgs.customer_id}`);
+            return new Response(JSON.stringify({
+              type: "text",
+              content: `Jag kunde inte hitta någon kund med namnet "${toolArgs.customer_id}". Försök med ett annat namn eller välj en kund från listan.`,
+              data: {
+                nextActions: [
+                  { label: "Visa kunder", icon: "users", prompt: "Visa mina kunder" },
+                  { label: "Sök kund", icon: "search", prompt: "Sök efter kund" },
+                ],
+              },
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
       }
 
       console.log("Tool call:", toolName, toolArgs);
