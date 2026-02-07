@@ -63,7 +63,6 @@ const getNavItems = (isEmployee: boolean): NavItem[] => {
     { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
     { label: "Assistent", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
     { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
-    { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
     { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
     { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
     { label: "Löneexport", href: "/payroll-export", icon: FileSpreadsheet, moduleKey: "payroll-export" },
