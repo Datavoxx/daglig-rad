@@ -1,56 +1,42 @@
 
 
-## Problem
+## Mål
 
-Felet `ReferenceError: context is not defined` inträffar när man försöker skapa en dagrapport via AI-assistenten.
-
-### Rotorsak
-
-| Plats | Problem |
-|-------|---------|
-| `executeTool` (rad 917-922) | Tar endast 4 parametrar: `supabase`, `userId`, `toolName`, `args` |
-| `create_daily_report` (rad 1977) | Refererar till `context?.pendingData` |
-| Anrop (rad 4146) | `executeTool(supabase, userId, toolName, toolArgs)` - **skickar inte context** |
-
-Variabeln `context` är definierad i huvudfunktionen men skickas aldrig till `executeTool`.
+Ta bort "Dagrapporter" från sidomenyn för administratörer, men behålla "Dagbok/Arbetsdagbok"-tabben som fungerar inne i projektvyn.
 
 ---
 
-## Lösning
+## Nuvarande vs Önskat
 
-### 1. Uppdatera `executeTool`-funktionens signatur
+| Element | Nuvarande | Efter ändring |
+|---------|-----------|---------------|
+| Sidomenyn (admin) | Visar "Dagrapporter" | Visar INTE "Dagrapporter" |
+| Projekt → Dagbok-tabb | Fungerar | Fungerar (ingen ändring) |
+| /daily-reports sida | Tillgänglig | Finns kvar för anställda, men inte i admin-menyn |
 
-Lägg till `context` som en 5:e parameter:
+---
 
-```typescript
-// Rad 917-922
-async function executeTool(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  toolName: string,
-  args: Record<string, unknown>,
-  context?: Record<string, unknown>  // <-- NY PARAMETER
-): Promise<unknown> {
+## Ändringar
+
+### 1. Ta bort "Dagrapporter" från admin-navigeringen
+
+I `src/components/layout/AppLayout.tsx`, rad 66:
+
+```text
+FÖRE:
+  { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },  // <-- TA BORT
+  { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
+
+EFTER:
+  { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  // Dagrapporter borttagen för admin - använd Dagbok-tabben i projektvyn istället
+  { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
 ```
 
-### 2. Uppdatera alla anrop till `executeTool`
+### 2. Behåll för anställda
 
-Skicka med `context` vid anropen:
-
-**Rad 4146:**
-```typescript
-const toolResult = await executeTool(supabase, userId, toolName, toolArgs, context);
-```
-
-**Rad 3798 (create_estimate):**
-```typescript
-const result = await executeTool(supabase, userId, "create_estimate", {...}, context);
-```
-
-**Rad 3832 (add_estimate_items):**
-```typescript
-const result = await executeTool(supabase, userId, "add_estimate_items", {...}, context);
-```
+Anställda behåller sin "Dagrapporter"-länk (rad 55) eftersom de behöver en egen ingång utan att gå via projekt.
 
 ---
 
@@ -58,13 +44,14 @@ const result = await executeTool(supabase, userId, "add_estimate_items", {...}, 
 
 | Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Lägg till `context`-parameter till `executeTool` och uppdatera alla anrop |
+| `src/components/layout/AppLayout.tsx` | Ta bort rad 66 (Dagrapporter för admin) |
 
 ---
 
-## Teknisk sammanfattning
+## Resultat
 
-- `context` innehåller `pendingData` från formuläret
-- Utan denna parameter kan backend inte läsa formulärdata
-- Efter fix: dagrapporter kan skapas med full formulärdata
+- Administratörer ser inte "Dagrapporter" i sidomenyn
+- Administratörer använder "Dagbok"-tabben inne i varje projekt
+- Anställda behåller sin separata dagrapportsida
+- Samma data och funktionalitet, bara olika ingångspunkter baserat på roll
 
