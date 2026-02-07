@@ -54,11 +54,20 @@ interface EstimateItemsFormCardProps {
   disabled?: boolean;
 }
 
-const ARTICLE_TYPES = [
-  { value: "labor", label: "Arbete" },
-  { value: "material", label: "Material" },
-  { value: "subcontractor", label: "Underentreprenör" },
-  { value: "other", label: "Övrigt" },
+const ARTICLE_OPTIONS = [
+  "Arbete",
+  "Bygg",
+  "Deponi",
+  "Framkörning",
+  "Förbrukning",
+  "Förvaltning",
+  "Markarbete",
+  "Maskin",
+  "Material",
+  "Målning",
+  "Snöröjning",
+  "Städ",
+  "Trädgårdsskötsel",
 ];
 
 const UNITS = ["tim", "st", "m", "m²", "m³", "kg", "kpl"];
@@ -76,7 +85,7 @@ export function EstimateItemsFormCard({
   const [items, setItems] = useState<EstimateItem[]>([
     {
       id: crypto.randomUUID(),
-      article: "labor",
+      article: "Arbete",
       description: "",
       quantity: null,
       unit: "tim",
@@ -90,7 +99,7 @@ export function EstimateItemsFormCard({
       ...prev,
       {
         id: crypto.randomUUID(),
-        article: "labor",
+        article: "Arbete",
         description: "",
         quantity: null,
         unit: "tim",
@@ -266,9 +275,9 @@ export function EstimateItemsFormCard({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {ARTICLE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                      {ARTICLE_OPTIONS.map((article) => (
+                        <SelectItem key={article} value={article}>
+                          {article}
                         </SelectItem>
                       ))}
                     </SelectContent>
