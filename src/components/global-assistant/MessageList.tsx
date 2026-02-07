@@ -17,6 +17,7 @@ import { QRCodeCard } from "./QRCodeCard";
 import { FileListCard } from "./FileListCard";
 import { EconomyCard } from "./EconomyCard";
 import { CheckInFormCard } from "./CheckInFormCard";
+import { WorkOrderFormCard } from "./WorkOrderFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -53,6 +54,14 @@ interface ProjectFormData {
   address: string;
 }
 
+interface WorkOrderFormData {
+  projectId: string;
+  title: string;
+  description: string;
+  assignedTo?: string;
+  dueDate?: string;
+}
+
 interface MessageListProps {
   messages: Message[];
   onProposalConfirm: (messageId: string) => void;
@@ -76,6 +85,8 @@ interface MessageListProps {
   onProjectFormCancel?: () => void;
   onCheckInFormSubmit?: (projectId: string) => void;
   onCheckInFormCancel?: () => void;
+  onWorkOrderFormSubmit?: (data: WorkOrderFormData) => void;
+  onWorkOrderFormCancel?: () => void;
   isLoading?: boolean;
 }
 
@@ -102,6 +113,8 @@ export function MessageList({
   onProjectFormCancel,
   onCheckInFormSubmit,
   onCheckInFormCancel,
+  onWorkOrderFormSubmit,
+  onWorkOrderFormCancel,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -278,6 +291,18 @@ export function MessageList({
                     projects={message.data.projects}
                     onSubmit={onCheckInFormSubmit}
                     onCancel={onCheckInFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Work order form card */}
+                {message.type === "work_order_form" && message.data?.projects && onWorkOrderFormSubmit && onWorkOrderFormCancel && (
+                  <WorkOrderFormCard
+                    projects={message.data.projects}
+                    employees={message.data.employees}
+                    preselectedProjectId={message.data.preselectedProjectId}
+                    onSubmit={onWorkOrderFormSubmit}
+                    onCancel={onWorkOrderFormCancel}
                     disabled={isLoading}
                   />
                 )}

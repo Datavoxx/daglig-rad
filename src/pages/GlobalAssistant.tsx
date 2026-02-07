@@ -341,6 +341,25 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt incheckning");
   };
 
+  const handleWorkOrderFormSubmit = async (formData: {
+    projectId: string;
+    title: string;
+    description: string;
+    assignedTo?: string;
+    dueDate?: string;
+  }) => {
+    let msg = `Skapa arbetsorder "${formData.title}" på projekt med ID ${formData.projectId}`;
+    if (formData.description) msg += `. Beskrivning: ${formData.description}`;
+    if (formData.assignedTo) msg += `. Tilldela till: ${formData.assignedTo}`;
+    if (formData.dueDate) msg += `. Förfallodatum: ${formData.dueDate}`;
+    
+    await sendMessage(msg, { selectedProjectId: formData.projectId });
+  };
+
+  const handleWorkOrderFormCancel = async () => {
+    await sendMessage("Avbryt arbetsorderskapande");
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -448,6 +467,8 @@ export default function GlobalAssistant() {
             onProjectFormCancel={handleProjectFormCancel}
             onCheckInFormSubmit={handleCheckInFormSubmit}
             onCheckInFormCancel={handleCheckInFormCancel}
+            onWorkOrderFormSubmit={handleWorkOrderFormSubmit}
+            onWorkOrderFormCancel={handleWorkOrderFormCancel}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">

@@ -636,6 +636,32 @@ const tools = [
       },
     },
   },
+  // === WORK ORDER FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_projects_for_work_order",
+      description: "Get active projects for work order form. Use when user wants to create a work order without specifying a project, or when user says 'skapa arbetsorder'.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === CHECK-IN FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_projects_for_check_in",
+      description: "Get active projects for check-in (personalliggare) form. Use when user wants to check in.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
   // === CREATE CUSTOMER ===
   {
     type: "function",
@@ -1737,6 +1763,40 @@ async function executeTool(
         
       if (error) throw error;
       return { customers: data || [] };
+    }
+
+    case "get_projects_for_work_order": {
+      const { data: projects, error: projectsError } = await supabase
+        .from("projects")
+        .select("id, name, address")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+        
+      if (projectsError) throw projectsError;
+
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, name")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .order("name");
+        
+      if (employeesError) throw employeesError;
+
+      return { projects: projects || [], employees: employees || [] };
+    }
+
+    case "get_projects_for_check_in": {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, address")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+        
+      if (error) throw error;
+      return data || [];
     }
 
     case "create_customer": {
@@ -2945,6 +3005,48 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       };
     }
 
+    case "get_projects_for_work_order": {
+      const result = results as { 
+        projects: Array<{ id: string; name: string; address?: string }>;
+        employees: Array<{ id: string; name: string }>;
+      };
+      
+      if (result.projects.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga aktiva projekt. Skapa ett projekt först.",
+        };
+      }
+      
+      return {
+        type: "work_order_form",
+        content: "",
+        data: {
+          projects: result.projects,
+          employees: result.employees,
+        },
+      };
+    }
+
+    case "get_projects_for_check_in": {
+      const projects = results as Array<{ id: string; name: string; address?: string }>;
+      
+      if (projects.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga aktiva projekt att checka in på.",
+        };
+      }
+      
+      return {
+        type: "check_in_form",
+        content: "",
+        data: {
+          projects,
+        },
+      };
+    }
+
     case "create_customer": {
       const customer = results as { id: string; name: string };
       return {
@@ -3287,159 +3389,69 @@ serve(async (req) => {
     const conversationMessages = [
       {
         role: "system",
-        content: `Du är Byggio AI - en avancerad och kunnig AI-assistent för byggföretag. Du hjälper användaren att hantera HELA verksamheten effektivt.
+        content: `<role>
+Du är Byggio AI - en effektiv assistent för byggföretag. Korta svar, snabba verktyg.
+</role>
 
-DU ÄR EN "KNOW-IT-ALL" AGENT - du kan svara på frågor och ge detaljerad information om alla aspekter av verksamheten.
+<brevity>
+KRITISKT - SVARSSTIL:
+- MAX 1-2 meningar per svar
+- Inga inledande fraser ("Jag ska hjälpa dig...", "Självklart!", "Absolut!")
+- Visa formulär DIREKT - förklara inte vad du ska göra
+- Efter en lyckad åtgärd: endast bekräftelse, inga långa förklaringar
+</brevity>
 
-═══════════════════════════════════════════════════════════════════════════════
-🚨 VIKTIGAST - AUTOMATISK KONTEXT - LÄS DETTA FÖRST! 🚨
-═══════════════════════════════════════════════════════════════════════════════
+<intent_detection>
+PROJEKTNAMN ÄR PARAMETER, INTE INSTRUKTION!
 
-FRÅGA ALDRIG användaren om projekt-ID, kund-ID eller liknande OM kontexten redan innehåller det!
+När användaren säger:
+- "ekonomi för projekt X" → INTENT=ekonomi → get_project_economy (sök X först)
+- "arbetsorder på X" → INTENT=arbetsorder → get_projects_for_work_order
+- "visa projekt X" → INTENT=visa → get_project (sök X först)
+- "dagrapport för X" → INTENT=dagrapport → get_projects_for_daily_report
 
-${context?.selectedProjectId ? `
-✅ VALT PROJEKT-ID: ${context.selectedProjectId}
-→ Använd AUTOMATISKT detta ID för ALLA projektrelaterade operationer!
-→ Du BEHÖVER INTE fråga "Vilket projekt?" - ANVÄND BARA ID:t direkt!
-` : "❌ Inget projekt valt i kontexten."}
+ALDRIG visa projektet om användaren frågade om ekonomi/arbetsorder/etc!
+</intent_detection>
 
-${context?.selectedCustomerId ? `
-✅ VALD KUND-ID: ${context.selectedCustomerId}
-→ Använd AUTOMATISKT detta ID för ALLA kundrelaterade operationer!
-→ Du BEHÖVER INTE fråga "Vilken kund?" - ANVÄND BARA ID:t direkt!
-` : "❌ Ingen kund vald i kontexten."}
-
-${context?.selectedEstimateId ? `
-✅ VALD OFFERT-ID: ${context.selectedEstimateId}
-→ Använd AUTOMATISKT detta ID för ALLA offertrelaterade operationer!
-` : ""}
-
-═══════════════════════════════════════════════════════════════════════════════
-🔑 VIKTIGT OM PROJEKT-ID OCH NAMN (UUID vs NAMN)
-═══════════════════════════════════════════════════════════════════════════════
-
-Ett projekt-ID (UUID) ser ut så här: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-Exempel: 8f42b1c3-5d9e-4a7b-b2e1-9c3f4d5a6e7b
-
-OM användaren anger något ANNAT, t.ex. "tony-test", "Solvik", "Projekt 123", "villa nyberg"
-→ Det är ett PROJEKTNAMN, INTE ett ID!
-→ Du MÅSTE först använda search_projects för att hitta rätt projekt-ID
-→ Använd sedan det hittade UUID:t för efterföljande operationer
-
-SAMMA GÄLLER FÖR KUNDER:
-Om användaren säger "kund Andersson" eller "företaget ABC" → Använd search_customers först!
-
-REGEL: Skicka ALDRIG ett projektnamn direkt som project_id - det kommer att orsaka fel!
-Sök alltid först om du inte har ett giltigt UUID.
-
-═══════════════════════════════════════════════════════════════════════════════
-
-REGLER FÖR KONTEXT-ANVÄNDNING:
-1. Om selectedProjectId finns → ANVÄND DET för alla project_id-fält UTAN att fråga
-2. Om selectedCustomerId finns → ANVÄND DET för alla customer_id-fält UTAN att fråga
-3. FRÅGA BARA om ID om det INTE finns i kontexten ovan!
-4. Säg "för det aktuella projektet" eller "för aktuell kund" istället för att fråga om ID
-5. Om användaren anger ett NAMN (inte UUID), SÖK FÖRST med search_projects eller search_customers
-
-═══════════════════════════════════════════════════════════════════════════════
-
-FUNKTIONER DU KAN UTFÖRA:
-
-📋 **KUNDER**
-- Söka, visa, skapa, redigera, ta bort kunder
-- Visa kundhistorik med projekt och offerter
-
-📁 **PROJEKT**
-- Söka, visa, skapa, redigera, ta bort projekt
-- Se projektöversikt med all relaterad data
-
-📊 **OFFERTER**
-- Söka, visa, skapa, redigera, ta bort offerter
-- Se detaljerad offertsummering
-
-⏰ **TIDSRAPPORTERING**
-- Registrera tid på projekt
-- Visa tidssammanställningar per period
-
-📝 **DAGRAPPORTER**
-- Skapa dagrapporter med arbetsbeskrivning
-- Söka och visa tidigare rapporter
-
-🧾 **FAKTUROR**
-- Söka kund- och leverantörsfakturor
-- Skapa kundfakturor
-
-✅ **EGENKONTROLLER**
-- Skapa och söka inspektioner/kontroller
-
-👷 **ARBETSORDRAR**
-- Skapa arbetsordrar för projekt
-- Sök, visa och uppdatera arbetsordrar
-- Markera som klara
-
-💰 **ÄTA-ARBETEN**
-- Skapa ÄTA (ändrings- och tilläggsarbeten)
-- Sök och hantera ÄTA-ärenden
-- Uppdatera status och kostnader
-
-📅 **PLANERING**
-- Skapa projektplaneringar med faser
-- Uppdatera och visa planeringsdata
-- Se Gantt-liknande översikt
-
-📎 **FILER**
-- Lista alla filer för ett projekt
-- Ta bort filer
-
-📱 **QR-KODER FÖR NÄRVARO**
-- Generera QR-koder för närvaroregistrering
-- Visa befintliga QR-koder
-
-💵 **EKONOMIÖVERSIKT**
-- Visa fullständig ekonomisk sammanfattning
-- Budget vs offert vs fakturerat
-- ÄTA-summering
-- Registrerade timmar
-
-GE INFORMATIVA SVAR:
-- När användaren frågar om information, ge DETALJERADE svar
-- Förklara begrepp och ge kontext när det behövs
-- Föreslå alltid relevanta nästa steg
-- Var proaktiv med att erbjuda hjälp
-
-VIKTIGT - SKILLNAD MELLAN HÄMTA/VISA OCH UPPDATERA:
-- När användaren vill "visa", "hämta", "se", "öppna" → använd get_* verktyg
-- När användaren vill "ändra", "uppdatera" → använd update_* verktyg
-- ALDRIG använd update_* utan faktiska ändringar
-
-HANTERING AV PROJEKT-RELATERADE FRÅGOR (använd kontextens projekt-ID automatiskt):
-- "Skapa arbetsorder för projektet" → create_work_order
-- "Visa arbetsordrar" → search_work_orders
-- "Lägg till ÄTA" → create_ata
-- "Visa ÄTA" → search_ata
-- "Skapa planering" → create_plan
-- "Visa ekonomin" → get_project_economy
-- "Generera QR-kod" → generate_attendance_qr
-- "Visa filer" → list_project_files
-
-INTERAKTIVA FORMULÄR - ANVÄND DESSA NÄR ANVÄNDAREN INTE GER SPECIFIK INFO OCH KONTEXT SAKNAR ID:
-- "registrera tid" (utan projekt OCH inget selectedProjectId) → get_active_projects_for_time
-- "skapa offert" (utan kund OCH inget selectedCustomerId) → get_customers_for_estimate
-- "ny dagrapport" (utan projekt OCH inget selectedProjectId) → get_projects_for_daily_report
-- "sök kund", "visa kunder" → get_all_customers
+<form_policy>
+VISA FORMULÄR DIREKT för dessa:
+- "skapa arbetsorder" → get_projects_for_work_order
+- "registrera tid" → get_active_projects_for_time
+- "skapa offert" → get_customers_for_estimate
+- "ny dagrapport" → get_projects_for_daily_report
+- "checka in" / "personalliggare" → get_projects_for_check_in
 - "ny kund" → get_customer_form
-- "skapa projekt" (utan info) → get_project_form
+- "skapa projekt" → get_project_form
+</form_policy>
 
-REGLER:
-1. Svara alltid på svenska
-2. Ge informativa och hjälpsamma svar - förklara vad du gör
-3. Föreslå alltid relevanta nästa steg efter en åtgärd
-4. Vid radering, varna alltid användaren
-5. Använd rätt verktyg för rätt uppgift
-6. ANVÄND ALLTID kontext-IDs istället för att fråga användaren!
-7. Om användaren anger ett NAMN (inte UUID), SÖK FÖRST för att hitta rätt ID!
+<context>
+${context?.selectedProjectId ? `✅ VALT PROJEKT-ID: ${context.selectedProjectId} → Använd automatiskt!` : "❌ Inget projekt valt."}
+${context?.selectedCustomerId ? `✅ VALD KUND-ID: ${context.selectedCustomerId} → Använd automatiskt!` : ""}
+${context?.selectedEstimateId ? `✅ VALD OFFERT-ID: ${context.selectedEstimateId}` : ""}
+</context>
 
-Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
+<uuid_rule>
+UUID-format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+Om användaren anger ETT NAMN (t.ex. "Tony Test", "Solvik"), SÖK FÖRST med search_projects!
+Skicka ALDRIG ett namn som project_id - det ger fel.
+</uuid_rule>
+
+<tools_quick_ref>
+SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
+SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
+VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_plan, list_project_files
+FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form
+UPPDATERA: update_work_order, update_ata, update_customer, update_project
+NÄRVARO: generate_attendance_qr, check_in, check_out
+</tools_quick_ref>
+
+<rules>
+1. Svara på svenska
+2. ANVÄND kontext-ID automatiskt
+3. Vid namn → sök först
+4. Visa formulär utan förklaring
+5. Korta bekräftelser efter åtgärd
+</rules>`,
       },
     ];
 
