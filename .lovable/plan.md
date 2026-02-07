@@ -1,135 +1,221 @@
 
-
 ## Mål
 
-Fixa blinknings-buggen där offertlistan visas för en millisekund innan offerten öppnas via "Öppna offert"-knappen.
+Ändra projektskapande via Byggio AI så att det fungerar som på Projekt-sidan: man måste välja en befintlig offert istället för att skriva in projektnamn manuellt.
 
 ---
 
-## Rotorsak
+## Nuvarande beteende
 
-Problemet uppstår på grund av renderingsordningen i `Estimates.tsx`:
-
-```
-1. Sidan renderas med manualStarted = false
-2. → Offertlistan visas (synlig i ~50-200ms)
-3. useEffect körs efter renderingen
-4. useEffect väntar på savedEstimates från useQuery
-5. När data laddats: setManualStarted(true)
-6. → EstimateBuilder visas
-```
-
-Resultatet är en kort "blixt" av offertlistan innan själva offerten visas.
+| Komponent | Hur det fungerar nu |
+|-----------|---------------------|
+| `ProjectFormCard.tsx` | Manuell inmatning: projektnamn, kund (valfritt), adress (valfritt) |
+| `get_project_form` (backend) | Hämtar endast kunder för dropdown |
+| `create_project` (backend) | Skapar projekt med manuellt namn, valfri kund |
 
 ---
 
-## Lösning
+## Önskat beteende
 
-**Initiera state synkront baserat på URL-parametrar** - inte i useEffect.
-
-Vi gör följande ändringar:
-
-1. **Flytta initial state-logik** från `useEffect` till komponentens initiala state
-2. **Använd `useMemo` eller lazy initialization** för att direkt detektera om vi har en estimateId i URL:en
-3. **Visa loading/skeleton** tills data finns, om vi vet att vi ska öppna en specifik offert
-4. **Undvik att rendera offertlistan** när URL-parameter finns
+Precis som på `/projects`:
+1. Visa dropdown med tillgängliga offerter (ej redan kopplade till projekt)
+2. Förhandsvisning av offertens data (projektnamn, kund, adress)
+3. Vid skapande: kopiera all data från offerten + länka med `estimate_id`
 
 ---
 
-## Teknisk implementation
+## Ändringar
 
-### Före (nuvarande kod):
-```tsx
-const [manualStarted, setManualStarted] = useState(false);
-const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(null);
+### 1. Backend: Uppdatera `get_project_form` tool
 
-// useEffect körs EFTER första renderingen
-useEffect(() => {
-  const estimateIdFromUrl = searchParams.get("estimateId");
-  // ... väntar på savedEstimates ...
-  if (estimate) {
-    handleSelectEstimate(estimate);  // sätter manualStarted = true
-  }
-}, [searchParams, savedEstimates]);
+**Nuvarande:**
+```typescript
+case "get_project_form": {
+  // Hämtar endast kunder
+  const { data } = await supabase.from("customers").select("id, name")...
+  return { customers: data || [] };
+}
 ```
 
-### Efter (föreslagen fix):
-```tsx
-// Läs URL-parametrar SYNKRONT vid initialisering
-const estimateIdFromUrl = searchParams.get("estimateId") || searchParams.get("id");
-const offerNumberFromUrl = searchParams.get("offerNumber");
-const hasDeepLink = Boolean(estimateIdFromUrl || offerNumberFromUrl);
-
-// Initiera state baserat på URL-parameter
-const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(
-  estimateIdFromUrl || null
-);
-
-// Om vi har en deep-link, börja direkt i "pending builder" läge
-const [manualStarted, setManualStarted] = useState(hasDeepLink);
-const [manualData, setManualData] = useState<ManualData | null>(
-  hasDeepLink ? { projectName: "", clientName: "", address: "" } : null
-);
-```
-
-### Uppdaterad deep-link effekt:
-```tsx
-useEffect(() => {
-  // Om inga URL-params, inget att göra
-  if (!hasDeepLink) return;
-  if (deepLinkProcessedRef.current === paramKey) return;
+**Nytt:**
+```typescript
+case "get_project_form": {
+  // Hämta offerter som INTE redan är kopplade till projekt
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("estimate_id")
+    .eq("user_id", userId);
   
-  // Vänta på data innan vi kan popula manualData korrekt
-  if (!savedEstimates || savedEstimates.length === 0) return;
+  const linkedEstimateIds = (projects || [])
+    .map(p => p.estimate_id)
+    .filter(Boolean);
   
-  const estimate = estimateIdFromUrl 
-    ? savedEstimates.find(e => e.id === estimateIdFromUrl)
-    : offerNumberFromUrl
-    ? savedEstimates.find(e => e.offer_number === offerNumberFromUrl)
-    : null;
-    
-  if (estimate) {
-    deepLinkProcessedRef.current = paramKey;
-    // Uppdatera bara manualData med korrekt info
-    setManualData({
-      projectName: estimate.manual_project_name || estimate.projects?.name || "",
-      clientName: estimate.manual_client_name || estimate.projects?.client_name || "",
-      address: "",
-    });
-    setSelectedEstimateId(estimate.id);
-    // manualStarted är redan true!
-  } else {
-    // Offerten hittades inte - gå tillbaka till listan
-    toast({ ... });
-    setManualStarted(false);
-    setManualData(null);
-    setSearchParams({}, { replace: true });
+  let query = supabase
+    .from("project_estimates")
+    .select("id, offer_number, manual_project_name, manual_client_name, manual_address, status")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  
+  if (linkedEstimateIds.length > 0) {
+    query = query.not("id", "in", `(${linkedEstimateIds.join(",")})`);
   }
-}, [savedEstimates]);
+  
+  const { data: estimates } = await query;
+  return { estimates: estimates || [] };
+}
 ```
 
-### Resultat:
-- `manualStarted` initieras till `true` om URL har `estimateId`
-- Komponenten renderar direkt EstimateBuilder (med eventuellt tomma placeholder-data)
-- EstimateBuilder själv hämtar sin data baserat på `estimateId`
-- **Ingen blixt av offertlistan**
+### 2. Backend: Uppdatera `create_project` tool
+
+Ändra tool-definitionen och implementationen:
+
+**Tool definition:**
+```typescript
+{
+  name: "create_project",
+  description: "Create a new project from an existing estimate. The project inherits all data from the estimate.",
+  parameters: {
+    type: "object",
+    properties: {
+      estimate_id: { type: "string", description: "Estimate ID to create project from" },
+    },
+    required: ["estimate_id"],
+  },
+}
+```
+
+**Implementation:**
+```typescript
+case "create_project": {
+  const { estimate_id } = args as { estimate_id: string };
+  
+  // Hämta offertens data
+  const { data: estimate, error: estError } = await supabase
+    .from("project_estimates")
+    .select("manual_project_name, manual_client_name, manual_address, manual_postal_code, manual_city, manual_latitude, manual_longitude, offer_number")
+    .eq("id", estimate_id)
+    .single();
+  
+  if (estError || !estimate) throw new Error("Offerten hittades inte");
+  
+  // Skapa projektet med offertens data
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      user_id: userId,
+      name: estimate.manual_project_name || estimate.offer_number || "Nytt projekt",
+      client_name: estimate.manual_client_name || null,
+      address: estimate.manual_address || null,
+      postal_code: estimate.manual_postal_code || null,
+      city: estimate.manual_city || null,
+      latitude: estimate.manual_latitude || null,
+      longitude: estimate.manual_longitude || null,
+      estimate_id,
+      status: "active",
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+```
+
+### 3. Frontend: Ny komponent `ProjectFormCard.tsx`
+
+Ersätt nuvarande formulär med offertväljare:
+
+```typescript
+interface Estimate {
+  id: string;
+  offer_number: string | null;
+  manual_project_name: string | null;
+  manual_client_name: string | null;
+  manual_address: string | null;
+  status: string;
+}
+
+interface ProjectFormCardProps {
+  estimates: Estimate[];
+  onSubmit: (data: { estimateId: string }) => void;
+  onCancel: () => void;
+  disabled?: boolean;
+}
+
+// Visar:
+// 1. Dropdown med offerter (namn + offertnummer)
+// 2. Förhandsvisning av vald offerts data
+// 3. Knapp "Skapa projekt" (disabled om ingen offert vald)
+// 4. Tom-state om inga offerter finns (med länk till /estimates)
+```
+
+### 4. Frontend: Uppdatera `MessageList.tsx`
+
+Ändra props som skickas till `ProjectFormCard`:
+
+```typescript
+{message.type === "project_form" && message.data?.estimates && onProjectFormSubmit && (
+  <ProjectFormCard
+    estimates={message.data.estimates}
+    onSubmit={onProjectFormSubmit}
+    onCancel={onProjectFormCancel}
+    disabled={isLoading}
+  />
+)}
+```
+
+### 5. Frontend: Uppdatera `GlobalAssistant.tsx`
+
+Ändra submit-hanteraren:
+
+```typescript
+const handleProjectFormSubmit = async (formData: { estimateId: string }) => {
+  await sendMessage(
+    `Skapa projekt från offert med ID ${formData.estimateId}`,
+    { selectedEstimateId: formData.estimateId }
+  );
+};
+```
+
+### 6. Backend: Uppdatera response formatter
+
+```typescript
+case "get_project_form": {
+  const result = results as { estimates: Array<Estimate> };
+  
+  if (result.estimates.length === 0) {
+    return {
+      type: "text",
+      content: "Du har inga tillgängliga offerter att skapa projekt från. Skapa en offert först, eller säg 'skapa offert'.",
+    };
+  }
+  
+  return {
+    type: "project_form",
+    content: "",
+    data: {
+      estimates: result.estimates,
+    },
+  };
+}
+```
 
 ---
 
-## Fil att ändra
+## Filer att ändra
 
-**`src/pages/Estimates.tsx`**
-- Flytta URL-läsning till synkron initialisering
-- Initiera state baserat på URL-parametrar
-- Uppdatera useEffect att bara hantera data-populering (inte state-byte)
+| Fil | Ändring |
+|-----|---------|
+| `supabase/functions/global-assistant/index.ts` | Tool definition, implementation, response formatter |
+| `src/components/global-assistant/ProjectFormCard.tsx` | Ersätt med offertväljare |
+| `src/components/global-assistant/MessageList.tsx` | Uppdatera props för ProjectFormCard |
+| `src/pages/GlobalAssistant.tsx` | Uppdatera handleProjectFormSubmit |
 
 ---
 
-## Förväntad beteende efter fix
+## Resultat efter ändring
 
-| Scenario | Före | Efter |
-|----------|------|-------|
-| Klick på "Öppna offert" | Lista blinkar → Offert | Offert visas direkt |
-| Direkt URL med estimateId | Lista blinkar → Offert | Offert visas direkt |
-| Navigera till /estimates | Lista visas | Lista visas (ingen ändring) |
-
+1. När användaren säger "skapa projekt" visas en dropdown med tillgängliga offerter
+2. Förhandsvisning av vald offerts data (projektnamn, kund, adress)
+3. Projektet skapas med alla fält från offerten + länk via `estimate_id`
+4. Om inga offerter finns visas ett meddelande med förslag att skapa offert först
