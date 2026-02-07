@@ -516,17 +516,51 @@ const tools = [
     type: "function",
     function: {
       name: "create_daily_report",
-      description: "Create a daily work report for a project",
+      description: "Create a daily work report for a project with crew info, work items, deviations, ÄTA, and materials",
       parameters: {
         type: "object",
         properties: {
           project_id: { type: "string", description: "Project ID" },
-          work_items: { type: "array", items: { type: "string" }, description: "List of work performed" },
           headcount: { type: "number", description: "Number of workers" },
+          hours_per_person: { type: "number", description: "Hours per person" },
           total_hours: { type: "number", description: "Total hours worked" },
+          roles: { type: "array", items: { type: "string" }, description: "List of roles (e.g. snickare, elektriker)" },
+          work_items: { type: "array", items: { type: "string" }, description: "List of work performed" },
+          deviations: { 
+            type: "array", 
+            items: { 
+              type: "object",
+              properties: {
+                type: { type: "string", description: "Deviation type" },
+                description: { type: "string", description: "Deviation description" },
+                hours: { type: "number", description: "Hours affected" },
+              },
+            }, 
+            description: "List of deviations" 
+          },
+          ata: { 
+            type: "object",
+            properties: {
+              has_ata: { type: "boolean" },
+              items: { 
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    reason: { type: "string" },
+                    consequence: { type: "string" },
+                    estimated_hours: { type: "number" },
+                  },
+                },
+              },
+            },
+            description: "ÄTA (ändrings- och tilläggsarbeten)" 
+          },
+          materials_delivered: { type: "array", items: { type: "string" }, description: "Materials delivered" },
+          materials_missing: { type: "array", items: { type: "string" }, description: "Materials missing" },
           notes: { type: "string", description: "Additional notes" },
         },
-        required: ["project_id", "work_items", "headcount", "total_hours"],
+        required: ["project_id"],
       },
     },
   },
@@ -1913,23 +1947,79 @@ async function executeTool(
     }
 
     case "create_daily_report": {
-      const { project_id, work_items, headcount, total_hours, notes } = args as {
+      const { 
+        project_id, 
+        work_items, 
+        headcount, 
+        hours_per_person,
+        total_hours, 
+        roles,
+        deviations,
+        ata,
+        materials_delivered,
+        materials_missing,
+        notes 
+      } = args as {
         project_id: string;
-        work_items: string[];
-        headcount: number;
-        total_hours: number;
+        work_items?: string[];
+        headcount?: number;
+        hours_per_person?: number;
+        total_hours?: number;
+        roles?: string[];
+        deviations?: Array<{ type: string; description: string; hours: number | null }>;
+        ata?: { has_ata: boolean; items: Array<{ reason: string; consequence: string; estimated_hours: number | null }> };
+        materials_delivered?: string[];
+        materials_missing?: string[];
         notes?: string;
       };
+
+      // Check if we have pendingData from form submission
+      const pendingData = context?.pendingData as Record<string, unknown> | undefined;
+      
+      // Use pendingData if available (from form), otherwise use AI-extracted args
+      const finalWorkItems = pendingData?.workItems as string[] || work_items || [];
+      const finalHeadcount = pendingData?.headcount as number || headcount || 1;
+      const finalHoursPerPerson = pendingData?.hoursPerPerson as number || hours_per_person;
+      const finalTotalHours = pendingData?.totalHours as number || total_hours || (finalHeadcount * (finalHoursPerPerson || 8));
+      const finalRoles = pendingData?.roles as string[] || roles || [];
+      
+      // Handle deviations from form
+      const formDeviations = pendingData?.deviations as Array<{ type: string; description: string; hours: number | null }> | undefined;
+      const finalDeviations = formDeviations || deviations || [];
+      
+      // Handle ÄTA from form
+      const formAta = pendingData?.ata as Array<{ reason: string; consequence: string; estimatedHours: number | null }> | undefined;
+      const finalAta = formAta && formAta.length > 0 
+        ? { has_ata: true, items: formAta.map(a => ({ reason: a.reason, consequence: a.consequence, estimated_hours: a.estimatedHours })) }
+        : ata || null;
+      
+      // Handle materials from form (convert string to array)
+      const formMaterialsDelivered = pendingData?.materialsDelivered as string | undefined;
+      const formMaterialsMissing = pendingData?.materialsMissing as string | undefined;
+      const finalMaterialsDelivered = formMaterialsDelivered 
+        ? formMaterialsDelivered.split(",").map(s => s.trim()).filter(Boolean)
+        : materials_delivered || [];
+      const finalMaterialsMissing = formMaterialsMissing
+        ? formMaterialsMissing.split(",").map(s => s.trim()).filter(Boolean)
+        : materials_missing || [];
+      
+      const finalNotes = pendingData?.notes as string || notes || "";
       
       const { data, error } = await supabase
         .from("daily_reports")
         .insert({
           user_id: userId,
           project_id,
-          work_items,
-          headcount,
-          total_hours,
-          notes: notes || "",
+          work_items: finalWorkItems,
+          headcount: finalHeadcount,
+          hours_per_person: finalHoursPerPerson,
+          total_hours: finalTotalHours,
+          roles: finalRoles,
+          deviations: finalDeviations as any,
+          ata: finalAta as any,
+          materials_delivered: finalMaterialsDelivered,
+          materials_missing: finalMaterialsMissing,
+          notes: finalNotes,
           report_date: new Date().toISOString().split('T')[0],
         })
         .select()
