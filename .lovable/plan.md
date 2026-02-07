@@ -2,139 +2,73 @@
 
 ## Mål
 
-Konsolidera alla AI-agenter (Saga, Bo, Ulla) till ett enda varumärke: **Byggio AI**. Byt även "Assistent" i sidomenyn till "Byggio AI".
+Ersätta den nuvarande Byggio-loggan med den nya "Byggio AI"-loggan (med hjärna och trappor) på alla ställen där Byggio AI visas i appen.
 
 ---
 
-## Nuvarande vs Önskat
+## Ny logga
 
-| Element | Nuvarande | Efter ändring |
-|---------|-----------|---------------|
-| Sidomenyn | "Assistent" | "Byggio AI" |
-| AI-agenter | Saga, Bo, Ulla (3 st) | Byggio AI (1 st) |
-| Landing page | "Möt dina AI-kollegor" med 3 agenter | Ta bort sektionen eller ersätt med Byggio AI |
-| Agent-detaljsidor | /ai/saga, /ai/bo, /ai/ulla | Ta bort |
-| Röstinspelning-prompts | "Låt Saga/Bo/Ulla AI hjälpa dig" | "Låt Byggio AI hjälpa dig" |
-| AgentChatBubble | Saga/Bo chat-bubblor | Byggio AI (eller ta bort) |
+Den nya loggan visar:
+- En grön hjärna med nätverksmönster (AI-symbol)
+- Gröna byggtrappor (byggbransch-symbol)
+- Texten "Byggio AI" i grönt/blått gradient
 
 ---
 
 ## Ändringar
 
-### 1. Sidomeny - Byt "Assistent" till "Byggio AI"
+### 1. Lägg till den nya loggan i projektet
 
-**Fil:** `src/components/layout/AppLayout.tsx`
-
-```text
-Rad 64:
-FÖRE: { label: "Assistent", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
-EFTER: { label: "Byggio AI", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
+Kopiera den uppladdade bilden till:
+```
+src/assets/byggio-ai-logo.png
 ```
 
-### 2. AI-agenter konfiguration - Ersätt med Byggio AI
+### 2. Uppdatera AI-agentens konfiguration
 
 **Fil:** `src/config/aiAgents.ts`
 
-Ersätt alla tre agenter med en enda "byggio" agent:
-
 ```typescript
+// FÖRE:
 import byggioLogo from "@/assets/byggio-logo.png";
 
-export const AI_AGENTS = {
-  byggio: {
-    name: "Byggio AI",
-    title: "Din AI-assistent",
-    description: "Din kompletta assistent för byggprojekt",
-    promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
-    avatar: byggioLogo,
-  },
-  // Behåll alias för bakåtkompatibilitet
-  estimate: { ... }, // peka på byggio
-  planning: { ... }, // peka på byggio
-  diary: { ... },    // peka på byggio
-} as const;
+// EFTER:
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
+
+const byggioAgent: AIAgent = {
+  name: "Byggio AI",
+  title: "Din AI-assistent",
+  description: "Din kompletta AI-assistent för byggprojekt",
+  promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
+  avatar: byggioAILogo,  // <-- NY LOGGA
+};
 ```
 
-### 3. Landing page - Ta bort/uppdatera agent-sektionen
+### 3. Uppdatera enskilda komponenter som använder loggan direkt
 
-**Filer att uppdatera:**
-- `src/components/landing/AIAgentsSection.tsx` → Ta bort eller gör om till en sektion om Byggio AI
-- `src/pages/ai/AgentDetail.tsx` → Ta bort eller omdirigera till /global-assistant
-
-### 4. Röstinspelning-prompts - Byt agentnamn
-
-**Filer att uppdatera:**
-
-| Fil | Ändring |
-|-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | "Låt Saga AI hjälpa dig" → "Låt Byggio AI hjälpa dig" |
-| `src/components/projects/ProjectPlanningTab.tsx` | "Låt Bo AI hjälpa dig" → "Låt Byggio AI hjälpa dig" |
-| `src/components/projects/InlineDiaryCreator.tsx` | "Låt Ulla AI hjälpa dig" → "Låt Byggio AI hjälpa dig" |
-| `src/components/planning/PlanEditor.tsx` | "Låt Bo AI hjälpa dig" → "Låt Byggio AI hjälpa dig" |
-| Alla `agentName` props | "Saga AI"/"Bo AI"/"Ulla AI" → "Byggio AI" |
-
-### 5. AgentChatBubble - Byt till Byggio AI
-
-**Fil:** `src/components/shared/AgentChatBubble.tsx`
-
-Byt ut agent-konfigurationen till att använda Byggio AI istället för Saga/Bo.
-
-### 6. Voice recorder - Uppdatera agentnamn
-
-**Filer:**
-- `src/pages/Planning.tsx` → agentName: "Bo" → "Byggio AI"
-- `src/components/projects/InlineDiaryCreator.tsx` → agentName: "Ulla" → "Byggio AI"
-- `src/components/projects/ProjectPlanningTab.tsx` → agentName: "Bo" → "Byggio AI"
-
-### 7. Backend agent-chat funktion (valfritt)
-
-**Fil:** `supabase/functions/agent-chat/index.ts`
-
-Uppdatera system prompts för att referera till Byggio AI istället för individuella agenter.
+| Fil | Användning | Ändring |
+|-----|------------|---------|
+| `src/components/shared/AgentChatBubble.tsx` | Chat-bubblans avatar | Byt import till `byggio-ai-logo.png` |
+| `src/components/landing/AIAgentsSection.tsx` | Landing page AI-sektion | Byt import till `byggio-ai-logo.png` |
+| `src/components/landing/FreeTrainingSection.tsx` | Träningssektion (om det visar AI) | Kontrollera om det är AI-kontext |
+| `src/components/dashboard/DashboardAssistantWidget.tsx` | Eventuellt lägga till loggan här | Kontrollera behov |
 
 ---
 
-## Filer att ändra (prioritetsordning)
+## Filer att ändra
 
 | # | Fil | Ändring |
 |---|-----|---------|
-| 1 | `src/components/layout/AppLayout.tsx` | "Assistent" → "Byggio AI" |
-| 2 | `src/config/aiAgents.ts` | Konsolidera till Byggio AI |
-| 3 | `src/components/estimates/EstimateBuilder.tsx` | Saga → Byggio AI |
-| 4 | `src/components/projects/ProjectPlanningTab.tsx` | Bo → Byggio AI |
-| 5 | `src/components/projects/InlineDiaryCreator.tsx` | Ulla → Byggio AI |
-| 6 | `src/components/planning/PlanEditor.tsx` | Bo → Byggio AI |
-| 7 | `src/components/shared/AgentChatBubble.tsx` | Saga/Bo → Byggio AI |
-| 8 | `src/components/reports/ReportEditor.tsx` | Ulla → Byggio AI |
-| 9 | `src/components/projects/ProjectAtaTab.tsx` | Ulla → Byggio AI |
-| 10 | `src/components/projects/ProjectWorkOrdersTab.tsx` | Ulla → Byggio AI |
-| 11 | `src/components/estimates/EstimateSummary.tsx` | Saga → Byggio AI |
-| 12 | `src/pages/InspectionView.tsx` | Ulla → Byggio AI |
-| 13 | `src/pages/Planning.tsx` | Bo → Byggio AI |
-| 14 | `src/components/landing/AIAgentsSection.tsx` | Ta bort sektionen eller gör om |
-| 15 | `src/pages/ai/AgentDetail.tsx` | Ta bort eller omdirigera |
-| 16 | `supabase/functions/agent-chat/index.ts` | Uppdatera prompts |
-
----
-
-## Beslutspunkter
-
-Behöver avklara med dig:
-
-1. **Landing page sektionen "Möt dina AI-kollegor"** - ska den:
-   - a) Tas bort helt?
-   - b) Göras om till en sektion om Byggio AI?
-
-2. **Agent-detaljsidorna (/ai/saga, /ai/bo, /ai/ulla)** - ska de:
-   - a) Tas bort helt?
-   - b) Omdirigeras till /global-assistant?
+| 1 | `src/assets/byggio-ai-logo.png` | Ny fil (kopieras från uppladdning) |
+| 2 | `src/config/aiAgents.ts` | Byt avatar till ny logga |
+| 3 | `src/components/shared/AgentChatBubble.tsx` | Byt import till ny logga |
+| 4 | `src/components/landing/AIAgentsSection.tsx` | Byt import till ny logga |
 
 ---
 
 ## Resultat
 
-1. Sidomeny visar "Byggio AI" istället för "Assistent"
-2. Alla röstinspelningsprompts säger "Låt Byggio AI hjälpa dig"
-3. Ett enhetligt AI-varumärke genom hela appen
-4. Enklare kommunikation mot användare - en AI istället för tre
+- Alla ställen som visar Byggio AI (chat-bubbla, landing page, sidmeny-avatar etc.) kommer använda den nya loggan med hjärna och trappor
+- Den ursprungliga `byggio-logo.png` behålls för allmän Byggio-varumärkning (header, footer, auth-sidor etc.)
+- Tydlig visuell skillnad mellan företagsloggan och AI-assistentens avatar
 
