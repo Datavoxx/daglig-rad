@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
-// Import Byggio logo
-import byggioLogo from "@/assets/byggio-logo.png";
+// Import Byggio AI logo
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 interface Message {
   role: "user" | "assistant";
@@ -87,7 +87,7 @@ interface AgentChatBubbleProps {
 const agentConfig = {
   name: "Byggio AI",
   title: "Din AI-assistent",
-  avatar: byggioLogo,
+  avatar: byggioAILogo,
   greeting: "Hej! Jag är Byggio AI, din assistent. Ställ frågor så hjälper jag dig!",
   placeholder: "Fråga Byggio AI...",
 };
