@@ -87,6 +87,8 @@ export function WorkOrderFormCard({
           projectId={projectId || undefined}
           onDataExtracted={handleVoiceData}
           disabled={disabled}
+          requiredSelection={!preselectedProjectId ? "project" : undefined}
+          selectionMade={!!projectId}
         />
 
         {/* Project selector - only show if no preselected project */}
