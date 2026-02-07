@@ -221,7 +221,7 @@ export default function GlobalAssistant() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="relative flex h-[calc(100vh-3.5rem)] flex-col">
       {/* History Sidebar */}
       <ChatHistorySidebar
         open={historyOpen}
@@ -230,26 +230,37 @@ export default function GlobalAssistant() {
         currentConversationId={currentConversationId}
       />
 
+      {/* Header - always visible */}
+      <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setHistoryOpen(true)}
+            className="h-8 w-8"
+            title="Visa historik"
+          >
+            <History className="h-4 w-4" />
+          </Button>
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">Global Assistant</span>
+        </div>
+        {hasMessages && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewChat}
+            className="h-8 w-8"
+            title="Ny chatt"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
       {/* Empty state - centered welcome */}
       {!hasMessages && (
         <div className="flex flex-1 flex-col items-center justify-center px-4">
-          {/* Header for empty state */}
-          <div className="absolute left-0 right-0 top-0 flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setHistoryOpen(true)}
-                className="h-8 w-8"
-                title="Visa historik"
-              >
-                <History className="h-4 w-4" />
-              </Button>
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Global Assistant</span>
-            </div>
-          </div>
-
           <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
             <Sparkles className="h-8 w-8 text-primary" />
           </div>
@@ -269,32 +280,6 @@ export default function GlobalAssistant() {
       {/* Conversation view */}
       {hasMessages && (
         <>
-          {/* Header with history and new chat buttons */}
-          <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setHistoryOpen(true)}
-                className="h-8 w-8"
-                title="Visa historik"
-              >
-                <History className="h-4 w-4" />
-              </Button>
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Global Assistant</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNewChat}
-              className="h-8 w-8"
-              title="Ny chatt"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          
           <MessageList
             messages={messages}
             onProposalConfirm={handleProposalConfirm}
