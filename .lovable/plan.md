@@ -1,117 +1,81 @@
 
-# Plan: Snabbknappar med val - Gå direkt eller AI
+
+# Plan: Byt namn till Byggio AI + Lägg till "Testa nya" label
 
 ## Mål
-Ändra snabbknapparna ("Ny offert", "Registrera tid", "Nytt projekt", "Ny faktura") så att de visar en dropdown med två alternativ:
-1. **Gå direkt** → Navigera till sidan
-2. **Låt AI lösa** → Starta en chatt i Global Assistant med lämpligt meddelande
+1. Döpa om "Global Assistant" till "Byggio AI" i hela applikationen
+2. Lägga till texten "Testa nya Byggio AI" ovanför chatwidgeten på Dashboard
 
-## Design
+## Design på Dashboard
 
 ```text
-┌─────────────────┐
-│   [Ny offert ▼] │ ← Knappen öppnar dropdown
-└─────────────────┘
-        ↓
-┌───────────────────────┐
-│ 📄 Gå direkt          │ → /estimates
-├───────────────────────┤
-│ ✨ Låt AI lösa        │ → Global Assistant: "Skapa ny offert"
-└───────────────────────┘
+             Testa nya Byggio AI ✨
+┌──────────────────────────────────────────────────────────┐
+│         ✨ Vad kan jag hjälpa dig med?                   │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ [+] Fråga vad som helst...              [🎤] [➤]  │  │
+│  └────────────────────────────────────────────────────┘  │
+│  [Skapa offert] [Skapa projekt] [Sök kund] ...           │
+└──────────────────────────────────────────────────────────┘
 ```
 
-## AI-meddelanden per knapp
+## Ändringar
 
-| Knapp | AI-meddelande |
-|-------|---------------|
-| Ny offert | "Skapa ny offert" |
-| Registrera tid | "Registrera tid" |
-| Nytt projekt | "Skapa nytt projekt" |
-| Ny faktura | "Skapa ny faktura" |
+### 1. Dashboard-widgeten: Lägg till label
 
-## Teknisk lösning
+**Fil:** `src/components/dashboard/DashboardAssistantWidget.tsx`
 
-### Uppdatera `quickActions` med AI-meddelande
+Lägg till en etikett ovanför boxen:
 
 ```tsx
-const quickActions = [
-  {
-    title: "Ny offert",
-    icon: Calculator,
-    href: "/estimates",
-    aiMessage: "Skapa ny offert",
-  },
-  {
-    title: "Registrera tid",
-    icon: Clock,
-    href: "/time-reporting",
-    aiMessage: "Registrera tid",
-  },
-  {
-    title: "Nytt projekt",
-    icon: FolderKanban,
-    href: "/projects",
-    aiMessage: "Skapa nytt projekt",
-  },
-  {
-    title: "Ny faktura",
-    icon: Receipt,
-    href: "/invoices",
-    aiMessage: "Skapa ny faktura",
-  },
-];
+return (
+  <div className="space-y-2">
+    {/* "Testa nya" label */}
+    <div className="flex items-center justify-center gap-2">
+      <span className="text-sm font-medium text-muted-foreground">
+        Testa nya
+      </span>
+      <span className="text-sm font-semibold text-primary">
+        Byggio AI
+      </span>
+      <Sparkles className="h-4 w-4 text-primary" />
+    </div>
+    
+    {/* Befintlig box */}
+    <section className="rounded-2xl border ...">
+      ...
+    </section>
+  </div>
+);
 ```
 
-### Byt ut Button mot DropdownMenu
+### 2. GlobalAssistant-sidan: Byt namn i header
 
+**Fil:** `src/pages/GlobalAssistant.tsx`
+
+Ändra:
 ```tsx
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ExternalLink, Sparkles } from "lucide-react";
+// Rad 369: Från
+<span className="text-sm font-medium">Global Assistant</span>
 
-// I render:
-<div className="flex flex-wrap gap-2">
-  {quickActions.map((action) => (
-    <DropdownMenu key={action.title}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <action.icon className="h-4 w-4" />
-          <span className="hidden sm:inline">{action.title}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => navigate(action.href)}>
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Gå direkt
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => navigate("/global-assistant", { 
-            state: { initialMessage: action.aiMessage } 
-          })}
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          Låt AI lösa
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  ))}
-</div>
+// Till
+<span className="text-sm font-medium">Byggio AI</span>
 ```
 
-## Fil att ändra
+### 3. (Valfritt) App.tsx: Behåll routen
+
+Routen `/global-assistant` kan behållas som tekniskt namn då den inte syns för användaren.
+
+## Sammanfattning av ändringar
 
 | Fil | Ändring |
 |-----|---------|
-| `src/pages/Dashboard.tsx` | Lägg till `aiMessage` i quickActions, byt ut Button mot DropdownMenu |
+| `src/components/dashboard/DashboardAssistantWidget.tsx` | Lägg till "Testa nya Byggio AI" label ovanför boxen |
+| `src/pages/GlobalAssistant.tsx` | Byt "Global Assistant" → "Byggio AI" i header |
 
 ## Resultat
 
-| Före | Efter |
-|------|-------|
-| Klick → Direkt navigering | Klick → Dropdown med två val |
-| Ingen AI-integration | "Låt AI lösa" startar assistent-chatt |
-| Enkel knapp | Dropdown med ikoner för tydlighet |
+- Användaren ser "Testa nya Byggio AI" på Dashboard ovanför chatwidgeten
+- Assistentsidans header visar "Byggio AI" istället för "Global Assistant"
+- Routen förblir `/global-assistant` (tekniskt namn, osynligt för användare)
+
