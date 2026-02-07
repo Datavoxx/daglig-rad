@@ -9,7 +9,7 @@ import { QuickSuggestions } from "@/components/global-assistant/QuickSuggestions
 import { ChatHistorySidebar } from "@/components/global-assistant/ChatHistorySidebar";
 import type { Message, VerificationMatch, NextAction, ConversationContext, Conversation } from "@/types/global-assistant";
 import type { Json } from "@/integrations/supabase/types";
-import byggioAILogo from "@/assets/byggio-ai-logo.png";
+
 
 export default function GlobalAssistant() {
   const navigate = useNavigate();
@@ -472,7 +472,6 @@ export default function GlobalAssistant() {
           >
             <History className="h-4 w-4" />
           </Button>
-          <img src={byggioAILogo} alt="Byggio AI" className="h-5 w-5 object-contain" />
           <span className="text-sm font-medium">Byggio AI</span>
         </div>
         {hasMessages && (
@@ -503,7 +502,7 @@ export default function GlobalAssistant() {
       {!hasMessages && (
         <div className="flex flex-1 flex-col items-center justify-center px-4">
           <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
-            <img src={byggioAILogo} alt="Byggio AI" className="h-10 w-10 object-contain" />
+            <span className="text-2xl font-bold text-primary">AI</span>
           </div>
           <h1 className="mb-2 text-2xl font-semibold text-foreground">
             Vad kan jag hjälpa dig med{userName ? `, ${userName}` : ""}?
