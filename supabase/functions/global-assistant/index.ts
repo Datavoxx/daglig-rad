@@ -3474,7 +3474,7 @@ Använd verktygen för att söka och skapa data. Var hjälpsam och informativ!`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "openai/gpt-5-mini",
         messages: conversationMessages,
         tools,
         tool_choice: "auto",
