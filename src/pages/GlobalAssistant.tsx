@@ -144,7 +144,7 @@ export default function GlobalAssistant() {
     setContext((prev) => ({ ...prev, ...newContext }));
     
     // Send with the new context immediately (bypass React async)
-    await sendMessage(`Ja, det är ${match.title}`, newContext);
+    await sendMessage(`Visa information om ${match.title}`, newContext);
   };
 
   const handleVerificationSearchOther = async (messageId: string) => {
