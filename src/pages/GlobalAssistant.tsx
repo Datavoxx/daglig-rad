@@ -237,6 +237,84 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt tidsregistrering");
   };
 
+  const handleEstimateFormSubmit = async (formData: {
+    customerId: string;
+    title: string;
+    address: string;
+  }) => {
+    const addrPart = formData.address ? ` på adress ${formData.address}` : "";
+    await sendMessage(
+      `Skapa offert "${formData.title}"${addrPart} för kund med ID ${formData.customerId}`,
+      { selectedCustomerId: formData.customerId }
+    );
+  };
+
+  const handleEstimateFormCancel = async () => {
+    await sendMessage("Avbryt offertskapande");
+  };
+
+  const handleDailyReportFormSubmit = async (formData: {
+    projectId: string;
+    workDescription: string;
+    headcount: number;
+    totalHours: number;
+  }) => {
+    await sendMessage(
+      `Skapa dagrapport för projekt med ID ${formData.projectId}. Arbete: ${formData.workDescription}. Personal: ${formData.headcount}. Timmar: ${formData.totalHours}`,
+      { selectedProjectId: formData.projectId }
+    );
+  };
+
+  const handleDailyReportFormCancel = async () => {
+    await sendMessage("Avbryt dagrapport");
+  };
+
+  const handleCustomerSearchSelect = async (customer: { id: string; name: string }) => {
+    await sendMessage(
+      `Visa information om ${customer.name}`,
+      { selectedCustomerId: customer.id }
+    );
+  };
+
+  const handleCustomerSearchCreateNew = async () => {
+    await sendMessage("Skapa en ny kund");
+  };
+
+  const handleCustomerFormSubmit = async (formData: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+  }) => {
+    const parts = [`Skapa kund "${formData.name}"`];
+    if (formData.email) parts.push(`email: ${formData.email}`);
+    if (formData.phone) parts.push(`telefon: ${formData.phone}`);
+    if (formData.address) parts.push(`adress: ${formData.address}`);
+    if (formData.city) parts.push(`stad: ${formData.city}`);
+    await sendMessage(parts.join(", "));
+  };
+
+  const handleCustomerFormCancel = async () => {
+    await sendMessage("Avbryt kundskapande");
+  };
+
+  const handleProjectFormSubmit = async (formData: {
+    name: string;
+    customerId: string;
+    address: string;
+  }) => {
+    let msg = `Skapa projekt "${formData.name}"`;
+    if (formData.customerId) msg += ` för kund med ID ${formData.customerId}`;
+    if (formData.address) msg += ` på adress ${formData.address}`;
+    
+    await sendMessage(msg, formData.customerId ? { selectedCustomerId: formData.customerId } : undefined);
+  };
+
+  const handleProjectFormCancel = async () => {
+    await sendMessage("Avbryt projektskapande");
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -309,6 +387,16 @@ export default function GlobalAssistant() {
             onNextAction={handleNextAction}
             onTimeFormSubmit={handleTimeFormSubmit}
             onTimeFormCancel={handleTimeFormCancel}
+            onEstimateFormSubmit={handleEstimateFormSubmit}
+            onEstimateFormCancel={handleEstimateFormCancel}
+            onDailyReportFormSubmit={handleDailyReportFormSubmit}
+            onDailyReportFormCancel={handleDailyReportFormCancel}
+            onCustomerSearchSelect={handleCustomerSearchSelect}
+            onCustomerSearchCreateNew={handleCustomerSearchCreateNew}
+            onCustomerFormSubmit={handleCustomerFormSubmit}
+            onCustomerFormCancel={handleCustomerFormCancel}
+            onProjectFormSubmit={handleProjectFormSubmit}
+            onProjectFormCancel={handleProjectFormCancel}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">

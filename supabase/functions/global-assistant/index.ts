@@ -303,6 +303,90 @@ const tools = [
       },
     },
   },
+  // === ESTIMATE FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_customers_for_estimate",
+      description: "Get list of customers for estimate form. Use this when user wants to create an estimate without specifying a customer.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === DAILY REPORT FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_projects_for_daily_report",
+      description: "Get list of active projects for daily report form. Use this when user wants to create a daily report without specifying a project.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === CUSTOMER SEARCH ===
+  {
+    type: "function",
+    function: {
+      name: "get_all_customers",
+      description: "Get all customers for search/browse card. Use this when user wants to search for a customer.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === CUSTOMER FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_customer_form",
+      description: "Show empty customer creation form. Use this when user wants to create a new customer.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === PROJECT FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_project_form",
+      description: "Get customers for project creation form. Use this when user wants to create a new project without specifying details.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === CREATE CUSTOMER ===
+  {
+    type: "function",
+    function: {
+      name: "create_customer",
+      description: "Create a new customer",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Customer name (required)" },
+          email: { type: "string", description: "Email address" },
+          phone: { type: "string", description: "Phone number" },
+          address: { type: "string", description: "Street address" },
+          city: { type: "string", description: "City" },
+        },
+        required: ["name"],
+      },
+    },
+  },
   // === GET (READ-ONLY) TOOLS ===
   {
     type: "function",
@@ -883,6 +967,87 @@ async function executeTool(
         
       if (error) throw error;
       return data || [];
+    }
+
+    case "get_customers_for_estimate": {
+      // Get all customers for estimate form
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("user_id", userId)
+        .order("name");
+        
+      if (error) throw error;
+      return data || [];
+    }
+
+    case "get_projects_for_daily_report": {
+      // Get all active projects for daily report form
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+        
+      if (error) throw error;
+      return data || [];
+    }
+
+    case "get_all_customers": {
+      // Get all customers for search card
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, city, email")
+        .eq("user_id", userId)
+        .order("name")
+        .limit(100);
+        
+      if (error) throw error;
+      return data || [];
+    }
+
+    case "get_customer_form": {
+      // Return empty - just triggers the form display
+      return { showForm: true };
+    }
+
+    case "get_project_form": {
+      // Get customers for project form
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("user_id", userId)
+        .order("name");
+        
+      if (error) throw error;
+      return { customers: data || [] };
+    }
+
+    case "create_customer": {
+      const { name, email, phone, address, city } = args as {
+        name: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+      };
+      
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({
+          user_id: userId,
+          name,
+          email: email || null,
+          phone: phone || null,
+          address: address || null,
+          city: city || null,
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
     }
 
     // === UPDATE ===
@@ -1581,6 +1746,103 @@ function formatToolResults(toolName: string, results: unknown): {
       };
     }
 
+    case "get_customers_for_estimate": {
+      const customers = results as Array<{ id: string; name: string }>;
+      
+      if (customers.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga kunder ännu. Skapa en kund först.",
+        };
+      }
+      
+      return {
+        type: "estimate_form",
+        content: "",
+        data: {
+          customers,
+        },
+      };
+    }
+
+    case "get_projects_for_daily_report": {
+      const projects = results as Array<{ id: string; name: string }>;
+      
+      if (projects.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga aktiva projekt. Skapa ett projekt först.",
+        };
+      }
+      
+      return {
+        type: "daily_report_form",
+        content: "",
+        data: {
+          projects,
+        },
+      };
+    }
+
+    case "get_all_customers": {
+      const customers = results as Array<{ id: string; name: string; city?: string; email?: string }>;
+      
+      if (customers.length === 0) {
+        return {
+          type: "text",
+          content: "Du har inga kunder ännu. Vill du skapa en?",
+        };
+      }
+      
+      return {
+        type: "customer_search",
+        content: "",
+        data: {
+          allCustomers: customers,
+        },
+      };
+    }
+
+    case "get_customer_form": {
+      return {
+        type: "customer_form",
+        content: "",
+        data: {},
+      };
+    }
+
+    case "get_project_form": {
+      const result = results as { customers: Array<{ id: string; name: string }> };
+      
+      return {
+        type: "project_form",
+        content: "",
+        data: {
+          customers: result.customers,
+        },
+      };
+    }
+
+    case "create_customer": {
+      const customer = results as { id: string; name: string };
+      return {
+        type: "result",
+        content: "",
+        data: {
+          success: true,
+          resultMessage: `Kund "${customer.name}" har skapats!`,
+          link: {
+            label: "Visa kund",
+            href: `/customers?id=${customer.id}`,
+          },
+          nextActions: [
+            { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för denna kund" },
+            { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt för denna kund" },
+          ],
+        },
+      };
+    }
+
     case "update_customer": {
       const customer = results as { id: string; name: string };
       return {
@@ -1856,15 +2118,21 @@ HANTERING AV BEKRÄFTELSER OCH VAL:
 NÄR DU BER OM KUNDINFORMATION:
 - Be ENDAST om kundens namn, inget annat (inte stad eller e-post)
 
-TIDSREGISTRERING - INTERAKTIVT FORMULÄR:
-- När användaren säger "registrera tid", "rapportera tid", "tidrapportera" UTAN att ange projekt och timmar → anropa get_active_projects_for_time för att visa formuläret
-- Om användaren anger projekt OCH timmar → anropa register_time direkt
-- Formuläret låter användaren välja projekt, timmar, datum och beskrivning i ett steg
+INTERAKTIVA FORMULÄR - ANVÄND DESSA NÄR ANVÄNDAREN INTE GER SPECIFIK INFO:
+- "registrera tid", "rapportera tid" (utan projekt/timmar) → get_active_projects_for_time
+- "skapa offert", "ny offert" (utan specifik kund) → get_customers_for_estimate
+- "ny dagrapport", "skapa dagrapport" (utan projekt) → get_projects_for_daily_report
+- "sök kund", "hitta kund", "visa kunder" → get_all_customers
+- "ny kund", "skapa kund" → get_customer_form
+- "skapa projekt", "nytt projekt" (utan specifik info) → get_project_form
+
+Om användaren ger fullständig information (t.ex. "skapa kund Johan Svensson email@test.se"), använd create_customer direkt.
+Om användaren anger projekt OCH timmar direkt, använd register_time direkt.
 
 VIKTIGA REGLER:
 1. Svara alltid på svenska
 2. Var kortfattad och koncis (max 2-3 meningar)
-3. När användaren vill skapa något (offert, projekt), sök alltid först efter matchande kunder/projekt
+3. Använd interaktiva formulär för att samla in information effektivt
 4. Fråga aldrig om onödig information - använd det du har
 5. Om användaren bekräftar en kund/projekt, fortsätt med nästa steg
 6. Vid radering, varna alltid användaren och be om bekräftelse först
@@ -1876,7 +2144,7 @@ ${context?.selectedProjectId ? `- Valt projekt-ID: ${context.selectedProjectId}`
 ${context?.selectedEstimateId ? `- Vald offert-ID: ${context.selectedEstimateId}` : ""}
 ${context?.pendingAction ? `- Väntande åtgärd: ${context.pendingAction}` : ""}
 
-Använd verktygen för att söka och skapa data. Bekräfta alltid innan du skapar något.`,
+Använd verktygen för att söka och skapa data.`,
       },
     ];
 

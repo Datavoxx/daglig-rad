@@ -1,4 +1,4 @@
-import { FileText, Users, FolderKanban, ClipboardList, Clock, Receipt, MapPin } from "lucide-react";
+import { FileText, Users, FolderKanban, ClipboardList, Clock, Receipt, MapPin, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface QuickSuggestionsProps {
@@ -12,14 +12,19 @@ const suggestions = [
     prompt: "Jag vill skapa en ny offert",
   },
   {
-    label: "Hitta projekt",
+    label: "Skapa projekt",
     icon: FolderKanban,
-    prompt: "Visa mina aktiva projekt",
+    prompt: "Skapa ett nytt projekt",
   },
   {
     label: "Sök kund",
     icon: Users,
     prompt: "Sök efter en kund",
+  },
+  {
+    label: "Ny kund",
+    icon: UserPlus,
+    prompt: "Skapa en ny kund",
   },
   {
     label: "Ny dagrapport",

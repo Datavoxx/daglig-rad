@@ -8,6 +8,11 @@ import { NextActionsCard } from "./NextActionsCard";
 import { ResultCard } from "./ResultCard";
 import { ListCard } from "./ListCard";
 import { TimeFormCard } from "./TimeFormCard";
+import { EstimateFormCard } from "./EstimateFormCard";
+import { DailyReportFormCard } from "./DailyReportFormCard";
+import { CustomerSearchCard } from "./CustomerSearchCard";
+import { CustomerFormCard } from "./CustomerFormCard";
+import { ProjectFormCard } from "./ProjectFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -15,6 +20,33 @@ interface TimeFormData {
   hours: number;
   date: string;
   description: string;
+}
+
+interface EstimateFormData {
+  customerId: string;
+  title: string;
+  address: string;
+}
+
+interface DailyReportFormData {
+  projectId: string;
+  workDescription: string;
+  headcount: number;
+  totalHours: number;
+}
+
+interface CustomerFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+}
+
+interface ProjectFormData {
+  name: string;
+  customerId: string;
+  address: string;
 }
 
 interface MessageListProps {
@@ -28,6 +60,16 @@ interface MessageListProps {
   onNextAction: (action: NextAction) => void;
   onTimeFormSubmit?: (data: TimeFormData) => void;
   onTimeFormCancel?: () => void;
+  onEstimateFormSubmit?: (data: EstimateFormData) => void;
+  onEstimateFormCancel?: () => void;
+  onDailyReportFormSubmit?: (data: DailyReportFormData) => void;
+  onDailyReportFormCancel?: () => void;
+  onCustomerSearchSelect?: (customer: { id: string; name: string; city?: string; email?: string }) => void;
+  onCustomerSearchCreateNew?: () => void;
+  onCustomerFormSubmit?: (data: CustomerFormData) => void;
+  onCustomerFormCancel?: () => void;
+  onProjectFormSubmit?: (data: ProjectFormData) => void;
+  onProjectFormCancel?: () => void;
   isLoading?: boolean;
 }
 
@@ -42,6 +84,16 @@ export function MessageList({
   onNextAction,
   onTimeFormSubmit,
   onTimeFormCancel,
+  onEstimateFormSubmit,
+  onEstimateFormCancel,
+  onDailyReportFormSubmit,
+  onDailyReportFormCancel,
+  onCustomerSearchSelect,
+  onCustomerSearchCreateNew,
+  onCustomerFormSubmit,
+  onCustomerFormCancel,
+  onProjectFormSubmit,
+  onProjectFormCancel,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -133,6 +185,55 @@ export function MessageList({
                     defaultDate={message.data.defaultDate}
                     onSubmit={onTimeFormSubmit}
                     onCancel={onTimeFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Estimate form */}
+                {message.type === "estimate_form" && message.data?.customers && onEstimateFormSubmit && onEstimateFormCancel && (
+                  <EstimateFormCard
+                    customers={message.data.customers}
+                    onSubmit={onEstimateFormSubmit}
+                    onCancel={onEstimateFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Daily report form */}
+                {message.type === "daily_report_form" && message.data?.projects && onDailyReportFormSubmit && onDailyReportFormCancel && (
+                  <DailyReportFormCard
+                    projects={message.data.projects}
+                    onSubmit={onDailyReportFormSubmit}
+                    onCancel={onDailyReportFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Customer search */}
+                {message.type === "customer_search" && message.data?.allCustomers && onCustomerSearchSelect && onCustomerSearchCreateNew && (
+                  <CustomerSearchCard
+                    customers={message.data.allCustomers}
+                    onSelect={onCustomerSearchSelect}
+                    onCreateNew={onCustomerSearchCreateNew}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Customer form */}
+                {message.type === "customer_form" && onCustomerFormSubmit && onCustomerFormCancel && (
+                  <CustomerFormCard
+                    onSubmit={onCustomerFormSubmit}
+                    onCancel={onCustomerFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Project form */}
+                {message.type === "project_form" && message.data?.customers && onProjectFormSubmit && onProjectFormCancel && (
+                  <ProjectFormCard
+                    customers={message.data.customers}
+                    onSubmit={onProjectFormSubmit}
+                    onCancel={onProjectFormCancel}
                     disabled={isLoading}
                   />
                 )}
