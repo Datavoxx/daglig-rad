@@ -366,7 +366,7 @@ export default function GlobalAssistant() {
             <History className="h-4 w-4" />
           </Button>
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Global Assistant</span>
+          <span className="text-sm font-medium">Byggio AI</span>
         </div>
         {hasMessages && (
           <div className="flex items-center gap-1">

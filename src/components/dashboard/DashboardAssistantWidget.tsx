@@ -13,7 +13,19 @@ export function DashboardAssistantWidget() {
   };
 
   return (
-    <section className="rounded-2xl border border-border/40 bg-card/50 p-6 ring-1 ring-black/5 dark:ring-white/5">
+    <div className="space-y-2">
+      {/* "Testa nya" label */}
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          Testa nya
+        </span>
+        <span className="text-sm font-semibold text-primary">
+          Byggio AI
+        </span>
+        <Sparkles className="h-4 w-4 text-primary" />
+      </div>
+      
+      <section className="rounded-2xl border border-border/40 bg-card/50 p-6 ring-1 ring-black/5 dark:ring-white/5">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-center gap-2 text-center">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -26,6 +38,7 @@ export function DashboardAssistantWidget() {
         
         <QuickSuggestions onSelect={handleSend} />
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
