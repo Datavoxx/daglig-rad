@@ -2,122 +2,82 @@
 
 ## Mål
 
-Skapa en tvåstegs feedback-popup:
-
-1. **Steg 1 (Efter att lämna chatten)**: Helskärms mörk overlay med centrerad feedback-popup
-2. **Steg 2 (Efter klick på "Visa konversationen")**: Bakgrunden fortfarande mörk, men popup flyttas ner till nedre vänstra hörnet
-3. **Steg 3 (Efter skicka/hoppa över)**: Allt försvinner, skärmen blir ljus igen
+Gör så att den mörka overlayen även täcker sidebaren för bättre färgkontrast.
 
 ---
 
-## Visuell översikt
+## Problem
+
+Sidebaren i `AppLayout.tsx` har `z-50` medan den mörka overlayen i `GlobalFeedbackPopup.tsx` har `z-40`. Detta gör att sidebaren ligger **ovanpå** overlayen och förblir ljus.
 
 ```text
-STEG 1: Initial visning (efter att lämna chatten)
-┌─────────────────────────────────────────────────────────┐
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ ┌────────────────────┐ ░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ │   Hur gick det?    │ ░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ │   ☆ ☆ ☆ ☆ ☆       │ ░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ │ [Visa konversation]│ ░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ └────────────────────┘ ░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-└─────────────────────────────────────────────────────────┘
+Nuvarande z-index:
+┌─────────────────────────────────────────────────┐
+│  Feedback popup:  z-50                          │
+│  Sidebar:         z-50  ← Ligger ovanpå overlay │
+│  Overlay:         z-40                          │
+└─────────────────────────────────────────────────┘
+```
 
-STEG 2: Efter klick på "Visa konversationen"
-┌─────────────────────────────────────────────────────────┐
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░ Konversation (synlig genom overlay) ░░░░░░░ │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  ┌────────────────────┐ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  │ Hur gick det?      │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  │ ☆☆☆☆☆ [Skicka]    │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  └────────────────────┘ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-└─────────────────────────────────────────────────────────┘
+---
 
-STEG 3: Efter skicka/hoppa över
-┌─────────────────────────────────────────────────────────┐
-│  Konversation (helt synlig, ingen overlay)              │
-│                                                         │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+## Lösning
+
+Höj z-index på overlayen till `z-[60]` så att den ligger ovanpå sidebaren (som har `z-50`). Feedback-popupen behöver också höjas till `z-[70]` för att ligga ovanpå overlayen.
+
+```text
+Ny z-index:
+┌─────────────────────────────────────────────────┐
+│  Feedback popup:  z-[70]  ← Överst              │
+│  Overlay:         z-[60]  ← Täcker sidebaren    │
+│  Sidebar:         z-50                          │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Teknisk implementation
 
-### 1. Lägg till state för att spåra om användaren har visat konversationen
+### Fil: `src/components/global-assistant/GlobalFeedbackPopup.tsx`
 
-```typescript
-const [hasViewedConversation, setHasViewedConversation] = useState(false);
-
-// Reset när popup öppnas
-useEffect(() => {
-  if (open) {
-    setHasViewedConversation(false);
-    // ... existing reset logic
-  }
-}, [open]);
-```
-
-### 2. Uppdatera handleViewConversation
-
-```typescript
-const handleViewConversation = () => {
-  navigate(`/global-assistant?conversationId=${conversationId}`);
-  setHasViewedConversation(true);  // Triggar flytt till hörnet
-};
-```
-
-### 3. Ny JSX-struktur med overlay och positioneringslogik
-
+**Ändring 1 - Rad 101 (overlay):**
 ```tsx
-return (
-  <>
-    {/* Mörk overlay - alltid synlig när popup är öppen */}
-    <div 
-      className="fixed inset-0 z-40 bg-black/80"
-      onClick={onClose}  // Klick på overlay stänger
-    />
-    
-    {/* Feedback-kortet - positioneras baserat på state */}
-    <div
-      className={cn(
-        "fixed z-50 w-80 rounded-xl border bg-card p-4 shadow-lg",
-        "transition-all duration-300",
-        hasViewedConversation
-          ? "bottom-4 left-4"  // Steg 2: I hörnet
-          : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"  // Steg 1: Centrerad
-      )}
-    >
-      {/* Popup-innehåll */}
-    </div>
-  </>
-);
+// Från:
+<div className="fixed inset-0 z-40 bg-black/80" />
+
+// Till:
+<div className="fixed inset-0 z-[60] bg-black/80" />
+```
+
+**Ändring 2 - Rad 104-111 (popup-kortet):**
+```tsx
+// Från:
+<div className={cn(
+  "fixed z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
+  ...
+)}>
+
+// Till:
+<div className={cn(
+  "fixed z-[70] w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
+  ...
+)}>
 ```
 
 ---
 
-## Detaljer
+## Sammanfattning
 
-| Steg | Overlay | Popup-position | Trigger |
-|------|---------|----------------|---------|
-| 1 | Synlig (bg-black/80) | Centrerad | Popup öppnas |
-| 2 | Synlig (bg-black/80) | Nedre vänstra hörnet | Klick på "Visa konversationen" |
-| 3 | Borta | Borta | Klick på "Skicka" eller "Hoppa över" |
+| Ändring | Från | Till |
+|---------|------|------|
+| Overlay z-index | `z-40` | `z-[60]` |
+| Popup z-index | `z-50` | `z-[70]` |
 
 ---
 
-## Sammanfattning av ändringar
+## Resultat
 
-| # | Fil | Ändring |
-|---|-----|---------|
-| 1 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Lägg till `hasViewedConversation` state |
-| 2 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Lägg till mörk overlay-div |
-| 3 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Dynamisk positionering baserat på state |
-| 4 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Smooth transition mellan positioner |
+- Hela skärmen blir mörk, inklusive sidebaren
+- Bättre färgkontrast
+- Feedback-popupen är fortfarande klickbar ovanpå allt
 
