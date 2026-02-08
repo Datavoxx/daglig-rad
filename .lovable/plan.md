@@ -2,125 +2,122 @@
 
 ## Mål
 
-Gör feedback-popupen mindre störande och mer elegant - så att användaren kan se konversationen bakom.
+Skapa en tvåstegs feedback-popup:
+
+1. **Steg 1 (Efter att lämna chatten)**: Helskärms mörk overlay med centrerad feedback-popup
+2. **Steg 2 (Efter klick på "Visa konversationen")**: Bakgrunden fortfarande mörk, men popup flyttas ner till nedre vänstra hörnet
+3. **Steg 3 (Efter skicka/hoppa över)**: Allt försvinner, skärmen blir ljus igen
 
 ---
 
-## Designförslag
-
-### Alternativ A: Flytande kort i nedre vänstra hörnet (Rekommenderas)
-
-En liten, kompakt panel som "flyter" i hörnet - ingen overlay som blockerar bakgrunden.
+## Visuell översikt
 
 ```text
+STEG 1: Initial visning (efter att lämna chatten)
 ┌─────────────────────────────────────────────────────────┐
-│  Konversation (synlig)                                  │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ ┌────────────────────┐ ░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ │   Hur gick det?    │ ░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ │   ☆ ☆ ☆ ☆ ☆       │ ░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ │ [Visa konversation]│ ░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ └────────────────────┘ ░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+└─────────────────────────────────────────────────────────┘
+
+STEG 2: Efter klick på "Visa konversationen"
+┌─────────────────────────────────────────────────────────┐
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░ Konversation (synlig genom overlay) ░░░░░░░ │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  ┌────────────────────┐ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  │ Hur gick det?      │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  │ ☆☆☆☆☆ [Skicka]    │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│  └────────────────────┘ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+└─────────────────────────────────────────────────────────┘
+
+STEG 3: Efter skicka/hoppa över
+┌─────────────────────────────────────────────────────────┐
+│  Konversation (helt synlig, ingen overlay)              │
 │                                                         │
 │                                                         │
-│                                                         │
-│  ┌──────────────────────────┐                           │
-│  │ ⭐ Hur gick det?         │                           │
-│  │ ☆ ☆ ☆ ☆ ☆              │                           │
-│  │ [Visa konversationen]    │                           │
-│  │ [Hoppa över] [Skicka]    │                           │
-│  └──────────────────────────┘                           │
 └─────────────────────────────────────────────────────────┘
 ```
-
-**Fördelar:**
-- Blockerar inte konversationen
-- Känns som en diskret notis/toast
-- Användaren kan scrolla i chatten samtidigt
-
----
-
-### Alternativ B: Slide-in panel från vänster
-
-En smalare panel som glider in från vänster sida.
-
-```text
-┌────────────────┬────────────────────────────────────────┐
-│ Feedback       │  Konversation (synlig)                 │
-│ ────────────── │                                        │
-│ ⭐ Hur gick    │                                        │
-│ det?           │                                        │
-│                │                                        │
-│ ☆ ☆ ☆ ☆ ☆    │                                        │
-│                │                                        │
-│ [Hoppa över]   │                                        │
-│ [Skicka]       │                                        │
-└────────────────┴────────────────────────────────────────┘
-```
-
----
-
-### Alternativ C: Kompakt toast-stil (längst ned)
-
-Ännu mer minimal - som en expanderbar toast.
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│  Konversation                                           │
-│                                                         │
-│                                                         │
-├─────────────────────────────────────────────────────────┤
-│  ⭐ Hur tyckte du det gick? ☆☆☆☆☆  [Hoppa över]        │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Rekommendation: Alternativ A
-
-En flytande panel i nedre vänstra hörnet som:
-
-1. **Ingen overlay** - Tar bort den mörka bakgrunden
-2. **Kompakt storlek** - Max 320px bred
-3. **Positionerad i hörnet** - `fixed bottom-4 left-4`
-4. **Subtil skugga** - Ger djup utan att vara störande
-5. **Animerad** - Glider in mjukt från vänster
 
 ---
 
 ## Teknisk implementation
 
-### Byt från AlertDialog till fast positionerat kort
+### 1. Lägg till state för att spåra om användaren har visat konversationen
 
-```tsx
-// Istället för AlertDialog, använd ett fast positionerat kort
-<div className={cn(
-  "fixed bottom-4 left-4 z-50 w-80 rounded-xl border bg-card p-4 shadow-lg",
-  "animate-in slide-in-from-left-4 duration-300",
-  !open && "hidden"
-)}>
-  {/* Kompakt innehåll */}
-</div>
+```typescript
+const [hasViewedConversation, setHasViewedConversation] = useState(false);
+
+// Reset när popup öppnas
+useEffect(() => {
+  if (open) {
+    setHasViewedConversation(false);
+    // ... existing reset logic
+  }
+}, [open]);
 ```
 
-### Kompaktare layout
+### 2. Uppdatera handleViewConversation
 
-- Mindre stjärnor (h-6 istället för h-8)
-- Kortare textfält (min-h-[60px])
-- Tightare spacing
+```typescript
+const handleViewConversation = () => {
+  navigate(`/global-assistant?conversationId=${conversationId}`);
+  setHasViewedConversation(true);  // Triggar flytt till hörnet
+};
+```
+
+### 3. Ny JSX-struktur med overlay och positioneringslogik
+
+```tsx
+return (
+  <>
+    {/* Mörk overlay - alltid synlig när popup är öppen */}
+    <div 
+      className="fixed inset-0 z-40 bg-black/80"
+      onClick={onClose}  // Klick på overlay stänger
+    />
+    
+    {/* Feedback-kortet - positioneras baserat på state */}
+    <div
+      className={cn(
+        "fixed z-50 w-80 rounded-xl border bg-card p-4 shadow-lg",
+        "transition-all duration-300",
+        hasViewedConversation
+          ? "bottom-4 left-4"  // Steg 2: I hörnet
+          : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"  // Steg 1: Centrerad
+      )}
+    >
+      {/* Popup-innehåll */}
+    </div>
+  </>
+);
+```
 
 ---
 
-## Sammanfattning
+## Detaljer
 
-| # | Ändring |
-|---|---------|
-| 1 | Byt från AlertDialog till fast positionerat kort |
-| 2 | Ta bort mörk overlay |
-| 3 | Positionera i nedre vänstra hörnet |
-| 4 | Minska storlek och padding |
-| 5 | Lägg till slide-in animation |
+| Steg | Overlay | Popup-position | Trigger |
+|------|---------|----------------|---------|
+| 1 | Synlig (bg-black/80) | Centrerad | Popup öppnas |
+| 2 | Synlig (bg-black/80) | Nedre vänstra hörnet | Klick på "Visa konversationen" |
+| 3 | Borta | Borta | Klick på "Skicka" eller "Hoppa över" |
 
 ---
 
-## Resultat
+## Sammanfattning av ändringar
 
-- Feedback-panelen flyter diskret i hörnet
-- Användaren kan se och scrolla konversationen bakom
-- Känns modern och icke-störande
-- Fortfarande alla funktioner: stjärnor, textfält, knappar
+| # | Fil | Ändring |
+|---|-----|---------|
+| 1 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Lägg till `hasViewedConversation` state |
+| 2 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Lägg till mörk overlay-div |
+| 3 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Dynamisk positionering baserat på state |
+| 4 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Smooth transition mellan positioner |
 
