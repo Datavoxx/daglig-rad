@@ -1,151 +1,126 @@
 
+
 ## Mål
 
-Fixa tre saker med feedback-popupen:
-
-1. **"Visa konversationen"-länken** ska navigera till rätt konversation (med `conversationId` i URL)
-2. **Popup ska stanna kvar** efter att man klickat på länken
-3. **Timer** ska halveras från 60s till 30s
+Gör feedback-popupen mindre störande och mer elegant - så att användaren kan se konversationen bakom.
 
 ---
 
-## Problem 1: Navigering till rätt konversation
+## Designförslag
 
-**Nuvarande beteende:**
-- `GlobalFeedbackPopup` navigerar till `/global-assistant?conversationId=xxx`
-- Men `GlobalAssistant.tsx` har ingen logik för att läsa denna URL-parameter och ladda konversationen
+### Alternativ A: Flytande kort i nedre vänstra hörnet (Rekommenderas)
 
-**Lösning:**
-- Lägg till en `useEffect` i `GlobalAssistant.tsx` som läser `conversationId` från URL och laddar konversationen från databasen
+En liten, kompakt panel som "flyter" i hörnet - ingen overlay som blockerar bakgrunden.
 
----
-
-## Problem 2: Popup stängs när man navigerar
-
-**Nuvarande beteende (i `ConversationFeedbackContext.tsx`):**
-```typescript
-// Rad 60-65: Stänger popup när man går till /global-assistant
-useEffect(() => {
-  if (location.pathname.includes("/global-assistant")) {
-    setShowPopup(false);  // ← Problemet
-  }
-}, [location.pathname]);
+```text
+┌─────────────────────────────────────────────────────────┐
+│  Konversation (synlig)                                  │
+│                                                         │
+│                                                         │
+│                                                         │
+│  ┌──────────────────────────┐                           │
+│  │ ⭐ Hur gick det?         │                           │
+│  │ ☆ ☆ ☆ ☆ ☆              │                           │
+│  │ [Visa konversationen]    │                           │
+│  │ [Hoppa över] [Skicka]    │                           │
+│  └──────────────────────────┘                           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Lösning:**
-- Ta bort logiken som automatiskt stänger popup när man går till `/global-assistant`
-- Popupen ska bara stängas när användaren aktivt trycker "Hoppa över", "Skicka", eller klickar utanför
+**Fördelar:**
+- Blockerar inte konversationen
+- Känns som en diskret notis/toast
+- Användaren kan scrolla i chatten samtidigt
 
-**I `GlobalFeedbackPopup.tsx`:**
-```typescript
-// Rad 95-98: Ta bort onClose() efter navigate
-const handleViewConversation = () => {
-  navigate(`/global-assistant?conversationId=${conversationId}`);
-  // BORTTAGET: onClose();
-};
+---
+
+### Alternativ B: Slide-in panel från vänster
+
+En smalare panel som glider in från vänster sida.
+
+```text
+┌────────────────┬────────────────────────────────────────┐
+│ Feedback       │  Konversation (synlig)                 │
+│ ────────────── │                                        │
+│ ⭐ Hur gick    │                                        │
+│ det?           │                                        │
+│                │                                        │
+│ ☆ ☆ ☆ ☆ ☆    │                                        │
+│                │                                        │
+│ [Hoppa över]   │                                        │
+│ [Skicka]       │                                        │
+└────────────────┴────────────────────────────────────────┘
 ```
 
 ---
 
-## Problem 3: Timer för lång
+### Alternativ C: Kompakt toast-stil (längst ned)
 
-**Nuvarande:** 60000ms (60 sekunder)
-**Nytt:** 30000ms (30 sekunder)
+Ännu mer minimal - som en expanderbar toast.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│  Konversation                                           │
+│                                                         │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│  ⭐ Hur tyckte du det gick? ☆☆☆☆☆  [Hoppa över]        │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Rekommendation: Alternativ A
+
+En flytande panel i nedre vänstra hörnet som:
+
+1. **Ingen overlay** - Tar bort den mörka bakgrunden
+2. **Kompakt storlek** - Max 320px bred
+3. **Positionerad i hörnet** - `fixed bottom-4 left-4`
+4. **Subtil skugga** - Ger djup utan att vara störande
+5. **Animerad** - Glider in mjukt från vänster
 
 ---
 
 ## Teknisk implementation
 
-### 1. `GlobalAssistant.tsx` - Lägg till URL-parameter hantering
+### Byt från AlertDialog till fast positionerat kort
 
-```typescript
-// Lägg till useSearchParams import
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-
-// Lägg till useEffect för att ladda konversation från URL
-useEffect(() => {
-  const loadConversationFromUrl = async () => {
-    const urlParams = new URLSearchParams(location.search);
-    const conversationIdFromUrl = urlParams.get("conversationId");
-    
-    if (conversationIdFromUrl && conversationIdFromUrl !== currentConversationId) {
-      // Hämta konversation från databasen
-      const { data } = await supabase
-        .from("assistant_conversations")
-        .select("*")
-        .eq("id", conversationIdFromUrl)
-        .single();
-      
-      if (data) {
-        setMessages(data.messages as Message[]);
-        setContext(data.context as ConversationContext);
-        setCurrentConversationId(data.id);
-      }
-    }
-  };
-  
-  loadConversationFromUrl();
-}, [location.search]);
+```tsx
+// Istället för AlertDialog, använd ett fast positionerat kort
+<div className={cn(
+  "fixed bottom-4 left-4 z-50 w-80 rounded-xl border bg-card p-4 shadow-lg",
+  "animate-in slide-in-from-left-4 duration-300",
+  !open && "hidden"
+)}>
+  {/* Kompakt innehåll */}
+</div>
 ```
 
-### 2. `GlobalFeedbackPopup.tsx` - Behåll popup öppen
+### Kompaktare layout
 
-```typescript
-// Ändra handleViewConversation (rad 95-98)
-const handleViewConversation = () => {
-  navigate(`/global-assistant?conversationId=${conversationId}`);
-  // Ta bort: onClose();
-};
-```
-
-### 3. `ConversationFeedbackContext.tsx` - Ta bort auto-stäng logik
-
-```typescript
-// Ta bort rad 59-65 helt:
-// useEffect(() => {
-//   if (location.pathname.includes("/global-assistant")) {
-//     if (timerRef.current) clearTimeout(timerRef.current);
-//     setShowPopup(false);
-//   }
-// }, [location.pathname]);
-```
-
-**Behåll dock timer-avbrytning** om användaren går till `/global-assistant` INNAN popupen visas (dvs medan timern tickar):
-
-```typescript
-// Ersätt med:
-useEffect(() => {
-  // Endast avbryt timer, stäng INTE popup
-  if (location.pathname.includes("/global-assistant") && timerRef.current) {
-    clearTimeout(timerRef.current);
-    timerRef.current = null;
-  }
-}, [location.pathname]);
-```
-
-### 4. `ConversationFeedbackContext.tsx` - Halvera timer
-
-```typescript
-// Ändra rad 48-50
-timerRef.current = setTimeout(() => {
-  setShowPopup(true);
-}, 30000); // 30 sekunder istället för 60
-```
+- Mindre stjärnor (h-6 istället för h-8)
+- Kortare textfält (min-h-[60px])
+- Tightare spacing
 
 ---
 
-## Sammanfattning av ändringar
+## Sammanfattning
 
-| # | Fil | Ändring |
-|---|-----|---------|
-| 1 | `src/pages/GlobalAssistant.tsx` | Lägg till logik för att läsa `conversationId` från URL och ladda konversation |
-| 2 | `src/components/global-assistant/GlobalFeedbackPopup.tsx` | Ta bort `onClose()` i `handleViewConversation` |
-| 3 | `src/contexts/ConversationFeedbackContext.tsx` | Ta bort auto-stäng av popup, ändra timer till 30s |
+| # | Ändring |
+|---|---------|
+| 1 | Byt från AlertDialog till fast positionerat kort |
+| 2 | Ta bort mörk overlay |
+| 3 | Positionera i nedre vänstra hörnet |
+| 4 | Minska storlek och padding |
+| 5 | Lägg till slide-in animation |
 
 ---
 
 ## Resultat
 
-- Klick på "Visa konversationen" → navigerar till rätt konversation OCH feedback-popup stannar kvar
-- Användaren kan se vilken konversation det gäller och sedan ge sin feedback
-- Timer går på 30 sekunder istället för 60
+- Feedback-panelen flyter diskret i hörnet
+- Användaren kan se och scrolla konversationen bakom
+- Känns modern och icke-störande
+- Fortfarande alla funktioner: stjärnor, textfält, knappar
+
