@@ -1,17 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, ExternalLink } from "lucide-react";
+import { Star, ExternalLink, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogFooter,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface GlobalFeedbackPopupProps {
   open: boolean;
@@ -97,82 +91,100 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
     // Keep popup open so user can give feedback after viewing conversation
   };
 
+  if (!open) return null;
+
   return (
-    <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-center text-lg">
-            Hur tyckte du det gick i din senaste konversation med Byggio AI?
-          </AlertDialogTitle>
-        </AlertDialogHeader>
+    <div
+      className={cn(
+        "fixed bottom-4 left-4 z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
+        "animate-in slide-in-from-left-4 fade-in duration-300"
+      )}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute right-2 top-2 rounded-sm p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Stäng"
+      >
+        <X className="h-4 w-4" />
+      </button>
 
-        <div className="space-y-4">
-          {/* Link to conversation */}
-          <Button
-            variant="link"
-            onClick={handleViewConversation}
-            className="mx-auto flex items-center gap-1.5 text-sm"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Visa konversationen
-          </Button>
+      <div className="space-y-3">
+        {/* Title */}
+        <p className="pr-6 text-sm font-medium leading-snug">
+          Hur tyckte du det gick i din senaste konversation?
+        </p>
 
-          {/* 5-star rating */}
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setRating(value)}
-                className="rounded-sm p-1 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`${value} stjärnor`}
-              >
-                <Star
-                  className={`h-8 w-8 transition-colors ${
-                    value <= rating
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-muted-foreground/40"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
+        {/* Link to conversation */}
+        <Button
+          variant="link"
+          size="sm"
+          onClick={handleViewConversation}
+          className="h-auto p-0 text-xs"
+        >
+          <ExternalLink className="mr-1 h-3 w-3" />
+          Visa konversationen
+        </Button>
 
-          {/* Text fields */}
-          <div className="space-y-3">
-            <Textarea
-              placeholder="Vad var bra?"
-              value={whatWasGood}
-              onChange={(e) => setWhatWasGood(e.target.value)}
-              className="min-h-[80px] resize-none"
-            />
-            <Textarea
-              placeholder="Vad kan göras bättre?"
-              value={whatCanImprove}
-              onChange={(e) => setWhatCanImprove(e.target.value)}
-              className="min-h-[80px] resize-none"
-            />
-          </div>
+        {/* 5-star rating */}
+        <div className="flex justify-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              className="rounded-sm p-0.5 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`${value} stjärnor`}
+            >
+              <Star
+                className={cn(
+                  "h-6 w-6 transition-colors",
+                  value <= rating
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-muted-foreground/40"
+                )}
+              />
+            </button>
+          ))}
         </div>
 
-        <AlertDialogFooter className="mt-4 flex-row gap-2 sm:justify-between">
+        {/* Text fields */}
+        <div className="space-y-2">
+          <Textarea
+            placeholder="Vad var bra?"
+            value={whatWasGood}
+            onChange={(e) => setWhatWasGood(e.target.value)}
+            className="min-h-[60px] resize-none text-sm"
+          />
+          <Textarea
+            placeholder="Vad kan göras bättre?"
+            value={whatCanImprove}
+            onChange={(e) => setWhatCanImprove(e.target.value)}
+            className="min-h-[60px] resize-none text-sm"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
           <Button
             variant="ghost"
+            size="sm"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1"
+            className="flex-1 text-xs"
           >
             Hoppa över
           </Button>
           <Button
+            size="sm"
             onClick={handleSubmit}
             disabled={rating === 0 || isSubmitting}
-            className="flex-1"
+            className="flex-1 text-xs"
           >
             {isSubmitting ? "Skickar..." : "Skicka"}
           </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </div>
+      </div>
+    </div>
   );
 }
