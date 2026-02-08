@@ -19,6 +19,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
   const [whatCanImprove, setWhatCanImprove] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [hasViewedConversation, setHasViewedConversation] = useState(false);
   const navigate = useNavigate();
 
   // Fetch user ID
@@ -40,6 +41,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
       setRating(0);
       setWhatWasGood("");
       setWhatCanImprove("");
+      setHasViewedConversation(false);
     }
   }, [open]);
 
@@ -88,103 +90,112 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
 
   const handleViewConversation = () => {
     navigate(`/global-assistant?conversationId=${conversationId}`);
-    // Keep popup open so user can give feedback after viewing conversation
+    setHasViewedConversation(true);
   };
 
   if (!open) return null;
 
   return (
-    <div
-      className={cn(
-        "fixed bottom-4 left-4 z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
-        "animate-in slide-in-from-left-4 fade-in duration-300"
-      )}
-    >
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        className="absolute right-2 top-2 rounded-sm p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Stäng"
+    <>
+      {/* Dark overlay - always visible when popup is open */}
+      <div className="fixed inset-0 z-40 bg-black/80" />
+
+      {/* Feedback card - positioned based on state */}
+      <div
+        className={cn(
+          "fixed z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
+          "transition-all duration-500 ease-out",
+          hasViewedConversation
+            ? "bottom-4 left-4"
+            : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        )}
       >
-        <X className="h-4 w-4" />
-      </button>
-
-      <div className="space-y-3">
-        {/* Title */}
-        <p className="pr-6 text-sm font-medium leading-snug">
-          Hur tyckte du det gick i din senaste konversation?
-        </p>
-
-        {/* Link to conversation */}
-        <Button
-          variant="link"
-          size="sm"
-          onClick={handleViewConversation}
-          className="h-auto p-0 text-xs"
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-2 top-2 rounded-sm p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Stäng"
         >
-          <ExternalLink className="mr-1 h-3 w-3" />
-          Visa konversationen
-        </Button>
+          <X className="h-4 w-4" />
+        </button>
 
-        {/* 5-star rating */}
-        <div className="flex justify-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setRating(value)}
-              className="rounded-sm p-0.5 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`${value} stjärnor`}
+        <div className="space-y-3">
+          {/* Title */}
+          <p className="pr-6 text-sm font-medium leading-snug">
+            Hur tyckte du det gick i din senaste konversation?
+          </p>
+
+          {/* Link to conversation */}
+          <Button
+            variant="link"
+            size="sm"
+            onClick={handleViewConversation}
+            className="h-auto p-0 text-xs"
+          >
+            <ExternalLink className="mr-1 h-3 w-3" />
+            Visa konversationen
+          </Button>
+
+          {/* 5-star rating */}
+          <div className="flex justify-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setRating(value)}
+                className="rounded-sm p-0.5 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`${value} stjärnor`}
+              >
+                <Star
+                  className={cn(
+                    "h-6 w-6 transition-colors",
+                    value <= rating
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-muted-foreground/40"
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+
+          {/* Text fields */}
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Vad var bra?"
+              value={whatWasGood}
+              onChange={(e) => setWhatWasGood(e.target.value)}
+              className="min-h-[60px] resize-none text-sm"
+            />
+            <Textarea
+              placeholder="Vad kan göras bättre?"
+              value={whatCanImprove}
+              onChange={(e) => setWhatCanImprove(e.target.value)}
+              className="min-h-[60px] resize-none text-sm"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex-1 text-xs"
             >
-              <Star
-                className={cn(
-                  "h-6 w-6 transition-colors",
-                  value <= rating
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-muted-foreground/40"
-                )}
-              />
-            </button>
-          ))}
-        </div>
-
-        {/* Text fields */}
-        <div className="space-y-2">
-          <Textarea
-            placeholder="Vad var bra?"
-            value={whatWasGood}
-            onChange={(e) => setWhatWasGood(e.target.value)}
-            className="min-h-[60px] resize-none text-sm"
-          />
-          <Textarea
-            placeholder="Vad kan göras bättre?"
-            value={whatCanImprove}
-            onChange={(e) => setWhatCanImprove(e.target.value)}
-            className="min-h-[60px] resize-none text-sm"
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="flex-1 text-xs"
-          >
-            Hoppa över
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={rating === 0 || isSubmitting}
-            className="flex-1 text-xs"
-          >
-            {isSubmitting ? "Skickar..." : "Skicka"}
-          </Button>
+              Hoppa över
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={rating === 0 || isSubmitting}
+              className="flex-1 text-xs"
+            >
+              {isSubmitting ? "Skickar..." : "Skicka"}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
