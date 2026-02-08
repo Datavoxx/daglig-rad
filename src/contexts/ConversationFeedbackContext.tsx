@@ -47,7 +47,7 @@ export function ConversationFeedbackProvider({ children }: ConversationFeedbackP
         if (!exists) {
           timerRef.current = setTimeout(() => {
             setShowPopup(true);
-          }, 60000); // 60 seconds
+          }, 30000); // 30 seconds
         }
       });
     }
@@ -56,11 +56,11 @@ export function ConversationFeedbackProvider({ children }: ConversationFeedbackP
     };
   }, [lastConversationId, location.pathname]);
 
-  // If user goes back to /global-assistant, cancel timer
+  // If user goes back to /global-assistant BEFORE popup shows, cancel timer (but don't close popup)
   useEffect(() => {
-    if (location.pathname.includes("/global-assistant")) {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setShowPopup(false);
+    if (location.pathname.includes("/global-assistant") && timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
   }, [location.pathname]);
 

@@ -91,6 +91,30 @@ export default function GlobalAssistant() {
     }
   }, [location.state, messages.length]);
 
+  // Load conversation from URL parameter (e.g., from feedback popup link)
+  useEffect(() => {
+    const loadConversationFromUrl = async () => {
+      const urlParams = new URLSearchParams(location.search);
+      const conversationIdFromUrl = urlParams.get("conversationId");
+      
+      if (conversationIdFromUrl && conversationIdFromUrl !== currentConversationId) {
+        const { data } = await supabase
+          .from("assistant_conversations")
+          .select("*")
+          .eq("id", conversationIdFromUrl)
+          .single();
+        
+        if (data) {
+          setMessages(data.messages as unknown as Message[]);
+          setContext((data.context as ConversationContext) || {});
+          setCurrentConversationId(data.id);
+        }
+      }
+    };
+    
+    loadConversationFromUrl();
+  }, [location.search]);
+
   // Save conversation to database
   const saveConversation = useCallback(async (
     newMessages: Message[],

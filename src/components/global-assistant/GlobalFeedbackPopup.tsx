@@ -94,7 +94,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
 
   const handleViewConversation = () => {
     navigate(`/global-assistant?conversationId=${conversationId}`);
-    onClose();
+    // Keep popup open so user can give feedback after viewing conversation
   };
 
   return (
