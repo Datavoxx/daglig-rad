@@ -98,12 +98,12 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
   return (
     <>
       {/* Dark overlay - always visible when popup is open */}
-      <div className="fixed inset-0 z-40 bg-black/80" />
+      <div className="fixed inset-0 z-[60] bg-black/80" />
 
       {/* Feedback card - positioned based on state */}
       <div
         className={cn(
-          "fixed z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
+          "fixed z-[70] w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
           "transition-all duration-500 ease-out",
           hasViewedConversation
             ? "bottom-4 left-4"
