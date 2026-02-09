@@ -2,82 +2,138 @@
 
 ## Mål
 
-Gör så att den mörka overlayen även täcker sidebaren för bättre färgkontrast.
+Lägg till en "Ny kund"-knapp i offertformuläret som automatiskt skickar meddelandet "Jag vill skapa en ny kund" till assistenten.
 
 ---
 
-## Problem
-
-Sidebaren i `AppLayout.tsx` har `z-50` medan den mörka overlayen i `GlobalFeedbackPopup.tsx` har `z-40`. Detta gör att sidebaren ligger **ovanpå** overlayen och förblir ljus.
+## Visuell förändring
 
 ```text
-Nuvarande z-index:
-┌─────────────────────────────────────────────────┐
-│  Feedback popup:  z-50                          │
-│  Sidebar:         z-50  ← Ligger ovanpå overlay │
-│  Overlay:         z-40                          │
-└─────────────────────────────────────────────────┘
-```
+Nuvarande design:
+┌─────────────────────────────────────────┐
+│  Kund                                   │
+│  ┌───────────────────────────────────┐  │
+│  │ Välj kund...              ▼       │  │
+│  └───────────────────────────────────┘  │
+└─────────────────────────────────────────┘
 
----
-
-## Lösning
-
-Höj z-index på overlayen till `z-[60]` så att den ligger ovanpå sidebaren (som har `z-50`). Feedback-popupen behöver också höjas till `z-[70]` för att ligga ovanpå overlayen.
-
-```text
-Ny z-index:
-┌─────────────────────────────────────────────────┐
-│  Feedback popup:  z-[70]  ← Överst              │
-│  Overlay:         z-[60]  ← Täcker sidebaren    │
-│  Sidebar:         z-50                          │
-└─────────────────────────────────────────────────┘
+Ny design:
+┌─────────────────────────────────────────┐
+│  Kund                                   │
+│  ┌─────────────────────────┐  ┌──────┐  │
+│  │ Välj kund...        ▼   │  │+ Ny  │  │
+│  └─────────────────────────┘  └──────┘  │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
 ## Teknisk implementation
 
-### Fil: `src/components/global-assistant/GlobalFeedbackPopup.tsx`
+### Fil: `src/components/global-assistant/EstimateFormCard.tsx`
 
-**Ändring 1 - Rad 101 (overlay):**
+**1. Lägg till ny prop för att hantera "Ny kund"-klick:**
+
 ```tsx
-// Från:
-<div className="fixed inset-0 z-40 bg-black/80" />
-
-// Till:
-<div className="fixed inset-0 z-[60] bg-black/80" />
+interface EstimateFormCardProps {
+  customers: Customer[];
+  onSubmit: (data: EstimateFormData) => void;
+  onCancel: () => void;
+  onCreateNewCustomer?: () => void;  // NY PROP
+  disabled?: boolean;
+}
 ```
 
-**Ändring 2 - Rad 104-111 (popup-kortet):**
-```tsx
-// Från:
-<div className={cn(
-  "fixed z-50 w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
-  ...
-)}>
+**2. Uppdatera komponentens destrukturering:**
 
-// Till:
-<div className={cn(
-  "fixed z-[70] w-80 rounded-xl border border-border/60 bg-card p-4 shadow-lg",
-  ...
-)}>
+```tsx
+export function EstimateFormCard({
+  customers,
+  onSubmit,
+  onCancel,
+  onCreateNewCustomer,  // NY
+  disabled,
+}: EstimateFormCardProps) {
+```
+
+**3. Uppdatera kund-selector layouten (rad 89-106):**
+
+```tsx
+{/* Customer selector */}
+<div className="space-y-1.5">
+  <Label htmlFor="customer" className="text-xs text-muted-foreground">
+    Kund
+  </Label>
+  <div className="flex gap-2">
+    <Select value={customerId} onValueChange={setCustomerId} disabled={disabled}>
+      <SelectTrigger id="customer" className="flex-1">
+        <SelectValue placeholder="Välj kund..." />
+      </SelectTrigger>
+      <SelectContent>
+        {customers.map((customer) => (
+          <SelectItem key={customer.id} value={customer.id}>
+            {customer.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+    {onCreateNewCustomer && (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onCreateNewCustomer}
+        disabled={disabled}
+        className="shrink-0"
+      >
+        <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+        Ny kund
+      </Button>
+    )}
+  </div>
+</div>
+```
+
+**4. Lägg till import för UserPlus-ikonen:**
+
+```tsx
+import { FileText, X, UserPlus } from "lucide-react";
+```
+
+---
+
+### Fil: `src/components/global-assistant/MessageList.tsx`
+
+**Skicka in callback till EstimateFormCard:**
+
+Hitta där `EstimateFormCard` renderas och lägg till:
+
+```tsx
+<EstimateFormCard
+  customers={...}
+  onSubmit={...}
+  onCancel={...}
+  onCreateNewCustomer={() => onSendMessage?.("Jag vill skapa en ny kund")}
+  disabled={...}
+/>
 ```
 
 ---
 
 ## Sammanfattning
 
-| Ändring | Från | Till |
-|---------|------|------|
-| Overlay z-index | `z-40` | `z-[60]` |
-| Popup z-index | `z-50` | `z-[70]` |
+| # | Fil | Ändring |
+|---|-----|---------|
+| 1 | `EstimateFormCard.tsx` | Lägg till `onCreateNewCustomer` prop |
+| 2 | `EstimateFormCard.tsx` | Lägg till "Ny kund"-knapp bredvid kundväljaren |
+| 3 | `EstimateFormCard.tsx` | Importera `UserPlus`-ikon |
+| 4 | `MessageList.tsx` | Skicka callback som triggar "Jag vill skapa en ny kund" |
 
 ---
 
 ## Resultat
 
-- Hela skärmen blir mörk, inklusive sidebaren
-- Bättre färgkontrast
-- Feedback-popupen är fortfarande klickbar ovanpå allt
+- En "Ny kund"-knapp visas bredvid kundväljaren i offertformuläret
+- När användaren klickar på knappen skickas meddelandet "Jag vill skapa en ny kund" automatiskt
+- Assistenten startar då kundflödet
 
