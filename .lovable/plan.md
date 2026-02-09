@@ -2,119 +2,55 @@
 
 ## Mål
 
-Lägg till en "Ny kund"-knapp i offertformuläret som automatiskt skickar meddelandet "Jag vill skapa en ny kund" till assistenten.
+Få "Ny kund"-knappen att faktiskt skicka ett meddelande i chatten.
 
 ---
 
-## Visuell förändring
+## Problem
+
+`MessageList` har en `onSendMessage` prop men den skickas inte in från `GlobalAssistant.tsx`. Därför fungerar inte callback:en.
 
 ```text
-Nuvarande design:
-┌─────────────────────────────────────────┐
-│  Kund                                   │
-│  ┌───────────────────────────────────┐  │
-│  │ Välj kund...              ▼       │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
+Nuvarande flöde:
+GlobalAssistant.tsx → MessageList (onSendMessage = undefined)
+                          ↓
+               EstimateFormCard (onCreateNewCustomer = () => undefined?.("..."))
+                          ↓
+                     Ingenting händer!
+```
 
-Ny design:
-┌─────────────────────────────────────────┐
-│  Kund                                   │
-│  ┌─────────────────────────┐  ┌──────┐  │
-│  │ Välj kund...        ▼   │  │+ Ny  │  │
-│  └─────────────────────────┘  └──────┘  │
-└─────────────────────────────────────────┘
+---
+
+## Lösning
+
+Skicka in `sendMessage`-funktionen till `MessageList` via `onSendMessage` prop.
+
+```text
+Nytt flöde:
+GlobalAssistant.tsx → MessageList (onSendMessage = sendMessage)
+                          ↓
+               EstimateFormCard (onCreateNewCustomer = () => sendMessage("..."))
+                          ↓
+                     Meddelande skickas i chatten!
 ```
 
 ---
 
 ## Teknisk implementation
 
-### Fil: `src/components/global-assistant/EstimateFormCard.tsx`
+### Fil: `src/pages/GlobalAssistant.tsx`
 
-**1. Lägg till ny prop för att hantera "Ny kund"-klick:**
-
-```tsx
-interface EstimateFormCardProps {
-  customers: Customer[];
-  onSubmit: (data: EstimateFormData) => void;
-  onCancel: () => void;
-  onCreateNewCustomer?: () => void;  // NY PROP
-  disabled?: boolean;
-}
-```
-
-**2. Uppdatera komponentens destrukturering:**
+**Ändring på rad 595** - Lägg till `onSendMessage` prop:
 
 ```tsx
-export function EstimateFormCard({
-  customers,
-  onSubmit,
-  onCancel,
-  onCreateNewCustomer,  // NY
-  disabled,
-}: EstimateFormCardProps) {
-```
-
-**3. Uppdatera kund-selector layouten (rad 89-106):**
-
-```tsx
-{/* Customer selector */}
-<div className="space-y-1.5">
-  <Label htmlFor="customer" className="text-xs text-muted-foreground">
-    Kund
-  </Label>
-  <div className="flex gap-2">
-    <Select value={customerId} onValueChange={setCustomerId} disabled={disabled}>
-      <SelectTrigger id="customer" className="flex-1">
-        <SelectValue placeholder="Välj kund..." />
-      </SelectTrigger>
-      <SelectContent>
-        {customers.map((customer) => (
-          <SelectItem key={customer.id} value={customer.id}>
-            {customer.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    {onCreateNewCustomer && (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onCreateNewCustomer}
-        disabled={disabled}
-        className="shrink-0"
-      >
-        <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-        Ny kund
-      </Button>
-    )}
-  </div>
-</div>
-```
-
-**4. Lägg till import för UserPlus-ikonen:**
-
-```tsx
-import { FileText, X, UserPlus } from "lucide-react";
-```
-
----
-
-### Fil: `src/components/global-assistant/MessageList.tsx`
-
-**Skicka in callback till EstimateFormCard:**
-
-Hitta där `EstimateFormCard` renderas och lägg till:
-
-```tsx
-<EstimateFormCard
-  customers={...}
-  onSubmit={...}
-  onCancel={...}
-  onCreateNewCustomer={() => onSendMessage?.("Jag vill skapa en ny kund")}
-  disabled={...}
+<MessageList
+  messages={messages}
+  conversationId={currentConversationId}
+  onProposalConfirm={handleProposalConfirm}
+  // ... alla andra props ...
+  onEstimateItemsFormOpen={handleEstimateItemsFormOpen}
+  onSendMessage={sendMessage}  // ← LÄGG TILL DENNA
+  isLoading={isLoading}
 />
 ```
 
@@ -124,16 +60,12 @@ Hitta där `EstimateFormCard` renderas och lägg till:
 
 | # | Fil | Ändring |
 |---|-----|---------|
-| 1 | `EstimateFormCard.tsx` | Lägg till `onCreateNewCustomer` prop |
-| 2 | `EstimateFormCard.tsx` | Lägg till "Ny kund"-knapp bredvid kundväljaren |
-| 3 | `EstimateFormCard.tsx` | Importera `UserPlus`-ikon |
-| 4 | `MessageList.tsx` | Skicka callback som triggar "Jag vill skapa en ny kund" |
+| 1 | `GlobalAssistant.tsx` | Skicka `sendMessage` till `MessageList` via `onSendMessage` prop |
 
 ---
 
 ## Resultat
 
-- En "Ny kund"-knapp visas bredvid kundväljaren i offertformuläret
-- När användaren klickar på knappen skickas meddelandet "Jag vill skapa en ny kund" automatiskt
-- Assistenten startar då kundflödet
+- När man klickar på "Ny kund" i offertformuläret skickas meddelandet "Jag vill skapa en ny kund" direkt i chatten
+- Assistenten svarar med kundflödet
 
