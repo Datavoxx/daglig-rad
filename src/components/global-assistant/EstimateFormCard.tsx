@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, X } from "lucide-react";
+import { FileText, X, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ interface EstimateFormCardProps {
   customers: Customer[];
   onSubmit: (data: EstimateFormData) => void;
   onCancel: () => void;
+  onCreateNewCustomer?: () => void;
   disabled?: boolean;
 }
 
@@ -35,6 +36,7 @@ export function EstimateFormCard({
   customers,
   onSubmit,
   onCancel,
+  onCreateNewCustomer,
   disabled,
 }: EstimateFormCardProps) {
   const [customerId, setCustomerId] = useState<string>("");
@@ -91,18 +93,33 @@ export function EstimateFormCard({
           <Label htmlFor="customer" className="text-xs text-muted-foreground">
             Kund
           </Label>
-          <Select value={customerId} onValueChange={setCustomerId} disabled={disabled}>
-            <SelectTrigger id="customer" className="w-full">
-              <SelectValue placeholder="Välj kund..." />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={customerId} onValueChange={setCustomerId} disabled={disabled}>
+              <SelectTrigger id="customer" className="flex-1">
+                <SelectValue placeholder="Välj kund..." />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {onCreateNewCustomer && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onCreateNewCustomer}
+                disabled={disabled}
+                className="shrink-0"
+              >
+                <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                Ny kund
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Title */}
