@@ -592,6 +592,7 @@ export default function GlobalAssistant() {
             onEstimateItemsFormSubmit={handleEstimateItemsFormSubmit}
             onEstimateItemsFormCancel={handleEstimateItemsFormCancel}
             onEstimateItemsFormOpen={handleEstimateItemsFormOpen}
+            onSendMessage={sendMessage}
             isLoading={isLoading}
           />
           <div className="border-t border-border/40 bg-background/80 backdrop-blur-sm px-4 py-3">
