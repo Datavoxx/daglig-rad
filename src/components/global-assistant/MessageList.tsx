@@ -98,6 +98,7 @@ interface MessageListProps {
   onEstimateItemsFormSubmit?: (data: EstimateItemsFormData) => void;
   onEstimateItemsFormCancel?: () => void;
   onEstimateItemsFormOpen?: (estimateId: string) => void;
+  onSendMessage?: (message: string) => void;
   isLoading?: boolean;
 }
 
@@ -130,6 +131,7 @@ export function MessageList({
   onEstimateItemsFormSubmit,
   onEstimateItemsFormCancel,
   onEstimateItemsFormOpen,
+  onSendMessage,
   isLoading,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -236,6 +238,7 @@ export function MessageList({
                     customers={message.data.customers}
                     onSubmit={onEstimateFormSubmit}
                     onCancel={onEstimateFormCancel}
+                    onCreateNewCustomer={() => onSendMessage?.("Jag vill skapa en ny kund")}
                     disabled={isLoading}
                   />
                 )}
