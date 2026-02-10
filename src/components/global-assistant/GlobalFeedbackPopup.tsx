@@ -88,6 +88,25 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
     }
   };
 
+  const notifySkip = async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: data.user?.id || null,
+          email: data.user?.email || null,
+          conversation_id: conversationId,
+          source: "global_feedback_popup",
+          skipped_at: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.error("Skip webhook error:", e);
+    }
+  };
+
   const handleViewConversation = () => {
     navigate(`/global-assistant?conversationId=${conversationId}`);
     setHasViewedConversation(true);
@@ -112,7 +131,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
       >
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={() => { notifySkip(); onClose(); }}
           className="absolute right-2 top-2 rounded-sm p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Stäng"
         >
@@ -179,7 +198,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={() => { notifySkip(); onClose(); }}
               disabled={isSubmitting}
               className="flex-1 text-xs"
             >

@@ -56,7 +56,28 @@ export function FeedbackSection({ taskType, conversationId, onComplete }: Feedba
     setStep("comment");
   };
 
+  const notifySkip = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id || null,
+          email: user?.email || null,
+          conversation_id: conversationId || null,
+          task_type: taskType,
+          source: "feedback_section",
+          skipped_at: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.error("Skip webhook error:", e);
+    }
+  };
+
   const handleSkip = () => {
+    notifySkip();
     if (step === "rating") {
       setStep("complete");
       onComplete?.();
