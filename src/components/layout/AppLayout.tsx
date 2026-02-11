@@ -22,10 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
+import { SessionFeedbackPopup } from "./SessionFeedbackPopup";
 import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useInactivityTimer } from "@/hooks/useInactivityTimer";
 import {
   Tooltip,
   TooltipContent,
@@ -79,10 +81,33 @@ export function AppLayout() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSessionFeedback, setShowSessionFeedback] = useState(false);
+  const [feedbackTrigger, setFeedbackTrigger] = useState<"logout" | "inactivity">("logout");
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee } = useUserPermissions();
   const isMobile = useIsMobile();
+
+  const { resetTimer } = useInactivityTimer(() => {
+    setFeedbackTrigger("inactivity");
+    setShowSessionFeedback(true);
+  }, !showSessionFeedback);
+
+  const handleLogoutClick = () => {
+    setFeedbackTrigger("logout");
+    setShowSessionFeedback(true);
+    setMobileMenuOpen(false);
+  };
+
+  const handleFeedbackComplete = async () => {
+    setShowSessionFeedback(false);
+    if (feedbackTrigger === "logout") {
+      await supabase.auth.signOut();
+      navigate("/auth");
+    } else {
+      resetTimer();
+    }
+  };
 
   // Live clock - update every second
   useEffect(() => {
@@ -157,10 +182,7 @@ export function AppLayout() {
 
   const logoutButton = (
     <button
-      onClick={async () => {
-        await supabase.auth.signOut();
-        navigate("/auth");
-      }}
+      onClick={handleLogoutClick}
       className="flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
     >
       <LogOut className="h-5 w-5 shrink-0" />
@@ -356,11 +378,7 @@ export function AppLayout() {
                   {/* Logout */}
                   <div className="border-t border-sidebar-border p-3">
                     <button
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        navigate("/auth");
-                        setMobileMenuOpen(false);
-                      }}
+                      onClick={handleLogoutClick}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
                     >
                       <LogOut className="h-5 w-5 shrink-0" />
@@ -421,6 +439,11 @@ export function AppLayout() {
           </div>
         </main>
       </div>
+      <SessionFeedbackPopup
+        open={showSessionFeedback}
+        trigger={feedbackTrigger}
+        onComplete={handleFeedbackComplete}
+      />
     </div>
   );
 }
