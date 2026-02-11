@@ -41,6 +41,31 @@ export function FeedbackSection({ taskType, conversationId, onComplete }: Feedba
 
       if (error) throw error;
 
+      // Notify feedback-chatt webhook
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        await fetch("https://datavox.app.n8n.cloud/webhook/feedback-chatt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: user.id,
+            email: user.email || null,
+            full_name: profile?.full_name || null,
+            conversation_id: conversationId || null,
+            task_type: taskType,
+            rating,
+            comment: skipComment ? null : comment || null,
+            sent_at: new Date().toISOString(),
+          }),
+        });
+      } catch (webhookErr) {
+        console.error("Feedback webhook error:", webhookErr);
+      }
+
       setStep("complete");
       onComplete?.();
     } catch (error) {
@@ -68,7 +93,7 @@ export function FeedbackSection({ taskType, conversationId, onComplete }: Feedba
           .maybeSingle();
         fullName = profile?.full_name || null;
       }
-      await fetch("https://datavox.app.n8n.cloud/webhook/feedback-chatt", {
+      await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
