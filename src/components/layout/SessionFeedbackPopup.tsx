@@ -65,7 +65,32 @@ export function SessionFeedbackPopup({ open, trigger, onComplete }: SessionFeedb
   };
 
   const handleSkip = async () => {
-    await sendWebhook(true);
+    // Send to skip-specific webhook
+    try {
+      const { data } = await supabase.auth.getUser();
+      let fullName: string | null = null;
+      if (data.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        fullName = profile?.full_name || null;
+      }
+      await fetch("https://datavox.app.n8n.cloud/webhook/feedbacksessionnekad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: data.user?.id || null,
+          email: data.user?.email || null,
+          full_name: fullName,
+          trigger,
+          skipped_at: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.error("Skip webhook error:", e);
+    }
     onComplete();
   };
 
