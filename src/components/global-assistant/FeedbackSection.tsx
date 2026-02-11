@@ -59,12 +59,22 @@ export function FeedbackSection({ taskType, conversationId, onComplete }: Feedba
   const notifySkip = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      let fullName: string | null = null;
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        fullName = profile?.full_name || null;
+      }
       await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user?.id || null,
           email: user?.email || null,
+          full_name: fullName,
           conversation_id: conversationId || null,
           task_type: taskType,
           source: "feedback_section",

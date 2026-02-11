@@ -91,12 +91,22 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
   const notifySkip = async () => {
     try {
       const { data } = await supabase.auth.getUser();
+      let fullName: string | null = null;
+      if (data.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        fullName = profile?.full_name || null;
+      }
       await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: data.user?.id || null,
           email: data.user?.email || null,
+          full_name: fullName,
           conversation_id: conversationId,
           source: "global_feedback_popup",
           skipped_at: new Date().toISOString(),
