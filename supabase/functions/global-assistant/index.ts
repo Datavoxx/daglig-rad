@@ -2603,7 +2603,11 @@ function formatToolResults(toolName: string, results: unknown): {
   content: string;
   data?: Record<string, unknown>;
 } {
-  if (!results || (Array.isArray(results) && results.length === 0)) {
+  const toolsWithCustomEmptyHandling = ["get_customers_for_estimate"];
+  if (
+    (!results || (Array.isArray(results) && results.length === 0)) &&
+    !toolsWithCustomEmptyHandling.includes(toolName)
+  ) {
     return {
       type: "text",
       content: "Jag hittade inga resultat. Vill du söka efter något annat eller skapa ny?",
