@@ -1,43 +1,33 @@
 
 
-## Fix: Chatt-feedback poppar upp igen efter avvisning
+## Lägg till "Förbli inloggad"-knapp i utloggningsformuläret
 
-### Orsak
+### Vad som ändras
+När man trycker "Logga ut" visas idag en feedback-popup med "Hoppa över" och "Skicka". En ny knapp "Förbli inloggad" läggs till som avbryter utloggningen helt och stänger popupen utan att logga ut användaren.
 
-Det finns **tva** chatt-feedbacksystem som kan triggas for samma konversation:
+### Fil som ändras
 
-1. **FeedbackSection** (inline i chatten) -- visas direkt efter en avklarad uppgift, sparar feedback med task_type t.ex. "add_estimate_items"
-2. **GlobalFeedbackPopup** -- visas 30 sekunder efter att man lamnar chatten, men letar bara efter task_type = "conversation_feedback" i databasen
+**1. `src/components/layout/SessionFeedbackPopup.tsx`**
+- Lägg till en ny callback-prop `onStayLoggedIn` (valfri, visas bara vid `trigger === "logout"`)
+- Rendera en "Förbli inloggad"-knapp under de befintliga knapparna, bara vid utloggning (inte vid inaktivitet)
+- Knappen stänger popupen utan att logga ut
 
-Nar anvandaren ger feedback via FeedbackSection (inline) och sedan lamnar chatten, hittar GlobalFeedbackPopup ingen befintlig feedback (fel task_type-sokning) och visar popupen anda.
-
-Dessutom: om anvandaren hoppar over popupen sparas inget i databasen, sa om location.pathname andras (navigation) kan timern aterstallas och popupen dyka upp igen.
-
-### Losning
-
-**1. `src/contexts/ConversationFeedbackContext.tsx`**
-- Andra `checkExistingFeedback` att kontrollera ALL feedback for konversationen (ta bort `.eq("task_type", "conversation_feedback")`-filtret), sa att inline-feedback ocksa rakas
-- Lagg till en `dismissedRef` som satts till `true` nar popupen stangs, sa att den inte kan oppnas igen under samma session/konversation
-- Ta bort `location.pathname` fran useEffect-beroendelistan -- starta bara timern nar `lastConversationId` satts, inte vid varje sidnavigation
-
-**2. `src/components/global-assistant/GlobalFeedbackPopup.tsx`**
-- Inga forandringar behovs i sjalva komponenten
+**2. `src/components/layout/AppLayout.tsx`**
+- Skicka en ny `onStayLoggedIn`-callback till `SessionFeedbackPopup` som bara stänger popupen (sätter `showSessionFeedback = false`) utan att anropa `signOut`
 
 ### Teknisk detalj
 
 ```text
-Fore:
-  checkExistingFeedback -> .eq("task_type", "conversation_feedback")
-  useEffect deps: [lastConversationId, location.pathname]
+SessionFeedbackPopup:
+  + prop: onStayLoggedIn?: () => void
+  + knapp: "Förbli inloggad" (visas bara om trigger === "logout" och onStayLoggedIn finns)
+  + onClick -> anropar onStayLoggedIn
 
-Efter:
-  checkExistingFeedback -> bara .eq("conversation_id", conversationId)
-  useEffect deps: [lastConversationId]
-  + dismissedRef forhindrar att popupen visas igen efter avvisning
+AppLayout:
+  + handleStayLoggedIn = () => setShowSessionFeedback(false)
+  + skickar onStayLoggedIn={handleStayLoggedIn} till SessionFeedbackPopup
 ```
 
-### Forvanted beteende
-- Om anvandaren redan gett feedback inline (FeedbackSection) visas ingen popup
-- Om anvandaren hoppar over popupen visas den inte igen for samma konversation
-- Navigering mellan sidor aterstartar inte 30-sekunderstimern
-
+### Knappordning i popupen (vid utloggning)
+1. "Hoppa över" + "Skicka" (befintliga, skickar/hoppar feedback och loggar sedan ut)
+2. "Förbli inloggad" (ny, avbryter utloggning, stänger popupen)
