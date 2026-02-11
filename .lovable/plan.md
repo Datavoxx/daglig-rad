@@ -1,38 +1,26 @@
 
 
-## Flytta "Offert" i sidomenyn
+## Ändra knappar efter offertskapande
 
-Ändra ordningen i navigeringen så att "Offert" hamnar direkt under "Byggio AI" och ovanför "Projekt".
+### Vad som ändras
+När en offert skapas/uppdateras via AI-assistenten visas idag "Visa offert" och "Skapa ny offert" som åtgärdsknappar. Dessa ska tas bort och ersättas med en "Ladda ner PDF"-knapp.
 
-### Nuvarande ordning (admin)
-1. Hem
-2. Byggio AI
-3. Projekt
-4. Personalliggare
-5. Tidsrapport
-6. Löneexport
-7. **Offert**
-8. Fakturor
-9. Kunder
-10. Inställningar
-11. Guide
+### Filer som ändras
 
-### Ny ordning
-1. Hem
-2. Byggio AI
-3. **Offert**
-4. Projekt
-5. Personalliggare
-6. Tidsrapport
-7. Löneexport
-8. Fakturor
-9. Kunder
-10. Inställningar
-11. Guide
+**1. `supabase/functions/global-assistant/index.ts`**
+- I `add_estimate_items`-caset (rad ~3502-3504): Ta bort de två nextActions ("Visa offert" och "Skapa ny offert")
+- Lägg till en ny `downloadLink` i data-objektet med href `/estimates?estimateId=${result.id}&download=true`
 
-### Teknisk ändring
+**2. `src/types/global-assistant.ts`**
+- Lägg till ett valfritt `downloadLink`-fält i `MessageData`-interfacet: `downloadLink?: { label: string; href: string; }`
 
-**Fil:** `src/components/layout/AppLayout.tsx`
+**3. `src/components/global-assistant/ResultCard.tsx`**
+- Rendera en "Ladda ner PDF"-knapp (med Download-ikon) om `data.downloadLink` finns, som navigerar till länken
 
-Flytta raden med `Offert` i `getNavItems`-arrayen (admin-delen) från position 7 till position 3, direkt efter "Byggio AI".
+**4. `src/pages/Estimates.tsx`**
+- Läs `download`-parametern från URL
+- Om `download=true` och offerten laddats, trigga PDF-nedladdning automatiskt via `generateQuotePdf`
+- Rensa `download`-parametern efteråt
 
+### Resultat
+Efter att en offert skapats via AI visas "Öppna offert" (befintlig länk) samt en ny "Ladda ner PDF"-knapp som direkt laddar ner offerten som PDF.
