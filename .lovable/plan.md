@@ -1,26 +1,43 @@
 
 
-## Ändra knappar efter offertskapande
+## Fix: Chatt-feedback poppar upp igen efter avvisning
 
-### Vad som ändras
-När en offert skapas/uppdateras via AI-assistenten visas idag "Visa offert" och "Skapa ny offert" som åtgärdsknappar. Dessa ska tas bort och ersättas med en "Ladda ner PDF"-knapp.
+### Orsak
 
-### Filer som ändras
+Det finns **tva** chatt-feedbacksystem som kan triggas for samma konversation:
 
-**1. `supabase/functions/global-assistant/index.ts`**
-- I `add_estimate_items`-caset (rad ~3502-3504): Ta bort de två nextActions ("Visa offert" och "Skapa ny offert")
-- Lägg till en ny `downloadLink` i data-objektet med href `/estimates?estimateId=${result.id}&download=true`
+1. **FeedbackSection** (inline i chatten) -- visas direkt efter en avklarad uppgift, sparar feedback med task_type t.ex. "add_estimate_items"
+2. **GlobalFeedbackPopup** -- visas 30 sekunder efter att man lamnar chatten, men letar bara efter task_type = "conversation_feedback" i databasen
 
-**2. `src/types/global-assistant.ts`**
-- Lägg till ett valfritt `downloadLink`-fält i `MessageData`-interfacet: `downloadLink?: { label: string; href: string; }`
+Nar anvandaren ger feedback via FeedbackSection (inline) och sedan lamnar chatten, hittar GlobalFeedbackPopup ingen befintlig feedback (fel task_type-sokning) och visar popupen anda.
 
-**3. `src/components/global-assistant/ResultCard.tsx`**
-- Rendera en "Ladda ner PDF"-knapp (med Download-ikon) om `data.downloadLink` finns, som navigerar till länken
+Dessutom: om anvandaren hoppar over popupen sparas inget i databasen, sa om location.pathname andras (navigation) kan timern aterstallas och popupen dyka upp igen.
 
-**4. `src/pages/Estimates.tsx`**
-- Läs `download`-parametern från URL
-- Om `download=true` och offerten laddats, trigga PDF-nedladdning automatiskt via `generateQuotePdf`
-- Rensa `download`-parametern efteråt
+### Losning
 
-### Resultat
-Efter att en offert skapats via AI visas "Öppna offert" (befintlig länk) samt en ny "Ladda ner PDF"-knapp som direkt laddar ner offerten som PDF.
+**1. `src/contexts/ConversationFeedbackContext.tsx`**
+- Andra `checkExistingFeedback` att kontrollera ALL feedback for konversationen (ta bort `.eq("task_type", "conversation_feedback")`-filtret), sa att inline-feedback ocksa rakas
+- Lagg till en `dismissedRef` som satts till `true` nar popupen stangs, sa att den inte kan oppnas igen under samma session/konversation
+- Ta bort `location.pathname` fran useEffect-beroendelistan -- starta bara timern nar `lastConversationId` satts, inte vid varje sidnavigation
+
+**2. `src/components/global-assistant/GlobalFeedbackPopup.tsx`**
+- Inga forandringar behovs i sjalva komponenten
+
+### Teknisk detalj
+
+```text
+Fore:
+  checkExistingFeedback -> .eq("task_type", "conversation_feedback")
+  useEffect deps: [lastConversationId, location.pathname]
+
+Efter:
+  checkExistingFeedback -> bara .eq("conversation_id", conversationId)
+  useEffect deps: [lastConversationId]
+  + dismissedRef forhindrar att popupen visas igen efter avvisning
+```
+
+### Forvanted beteende
+- Om anvandaren redan gett feedback inline (FeedbackSection) visas ingen popup
+- Om anvandaren hoppar over popupen visas den inte igen for samma konversation
+- Navigering mellan sidor aterstartar inte 30-sekunderstimern
+
