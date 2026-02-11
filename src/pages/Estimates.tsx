@@ -253,6 +253,8 @@ export default function Estimates() {
 
   // Show builder
   // Show builder - no outer back button since EstimateBuilder has its own
+  const shouldAutoDownload = searchParams.get("download") === "true";
+
   if (manualStarted && manualData) {
     return (
       <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
@@ -261,6 +263,7 @@ export default function Estimates() {
           estimateId={selectedEstimateId}
           onDelete={handleBack}
           onBack={handleBack}
+          autoDownload={shouldAutoDownload}
         />
       </div>
     );
