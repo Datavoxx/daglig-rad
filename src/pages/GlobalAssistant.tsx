@@ -39,7 +39,7 @@ export default function GlobalAssistant() {
   useEffect(() => {
     return () => {
       // Only trigger if there was a real conversation (more than 1 message = user + assistant)
-      if (conversationIdRef.current && messagesLengthRef.current > 0) {
+      if (conversationIdRef.current && messagesLengthRef.current > 1) {
         setLastConversation(conversationIdRef.current);
       }
     };
@@ -181,16 +181,6 @@ export default function GlobalAssistant() {
     setMessages(newMessagesWithLoading);
     setIsLoading(true);
 
-    // Eagerly save conversation so the ID is available even if user navigates away before AI responds
-    let activeConversationId = currentConversationId;
-    if (!activeConversationId) {
-      const earlyId = await saveConversation([userMessage], effectiveContext, null);
-      if (earlyId) {
-        activeConversationId = earlyId;
-        setCurrentConversationId(earlyId);
-      }
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke("global-assistant", {
         body: {
@@ -222,9 +212,9 @@ export default function GlobalAssistant() {
         setContext(finalContext);
       }
 
-      // Save/update conversation in database
-      const newConversationId = await saveConversation(finalMessages, finalContext, activeConversationId);
-      if (newConversationId && newConversationId !== activeConversationId) {
+      // Save to database
+      const newConversationId = await saveConversation(finalMessages, finalContext, currentConversationId);
+      if (newConversationId && newConversationId !== currentConversationId) {
         setCurrentConversationId(newConversationId);
       }
     } catch (error) {
