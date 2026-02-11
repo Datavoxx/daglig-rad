@@ -1,116 +1,97 @@
 
 
-## Mål
+## Mal
 
-Trigga webhook `https://datavox.app.n8n.cloud/webhook/hoppaover` varje gång en användare hoppar över feedback-enkäten.
+Nar en ny anvandare utan kunder skriver "Skapa ny offert" ska de fa ett tydligt meddelande som forklarar varfor det inte gar, plus en knapp for att skapa en ny kund.
 
 ---
 
-## Berörda ställen
+## Nuvarande beteende
 
-Det finns "Hoppa över" på **två** ställen:
+Nar kundlistan ar tom returneras:
+```
+type: "text"
+content: "Du har inga kunder annu. Skapa en kund forst."
+```
+Bara text, ingen knapp, anvandaren vet inte vad de ska gora.
 
-1. **GlobalFeedbackPopup** (den mörka popup:en som visas 30 sek efter man lämnar chatten)
-   - "Hoppa över"-knappen (rad 179-187)
-   - X-knappen uppe till höger (rad 114-120) — fungerar också som skip
+## Nytt beteende
 
-2. **FeedbackSection** (inline-feedbacken i chatten)
-   - "Hoppa över" i rating-steget (rad 113-121)
-   - "Hoppa över" i kommentarssteget (rad 152-160)
+Returnera ett `result`-meddelande med en aktionsknapp:
+
+```text
++------------------------------------------+
+| Du har inga kunder annu att koppla en     |
+| offert till. Skapa en kund forst sa kan   |
+| vi borja!                                 |
+|                                           |
+| [Skapa ny kund]                           |
++------------------------------------------+
+```
+
+Nar anvandaren klickar pa knappen skickas meddelandet "Jag vill skapa en ny kund" i chatten, precis som "Ny kund"-knappen i offertformulaeret.
 
 ---
 
 ## Teknisk implementation
 
-### Fil: `src/components/global-assistant/GlobalFeedbackPopup.tsx`
+### Fil: `supabase/functions/global-assistant/index.ts`
 
-Lägg till en `notifySkip`-funktion som anropar webhooken, och kalla den innan `onClose()` i både "Hoppa över"-knappen och X-knappen:
+**Andring pa rad 3681-3698** -- Byt `type: "text"` till `type: "result"` med `nextActions`:
 
-```tsx
-const notifySkip = async () => {
-  try {
-    const { data } = await supabase.auth.getUser();
-    await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: data.user?.id || null,
-        email: data.user?.email || null,
-        conversation_id: conversationId,
-        source: "global_feedback_popup",
-        skipped_at: new Date().toISOString(),
-      }),
-    });
-  } catch (e) {
-    console.error("Skip webhook error:", e);
+Fran:
+```typescript
+case "get_customers_for_estimate": {
+  const customers = results as Array<{ id: string; name: string }>;
+  if (customers.length === 0) {
+    return {
+      type: "text",
+      content: "Du har inga kunder annu. Skapa en kund forst.",
+    };
   }
-};
+  return {
+    type: "estimate_form",
+    content: "",
+    data: { customers },
+  };
+}
 ```
 
-Uppdatera:
-- X-knappen: `onClick` kör `notifySkip()` sedan `onClose()`
-- "Hoppa över"-knappen: `onClick` kör `notifySkip()` sedan `onClose()`
-
----
-
-### Fil: `src/components/global-assistant/FeedbackSection.tsx`
-
-Lägg till samma typ av `notifySkip`-funktion och anropa den i `handleSkip`:
-
-```tsx
-const notifySkip = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: user?.id || null,
-        email: user?.email || null,
-        conversation_id: conversationId || null,
-        task_type: taskType,
-        source: "feedback_section",
-        skipped_at: new Date().toISOString(),
-      }),
-    });
-  } catch (e) {
-    console.error("Skip webhook error:", e);
+Till:
+```typescript
+case "get_customers_for_estimate": {
+  const customers = results as Array<{ id: string; name: string }>;
+  if (customers.length === 0) {
+    return {
+      type: "result",
+      content: "Du har inga kunder annu att koppla en offert till. Skapa en kund forst sa kan vi borja!",
+      data: {
+        success: false,
+        resultMessage: "Du har inga kunder annu att koppla en offert till. Skapa en kund forst sa kan vi borja!",
+        nextActions: [
+          { label: "Skapa ny kund", icon: "user-plus", prompt: "Jag vill skapa en ny kund" },
+        ],
+      },
+    };
   }
-};
-
-const handleSkip = () => {
-  notifySkip(); // Fire-and-forget
-  if (step === "rating") {
-    setStep("complete");
-    onComplete?.();
-  } else {
-    submitFeedback(true);
-  }
-};
+  return {
+    type: "estimate_form",
+    content: "",
+    data: { customers },
+  };
+}
 ```
 
 ---
 
 ## Sammanfattning
 
-| # | Fil | Ändring |
+| # | Fil | Andring |
 |---|-----|---------|
-| 1 | `GlobalFeedbackPopup.tsx` | Lägg till `notifySkip` och anropa vid X-knapp + "Hoppa över" |
-| 2 | `FeedbackSection.tsx` | Lägg till `notifySkip` och anropa i `handleSkip` |
+| 1 | `global-assistant/index.ts` | Byt text-svar till result-kort med "Skapa ny kund"-knapp vid tom kundlista |
 
----
+## Resultat
 
-## Data som skickas till webhooken
-
-```json
-{
-  "user_id": "uuid",
-  "email": "user@example.com",
-  "conversation_id": "uuid eller null",
-  "source": "global_feedback_popup | feedback_section",
-  "task_type": "bara för feedback_section",
-  "skipped_at": "2026-02-10T12:00:00.000Z"
-}
-```
-
-Webhook-anropet görs som fire-and-forget — det blockerar inte UI:t.
+- Nya anvandare far ett tydligt meddelande som forklarar att de behover en kund forst
+- En klickbar knapp ("Skapa ny kund") tar dem direkt till kundformulaeret
+- Nar kunden ar skapad kan de skriva "Skapa ny offert" igen och da visas formulaeret som vanligt
