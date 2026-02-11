@@ -1,61 +1,27 @@
 
 
-## Sessionsfeedback vid utloggning och inaktivitet
+## Webhook-korrigering för chattfeedback
 
-### Vad som byggs
+### Nuläge
 
-Ett feedback-formulär som dyker upp i två situationer:
-1. **Innan utloggning** -- när användaren klickar "Logga ut" visas formuläret istället för att logga ut direkt
-2. **Efter 30 minuters inaktivitet** -- formuläret visas automatiskt
+Just nu skickar **båda** komponenterna (`FeedbackSection` och `GlobalFeedbackPopup`) till `https://datavox.app.n8n.cloud/webhook/feedback-chatt` enbart vid **hoppa över** -- men inget webhook-anrop görs vid faktisk inskickning av feedback (den sparas bara i databasen).
 
-Feedbacken skickas till `https://datavox.app.n8n.cloud/webhook/feedbacksession` och innehåller användarinfo, betyg och kommentarer.
+### Vad som ändras
 
-### Ny fil: `src/components/layout/SessionFeedbackPopup.tsx`
+| Åtgärd | Webhook |
+|--------|---------|
+| Hoppa över | `https://datavox.app.n8n.cloud/webhook/hoppaover` (återställs) |
+| Skicka feedback | `https://datavox.app.n8n.cloud/webhook/feedback-chatt` (nytt) |
 
-En popup-komponent med:
-- 5-stjärnig betygsättning
-- Textfält: "Vad var bra?" och "Vad kan göras bättre?"
-- Knappar: "Hoppa över" och "Skicka"
-- Mörk overlay (samma stil som GlobalFeedbackPopup)
-- Vid "Skicka" eller "Hoppa över": kör callback (utloggning eller stäng)
+### Filer som ändras
 
-Webhook-payload:
-```json
-{
-  "user_id": "uuid",
-  "email": "user@example.com",
-  "full_name": "Namn",
-  "rating": 4,
-  "what_was_good": "Bra gränssnitt",
-  "what_can_improve": "Snabbare laddning",
-  "trigger": "logout | inactivity",
-  "sent_at": "2026-02-11T12:00:00.000Z"
-}
-```
+**1. `src/components/global-assistant/FeedbackSection.tsx`**
+- Ändra `notifySkip`-webhooken tillbaka till `/hoppaover`
+- Lägg till ett POST-anrop till `/feedback-chatt` i `submitFeedback`-funktionen (efter lyckat databasinsert), med payload: user_id, email, full_name, conversation_id, task_type, rating, comment, sent_at
 
-### Ny fil: `src/hooks/useInactivityTimer.ts`
+**2. `src/components/global-assistant/GlobalFeedbackPopup.tsx`**
+- Ändra `notifySkip`-webhooken tillbaka till `/hoppaover`
+- Lägg till ett POST-anrop till `/feedback-chatt` i `handleSubmit`-funktionen (efter lyckat databasinsert), med payload: user_id, email, full_name, conversation_id, rating, what_was_good, what_can_improve, sent_at
 
-En hook som:
-- Lyssnar på `mousemove`, `keydown`, `click`, `scroll`, `touchstart`
-- Återställer en 30-minuters timer vid varje aktivitet
-- Anropar en callback när timern löper ut
-- Bara aktiv för inloggade användare (inom skyddade routes)
-
-### Ändrad fil: `src/components/layout/AppLayout.tsx`
-
-1. Importera `SessionFeedbackPopup` och `useInactivityTimer`
-2. Lägg till state: `showSessionFeedback` och `feedbackTrigger` ("logout" eller "inactivity")
-3. Ersätt alla tre utloggningsknappar (desktop sidebar, desktop tooltip, mobil meny) -- istället för att direkt anropa `signOut`, sätt `showSessionFeedback = true` och `feedbackTrigger = "logout"`
-4. Koppla `useInactivityTimer` med 30 min timeout som sätter `showSessionFeedback = true` och `feedbackTrigger = "inactivity"`
-5. Rendera `SessionFeedbackPopup` med en `onComplete`-callback som:
-   - Om trigger var "logout": kör `supabase.auth.signOut()` och navigera till `/auth`
-   - Om trigger var "inactivity": stäng popupen och återställ timern
-
-### Tekniska detaljer
-
-- Inaktivitetstimern skapas med `setTimeout` (30 * 60 * 1000 ms)
-- Event listeners läggs till på `window` och rensas vid unmount
-- Timern pausas/rensas om popupen redan visas
-- Webhook-anropet sker med `fetch` i en try/catch (fel loggas men blockerar inte utloggning)
-- Användarinfo hämtas via `supabase.auth.getUser()` + profiles-tabellen (samma mönster som GlobalFeedbackPopup)
+Alla webhook-anrop görs i try/catch så att eventuella fel inte blockerar det normala flödet.
 
