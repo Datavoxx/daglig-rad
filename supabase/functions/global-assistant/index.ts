@@ -3683,8 +3683,15 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       
       if (customers.length === 0) {
         return {
-          type: "text",
-          content: "Du har inga kunder ännu. Skapa en kund först.",
+          type: "result",
+          content: "Du har inga kunder ännu att koppla en offert till. Skapa en kund först så kan vi börja!",
+          data: {
+            success: false,
+            resultMessage: "Du har inga kunder ännu att koppla en offert till. Skapa en kund först så kan vi börja!",
+            nextActions: [
+              { label: "Skapa ny kund", icon: "user-plus", prompt: "Jag vill skapa en ny kund" },
+            ],
+          },
         };
       }
       

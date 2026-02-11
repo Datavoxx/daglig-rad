@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, ExternalLink, Plus, List, Clock, Search, Folder, FileText, LogIn, LogOut, Calendar, Users, Edit, DollarSign, PlusCircle, Check, Clipboard } from "lucide-react";
+import { CheckCircle2, XCircle, ExternalLink, Plus, List, Clock, Search, Folder, FileText, LogIn, LogOut, Calendar, Users, Edit, DollarSign, PlusCircle, Check, Clipboard, UserPlus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ const iconMap: Record<string, React.ElementType> = {
   clipboard: Clipboard,
   "dollar-sign": DollarSign,
   "plus-circle": PlusCircle,
+  "user-plus": UserPlus,
 };
 
 export function ResultCard({ data, content, onNextAction, conversationId }: ResultCardProps) {
