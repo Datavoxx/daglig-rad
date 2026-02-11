@@ -1,27 +1,38 @@
 
 
-## Webhook-korrigering för chattfeedback
+## Flytta "Offert" i sidomenyn
 
-### Nuläge
+Ändra ordningen i navigeringen så att "Offert" hamnar direkt under "Byggio AI" och ovanför "Projekt".
 
-Just nu skickar **båda** komponenterna (`FeedbackSection` och `GlobalFeedbackPopup`) till `https://datavox.app.n8n.cloud/webhook/feedback-chatt` enbart vid **hoppa över** -- men inget webhook-anrop görs vid faktisk inskickning av feedback (den sparas bara i databasen).
+### Nuvarande ordning (admin)
+1. Hem
+2. Byggio AI
+3. Projekt
+4. Personalliggare
+5. Tidsrapport
+6. Löneexport
+7. **Offert**
+8. Fakturor
+9. Kunder
+10. Inställningar
+11. Guide
 
-### Vad som ändras
+### Ny ordning
+1. Hem
+2. Byggio AI
+3. **Offert**
+4. Projekt
+5. Personalliggare
+6. Tidsrapport
+7. Löneexport
+8. Fakturor
+9. Kunder
+10. Inställningar
+11. Guide
 
-| Åtgärd | Webhook |
-|--------|---------|
-| Hoppa över | `https://datavox.app.n8n.cloud/webhook/hoppaover` (återställs) |
-| Skicka feedback | `https://datavox.app.n8n.cloud/webhook/feedback-chatt` (nytt) |
+### Teknisk ändring
 
-### Filer som ändras
+**Fil:** `src/components/layout/AppLayout.tsx`
 
-**1. `src/components/global-assistant/FeedbackSection.tsx`**
-- Ändra `notifySkip`-webhooken tillbaka till `/hoppaover`
-- Lägg till ett POST-anrop till `/feedback-chatt` i `submitFeedback`-funktionen (efter lyckat databasinsert), med payload: user_id, email, full_name, conversation_id, task_type, rating, comment, sent_at
-
-**2. `src/components/global-assistant/GlobalFeedbackPopup.tsx`**
-- Ändra `notifySkip`-webhooken tillbaka till `/hoppaover`
-- Lägg till ett POST-anrop till `/feedback-chatt` i `handleSubmit`-funktionen (efter lyckat databasinsert), med payload: user_id, email, full_name, conversation_id, rating, what_was_good, what_can_improve, sent_at
-
-Alla webhook-anrop görs i try/catch så att eventuella fel inte blockerar det normala flödet.
+Flytta raden med `Offert` i `getNavItems`-arrayen (admin-delen) från position 7 till position 3, direkt efter "Byggio AI".
 
