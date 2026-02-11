@@ -62,9 +62,10 @@ interface EstimateBuilderProps {
   estimateId?: string | null;
   onDelete?: () => void;
   onBack?: () => void;
+  autoDownload?: boolean;
 }
 
-export function EstimateBuilder({ project, manualData, estimateId, onDelete, onBack }: EstimateBuilderProps) {
+export function EstimateBuilder({ project, manualData, estimateId, onDelete, onBack, autoDownload }: EstimateBuilderProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(!isMobile);
@@ -74,6 +75,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
   const [isApplyingVoice, setIsApplyingVoice] = useState(false);
   const hasAutoSaved = useRef(false);
+  const hasAutoDownloaded = useRef(false);
 
   // Determine if we're in manual mode
   const isManualMode = !project && !!manualData;
@@ -90,6 +92,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       }, 100);
     }
   }, [isManualMode, estimate.hasExistingEstimate, estimate.isLoading]);
+
   
   // Derive display values - use estimate state for manual mode to enable editing
   const displayProjectName = isManualMode ? estimate.state.manualProjectName : project?.name || "";
@@ -175,6 +178,16 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       toast.error("Kunde inte generera PDF");
     }
   };
+
+  // Auto-download PDF when navigated with download=true
+  useEffect(() => {
+    if (autoDownload && !hasAutoDownloaded.current && !estimate.isLoading && estimate.state.items.length > 0) {
+      hasAutoDownloaded.current = true;
+      setTimeout(() => {
+        handleDownload();
+      }, 500);
+    }
+  }, [autoDownload, estimate.isLoading, estimate.state.items.length]);
 
   const handleSaveAsDraft = () => {
     estimate.updateStatus("draft");

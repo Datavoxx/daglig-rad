@@ -56,6 +56,7 @@ export interface MessageData {
     href: string;
   };
   nextActions?: NextAction[];
+  downloadLink?: { label: string; href: string };
   
   // For feedback
   showFeedback?: boolean;
