@@ -70,6 +70,36 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
 
       if (error) throw error;
 
+      // Notify feedback-chatt webhook
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        let fullName: string | null = null;
+        if (userData.user?.id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", userData.user.id)
+            .maybeSingle();
+          fullName = profile?.full_name || null;
+        }
+        await fetch("https://datavox.app.n8n.cloud/webhook/feedback-chatt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            email: userData.user?.email || null,
+            full_name: fullName,
+            conversation_id: conversationId,
+            rating,
+            what_was_good: whatWasGood.trim() || null,
+            what_can_improve: whatCanImprove.trim() || null,
+            sent_at: new Date().toISOString(),
+          }),
+        });
+      } catch (webhookErr) {
+        console.error("Feedback webhook error:", webhookErr);
+      }
+
       toast({
         title: "Tack för din feedback!",
         description: "Din feedback hjälper oss att förbättra Byggio AI.",
@@ -100,7 +130,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
           .maybeSingle();
         fullName = profile?.full_name || null;
       }
-      await fetch("https://datavox.app.n8n.cloud/webhook/feedback-chatt", {
+      await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
