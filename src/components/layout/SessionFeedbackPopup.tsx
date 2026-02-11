@@ -9,9 +9,10 @@ interface SessionFeedbackPopupProps {
   open: boolean;
   trigger: "logout" | "inactivity";
   onComplete: () => void;
+  onStayLoggedIn?: () => void;
 }
 
-export function SessionFeedbackPopup({ open, trigger, onComplete }: SessionFeedbackPopupProps) {
+export function SessionFeedbackPopup({ open, trigger, onComplete, onStayLoggedIn }: SessionFeedbackPopupProps) {
   const [rating, setRating] = useState(0);
   const [whatWasGood, setWhatWasGood] = useState("");
   const [whatCanImprove, setWhatCanImprove] = useState("");
@@ -170,6 +171,17 @@ export function SessionFeedbackPopup({ open, trigger, onComplete }: SessionFeedb
               {isSubmitting ? "Skickar..." : "Skicka"}
             </Button>
           </div>
+
+          {trigger === "logout" && onStayLoggedIn && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onStayLoggedIn}
+              className="w-full text-xs"
+            >
+              Förbli inloggad
+            </Button>
+          )}
         </div>
       </div>
     </>

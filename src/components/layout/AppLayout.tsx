@@ -443,6 +443,7 @@ export function AppLayout() {
         open={showSessionFeedback}
         trigger={feedbackTrigger}
         onComplete={handleFeedbackComplete}
+        onStayLoggedIn={() => setShowSessionFeedback(false)}
       />
     </div>
   );
