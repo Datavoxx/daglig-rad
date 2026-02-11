@@ -100,7 +100,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
           .maybeSingle();
         fullName = profile?.full_name || null;
       }
-      await fetch("https://datavox.app.n8n.cloud/webhook/hoppaover", {
+      await fetch("https://datavox.app.n8n.cloud/webhook/feedback-chatt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
