@@ -3688,7 +3688,7 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       if (customers.length === 0) {
         return {
           type: "result",
-          content: "Du har inga kunder ännu att koppla en offert till. Skapa en kund först så kan vi börja!",
+          content: "",
           data: {
             success: false,
             resultMessage: "Du har inga kunder ännu att koppla en offert till. Skapa en kund först så kan vi börja!",
