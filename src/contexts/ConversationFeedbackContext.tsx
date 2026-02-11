@@ -25,38 +25,39 @@ export function ConversationFeedbackProvider({ children }: ConversationFeedbackP
   const [lastConversationId, setLastConversationId] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissedRef = useRef(false);
   const location = useLocation();
 
-  // Check if feedback already exists for this conversation
+  // Check if ANY feedback already exists for this conversation (regardless of task_type)
   const checkExistingFeedback = async (conversationId: string): Promise<boolean> => {
     const { data } = await supabase
       .from("ai_feedback")
       .select("id")
       .eq("conversation_id", conversationId)
-      .eq("task_type", "conversation_feedback")
       .limit(1);
     
     return (data?.length ?? 0) > 0;
   };
 
-  // When lastConversationId is set and we're NOT on /global-assistant
+  // When lastConversationId is set, start timer once (not on every navigation)
   useEffect(() => {
-    if (lastConversationId && !location.pathname.includes("/global-assistant")) {
-      // Check if feedback already given
+    if (lastConversationId && !dismissedRef.current && !location.pathname.includes("/global-assistant")) {
       checkExistingFeedback(lastConversationId).then((exists) => {
-        if (!exists) {
+        if (!exists && !dismissedRef.current) {
           timerRef.current = setTimeout(() => {
-            setShowPopup(true);
-          }, 30000); // 30 seconds
+            if (!dismissedRef.current) {
+              setShowPopup(true);
+            }
+          }, 30000);
         }
       });
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [lastConversationId, location.pathname]);
+  }, [lastConversationId]);
 
-  // If user goes back to /global-assistant BEFORE popup shows, cancel timer (but don't close popup)
+  // If user goes back to /global-assistant BEFORE popup shows, cancel timer
   useEffect(() => {
     if (location.pathname.includes("/global-assistant") && timerRef.current) {
       clearTimeout(timerRef.current);
@@ -66,6 +67,7 @@ export function ConversationFeedbackProvider({ children }: ConversationFeedbackP
 
   const handleClose = () => {
     setShowPopup(false);
+    dismissedRef.current = true;
     setLastConversationId(null);
   };
 
