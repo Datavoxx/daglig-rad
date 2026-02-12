@@ -57,6 +57,8 @@ interface ExtractionResult {
   success: boolean;
   data?: ExtractedInvoice;
   error?: string;
+  _usage?: { prompt_tokens?: number; completion_tokens?: number };
+  _responseTime?: number;
 }
 
 const extractionPrompt = `Analysera denna leverantörsfaktura. Extrahera följande information och returnera som JSON:
@@ -98,6 +100,7 @@ async function tryExtract(
   console.log(`Extraction attempt: mimeType=${mimeType}, base64Length=${base64.length}`);
   
   try {
+    const _startTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -134,6 +137,7 @@ async function tryExtract(
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
+    const _endTime = Date.now();
     
     console.log("AI response received, parsing JSON...");
     
@@ -147,7 +151,7 @@ async function tryExtract(
     const extracted = JSON.parse(jsonMatch[0]) as ExtractedInvoice;
     console.log("Successfully extracted data:", extracted.supplier_name);
     
-    return { success: true, data: extracted };
+    return { success: true, data: extracted, _usage: data.usage, _responseTime: _endTime - _startTime };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Extraction error:", message);
@@ -217,7 +221,7 @@ serve(async (req) => {
 
     console.log(`Extraction complete. Method: ${result.data?.extractionMethod}`);
 
-    // Log AI usage (enhanced)
+    // Log AI usage (enhanced) - include token data from tryExtract response
     try {
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const authHeader = req.headers.get("Authorization");
@@ -226,7 +230,7 @@ serve(async (req) => {
         const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: userData } = await userClient.auth.getUser();
         if (userData?.user) {
-          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "extract-vendor-invoice", model: "google/gemini-2.5-pro", input_size: pdfBase64.length });
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "extract-vendor-invoice", model: "google/gemini-2.5-pro", tokens_in: result._usage?.prompt_tokens, tokens_out: result._usage?.completion_tokens, response_time_ms: result._responseTime, input_size: pdfBase64.length, output_size: JSON.stringify(result.data).length });
         }
       }
     } catch (_) {}
