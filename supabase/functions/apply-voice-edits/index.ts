@@ -185,6 +185,7 @@ Svara ENDAST med JSON-objektet.`;
       );
     }
 
+    const _aiStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -240,8 +241,9 @@ Svara ENDAST med JSON-objektet.`;
 
     const updatedData = JSON.parse(jsonStr);
 
-    // Log AI usage
+    // Log AI usage (enhanced)
     try {
+      const _aiEndTime = Date.now();
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
@@ -249,7 +251,7 @@ Svara ENDAST med JSON-objektet.`;
         const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: userData } = await userClient.auth.getUser();
         if (userData?.user) {
-          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-voice-edits", model: "google/gemini-2.5-flash" });
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-voice-edits", model: "google/gemini-2.5-flash", tokens_in: aiResponse.usage?.prompt_tokens, tokens_out: aiResponse.usage?.completion_tokens, response_time_ms: _aiEndTime - _aiStartTime, output_size: content?.length || 0 });
         }
       }
     } catch (_) {}

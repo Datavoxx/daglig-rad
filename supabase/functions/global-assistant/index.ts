@@ -4386,6 +4386,7 @@ NÄRVARO: generate_attendance_qr, check_in, check_out
 
     conversationMessages.push({ role: "user", content: message });
 
+    const _aiStartTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -4400,10 +4401,12 @@ NÄRVARO: generate_attendance_qr, check_in, check_out
       }),
     });
 
-    // Log AI usage
+    // Log AI usage (enhanced)
     try {
+      const _aiEndTime = Date.now();
       const svcClient = createClient(SUPABASE_URL!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      await svcClient.from("ai_usage_logs").insert({ user_id: userId, function_name: "global-assistant", model: "openai/gpt-5-mini" });
+      const _reqBody = JSON.stringify({ model: "openai/gpt-5-mini", messages: conversationMessages, tools, tool_choice: "auto" });
+      await svcClient.from("ai_usage_logs").insert({ user_id: userId, function_name: "global-assistant", model: "openai/gpt-5-mini", response_time_ms: _aiEndTime - _aiStartTime, input_size: _reqBody.length });
     } catch (_) {}
 
     if (!aiResponse.ok) {

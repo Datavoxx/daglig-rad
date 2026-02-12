@@ -54,24 +54,42 @@ export type Database = {
       }
       ai_usage_logs: {
         Row: {
+          cost_estimate: number | null
           created_at: string
           function_name: string
           id: string
+          input_size: number | null
           model: string | null
+          output_size: number | null
+          response_time_ms: number | null
+          tokens_in: number | null
+          tokens_out: number | null
           user_id: string
         }
         Insert: {
+          cost_estimate?: number | null
           created_at?: string
           function_name: string
           id?: string
+          input_size?: number | null
           model?: string | null
+          output_size?: number | null
+          response_time_ms?: number | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           user_id: string
         }
         Update: {
+          cost_estimate?: number | null
           created_at?: string
           function_name?: string
           id?: string
+          input_size?: number | null
           model?: string | null
+          output_size?: number | null
+          response_time_ms?: number | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           user_id?: string
         }
         Relationships: []

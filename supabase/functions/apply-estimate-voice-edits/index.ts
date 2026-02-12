@@ -122,6 +122,7 @@ Tolka kommandot och returnera uppdaterade items.
 
 VIKTIGT: Returnera alla items (även de som inte ändras) med komplett struktur.`;
 
+    const _aiStartTime = Date.now();
     const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -173,8 +174,9 @@ VIKTIGT: Returnera alla items (även de som inte ändras) med komplett struktur.
       }));
     }
 
-    // Log AI usage
+    // Log AI usage (enhanced)
     try {
+      const _aiEndTime = Date.now();
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
@@ -182,7 +184,7 @@ VIKTIGT: Returnera alla items (även de som inte ändras) med komplett struktur.
         const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: userData } = await userClient.auth.getUser();
         if (userData?.user) {
-          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-estimate-voice-edits", model: "openai/gpt-5-mini" });
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-estimate-voice-edits", model: "openai/gpt-5-mini", tokens_in: data.usage?.prompt_tokens, tokens_out: data.usage?.completion_tokens, response_time_ms: _aiEndTime - _aiStartTime, output_size: content?.length || 0 });
         }
       }
     } catch (_) {}
