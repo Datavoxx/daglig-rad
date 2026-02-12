@@ -307,6 +307,7 @@ Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all d
 
     console.log("Processing voice command:", transcript);
 
+    const _aiStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -432,8 +433,9 @@ Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all d
 
     console.log("Processed result:", result.changes_made);
 
-    // Log AI usage
+    // Log AI usage (enhanced)
     try {
+      const _aiEndTime = Date.now();
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
@@ -441,7 +443,7 @@ Tolka röstkommandot och returnera uppdaterad offertdata som JSON. Behåll all d
         const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: userData } = await userClient.auth.getUser();
         if (userData?.user) {
-          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-full-estimate-voice", model: "google/gemini-3-flash-preview" });
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "apply-full-estimate-voice", model: "google/gemini-3-flash-preview", tokens_in: data.usage?.prompt_tokens, tokens_out: data.usage?.completion_tokens, response_time_ms: _aiEndTime - _aiStartTime, output_size: content?.length || 0 });
         }
       }
     } catch (_) {}

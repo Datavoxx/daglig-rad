@@ -235,6 +235,7 @@ serve(async (req) => {
     ];
 
     // Use Lovable AI endpoint
+    const _aiStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -257,15 +258,16 @@ serve(async (req) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "Jag kunde inte generera ett svar.";
 
-    // Log AI usage
+    // Log AI usage (enhanced)
     try {
+      const _aiEndTime = Date.now();
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
         const svcClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: userData } = await userClient.auth.getUser();
         if (userData?.user) {
-          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "agent-chat", model: "openai/gpt-5-mini" });
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "agent-chat", model: "openai/gpt-5-mini", tokens_in: data.usage?.prompt_tokens, tokens_out: data.usage?.completion_tokens, response_time_ms: _aiEndTime - _aiStartTime, output_size: content?.length || 0 });
         }
       }
     } catch (_) {}
