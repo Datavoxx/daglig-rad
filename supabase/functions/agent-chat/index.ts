@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -255,6 +256,19 @@ serve(async (req) => {
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "Jag kunde inte generera ett svar.";
+
+    // Log AI usage
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const svcClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+        const { data: userData } = await userClient.auth.getUser();
+        if (userData?.user) {
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "agent-chat", model: "openai/gpt-5-mini" });
+        }
+      }
+    } catch (_) {}
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

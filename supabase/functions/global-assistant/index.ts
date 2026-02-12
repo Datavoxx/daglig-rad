@@ -4400,6 +4400,12 @@ NÄRVARO: generate_attendance_qr, check_in, check_out
       }),
     });
 
+    // Log AI usage
+    try {
+      const svcClient = createClient(SUPABASE_URL!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await svcClient.from("ai_usage_logs").insert({ user_id: userId, function_name: "global-assistant", model: "openai/gpt-5-mini" });
+    } catch (_) {}
+
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI Gateway error:", aiResponse.status, errorText);
