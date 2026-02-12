@@ -197,6 +197,20 @@ Transcript (svenska):
     try {
       const parsedReport = JSON.parse(jsonContent);
       console.log("Successfully parsed report with confidence:", parsedReport.confidence?.overall);
+
+      // Log AI usage
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const authHeader = req.headers.get("Authorization");
+        if (authHeader) {
+          const svcClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+          const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+          const { data: userData } = await userClient.auth.getUser();
+          if (userData?.user) {
+            await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "generate-report", model: "google/gemini-2.5-flash" });
+          }
+        }
+      } catch (_) {}
       
       return new Response(JSON.stringify(parsedReport), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

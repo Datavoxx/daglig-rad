@@ -266,8 +266,21 @@ Svara ENDAST med JSON, ingen annan text.`;
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
 
+    // Log AI usage
+    try {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const svcClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+        const { data: userData } = await userClient.auth.getUser();
+        if (userData?.user) {
+          await svcClient.from("ai_usage_logs").insert({ user_id: userData.user.id, function_name: "generate-estimate", model: "google/gemini-2.5-flash" });
+        }
+      }
+    } catch (_) {}
+
     if (!content) {
-      throw new Error("Tomt svar från AI");
     }
 
     console.log("AI response:", content);

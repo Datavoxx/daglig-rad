@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { AIUsageDialog } from "@/components/dashboard/AIUsageDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   FolderKanban, 
@@ -16,7 +17,8 @@ import {
   TrendingUp,
   Plus,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showAIUsage, setShowAIUsage] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -71,6 +75,7 @@ const Dashboard = () => {
     const fetchProfile = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
+        setUserEmail(userData.user.email || null);
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name")
@@ -321,6 +326,12 @@ const Dashboard = () => {
 
           {/* Quick action buttons with dropdown */}
           <div className="flex flex-wrap gap-2">
+            {userEmail === "mahad@datavoxx.se" && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowAIUsage(true)}>
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">AI-användning</span>
+              </Button>
+            )}
             {quickActions.map((action) => (
               <DropdownMenu key={action.title}>
                 <DropdownMenuTrigger asChild>
@@ -589,6 +600,7 @@ const Dashboard = () => {
           />
         </div>
       </section>
+      <AIUsageDialog open={showAIUsage} onOpenChange={setShowAIUsage} />
     </div>
   );
 };
