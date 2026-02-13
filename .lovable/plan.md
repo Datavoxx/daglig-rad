@@ -1,28 +1,43 @@
 
 
-## Fix: Token-loggning saknas i edge functions
+## Uppskattad kostnad per AI-anrop i admin-popupen
 
-### Problem
-Tokens visas som `0 / 0` i AI-anvandningspopupen. Orsaken ar att flera edge functions inte loggar token-data korrekt:
+### Vad vi gor
+Lagger till en beraknad kostnad i dollar for varje AI-anrop baserat pa modell och antal tokens (in/ut). Kostnaden visas i sammanfattningen, per-anvandare, per-funktion, per-modell och i senaste-loggen.
 
-1. **global-assistant** (den mest anvanda): Loggningen sker **innan** AI-svaret parsas, sa `usage`-data fran svaret aldrig inkluderas. Dessutom saknas `tokens_in` och `tokens_out` helt i insert-raden.
-2. **extract-vendor-invoice**: Saknar token-falten helt i insert-raden.
+### Prislista (per 1M tokens, baserat pa Lovable AI-modellerna)
 
-De ovriga 12 funktionerna (generate-estimate, agent-chat, etc.) loggar korrekt efter att svaret parsats med `data.usage?.prompt_tokens`.
+| Modell | Input | Output |
+|--------|-------|--------|
+| google/gemini-2.5-flash | $0.15 | $0.60 |
+| google/gemini-2.5-flash-lite | $0.075 | $0.30 |
+| google/gemini-2.5-pro | $1.25 | $10.00 |
+| openai/gpt-5 | $2.00 | $8.00 |
+| openai/gpt-5-mini | $0.40 | $1.60 |
+| openai/gpt-5-nano | $0.10 | $0.40 |
 
-### Losning
+Priserna ar ungefar korrekta for respektive modell-tier. Anvandaren kan justera dem i koden vid behov.
 
-**1. global-assistant/index.ts**
-- Flytta loggningsblocket sa det kors **efter** `const aiData = await aiResponse.json()` (rad 4430)
-- Lagg till `tokens_in: aiData.usage?.prompt_tokens` och `tokens_out: aiData.usage?.completion_tokens` och `output_size` i insert-raden
-- Behall `response_time_ms` och `input_size`
+### Tekniska andringar
 
-**2. extract-vendor-invoice/index.ts**
-- Lagga till token-falt fran AI-svaret i insert-raden (om `usage`-objektet finns i svaret fran den modellen)
+**Fil: `src/components/dashboard/AIUsageDialog.tsx`**
 
-### Filer som andras
-- `supabase/functions/global-assistant/index.ts` -- flytta loggning + lagg till tokens
-- `supabase/functions/extract-vendor-invoice/index.ts` -- lagg till tokens
+1. Lagg till en `MODEL_PRICING`-map med pris per token (in/ut) for varje modell
+2. Lagg till en `estimateCost(model, tokensIn, tokensOut)` hjalp-funktion
+3. Uppdatera sammanfattnings-korten: lagg till ett femte kort "Uppskattad kostnad" med dollar-summa
+4. Uppdatera per-anvandare-tabellen: lagg till en kolumn "Kostnad"
+5. Uppdatera per-funktion-tabellen: lagg till en kolumn "Kostnad"
+6. Uppdatera per-modell-tabellen: lagg till en kolumn "Kostnad"
+7. Uppdatera senaste-loggen: lagg till kostnad per rad
+
+Hjalp-funktionen:
+```typescript
+const estimateCost = (model: string | null, tokensIn: number, tokensOut: number) => {
+  const pricing = MODEL_PRICING[model || "unknown"] || MODEL_PRICING["unknown"];
+  return (tokensIn * pricing.input + tokensOut * pricing.output) / 1_000_000;
+};
+```
 
 ### Resultat
-Efter andringen borjar alla nya AI-anrop logga faktiska token-varden, och popupen visar korrekt data istallet for `0 / 0`.
+Varje tab och sammanfattningen visar en uppskattad dollarkostnad, sa du direkt kan se vad AI-anvandningen kostar per anvandare, funktion och modell.
+
