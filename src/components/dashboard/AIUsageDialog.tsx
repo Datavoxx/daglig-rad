@@ -38,13 +38,13 @@ interface Profile {
 }
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "google/gemini-2.5-flash": { input: 0.15, output: 0.60 },
-  "google/gemini-2.5-flash-lite": { input: 0.075, output: 0.30 },
+  "google/gemini-2.5-flash": { input: 0.30, output: 2.50 },
+  "google/gemini-2.5-flash-lite": { input: 0.10, output: 0.40 },
   "google/gemini-2.5-pro": { input: 1.25, output: 10.00 },
-  "openai/gpt-5": { input: 2.00, output: 8.00 },
-  "openai/gpt-5-mini": { input: 0.40, output: 1.60 },
-  "openai/gpt-5-nano": { input: 0.10, output: 0.40 },
-  "unknown": { input: 0.40, output: 1.60 },
+  "openai/gpt-5": { input: 1.25, output: 10.00 },
+  "openai/gpt-5-mini": { input: 0.25, output: 2.00 },
+  "openai/gpt-5-nano": { input: 0.05, output: 0.40 },
+  "unknown": { input: 0.30, output: 2.50 },
 };
 
 const estimateCost = (model: string | null, tokensIn: number, tokensOut: number) => {
