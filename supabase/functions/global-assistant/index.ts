@@ -738,6 +738,32 @@ const tools = [
       },
     },
   },
+  // === PLANNING FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_projects_for_planning",
+      description: "Get active projects for planning form. Use when user wants to create a plan/planning without specifying a project, or when user says 'skapa planering'.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  // === UPDATE PROJECT FORM ===
+  {
+    type: "function",
+    function: {
+      name: "get_projects_for_update",
+      description: "Get active projects for update project form. Use when user wants to update a project, or says 'uppdatera projekt'.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
   // === CHECK-IN FORM ===
   {
     type: "function",
@@ -2371,6 +2397,28 @@ async function executeTool(
       return { projects: projects || [], employees: employees || [] };
     }
 
+    case "get_projects_for_planning": {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, address")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+      if (error) throw error;
+      return { projects: data || [] };
+    }
+
+    case "get_projects_for_update": {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, address")
+        .eq("user_id", userId)
+        .in("status", ["active", "planning"])
+        .order("name");
+      if (error) throw error;
+      return { projects: data || [] };
+    }
+
     case "get_projects_for_check_in": {
       const { data, error } = await supabase
         .from("projects")
@@ -3805,6 +3853,22 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       };
     }
 
+    case "get_projects_for_planning": {
+      const result = results as { projects: Array<{ id: string; name: string; address?: string }> };
+      if (result.projects.length === 0) {
+        return { type: "text", content: "Du har inga aktiva projekt. Skapa ett projekt först." };
+      }
+      return { type: "planning_form", content: "", data: { projects: result.projects } };
+    }
+
+    case "get_projects_for_update": {
+      const result = results as { projects: Array<{ id: string; name: string; address?: string }> };
+      if (result.projects.length === 0) {
+        return { type: "text", content: "Du har inga aktiva projekt att uppdatera." };
+      }
+      return { type: "update_project_form", content: "", data: { projects: result.projects } };
+    }
+
     case "get_projects_for_check_in": {
       const projects = results as Array<{ id: string; name: string; address?: string }>;
       
@@ -4321,6 +4385,8 @@ VISA FORMULÄR DIREKT för dessa:
 - "checka in" / "personalliggare" → get_projects_for_check_in
 - "ny kund" → get_customer_form
 - "skapa projekt" → get_project_form
+- "skapa planering" → get_projects_for_planning
+- "uppdatera projekt" → get_projects_for_update
 </form_policy>
 
 <form_vs_create>
@@ -4332,6 +4398,7 @@ VISA FORMULÄR (ingen data):
 SKAPA DIREKT (data finns redan i meddelandet):
 - "Skapa offert X för kund med ID Y" → create_estimate
 - Om meddelandet innehåller kund-ID (UUID) → create_estimate
+- "Skapa planering för projekt med ID X" → create_plan
 
 REGEL: Om kund-ID (UUID) finns i meddelandet → INTE formulär, SKAPA direkt!
 </form_vs_create>
@@ -4346,7 +4413,7 @@ ${context?.selectedEstimateId ? `✅ VALD OFFERT-ID: ${context.selectedEstimateI
 SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
 SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
 VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_overview, get_project_plan, list_project_files
-FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form
+FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form, get_projects_for_planning, get_projects_for_update
 UPPDATERA: update_work_order, update_ata, update_customer, update_project
 NÄRVARO: generate_attendance_qr, check_in, check_out
 </tools_quick_ref>

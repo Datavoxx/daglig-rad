@@ -426,6 +426,37 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt arbetsorderskapande");
   };
 
+  const handlePlanningFormSubmit = async (formData: {
+    projectId: string;
+    startDate: string;
+    phases: Array<{ name: string; weeks: number }>;
+  }) => {
+    const phasesSummary = formData.phases.map((p) => `${p.name} (${p.weeks} veckor)`).join(", ");
+    await sendMessage(
+      `Skapa planering för projekt med ID ${formData.projectId}. Startdatum: ${formData.startDate}. Faser: ${phasesSummary}`,
+      { selectedProjectId: formData.projectId }
+    );
+  };
+
+  const handlePlanningFormCancel = async () => {
+    await sendMessage("Avbryt planeringsskapande");
+  };
+
+  const handleUpdateProjectAction = async (projectId: string, category: string) => {
+    const prompts: Record<string, string> = {
+      ata: `Skapa ÄTA på projekt med ID ${projectId}`,
+      work_order: `Skapa arbetsorder på projekt med ID ${projectId}`,
+      files: `Visa filer för projekt med ID ${projectId}`,
+      planning: `Skapa planering för projekt med ID ${projectId}`,
+      diary: `Skapa dagrapport för projekt med ID ${projectId}`,
+    };
+    await sendMessage(prompts[category] || `Uppdatera projekt med ID ${projectId}`, { selectedProjectId: projectId });
+  };
+
+  const handleUpdateProjectCancel = async () => {
+    await sendMessage("Avbryt projektuppdatering");
+  };
+
   const handleEstimateItemsFormSubmit = async (formData: {
     estimateId: string;
     introduction: string;
@@ -592,6 +623,10 @@ export default function GlobalAssistant() {
             onEstimateItemsFormSubmit={handleEstimateItemsFormSubmit}
             onEstimateItemsFormCancel={handleEstimateItemsFormCancel}
             onEstimateItemsFormOpen={handleEstimateItemsFormOpen}
+            onPlanningFormSubmit={handlePlanningFormSubmit}
+            onPlanningFormCancel={handlePlanningFormCancel}
+            onUpdateProjectAction={handleUpdateProjectAction}
+            onUpdateProjectCancel={handleUpdateProjectCancel}
             onSendMessage={sendMessage}
             isLoading={isLoading}
           />
