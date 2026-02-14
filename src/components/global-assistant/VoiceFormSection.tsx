@@ -13,7 +13,8 @@ export type VoiceFormType =
   | "work-order" 
   | "customer" 
   | "time"
-  | "estimate-items";
+  | "estimate-items"
+  | "planning";
 
 interface VoiceFormSectionProps {
   formType: VoiceFormType;

@@ -22,7 +22,9 @@ export interface Message {
     | "economy_overview"
     | "check_in_form"
     | "invoice_filter_form"
-    | "work_order_form";
+    | "work_order_form"
+    | "planning_form"
+    | "update_project_form";
   data?: MessageData;
 }
 

@@ -20,6 +20,8 @@ import { FileListCard } from "./FileListCard";
 import { EconomyCard } from "./EconomyCard";
 import { CheckInFormCard } from "./CheckInFormCard";
 import { WorkOrderFormCard } from "./WorkOrderFormCard";
+import { PlanningFormCard } from "./PlanningFormCard";
+import { UpdateProjectFormCard } from "./UpdateProjectFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -98,6 +100,10 @@ interface MessageListProps {
   onEstimateItemsFormSubmit?: (data: EstimateItemsFormData) => void;
   onEstimateItemsFormCancel?: () => void;
   onEstimateItemsFormOpen?: (estimateId: string) => void;
+  onPlanningFormSubmit?: (data: { projectId: string; startDate: string; phases: Array<{ name: string; weeks: number }> }) => void;
+  onPlanningFormCancel?: () => void;
+  onUpdateProjectAction?: (projectId: string, category: string) => void;
+  onUpdateProjectCancel?: () => void;
   onSendMessage?: (message: string) => void;
   isLoading?: boolean;
 }
@@ -131,6 +137,10 @@ export function MessageList({
   onEstimateItemsFormSubmit,
   onEstimateItemsFormCancel,
   onEstimateItemsFormOpen,
+  onPlanningFormSubmit,
+  onPlanningFormCancel,
+  onUpdateProjectAction,
+  onUpdateProjectCancel,
   onSendMessage,
   isLoading,
 }: MessageListProps) {
@@ -360,6 +370,26 @@ export function MessageList({
                     preselectedProjectId={message.data.preselectedProjectId}
                     onSubmit={onWorkOrderFormSubmit}
                     onCancel={onWorkOrderFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Planning form card */}
+                {message.type === "planning_form" && message.data?.projects && onPlanningFormSubmit && onPlanningFormCancel && (
+                  <PlanningFormCard
+                    projects={message.data.projects}
+                    onSubmit={onPlanningFormSubmit}
+                    onCancel={onPlanningFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Update project form card */}
+                {message.type === "update_project_form" && message.data?.projects && onUpdateProjectAction && onUpdateProjectCancel && (
+                  <UpdateProjectFormCard
+                    projects={message.data.projects}
+                    onAction={onUpdateProjectAction}
+                    onCancel={onUpdateProjectCancel}
                     disabled={isLoading}
                   />
                 )}
