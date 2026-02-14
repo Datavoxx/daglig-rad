@@ -1,48 +1,30 @@
 
 
-## Korrigera AI-kostnadspriser till faktiska värden
+## Koppla Google Places Autocomplete till AI-assistentens formulär
 
-### Bakgrund
-De uppskattade priserna i admin-popupen var baserade på ungefärliga antaganden, inte verifierade mot leverantörernas faktiska priser. Efter att ha kollat tre källor (Lovable-dokumentationen, OpenAI:s officiella prislista och Google:s prislista) visade det sig att 5 av 6 priser var felaktiga.
+### Vad vi gör
+Byter ut vanliga `Input`-fält för adress i två formulär i den globala assistenten mot `AddressAutocomplete`-komponenten som redan finns i projektet. Den kopplar automatiskt till Google Places API med autocomplete för svenska adresser.
 
-Lovable-dokumentationen bekräftar: "The cost of using Lovable AI is exactly the same as going directly to the LLM provider."
+### Berörda filer
 
-### Korrigerade priser (per 1M tokens)
+**1. `src/components/global-assistant/EstimateFormCard.tsx`**
+- Byt ut `Input` för adressfältet (rad 144-150) mot `AddressAutocomplete`
+- Importera `AddressAutocomplete` och `AddressData` från `@/components/shared/AddressAutocomplete`
+- När användaren väljer en adress från autocomplete fylls adressen i automatiskt
 
-| Modell | Input (nu) | Output (nu) | Input (korrekt) | Output (korrekt) |
-|--------|-----------|------------|-----------------|------------------|
-| google/gemini-2.5-flash | $0.15 | $0.60 | $0.30 | $2.50 |
-| google/gemini-2.5-flash-lite | $0.075 | $0.30 | $0.10 | $0.40 |
-| google/gemini-2.5-pro | $1.25 | $10.00 | $1.25 (OK) | $10.00 (OK) |
-| openai/gpt-5 | $2.00 | $8.00 | $1.25 | $10.00 |
-| openai/gpt-5-mini | $0.40 | $1.60 | $0.25 | $2.00 |
-| openai/gpt-5-nano | $0.10 | $0.40 | $0.05 | $0.40 |
+**2. `src/components/global-assistant/CustomerFormCard.tsx`**
+- Byt ut `Input` för adressfältet (rad 133-139) mot `AddressAutocomplete`
+- Importera `AddressAutocomplete` och `AddressData`
+- Koppla `onStructuredChange` så att stad-fältet fylls i automatiskt från Google (postnummer och city extraheras)
+- När en adress väljs: sätt `address` till gatuadressen och `city` till staden automatiskt
 
-### Kallor
+### Hur det fungerar
+Projektet har redan en färdig `AddressAutocomplete`-komponent (`src/components/shared/AddressAutocomplete.tsx`) som:
+- Laddar Google Maps JS API med Places-biblioteket
+- Visar autocomplete-förslag begränsade till Sverige
+- Extraherar postnummer, stad, lat/lng från det valda resultatet
 
-- Lovable AI-dokumentation: https://docs.lovable.dev/integrations/ai
-- OpenAI GPT-5 prislista (Simon Willison, aug 2025): https://simonwillison.net/2025/Aug/7/gpt-5/
-- Google Gemini-priser via pricepertoken.com
+Ingen ny API-nyckel eller backend-ändring behövs -- samma Google API-nyckel som redan används i projektet återanvänds.
 
-### Teknisk andring
-
-**Fil: `src/components/dashboard/AIUsageDialog.tsx`**
-
-Uppdatera `MODEL_PRICING`-objektet med korrekta priser:
-
-```typescript
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "google/gemini-2.5-flash": { input: 0.30, output: 2.50 },
-  "google/gemini-2.5-flash-lite": { input: 0.10, output: 0.40 },
-  "google/gemini-2.5-pro": { input: 1.25, output: 10.00 },
-  "openai/gpt-5": { input: 1.25, output: 10.00 },
-  "openai/gpt-5-mini": { input: 0.25, output: 2.00 },
-  "openai/gpt-5-nano": { input: 0.05, output: 0.40 },
-  "unknown": { input: 0.30, output: 2.50 },
-};
-```
-
-Notera att "unknown"-fallback ocksa uppdateras till Gemini 2.5 Flash-priset (den vanligaste modellen).
-
-Ingen annan kod behover andras -- alla berakningar anvander redan `MODEL_PRICING`-mapen.
-
+### Resultat
+Båda formulären i AI-assistenten får adress-autocomplete med Google Places, precis som det redan fungerar i kunddialogen och offertguiden.
