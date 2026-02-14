@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileText, X, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/shared/AddressAutocomplete";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -141,12 +142,11 @@ export function EstimateFormCard({
           <Label htmlFor="address" className="text-xs text-muted-foreground">
             Adress (valfritt)
           </Label>
-          <Input
+          <AddressAutocomplete
             id="address"
             placeholder="Projektadress..."
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            disabled={disabled}
+            onChange={(val) => setAddress(val)}
           />
         </div>
       </div>

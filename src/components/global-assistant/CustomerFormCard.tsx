@@ -2,6 +2,7 @@ import { useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { VoiceFormSection } from "./VoiceFormSection";
@@ -130,12 +131,14 @@ export function CustomerFormCard({
             <Label htmlFor="address" className="text-xs text-muted-foreground">
               Adress
             </Label>
-            <Input
+            <AddressAutocomplete
               id="address"
               placeholder="Gatuadress..."
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              disabled={disabled}
+              onChange={(val) => setAddress(val)}
+              onStructuredChange={(data: AddressData) => {
+                if (data.city) setCity(data.city);
+              }}
             />
           </div>
 
