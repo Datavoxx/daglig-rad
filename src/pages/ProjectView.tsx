@@ -118,7 +118,7 @@ export default function ProjectView() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide">
+        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit">
