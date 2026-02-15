@@ -1565,16 +1565,28 @@ async function executeTool(
       // Get project with budget
       const { data: project } = await supabase
         .from("projects")
-        .select("id, name, budget")
+        .select("id, name, budget, estimate_id")
         .eq("id", project_id)
         .single();
       
-      // Get estimate if linked
-      const { data: estimate } = await supabase
+      // Get estimate if linked - try by project_id first, fallback to projects.estimate_id
+      let estimate = null;
+      const { data: estByProject } = await supabase
         .from("project_estimates")
         .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
         .eq("project_id", project_id)
-        .single();
+        .maybeSingle();
+      
+      if (estByProject) {
+        estimate = estByProject;
+      } else if (project?.estimate_id) {
+        const { data: estById } = await supabase
+          .from("project_estimates")
+          .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+          .eq("id", project.estimate_id)
+          .maybeSingle();
+        estimate = estById;
+      }
       
       // Get time entries
       const { data: timeEntries } = await supabase
@@ -1636,7 +1648,7 @@ async function executeTool(
       // Get project with all basic info
       const { data: project } = await supabase
         .from("projects")
-        .select("id, name, status, address, city, start_date, budget, client_name")
+        .select("id, name, status, address, city, start_date, budget, client_name, estimate_id")
         .eq("id", project_id)
         .single();
       
@@ -1644,12 +1656,24 @@ async function executeTool(
         throw new Error("Projekt hittades inte");
       }
       
-      // Get estimate if linked
-      const { data: estimate } = await supabase
+      // Get estimate if linked - try by project_id first, fallback to projects.estimate_id
+      let estimate = null;
+      const { data: estByProject2 } = await supabase
         .from("project_estimates")
         .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
         .eq("project_id", project_id)
-        .single();
+        .maybeSingle();
+      
+      if (estByProject2) {
+        estimate = estByProject2;
+      } else if (project?.estimate_id) {
+        const { data: estById2 } = await supabase
+          .from("project_estimates")
+          .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+          .eq("id", project.estimate_id)
+          .maybeSingle();
+        estimate = estById2;
+      }
       
       // Get time entries
       const { data: timeEntries } = await supabase
