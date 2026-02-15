@@ -1,65 +1,65 @@
 
-## Fix: Budgetöversikt i assistenten visar 0 kr istället för korrekt data
+
+## Koppla leverantörsfakturor till ekonomiöversikten i Byggio AI
 
 ### Problem
-När du frågar assistenten om ekonomisk översikt för "tony-test" visar den Budget: 0 kr och Offert totalt: 0 kr, trots att projektvyn visar 461 438 kr.
-
-**Rotorsak:** Offerten är kopplad till projektet via `projects.estimate_id` (projektet pekar på offerten), men edge-funktionen söker offerten via `project_estimates.project_id` (offerten pekar på projektet). I det här fallet är `project_estimates.project_id` tomt/null, så inget hittas.
-
-Projektvyn fungerar korrekt eftersom den hämtar offerten via `projects.estimate_id` och skickar den som prop.
+När du frågar Byggio AI om ekonomiöversikten för ett projekt hämtas bara kundfakturor. Leverantörsfakturor (inköp/kostnader) ignoreras helt, trots att de finns inlagda på projektet.
 
 ### Lösning
 
-**Fil: `supabase/functions/global-assistant/index.ts`**
+Hämta leverantörsfakturor i edge-funktionen och visa dem i EconomyCard.
 
-Uppdatera `get_project_economy` (och `get_project_overview`) så att offerthämtningen har en fallback:
+**Steg 1: `supabase/functions/global-assistant/index.ts`**
 
-1. Först försöka hämta via `project_estimates.project_id` (nuvarande logik)
-2. Om det inte hittas, hämta via `projects.estimate_id` och sedan slå upp den offerten direkt via dess `id`
+I både `get_project_economy` och `get_project_overview`:
 
-Samma fix appliceras på båda ställena (`get_project_economy` runt rad 1572 och `get_project_overview` runt rad 1647).
+- Lägg till en query mot `vendor_invoices` filtrerad på `project_id`
+- Beräkna total kostnad (ex moms och inkl moms)
+- Returnera nya fält: `vendor_cost_ex_vat`, `vendor_cost_inc_vat`, `vendor_invoice_count`
 
-### Teknisk detalj
+Ny kod (efter customer_invoices-queryn, ca rad 1618 och rad 1703):
+```typescript
+// Get vendor invoices (costs/expenses)
+const { data: vendorInvoices } = await supabase
+  .from("vendor_invoices")
+  .select("total_ex_vat, total_inc_vat, status, supplier_name")
+  .eq("project_id", project_id);
 
-Nuvarande kod (rad 1572-1577):
-```ts
-const { data: estimate } = await supabase
-  .from("project_estimates")
-  .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
-  .eq("project_id", project_id)
-  .single();
+const vendorCostExVat = (vendorInvoices || [])
+  .reduce((sum, v) => sum + (v.total_ex_vat || 0), 0);
+
+const vendorCostIncVat = (vendorInvoices || [])
+  .reduce((sum, v) => sum + (v.total_inc_vat || 0), 0);
 ```
 
-Ny kod:
-```ts
-// Try by project_id first
-let estimate = null;
-const { data: estByProject } = await supabase
-  .from("project_estimates")
-  .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
-  .eq("project_id", project_id)
-  .single();
-
-if (estByProject) {
-  estimate = estByProject;
-} else if (project?.estimate_id) {
-  // Fallback: lookup via projects.estimate_id
-  const { data: estById } = await supabase
-    .from("project_estimates")
-    .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
-    .eq("id", project.estimate_id)
-    .single();
-  estimate = estById;
-}
+Lägg till i return-objektet:
+```typescript
+vendor_cost_ex_vat: vendorCostExVat,
+vendor_cost_inc_vat: vendorCostIncVat,
+vendor_invoice_count: vendorInvoices?.length || 0,
 ```
 
-Dessutom behöver `projects`-queryn inkludera `estimate_id`:
-```ts
-.select("id, name, budget, estimate_id")
+**Steg 2: `src/components/global-assistant/EconomyCard.tsx`**
+
+- Utöka `data`-interfacet med `vendor_cost_ex_vat`, `vendor_cost_inc_vat`, `vendor_invoice_count`
+- Lägg till ett nytt visuellt kort i grid:et (bredvid ÄTA) som visar leverantörskostnader med en röd/orange ikon (t.ex. `ShoppingCart` eller `Truck`)
+- Lägg till en progress bar som visar "Kostnader vs offert" (vendor_cost / estimate_total)
+
+Nytt kort:
+```tsx
+{/* Leverantörskostnader */}
+<div className="p-3 rounded-lg bg-red-500/10 space-y-1">
+  <div className="flex items-center gap-2 text-red-600">
+    <ShoppingCart className="h-4 w-4" />
+    <span className="text-xs font-medium">Inköp ({data.vendor_invoice_count || 0})</span>
+  </div>
+  <p className="text-lg font-semibold">{formatCurrency(data.vendor_cost_ex_vat || 0)}</p>
+</div>
 ```
+
+Grid ändras från `grid-cols-2` till att rymma 5 kort (3+2 eller fortfarande 2 kolumner med en extra rad).
 
 ### Resultat
-- Offertbeloppet (461 438 kr) visas korrekt i assistentens ekonomikort
-- Arbete/material-uppdelningen visas korrekt
-- ÄTA och timmar visas redan korrekt (5 500 kr resp. 7h)
-- Samma fix säkerställer att `get_project_overview` också visar rätt data
+- Leverantörsfakturor syns i ekonomiöversikten med totalbelopp
+- Antal leverantörsfakturor visas
+- Lättare att se projektets faktiska kostnader jämfört med budget/offert
