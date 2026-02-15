@@ -1,33 +1,36 @@
 
-## Tydligare aktiv flik i projektnavigationen
 
-Samma stil som sidomenyn: en primärfärgad markering, bakgrundsfärg och förstärkt ikon på den aktiva fliken.
+## Grön shadow/glow på aktiv projektflik
 
 ### Vad ändras
 
-**Fil: `src/pages/ProjectView.tsx`** -- TabsTrigger-klasserna
+Lägger till en grön shadow-glow-effekt på den aktiva fliken i projektnavigationen, precis som sidomenyn har. Den nuvarande `bg-primary/10` behålls men förstärks med en `box-shadow` i primärfärgen (grön).
 
-Varje `TabsTrigger` får uppdaterade klasser direkt i ProjectView (inte i den globala tabs.tsx, för att inte påverka andra ställen). Aktiv flik får:
+### Teknisk ändring
 
-- **Bakgrundsfärg**: `data-[state=active]:bg-primary/10` -- en lätt grön/primärfärgad bakgrund (samma mönster som sidomenyn)
-- **Textfärg**: `data-[state=active]:text-primary` -- primärfärg på text och ikon
-- **Bottenlinje**: Behåller `border-b-2 border-primary` (redan implementerat i tabs.tsx)
-- **Rundade hörn**: `data-[state=active]:rounded-md` istället för `rounded-b-none` så att bakgrundsfärgen ser snygg ut
-- **Förstärkt ikon**: Ikonen skalas upp lite med `scale-110` på aktiv flik (som sidomenyn gör)
+**Fil: `src/pages/ProjectView.tsx`**
 
-Inaktiva flikar behåller `text-muted-foreground` och `hover:bg-muted/50` för en subtil hover-effekt.
+Uppdaterar alla sex `TabsTrigger`-element med en extra klass för grön shadow på aktiv state:
 
-### Tekniskt
-
-Varje TabsTrigger i ProjectView.tsx får klassen:
 ```
-className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:rounded-md py-2 px-3"
+data-[state=active]:shadow-[0_0_12px_hsl(142,69%,45%,0.25)]
 ```
 
-Ikonen i varje trigger wrappas inte separat -- primärfärgen ärvs från `text-primary` på triggern.
+Detta ger en mjuk grön glöd runt den aktiva fliken -- samma känsla som sidomenyn.
 
-Dessutom tas `data-[state=active]:rounded-b-none` bort från den globala `tabs.tsx` och ersätts med `data-[state=active]:rounded-md` så att bakgrundsfärgen har rundade hörn. Bottenborder-effekten behålls men kombineras med bakgrundsfärgen.
+Fullständig aktiv-klass per trigger blir:
+```
+data-[state=active]:bg-primary/10 data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142,69%,45%,0.25)] data-[state=active]:text-primary
+```
+
+Dessutom läggs `data-[state=active]:text-primary` till explicit på varje trigger (förstärker att ikoner och text blir gröna).
 
 ### Resultat
 
-Den aktiva fliken får samma visuella "glow" som sidomenyn: en tydlig bakgrundsfärg + primärfärgad text/ikon + underkant, medan inaktiva flikar är nedtonade. Det blir omöjligt att missa vilken flik man är inne på.
+Aktiv flik får:
+- Ljusgrön bakgrund (redan finns)
+- Grön text och ikon (förstärkt)
+- Grön shadow/glow runt hela fliken (ny)
+
+Inaktiva flikar förblir grå med subtil hover-effekt.
+
