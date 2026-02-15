@@ -1,71 +1,46 @@
 
-## Skapa planeringsformulär och "Uppdatera projekt"-flöde i AI-assistenten
 
-### Problem
-1. **"Skapa planering"** visar bara rå text med instruktioner istället för ett snyggt formulär
-2. **"Uppdatera projekt"** ställer bara en textfråga istället för att visa projektlista och kategoriväljare
+## Tre rollnivåer: founder, admin, arbetare
 
-### Lösning
+### Sammanfattning
+Lägger till en tredje roll (`founder`) i systemet men behåller AI-användning kopplat till `mahad@datavoxx.se` som det redan är. Fokus ligger på att strukturera rollerna korrekt.
 
-#### Del 1: Planeringsformulär (PlanningFormCard)
+### Tre roller
 
-**Ny fil: `src/components/global-assistant/PlanningFormCard.tsx`**
-- Projektväljare (dropdown med aktiva projekt)
-- Startdatum (datumfält)
-- Faser: dynamisk lista där man lägger till faser med namn + antal veckor
-- Knapp "Lägg till fas" och "Skapa planering"
-- Röstinput via VoiceFormSection (samma mönster som WorkOrderFormCard)
+| Roll | Vem | Hur de skapas |
+|------|-----|---------------|
+| **founder** | Dig (tilldelar manuellt i databasen) | Manuellt via SQL |
+| **admin** | Chefer som registrerar konto | Automatiskt vid registrering |
+| **user** | Arbetare som bjuds in via länk | Automatiskt vid accepterad inbjudan |
 
-**Backend: `supabase/functions/global-assistant/index.ts`**
-- Ny tool: `get_projects_for_planning` (hämtar aktiva projekt, samma mönster som `get_projects_for_work_order`)
-- Ny response-typ i `formatResponse`: returnerar `type: "planning_form"` med projektlista
-- Uppdatera form_policy-prompten: `"skapa planering" -> get_projects_for_planning`
+### Ändringar
 
-**Typ-uppdateringar: `src/types/global-assistant.ts`**
-- Lägg till `"planning_form"` i Message type
-- Lägg till `"update_project_form"` i Message type
+#### 1. Databasmigrering (SQL)
+- Lägg till `'founder'` i `app_role`-enumen
+- Uppdatera `handle_new_user()`-funktionen: ändra default-rollen från `'user'` till `'admin'` (alla som registrerar sig själva är chefer)
 
-**MessageList.tsx**
-- Rendera `PlanningFormCard` när `message.type === "planning_form"`
+#### 2. Accept-invitation (Edge Function)
+**Fil: `supabase/functions/accept-invitation/index.ts`**
+- Efter att kontot skapats: uppdatera rollen i `user_roles` från `'admin'` (som triggern sätter) till `'user'` (arbetare)
 
-**GlobalAssistant.tsx**
-- `handlePlanningFormSubmit` - skickar meddelande med projektid, startdatum och faser till AI:n
-- `handlePlanningFormCancel`
+#### 3. useUserPermissions
+**Fil: `src/hooks/useUserPermissions.ts`**
+- Lägg till hantering av `founder`-rollen -- founders behandlas som admins med full modulåtkomst
 
----
+#### 4. AI-användning
+- **Ingen ändring** -- behålls som det är, kopplat till `mahad@datavoxx.se`
 
-#### Del 2: Uppdatera projekt-flöde (UpdateProjectFormCard)
+### Manuell tilldelning av founder
+Du tilldelar founder-rollen i databasen:
+```text
+UPDATE user_roles SET role = 'founder' WHERE user_id = '<ditt-user-id>';
+```
 
-**Ny fil: `src/components/global-assistant/UpdateProjectFormCard.tsx`**
-- **Steg 1**: Projektväljare (dropdown med alla aktiva projekt)
-- **Steg 2** (visas efter val): Kategoriväljare med knappar/kort:
-  - ÄTA
-  - Arbetsorder
-  - Filer och bilagor
-  - Planering
-  - Dagbok
-- När man väljer kategori skickas ett meddelande till AI:n som triggar rätt flöde, t.ex. "Skapa arbetsorder på projekt med ID X"
-
-**Backend: `supabase/functions/global-assistant/index.ts`**
-- Ny tool: `get_projects_for_update` (hämtar aktiva projekt)
-- Returnerar `type: "update_project_form"` med projektlista
-- Uppdatera form_policy: `"uppdatera projekt" -> get_projects_for_update`
-
-**MessageList.tsx**
-- Rendera `UpdateProjectFormCard` när `message.type === "update_project_form"`
-
-**GlobalAssistant.tsx**
-- `handleUpdateProjectAction` - när användaren valt projekt + kategori, skicka rätt prompt med projekt-ID i context
-
----
-
-### Teknisk sammanfattning
+### Filändringar
 
 | Fil | Ändring |
 |-----|---------|
-| `src/types/global-assistant.ts` | Lägg till `planning_form` och `update_project_form` typer |
-| `src/components/global-assistant/PlanningFormCard.tsx` | Nytt formulärkort för planering |
-| `src/components/global-assistant/UpdateProjectFormCard.tsx` | Nytt formulärkort med projekt + kategoriväljare |
-| `src/components/global-assistant/MessageList.tsx` | Rendera de två nya korten |
-| `src/pages/GlobalAssistant.tsx` | Handlers för submit/cancel |
-| `supabase/functions/global-assistant/index.ts` | Två nya tools + formatResponse + prompt-uppdatering |
+| SQL-migrering | `ALTER TYPE app_role ADD VALUE 'founder'`, uppdatera `handle_new_user()` |
+| `supabase/functions/accept-invitation/index.ts` | Ändra roll till `'user'` efter kontoskapande |
+| `src/hooks/useUserPermissions.ts` | Hantera `founder` som full-access |
+
