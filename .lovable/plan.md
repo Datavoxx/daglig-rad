@@ -1,111 +1,90 @@
 
 
-## 6 Förbättringar i Byggio
+## 3 Fixar: Scroll, Budget-formulär och Lösenordsåterställning
 
-### 1. Felmeddelande vid fel inloggning
-Idag sätts `validationError` men visas aldrig synligt i UI:t. Felmeddelandet ska visas som en röd alert-banner mellan "Byggprojekt, enkelt och digitalt" och "E-post"-fältet.
+### 1. Ta bort yttre scroll på Global Assistant
 
-**Fil: `src/pages/Auth.tsx`**
-- Lägg till import av `Alert, AlertDescription` från `@/components/ui/alert`
-- Lägg till import av `AlertCircle` från lucide-react
-- Mellan `CardDescription` och `<form>` (rad 82-84): rendera `validationError` i en röd alert-komponent
-- Rensa `validationError` när användaren börjar skriva (onChange i email/password)
+AppLayout wrappar allt i `<main className="flex-1 overflow-auto">` med padding. GlobalAssistant har sin egen scrollhantering, vilket skapar dubbelscroll och dead space.
 
----
+**Fil: `src/components/layout/AppLayout.tsx`** (rad 428-433)
 
-### 2. Glömt lösenord-funktion
-Lägg till en "Glömt lösenord?"-länk på login-sidan som öppnar ett inline-formulär (eller en ny vy) där användaren anger sin e-post. Supabase Auth har inbyggt stöd via `supabase.auth.resetPasswordForEmail()`.
+- Importera `useLocation` och kolla `pathname`
+- Om pathname === `/global-assistant`: satt `overflow-hidden` på main och ta bort padding/max-width på wrappern
+- Alla andra sidor behaller sin padding och scroll som vanligt
 
-**Fil: `src/pages/Auth.tsx`**
-- Lägg till state: `forgotPassword`, `resetEmail`, `resetSent`, `resetLoading`
-- Under lösenordsfältet (rad 120), lägg till en "Glömt lösenord?"-länk
-- Vid klick: visa ett enkelt formulär med e-postfält och "Skicka"-knapp
-- Anropa `supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo: window.location.origin + "/auth" })`
-- Visa bekräftelsetext efter lyckad skickning
-- Ingen ny sida behövs -- allt hanteras inline i samma Card
-
-**Fil: `src/pages/Auth.tsx`** (ytterligare)
-- Hantera lösenordsåterställning: lägg till useEffect som lyssnar på `SIGNED_IN` event med `type === "PASSWORD_RECOVERY"` och navigerar till en enkel lösenordsändringsvy
-- Alternativt: skapa en minimal vy i Auth.tsx som visar "Nytt lösenord"-formulär och anropar `supabase.auth.updateUser({ password })`
+```
+main: overflow-hidden (istallet for overflow-auto)
+wrapper: h-full, ingen padding/max-width
+```
 
 ---
 
-### 3. Formulär för ÄTA, Filer/Bilagor och Planering i "Uppdatera projekt"
-Idag skickar "Uppdatera projekt" bara en textprompt till AI:n utan eget formulär för ÄTA, filer och planering. Arbetsorder och dagbok har egna formulär -- samma behövs för de andra tre.
+### 2. Budget oversikt med projektval-formular
 
-**Ny fil: `src/components/global-assistant/AtaFormCard.tsx`**
-- Formulär med fält: beskrivning, orsak, uppskattad kostnad, uppskattade timmar
-- Matchar det som `create_ata` i edge-funktionen förväntar sig
-
-**Ny fil: `src/components/global-assistant/FileUploadFormCard.tsx`**
-- Formulär med filinmatning (bild/fil-uppladdning)
-- Laddar upp filen till Supabase Storage (`project-files` bucket)
-- Sparar referens i `project_files`-tabellen
-- Visar förhandsgranskning av vald bild
-
-**Modifiering av befintligt planering-flöde:**
-- `PlanningFormCard` finns redan -- behöver kopplas korrekt via `handleUpdateProjectAction`
+Idag skickas "Visa budget oversikt for ett projekt" som en vanlig textprompt och AI:n svarar med "Ange projektnamn eller projekts-ID". Istallet ska det visa ett formular dar man valjer projekt -- precis som "Uppdatera projekt" gor.
 
 **Fil: `src/pages/GlobalAssistant.tsx`**
-- Uppdatera `handleUpdateProjectAction` för att:
-  - `ata`: visa `ata_form` med `type: "ata_form"` istället för att skicka textprompt
-  - `files`: visa `file_upload_form` med `type: "file_upload_form"`
-  - `planning`: visa `planning_form` (redan existerande)
-- Lägg till handlers: `handleAtaFormSubmit`, `handleAtaFormCancel`, `handleFileUploadSubmit`, `handleFileUploadCancel`
 
-**Fil: `src/components/global-assistant/MessageList.tsx`**
-- Importera `AtaFormCard` och `FileUploadFormCard`
-- Lägg till rendering för `message.type === "ata_form"` och `message.type === "file_upload_form"`
-- Skicka igenom nya props
+- I `sendMessage`-funktionens response-hantering: nar AI:n svarar med `get_project_economy` som behover projekt-ID, hantera det klientside
+- Alternativt (enklare): skapa en ny handler som triggas nar man klickar "Budget oversikt". Istallet for att skicka textprompt, hamta projektlistan och visa ett projektval-formular -- och nar man valjer projekt, skicka "Visa budget oversikt for [projektnamn]" med kontext `{ selectedProjectId }`.
 
----
+**Ny komponent (eller ateranvand befintlig logik):**
+- Fanga "Budget oversikt"-klicket i `QuickSuggestions`
+- Hamta projektlistan fran databasen
+- Visa ett enkelt projektval-formular (Select-komponent)
+- Nar man valjer: skicka meddelande med projekt-ID i context
 
-### 4. "Budget översikt" som snabbval
-Lägg till "Budget översikt" i QuickSuggestions som triggar projektval och sedan hämtar ekonomiöversikt.
+Konkret: Vi andrar sa att "Budget oversikt" i QuickSuggestions inte skickar `onSelect(prompt)` direkt, utan istallet triggar en callback som visar ett projektval-kort. Vi kan ateranvanda logiken fran UpdateProjectFormCard (som redan har projektlista + select).
+
+**Ny fil: `src/components/global-assistant/BudgetOverviewFormCard.tsx`**
+- Enkelt kort med projektval (Select-komponent)
+- "Visa budget"-knapp
+- Vid submit: skicka meddelande med valt projektnamn
+
+**Fil: `src/pages/GlobalAssistant.tsx`**
+- Lagg till handler for budget-forfragan
+- Hamta projekten fran databasen
+- Visa formularkortet som ett meddelande
+- Vid submit: skicka "Visa budget oversikt for [projekt]"
 
 **Fil: `src/components/global-assistant/QuickSuggestions.tsx`**
-- Lägg till nytt objekt i `suggestions`-arrayen:
-  ```
-  { label: "Budget översikt", icon: Receipt (eller Wallet), prompt: "Visa budget översikt för ett projekt" }
-  ```
-- Edge-funktionen hanterar redan `get_project_economy` som returnerar ekonomikortet -- AI:n kommer välja rätt tool automatiskt
+- Andra "Budget oversikt"-knappen att anropa en separat callback istallet for `onSelect`
+
+**Fil: `src/components/global-assistant/MessageList.tsx`**
+- Rendera det nya `budget_form`-meddelandet
 
 ---
 
-### 5. Ta bort QR-kod från personalliggare
-QRCodeGenerator-komponenten ska tas bort från Attendance-sidan.
+### 3. Losenordsaterstellning (Reset Password-sidan)
 
-**Fil: `src/pages/Attendance.tsx`**
-- Ta bort import av `QRCodeGenerator`
-- Ta bort `<QRCodeGenerator projects={projects} />` (rad 254)
+Problemet: Nar man klickar "Reset Password" i mejlet, redirectas man till `/auth` med en hash-fragment som innehaller recovery-token. Men Supabase-klienten maste kunna fanga upp detta och trigga `PASSWORD_RECOVERY`-eventet. Nuvarande kod lyssnar pa detta event redan -- men det kan finnas problem med att hash-fragmenten inte processas korrekt.
 
----
+**Fil: `src/pages/Auth.tsx`**
 
-### 6. Feedback-timing: session-feedback bara vid utloggning, AI-feedback direkt
-Två ändringar:
+- Se till att `supabase.auth.onAuthStateChange` lyssnar korrekt (redan implementerat)
+- Problemet ar troligen att sidan mountas, `getSession()` aldrig anropas, sa recovery-token i URL:en inte processas
+- Lagg till ett explicit anrop till `supabase.auth.getSession()` i useEffect vid mount -- detta triggar Supabase att parsa hash-fragmentet och emittera `PASSWORD_RECOVERY`-eventet
+- Se aven till att recovery-vyn (som redan finns) renderas korrekt
 
-**6a. Ta bort inaktivitets-feedback (bara vid utloggning)**
-
-**Fil: `src/components/layout/AppLayout.tsx`**
-- Ta bort `useInactivityTimer`-importen och anropet (rad 30, 91-94)
-- Behåll bara `handleLogoutClick` som trigger för `SessionFeedbackPopup`
-
-**6b. AI-feedback direkt efter chatten (inte 30 sek fördröjning)**
-
-**Fil: `src/contexts/ConversationFeedbackContext.tsx`**
-- Ändra timeouten från 30000ms till 0ms (eller ta bort setTimeout helt)
-- Visa popup direkt när användaren lämnar `/global-assistant` (om konversation finns)
+Tillagg i useEffect:
+```
+useEffect(() => {
+  supabase.auth.getSession(); // Triggers parsing of hash fragment
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    if (event === "PASSWORD_RECOVERY") {
+      setIsRecoveryMode(true);
+    }
+  });
+  return () => subscription.unsubscribe();
+}, []);
+```
 
 ---
 
 ### Teknisk sammanfattning
 
-| Punkt | Filer att ändra/skapa |
-|-------|----------------------|
-| 1 | `src/pages/Auth.tsx` |
-| 2 | `src/pages/Auth.tsx` |
-| 3 | Nya: `AtaFormCard.tsx`, `FileUploadFormCard.tsx`. Ändra: `MessageList.tsx`, `GlobalAssistant.tsx`, `global-assistant.ts` (types) |
-| 4 | `src/components/global-assistant/QuickSuggestions.tsx` |
-| 5 | `src/pages/Attendance.tsx` |
-| 6 | `src/components/layout/AppLayout.tsx`, `src/contexts/ConversationFeedbackContext.tsx` |
-
+| Fix | Filer |
+|-----|-------|
+| 1. Scroll | `src/components/layout/AppLayout.tsx` |
+| 2. Budget-formular | Ny: `BudgetOverviewFormCard.tsx`. Andra: `QuickSuggestions.tsx`, `GlobalAssistant.tsx`, `MessageList.tsx`, `global-assistant.ts` (types) |
+| 3. Reset password | `src/pages/Auth.tsx` |
