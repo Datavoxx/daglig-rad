@@ -1,37 +1,30 @@
 
 
-## Fix: Visa planeringformuläret FÖRST vid "Skapa planering"
+## Fix: Redirecta lösenordsåterställning till byggio.io
 
 ### Problem
-När man klickar "Planering" under "Uppdatera projekt" skickas idag ett textmeddelande direkt till AI:n som skapar en planering med 0 faser. Formuläret (med projekt, startdatum och faser) visas bara om man sedan klickar "Lägg till fas". Man ska inte kunna skapa en planering utan faser.
+När en användare klickar "Återställ lösenord" i mejlet, redirectas de först via Lovables domän innan de kommer till lösenordsformuläret. Användare som inte har Lovable-konto fastnar.
 
 ### Lösning
 
-**Fil: `src/pages/GlobalAssistant.tsx`** (rad 471-473)
+**Fil: `src/pages/Auth.tsx`** (rad ~91)
 
-Ändra `planning`-grenen i `handleUpdateProjectAction` så att den visar `PlanningFormCard` direkt (samma mönster som ATA och filer) istället för att skicka ett textmeddelande:
+Ändra `redirectTo` i `resetPasswordForEmail` från `window.location.origin + "/auth"` till en hårdkodad URL med custom domain:
 
 ```typescript
-if (category === "planning") {
-  const projects = (messages.find(m => m.type === "update_project_form")?.data?.projects as Array<{id: string; name: string; address?: string}>) || [];
-  const planningFormMessage: Message = {
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content: "",
-    type: "planning_form",
-    data: { projects, preselectedProjectId: projectId },
-  };
-  setMessages(prev => [...prev, planningFormMessage]);
-  return;
-}
+// Före:
+redirectTo: window.location.origin + "/auth",
+
+// Efter:
+redirectTo: "https://byggio.io/auth",
 ```
 
-Formuläret (`PlanningFormCard`) har redan fält för projekt, startdatum och faser. Vid submit anropas `handlePlanningFormSubmit` som skickar faserna till AI:n. Planeringen skapas alltså bara med faser ifyllda.
+Detta gör att Supabase skickar användaren direkt till byggio.io/auth med recovery-token i URL:en, utan att gå via Lovables mellansteg.
 
 ### Teknisk sammanfattning
 
-| Ändring | Fil |
-|---------|-----|
-| Visa formulär istället för att skicka textprompt | `src/pages/GlobalAssistant.tsx` (rad 471-473) |
+| Ändring | Fil | Rad |
+|---------|-----|-----|
+| Hårdkoda redirectTo till byggio.io | `src/pages/Auth.tsx` | ~91 |
 
-En ändring, tre rader. PlanningFormCard och MessageList hanterar redan rendering och submit korrekt.
+En rad ändras.
