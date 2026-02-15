@@ -430,7 +430,7 @@ export default function ProjectAtaTab({
                 Ny ÄTA
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Ny ÄTA</DialogTitle>
               <DialogDescription>
@@ -486,7 +486,7 @@ export default function ProjectAtaTab({
                 {formRows.map((row, index) => (
                   <div
                     key={row.id}
-                    className="grid grid-cols-[1fr,1fr] md:grid-cols-[120px,80px,1fr,70px,90px,auto,32px] gap-2 p-3 bg-muted/30 rounded-lg items-end"
+                    className="grid grid-cols-[1fr,1fr] md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px] gap-2 p-3 bg-muted/30 rounded-lg items-end"
                   >
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground md:hidden">Artikel</Label>
