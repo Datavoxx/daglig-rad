@@ -1,24 +1,55 @@
 
-## Exempel-panel istället för att fylla i formuläret
 
-### Vad ändras
-"Visa exempel"-knappen ska inte längre fylla i de riktiga fälten. Istället togglar den en separat illustrationspanel som visar hur ett ifyllt ÄTA-formulär ser ut. Användaren kan stänga panelen när de har sett exemplet.
+## Mjukare animation och redigera-knapp for ÄTA
 
-### Teknisk ändring i `src/components/projects/ProjectAtaTab.tsx`
+### 1. Mjukare animation på exempel-panelen
 
-1. **Ny state-variabel**: `const [showExample, setShowExample] = useState(false)`
+Nuvarande implementation använder `animate-accordion-down/up` som kan kännas hackig. Ersätt Collapsible-wrappern med en CSS-baserad `grid-rows`-transition som ger en smidigare effekt.
 
-2. **Ändra knappen** (rad ~460-484): Byt `onClick` från att fylla i formuläret till att toggla `showExample`. Knappens text växlar mellan "Visa exempel" och "Dölj exempel".
+Ändring i `src/components/projects/ProjectAtaTab.tsx` (rad 465-507):
+- Ta bort `Collapsible`/`CollapsibleContent`-wrappern
+- Ersätt med en `div` som använder CSS `grid` transition-teknik:
+  - Yttre div: `display: grid` med `grid-template-rows: 0fr` (stängd) eller `1fr` (öppen), plus `transition: grid-template-rows 300ms ease-in-out`
+  - Inre div: `overflow: hidden; min-height: 0`
+- Detta ger en helt smooth höjd-animation utan hack
 
-3. **Ny exempel-panel** (visas mellan knappen och rubrikraden, rad ~485): En collapsible ruta med `bg-blue-50 border border-blue-200 rounded-lg` som innehåller:
-   - Rubrik: "Exempel på ifylld ÄTA"
-   - Två exempelrader i samma grid-layout som de riktiga raderna, men som ren text (ej input-fält):
-     - Rad 1: Arbete | tim | Rivning av befintlig vägg | 4 | 450 kr
-     - Rad 2: Material | st | Gipsskivor 13mm | 12 | 89 kr
-   - Exempelanledning: "Dolda rörledningar upptäcktes vid rivning, kräver omläggning"
-   - En liten "Stäng"-knapp (X) i hörnet
+Importera bort `Collapsible`/`CollapsibleContent` om de inte längre används.
 
-4. **Ta bort gammal logik**: Ta bort koden som sätter `setFormRows`, `setFormReason`, `setFormStatus` i knappens onClick.
+### 2. Redigera-knapp bredvid ta bort-knappen i tabellen
 
-### Utseende
-Panelen är visuellt distinkt (lätt blå bakgrund) så det är tydligt att det är ett exempel och inte det riktiga formuläret. Den ligger ovanför de riktiga raderna och försvinner när användaren klickar "Dölj exempel" eller X-knappen.
+Ändring i `src/components/projects/ProjectAtaTab.tsx` (rad 686 och rad 819-828):
+- Ändra sista `TableHead` kolumnen från `w-10` till `w-20` för att ge plats åt två knappar
+- I `TableCell` (rad 819-828): Lägg till en `Pencil`-knapp (edit) bredvid `Trash2`-knappen
+- Redigera-knappen öppnar dialogen med den valda ÄTA:ns data förifylld
+
+Ny logik behövs:
+- En `editingAta` state (`Ata | null`) som håller reda på vilken ÄTA som redigeras
+- En `openEditAta(ata)` funktion som fyller i formuläret från befintlig ÄTA-data och öppnar dialogen
+- Uppdatera `handleSubmit` för att göra en `update` istället för `insert` om `editingAta` finns
+- Uppdatera `closeDialog` för att nollställa `editingAta`
+- Dialog-titeln ändras till "Redigera ÄTA" vid redigering
+
+### Tekniska detaljer
+
+**Ny state:**
+```
+const [editingAta, setEditingAta] = useState<Ata | null>(null);
+```
+
+**openEditAta-funktion:**
+Fyller `formRows` med en rad baserad på ÄTA:ns data, sätter `formReason`, `formStatus`, och öppnar dialogen.
+
+**handleSubmit-ändring:**
+Om `editingAta` finns, kör `supabase.from("project_ata").update(...)` istället for `insert`.
+
+**Tabellknapp:**
+```tsx
+<div className="flex items-center gap-0.5">
+  <Button variant="ghost" size="icon" onClick={() => openEditAta(ata)}>
+    <Pencil className="h-4 w-4" />
+  </Button>
+  <Button variant="ghost" size="icon" onClick={() => handleDelete(ata.id)}>
+    <Trash2 className="h-4 w-4" />
+  </Button>
+</div>
+```
