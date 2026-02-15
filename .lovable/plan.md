@@ -1,51 +1,65 @@
 
+## Fix: Budgetöversikt i assistenten visar 0 kr istället för korrekt data
 
-## Fix: Gron markering pa aktiva projektflikar (slutgiltig losning)
+### Problem
+När du frågar assistenten om ekonomisk översikt för "tony-test" visar den Budget: 0 kr och Offert totalt: 0 kr, trots att projektvyn visar 461 438 kr.
 
-### Rotorsak
+**Rotorsak:** Offerten är kopplad till projektet via `projects.estimate_id` (projektet pekar på offerten), men edge-funktionen söker offerten via `project_estimates.project_id` (offerten pekar på projektet). I det här fallet är `project_estimates.project_id` tomt/null, så inget hittas.
 
-Tva problem samverkar:
+Projektvyn fungerar korrekt eftersom den hämtar offerten via `projects.estimate_id` och skickar den som prop.
 
-1. Bas-komponenten `TabsTrigger` i `src/components/ui/tabs.tsx` har Tailwind-klassen `data-[state=active]:text-foreground` som overridar varje fargandring fran CSS-klassen `.tab-active-glow`.
+### Lösning
 
-2. CSS-klassen `.tab-active-glow[data-state="active"]` ligger i `@layer components` i `index.css`. Tailwind-utilities (som `data-[state=active]:text-foreground`) har hogre prioritet an `@layer components`, sa de vinner alltid.
+**Fil: `supabase/functions/global-assistant/index.ts`**
 
-### Losning
+Uppdatera `get_project_economy` (och `get_project_overview`) så att offerthämtningen har en fallback:
 
-**Steg 1: `src/components/ui/tabs.tsx`**
+1. Först försöka hämta via `project_estimates.project_id` (nuvarande logik)
+2. Om det inte hittas, hämta via `projects.estimate_id` och sedan slå upp den offerten direkt via dess `id`
 
-Ta bort `data-[state=active]:text-foreground` fran TabsTrigger-basklassen. Denna klass tvingar texten att bli mork/ljus (foreground) istallet for gron, oavsett vad CSS-klassen sager.
+Samma fix appliceras på båda ställena (`get_project_economy` runt rad 1572 och `get_project_overview` runt rad 1647).
 
-Andring pa rad 30:
-- Fore: `... data-[state=active]:text-foreground ...`
-- Efter: (borttagen)
+### Teknisk detalj
 
-**Steg 2: `src/index.css`**
+Nuvarande kod (rad 1572-1577):
+```ts
+const { data: estimate } = await supabase
+  .from("project_estimates")
+  .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+  .eq("project_id", project_id)
+  .single();
+```
 
-Flytta `.tab-active-glow`-regeln UTANFOR `@layer components` sa att den far hogre specificitet an Tailwind-utilities. Lagg aven till `!important` pa nyckelegenskaperna for att garantera att de inte overrids.
+Ny kod:
+```ts
+// Try by project_id first
+let estimate = null;
+const { data: estByProject } = await supabase
+  .from("project_estimates")
+  .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+  .eq("project_id", project_id)
+  .single();
 
-```css
-/* Utanfor @layer -- hogre specificitet */
-.tab-active-glow[data-state="active"] {
-  background-color: hsl(var(--primary) / 0.1) !important;
-  color: hsl(var(--primary)) !important;
-  border-radius: 0.375rem;
-  box-shadow: 0 0 12px hsl(142 69% 45% / 0.25);
+if (estByProject) {
+  estimate = estByProject;
+} else if (project?.estimate_id) {
+  // Fallback: lookup via projects.estimate_id
+  const { data: estById } = await supabase
+    .from("project_estimates")
+    .select("total_excl_vat, total_incl_vat, labor_cost, material_cost")
+    .eq("id", project.estimate_id)
+    .single();
+  estimate = estById;
 }
 ```
 
-### Varfor det fungerar nu
-
-- Utan `data-[state=active]:text-foreground` i basen finns ingen Tailwind-utility som konkurrerar om farg.
-- Genom att flytta regeln utanfor `@layer components` far den hogre prioritet an kvarvarande Tailwind-klasser.
-- `!important` ar ett extra skyddsnat for att sakerstalla att ingenting overridar den grona fargen.
+Dessutom behöver `projects`-queryn inkludera `estimate_id`:
+```ts
+.select("id, name, budget, estimate_id")
+```
 
 ### Resultat
-
-Nar du klickar pa t.ex. "Arbetsorder":
-- Ljusgron bakgrund runt fliken
-- Gron text och ikon
-- Gron shadow/glow (precis som sidomenyn visar pa "Projekt" i din skarmbilden)
-
-Inaktiva flikar forblir graa med hover-effekt.
-
+- Offertbeloppet (461 438 kr) visas korrekt i assistentens ekonomikort
+- Arbete/material-uppdelningen visas korrekt
+- ÄTA och timmar visas redan korrekt (5 500 kr resp. 7h)
+- Samma fix säkerställer att `get_project_overview` också visar rätt data
