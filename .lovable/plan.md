@@ -1,32 +1,27 @@
 
+## Förbättra "Starta projekt"-knappen och lägg till "Ångra godkänd"
 
-## Förenkla spara-flödet och lägg till "Starta projekt"
+### Nuvarande beteende
+- "Starta projekt"-knappen syns bara när offerten är godkänd
+- Det finns inget tydligt sätt att gå tillbaka från godkänd till draft
 
-### Problem
-1. "Spara som utkast"-knappen är meningslös eftersom offerten auto-sparas direkt
-2. Det saknas en "Starta projekt"-knapp i headern
-3. Dialogen som visas vid godkännande har fel text ("Offerten är sparad!" -- det sker ju redan automatiskt)
+### Nytt beteende
 
-### Ändringar
+**När status = DRAFT:**
+- "Starta projekt"-knappen syns och fungerar som genväg: den sätter automatiskt status till "completed" (godkänd), sparar, och visar "Starta projekt?"-dialogen
 
-#### 1. Förenkla spara-knapparna (`StickyTotals.tsx`)
-- Ta bort dropdown-menyn med "Spara som draft" / "Markera som klar"
-- Ersätt med en enkel "Spara"-knapp (sparar aktuellt tillstand)
-- Behall "Ladda ner"-knappen som den är
-
-#### 2. Lägg till "Starta projekt"-knapp i headern (`EstimateBuilder.tsx`)
-- Lägg till en "Starta projekt"-knapp bland action-knapparna i headern (bredvid spara/radera)
-- Knappen visas bara när offerten har status "completed" (godkänd)
-- Klick öppnar samma dialog som redan finns, men med bättre text
-
-#### 3. Förbättra dialog-texten (`EstimateBuilder.tsx`)
-- Ändra beskrivningen från "Offerten är sparad! Vill du direkt skapa ett projekt..." 
-- Till: "Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? Det gör att du snabbt kan börja planera och hantera arbetet."
+**När status = GODKÄND:**
+- "Starta projekt"-knappen syns fortfarande (samma funktion, sparar och visar dialogen)
+- En ny knapp "Ångra godkänd" dyker upp bredvid, som ändrar status tillbaka till draft
 
 ### Teknisk sammanfattning
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/estimates/StickyTotals.tsx` | Ta bort dropdown, ersätt med enkel spara-knapp |
-| `src/components/estimates/EstimateBuilder.tsx` | Lägg till "Starta projekt"-knapp i headern, förbättra dialogtext |
+| `src/components/estimates/EstimateBuilder.tsx` | Visa "Starta projekt" oavsett status (auto-godkänn vid draft). Lägg till "Ångra godkänd"-knapp som syns vid status completed. |
 
+### Detaljerade ändringar i `EstimateBuilder.tsx`
+
+1. **"Starta projekt"-knappen** (rad ~390-406): Ta bort villkoret `status === "completed"` -- knappen visas alltid. Vid klick: om status är draft, kör `handleSaveAsCompleted()` (sätter godkänd + sparar + visar dialog). Om redan godkänd, spara och visa dialog direkt.
+
+2. **Ny "Ångra godkänd"-knapp**: Läggs till bredvid "Starta projekt", visas bara vid `status === "completed"`. Klick kör `handleStatusChange("draft")` som redan finns och fungerar (sätter draft + sparar + visar toast).
