@@ -310,11 +310,10 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
         />
       </div>
 
-      {/* Phase Indicator */}
-      <ProjectPhaseIndicator projectStatus={project.status} plan={dashboardData.plan} />
-
-      {/* Project Info + Economic Overview */}
+      {/* Economic Overview + Project Info side by side */}
       <div className="grid gap-6 md:grid-cols-2">
+        <EconomicOverviewCard projectId={project.id} quoteTotal={linkedEstimate?.total_incl_vat || null} />
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div>
@@ -336,121 +335,122 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
               </div>
             )}
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Linked Estimate */}
-            <div className="space-y-2">
-              <Label>Kopplad offert</Label>
-              {isEditing ? (
-                <Select
-                  value={formData.estimate_id || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, estimate_id: value === "none" ? "" : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj offert..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ingen koppling</SelectItem>
-                    {estimates.map((est) => (
-                      <SelectItem key={est.id} value={est.id}>
-                        {est.offer_number || est.manual_project_name || "Offert"} - {formatCurrency(est.total_incl_vat)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : linkedEstimate ? (
-                <div
-                  className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors group"
-                  onClick={() => {
-                    const params = new URLSearchParams();
-                    params.set("estimateId", linkedEstimate.id);
-                    if (linkedEstimate.offer_number) params.set("offerNumber", linkedEstimate.offer_number);
-                    navigate(`/estimates?${params.toString()}`);
-                  }}
-                >
-                  <Link2 className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                  <span className="group-hover:underline">
-                    {linkedEstimate.offer_number || linkedEstimate.manual_project_name}
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardContent>
+            {isEditing ? (
+              <div className="space-y-4">
+                {/* Linked Estimate - edit */}
+                <div className="space-y-2">
+                  <Label>Kopplad offert</Label>
+                  <Select
+                    value={formData.estimate_id || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, estimate_id: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj offert..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ingen koppling</SelectItem>
+                      {estimates.map((est) => (
+                        <SelectItem key={est.id} value={est.id}>
+                          {est.offer_number || est.manual_project_name || "Offert"} - {formatCurrency(est.total_incl_vat)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Ingen offert kopplad</p>
-              )}
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-2">
-              <Label>Startdatum</Label>
-              {isEditing ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-full justify-start text-left font-normal", !formData.start_date && "text-muted-foreground")}
+                {/* Start Date - edit */}
+                <div className="space-y-2">
+                  <Label>Startdatum</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full justify-start text-left font-normal", !formData.start_date && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.start_date ? format(formData.start_date, "PPP", { locale: sv }) : "Välj datum"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.start_date}
+                        onSelect={(date) => setFormData({ ...formData, start_date: date })}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* Budget - edit */}
+                <div className="space-y-2">
+                  <Label>Budget</Label>
+                  <Input
+                    type="number"
+                    placeholder="Ange budget..."
+                    value={formData.budget}
+                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  />
+                </div>
+                {/* Status - edit */}
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="planning">Planering</SelectItem>
+                      <SelectItem value="active">Pågående</SelectItem>
+                      <SelectItem value="closing">Slutskede</SelectItem>
+                      <SelectItem value="completed">Avslutat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {/* Linked Estimate row */}
+                <div className="flex items-center gap-3 py-3">
+                  <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground w-28 shrink-0">Kopplad offert</span>
+                  {linkedEstimate ? (
+                    <span
+                      className="text-sm font-medium cursor-pointer hover:text-primary transition-colors flex items-center gap-1 group"
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set("estimateId", linkedEstimate.id);
+                        if (linkedEstimate.offer_number) params.set("offerNumber", linkedEstimate.offer_number);
+                        navigate(`/estimates?${params.toString()}`);
+                      }}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.start_date ? format(formData.start_date, "PPP", { locale: sv }) : "Välj datum"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.start_date}
-                      onSelect={(date) => setFormData({ ...formData, start_date: date })}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              ) : (
-                <p className="text-sm">
-                  {project.start_date ? format(parseISO(project.start_date), "PPP", { locale: sv }) : "-"}
-                </p>
-              )}
-            </div>
-
-            {/* Budget */}
-            <div className="space-y-2">
-              <Label>Budget</Label>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  placeholder="Ange budget..."
-                  value={formData.budget}
-                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                />
-              ) : (
-                <p className="text-sm">{formatCurrency(project.budget)}</p>
-              )}
-            </div>
-
-            {/* Status */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              {isEditing ? (
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="planning">Planering</SelectItem>
-                    <SelectItem value="active">Pågående</SelectItem>
-                    <SelectItem value="closing">Slutskede</SelectItem>
-                    <SelectItem value="completed">Avslutat</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm">
-                  {project.status === 'planning' ? 'Planering' :
-                   project.status === 'active' ? 'Pågående' :
-                   project.status === 'closing' ? 'Slutskede' :
-                   project.status === 'completed' ? 'Avslutat' : project.status || '-'}
-                </p>
-              )}
-            </div>
+                      {linkedEstimate.offer_number || linkedEstimate.manual_project_name}
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground/60">–</span>
+                  )}
+                </div>
+                {/* Start Date row */}
+                <div className="flex items-center gap-3 py-3">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground w-28 shrink-0">Startdatum</span>
+                  <span className="text-sm font-medium">
+                    {project.start_date ? format(parseISO(project.start_date), "d MMM yyyy", { locale: sv }) : "–"}
+                  </span>
+                </div>
+                {/* Budget row */}
+                <div className="flex items-center gap-3 py-3">
+                  <Receipt className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground w-28 shrink-0">Budget</span>
+                  <span className="text-sm font-medium">{formatCurrency(project.budget)}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        <EconomicOverviewCard projectId={project.id} quoteTotal={linkedEstimate?.total_incl_vat || null} />
       </div>
+
+      {/* Phase Indicator */}
+      <ProjectPhaseIndicator projectStatus={project.status} plan={dashboardData.plan} />
 
       {/* Time Reporting Section */}
       <ProjectTimeSection projectId={project.id} projectName={project.name} />
