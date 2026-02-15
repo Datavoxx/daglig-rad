@@ -1,33 +1,32 @@
 
-## Förbättra offert-headern
+
+## Förenkla spara-flödet och lägg till "Starta projekt"
 
 ### Problem
-1. Headern ser "för mycket" ut -- för många element som trängs ihop
-2. "KLAR"-badgen har grön text på grön bakgrund, dålig kontrast
-3. Texten borde vara "GODKÄND" istället för "KLAR"
+1. "Spara som utkast"-knappen är meningslös eftersom offerten auto-sparas direkt
+2. Det saknas en "Starta projekt"-knapp i headern
+3. Dialogen som visas vid godkännande har fel text ("Offerten är sparad!" -- det sker ju redan automatiskt)
 
-### Ändringar i `src/components/estimates/EstimateHeader.tsx`
+### Ändringar
 
-#### 1. Byt "KLAR" till "GODKÄND"
-- Ändra texten från `"KLAR"` till `"GODKÄND"` i badgen
-- Uppdatera tooltip-texterna att matcha ("markera som godkänd" / "ändra till utkast")
+#### 1. Förenkla spara-knapparna (`StickyTotals.tsx`)
+- Ta bort dropdown-menyn med "Spara som draft" / "Markera som klar"
+- Ersätt med en enkel "Spara"-knapp (sparar aktuellt tillstand)
+- Behall "Ladda ner"-knappen som den är
 
-#### 2. Förbättra "GODKÄND"-badgens design
-- Byt från hel grön bakgrund (`bg-green-600`) till en mer subtil stil:
-  - Ljusgrön bakgrund (`bg-emerald-50`) med mörkgrön text (`text-emerald-700`) och tunn border (`border-emerald-200`)
-  - Vit text på solid grön bakgrund ser dåligt ut -- subtilare variant matchar resten av designen bättre
-- Samma stil som befintliga `success`-varianten i badge-komponenten
+#### 2. Lägg till "Starta projekt"-knapp i headern (`EstimateBuilder.tsx`)
+- Lägg till en "Starta projekt"-knapp bland action-knapparna i headern (bredvid spara/radera)
+- Knappen visas bara när offerten har status "completed" (godkänd)
+- Klick öppnar samma dialog som redan finns, men med bättre text
 
-#### 3. Rensa upp layouten
-- Ta bort den separata "Starta projekt"-knappen (knappen duplicerar badgens funktion)
-- Flytta offertnummer och version/datum till en mer kompakt rad under titeln istället för till höger
-- Minska visuellt brus genom att kombinera meta-info i en enda rad med kund och adress
-
-### Resultat
-Headern blir renare med färre visuella element. Badgen "GODKÄND" blir läsbar med bra kontrast (mörk text på ljus bakgrund istället för vit text på grön bakgrund).
+#### 3. Förbättra dialog-texten (`EstimateBuilder.tsx`)
+- Ändra beskrivningen från "Offerten är sparad! Vill du direkt skapa ett projekt..." 
+- Till: "Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? Det gör att du snabbt kan börja planera och hantera arbetet."
 
 ### Teknisk sammanfattning
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/estimates/EstimateHeader.tsx` | Byt "KLAR" -> "GODKÄND", förbättra badge-stil, ta bort "Starta projekt"-knapp, rensa layout |
+| `src/components/estimates/StickyTotals.tsx` | Ta bort dropdown, ersätt med enkel spara-knapp |
+| `src/components/estimates/EstimateBuilder.tsx` | Lägg till "Starta projekt"-knapp i headern, förbättra dialogtext |
+
