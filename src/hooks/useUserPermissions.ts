@@ -23,6 +23,7 @@ export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEmployee, setIsEmployee] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -33,7 +34,25 @@ export function useUserPermissions() {
           return;
         }
 
-        // First check if user is an employee (linked via employees table)
+        // Fetch user role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const userRole = roleData?.role || null;
+        setRole(userRole);
+
+        // Founders and admins get full access
+        if (userRole === "founder" || userRole === "admin") {
+          setIsEmployee(false);
+          setPermissions(ALL_MODULES);
+          setLoading(false);
+          return;
+        }
+
+        // Check if user is an employee (linked via employees table)
         const { data: employeeData } = await supabase
           .from("employees")
           .select("id, user_id")
@@ -41,15 +60,15 @@ export function useUserPermissions() {
           .eq("is_active", true)
           .maybeSingle();
 
-        // If user is an employee, ALWAYS use restricted modules regardless of DB
-        if (employeeData) {
+        // If user is an employee (role 'user'), ALWAYS use restricted modules
+        if (employeeData || userRole === "user") {
           setIsEmployee(true);
           setPermissions(EMPLOYEE_MODULES);
           setLoading(false);
           return;
         }
 
-        // For non-employees, fetch from user_permissions table
+        // Fallback: fetch from user_permissions table
         const { data, error } = await supabase
           .from("user_permissions")
           .select("modules")
@@ -58,15 +77,10 @@ export function useUserPermissions() {
 
         if (error) {
           console.error("Error fetching permissions:", error);
-          // On error for non-employees, give safe fallback (empty)
-          // This prevents accidental full access
           setPermissions([]);
         } else if (!data || !data.modules || data.modules.length === 0) {
-          // No permissions set = use all modules for non-employees (admins/owners)
           setPermissions(ALL_MODULES);
         } else {
-          // If user has dashboard access (admin), always give full module access
-          // This ensures new modules are automatically available to admins
           if (data.modules.includes("dashboard")) {
             setPermissions(ALL_MODULES);
           } else {
@@ -75,7 +89,6 @@ export function useUserPermissions() {
         }
       } catch (err) {
         console.error("Error in fetchPermissions:", err);
-        // Safe fallback on error
         setPermissions([]);
       } finally {
         setLoading(false);
@@ -103,6 +116,7 @@ export function useUserPermissions() {
     hasAccess, 
     allModules: ALL_MODULES,
     isEmployee,
+    role,
     getDefaultRoute
   };
 }
