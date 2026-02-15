@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { MapPin, User, UserCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import { InlineAddressAutocomplete } from "@/components/shared/InlineAddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -59,82 +59,54 @@ export function EstimateHeader({
 
   return (
     <div className="space-y-2 flex-1 min-w-0">
-      {/* Top row: Title and meta */}
-      <div className={cn(
-        "gap-3",
-        isMobile ? "space-y-2" : "flex items-start justify-between"
-      )}>
-        <div className="space-y-0.5 min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Offert
-            </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge 
-                    variant={status === "draft" ? "secondary" : "default"}
-                    className={cn(
-                      status === "completed" ? "bg-green-600 hover:bg-green-700" : "",
-                      onStatusChange && "cursor-pointer hover:opacity-80 transition-opacity"
-                    )}
-                    onClick={handleBadgeClick}
-                  >
-                    {status === "draft" ? "DRAFT" : "KLAR"}
-                  </Badge>
-                </TooltipTrigger>
-                {onStatusChange && (
-                  <TooltipContent>
-                    <p>{status === "draft" ? "Klicka för att markera som klar" : "Klicka för att ändra till utkast"}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          {isEditable ? (
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange?.(e.target.value)}
-              placeholder="Projektnamn..."
-              className="w-full text-lg md:text-xl font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50"
-            />
-          ) : (
-            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
-              {projectName}
-            </h1>
-          )}
-        </div>
-
-        {/* Meta info - stacked on mobile */}
-        <div className={cn(
-          "text-sm",
-          isMobile ? "flex items-center gap-2 flex-wrap" : "text-right shrink-0"
-        )}>
-          <span className="font-medium text-foreground tabular-nums">
-            {displayOfferNumber}
+      {/* Top row: Label + badge + title */}
+      <div className="space-y-0.5 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Offert
           </span>
-          <span className="text-muted-foreground">
-            v{version} • {displayDate}
-          </span>
-          {!isMobile && status === "draft" && onStatusChange && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBadgeClick}
-              className="h-7 text-xs px-3 ml-2"
-            >
-              Starta projekt
-            </Button>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge 
+                  variant={status === "draft" ? "secondary" : "success"}
+                  className={cn(
+                    onStatusChange && "cursor-pointer hover:opacity-80 transition-opacity"
+                  )}
+                  onClick={handleBadgeClick}
+                >
+                  {status === "draft" ? "DRAFT" : "GODKÄND"}
+                </Badge>
+              </TooltipTrigger>
+              {onStatusChange && (
+                <TooltipContent>
+                  <p>{status === "draft" ? "Klicka för att markera som godkänd" : "Klicka för att ändra till utkast"}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
+        {isEditable ? (
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => onProjectNameChange?.(e.target.value)}
+            placeholder="Projektnamn..."
+            className="w-full text-lg md:text-xl font-semibold tracking-tight text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 -ml-1 placeholder:text-muted-foreground/50"
+          />
+        ) : (
+          <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+            {projectName}
+          </h1>
+        )}
       </div>
 
-      {/* Divider */}
-      <div className="h-px bg-border" />
-
-      {/* Client and address row */}
+      {/* Compact meta row: offer number, version, date, client, address, reference */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+        <span className="font-medium text-foreground tabular-nums">
+          {displayOfferNumber}
+        </span>
+        <span>v{version} • {displayDate}</span>
         {isEditable ? (
           <>
             <div className="flex items-center gap-1">
