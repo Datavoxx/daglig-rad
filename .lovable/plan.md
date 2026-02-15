@@ -1,36 +1,43 @@
 
 
-## Grön shadow/glow på aktiv projektflik
+## Fix: Grön glow syns inte på aktiva flikar
 
-### Vad ändras
+### Problem
+Den gröna shadow-effekten genereras inte av Tailwind. Kommatecknen i `hsl(142,69%,45%,0.25)` tolkas felaktigt av Tailwinds klassparser. Dessutom finns en konflikt i bas-stilen som kan motverka bakgrundsfärgen.
 
-Lägger till en grön shadow-glow-effekt på den aktiva fliken i projektnavigationen, precis som sidomenyn har. Den nuvarande `bg-primary/10` behålls men förstärks med en `box-shadow` i primärfärgen (grön).
+### Lösning
 
-### Teknisk ändring
+**Fil: `src/components/ui/tabs.tsx`**
+
+Ta bort `data-[state=active]:bg-background` från bas-stilen i TabsTrigger. Den klassen sätter en vit/mörk bakgrund som slåss mot `bg-primary/10`. Bas-stilen ska bara hantera layout och fokus -- inte aktiv-state-färger som nu hanteras per komponent.
+
+Innan:
+```
+data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-md
+```
+
+Efter:
+```
+data-[state=active]:text-foreground
+```
 
 **Fil: `src/pages/ProjectView.tsx`**
 
-Uppdaterar alla sex `TabsTrigger`-element med en extra klass för grön shadow på aktiv state:
+Fixa shadow-syntaxen. Byt komma-separerade HSL-värden till Tailwind-kompatibel syntax med understreck:
 
+Innan:
 ```
 data-[state=active]:shadow-[0_0_12px_hsl(142,69%,45%,0.25)]
 ```
 
-Detta ger en mjuk grön glöd runt den aktiva fliken -- samma känsla som sidomenyn.
-
-Fullständig aktiv-klass per trigger blir:
+Efter:
 ```
-data-[state=active]:bg-primary/10 data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142,69%,45%,0.25)] data-[state=active]:text-primary
+data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)]
 ```
 
-Dessutom läggs `data-[state=active]:text-primary` till explicit på varje trigger (förstärker att ikoner och text blir gröna).
+Alla sex triggers (Översikt, ÄTA, Arbetsorder, Filer, Planering, Dagbok) uppdateras med den korrekta syntaxen.
 
 ### Resultat
-
-Aktiv flik får:
-- Ljusgrön bakgrund (redan finns)
-- Grön text och ikon (förstärkt)
-- Grön shadow/glow runt hela fliken (ny)
-
-Inaktiva flikar förblir grå med subtil hover-effekt.
-
+- Grön glow-shadow runt aktiv flik (samma känsla som sidomenyn)
+- Grön bakgrund (bg-primary/10) fungerar korrekt
+- Grön text och ikoner på aktiv flik
