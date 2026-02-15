@@ -186,10 +186,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Override role from 'admin' (set by trigger) to 'user' (worker)
+    // Override role from 'admin' (set by trigger) to 'user' (worker) and set name
     const { error: updateRoleError } = await supabase
       .from("user_roles")
-      .update({ role: "user" })
+      .update({ role: "user", name: invitation.employees?.name || "" })
       .eq("user_id", userId);
 
     if (updateRoleError) {
