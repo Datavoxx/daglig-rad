@@ -1,30 +1,26 @@
 
-
-## Fix: Beskrivningsfältet klipps av i ÄTA-raderna
+## Kolumnrubriker ovanför ÄTA-raderna
 
 ### Problem
-Beskrivningsfältet ("Rivning av befintlig vägg") är för smalt i radernas grid-layout. Texten klipps av och syns inte helt. Grid-kolumnerna är `[120px,80px,1fr,70px,90px,auto,32px]` -- efter alla fasta kolumner blir `1fr` bara ~120px.
+Det finns inga kolumnrubriker som visar vad varje fält i raden representerar (Artikel, Enhet, Beskrivning, Antal, À-pris, ROT). Användaren måste gissa sig till vad fälten är.
 
 ### Lösning
-Två justeringar som löser problemet utan att störa övriga fält:
-
-1. **Bredda dialogen** från `max-w-2xl` till `max-w-3xl` -- ger ca 130px extra utrymme totalt
-2. **Ge beskrivningen mer plats i gridet** -- ändra `1fr` till `2fr` så att beskrivningsfältet får dubbelt så mycket av det flexibla utrymmet
+Lägg till en rubrikrad (header row) med samma grid-layout som dataraderna, som bara visas på desktop (md och uppåt). På mobil syns redan labels per fält.
 
 ### Teknisk ändring i `src/components/projects/ProjectAtaTab.tsx`
 
-**Rad ~489 (grid-layout):**
-```
-Från: md:grid-cols-[120px,80px,1fr,70px,90px,auto,32px]
-Till:  md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px]
-```
-Minskar artikel/enhet/antal/pris kolumnerna marginellt och ger beskrivningen dubbelt så mycket flex-utrymme.
+Innan `{formRows.map(...)}`-loopen (rad ~486), lägg till en dold-på-mobil rubrikrad:
 
-**Rad ~436 (dialog-bredd):**
-```
-Från: max-w-2xl
-Till:  max-w-3xl
+```tsx
+<div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px] gap-2 px-3 text-xs text-muted-foreground font-medium">
+  <span>Artikel</span>
+  <span>Enhet</span>
+  <span>Beskrivning</span>
+  <span>Antal</span>
+  <span>À-pris</span>
+  <span>ROT</span>
+  <span></span>
+</div>
 ```
 
-### Resultat
-Beskrivningsfältet visar hela texten ("Rivning av befintlig vägg") utan att klippa av, och inget annat i layouten störs.
+Rubrikerna matchar exakt kolumnbredden i raderna och syns bara på desktop -- på mobil visas redan per-fält-labels. Inga andra ändringar behövs.
