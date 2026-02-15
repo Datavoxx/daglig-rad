@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Calculator, ChevronDown, ChevronRight, AlertTriangle, Lightbulb, Receipt, Clock, FileEdit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface EconomicOverviewCardProps {
   projectId: string;
@@ -29,6 +30,12 @@ interface ProjectAta {
   subtotal: number | null;
   status: string | null;
 }
+
+const DONUT_COLORS = {
+  margin: "hsl(160, 84%, 39%)",    // emerald
+  expenses: "hsl(0, 84%, 60%)",    // red
+  ata: "hsl(45, 93%, 47%)",        // amber
+};
 
 export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverviewCardProps) {
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -100,6 +107,16 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
 
   const totalHours = timeEntries.reduce((sum, e) => sum + e.hours, 0);
 
+  // Donut chart data
+  const marginValue = Math.max(0, margin);
+  const donutData = [
+    { name: "Marginal", value: marginValue, color: DONUT_COLORS.margin },
+    { name: "Utgifter", value: totalExpenses, color: DONUT_COLORS.expenses },
+    { name: "ÄTA", value: approvedAtaTotal, color: DONUT_COLORS.ata },
+  ].filter(d => d.value > 0);
+
+  const hasDonutData = donutData.length > 0;
+
   if (loading) {
     return (
       <Card>
@@ -130,6 +147,57 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
         <CardDescription>Projektets ekonomiska status</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Donut Chart */}
+        {hasDonutData ? (
+          <div className="relative mx-auto" style={{ width: 200, height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={3}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-xs text-muted-foreground">Totalt</span>
+              <span className="text-sm font-semibold">{formatCurrency(totalProjectValue)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+            Ingen ekonomisk data ännu
+          </div>
+        )}
+
+        {/* Legend */}
+        {hasDonutData && (
+          <div className="flex justify-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: DONUT_COLORS.margin }} />
+              <span className="text-muted-foreground">Marginal</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: DONUT_COLORS.expenses }} />
+              <span className="text-muted-foreground">Utgifter</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: DONUT_COLORS.ata }} />
+              <span className="text-muted-foreground">ÄTA</span>
+            </div>
+          </div>
+        )}
+
         {/* Quote amount */}
         <div className="flex justify-between items-center py-2 border-b">
           <span className="text-sm text-muted-foreground">Offertbelopp</span>
