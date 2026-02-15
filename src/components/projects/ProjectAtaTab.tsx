@@ -137,6 +137,7 @@ export default function ProjectAtaTab({
   const [formRows, setFormRows] = useState<AtaRow[]>([createEmptyRow()]);
   const [formReason, setFormReason] = useState("");
   const [formStatus, setFormStatus] = useState("pending");
+  const [showExample, setShowExample] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
@@ -454,35 +455,53 @@ export default function ProjectAtaTab({
                     variant="ghost"
                     size="sm"
                     className="h-7 gap-1.5 text-xs text-muted-foreground"
-                    onClick={() => {
-                      setFormRows([
-                        {
-                          id: crypto.randomUUID(),
-                          article: "Arbete",
-                          unit: "tim",
-                          description: "Rivning av befintlig vägg",
-                          quantity: "4",
-                          unit_price: "450",
-                          rot_eligible: false,
-                        },
-                        {
-                          id: crypto.randomUUID(),
-                          article: "Material",
-                          unit: "st",
-                          description: "Gipsskivor 13mm",
-                          quantity: "12",
-                          unit_price: "89",
-                          rot_eligible: false,
-                        },
-                      ]);
-                      setFormReason("Dolda rörledningar upptäcktes vid rivning, kräver omläggning");
-                      setFormStatus("pending");
-                    }}
+                    onClick={() => setShowExample(!showExample)}
                   >
                     <Lightbulb className="h-3.5 w-3.5" />
-                    Visa exempel
+                    {showExample ? "Dölj exempel" : "Visa exempel"}
                   </Button>
                 </div>
+                {showExample && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2 relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 text-blue-400 hover:text-blue-600"
+                      onClick={() => setShowExample(false)}
+                    >
+                      <span className="sr-only">Stäng</span>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3">Exempel på ifylld ÄTA</h4>
+                    <div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px] gap-2 px-3 mb-1 text-xs text-blue-500 font-medium">
+                      <span>Artikel</span>
+                      <span>Enhet</span>
+                      <span>Beskrivning</span>
+                      <span>Antal</span>
+                      <span>À-pris</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="grid grid-cols-2 md:grid-cols-[110px,70px,2fr,60px,80px] gap-2 px-3 py-2 bg-blue-100/60 rounded text-sm text-blue-900">
+                        <span className="font-medium md:font-normal"><span className="md:hidden text-xs text-blue-500 block">Artikel</span>Arbete</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Enhet</span>tim</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Beskrivning</span>Rivning av befintlig vägg</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Antal</span>4</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">À-pris</span>450 kr</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-[110px,70px,2fr,60px,80px] gap-2 px-3 py-2 bg-blue-100/60 rounded text-sm text-blue-900">
+                        <span className="font-medium md:font-normal"><span className="md:hidden text-xs text-blue-500 block">Artikel</span>Material</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Enhet</span>st</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Beskrivning</span>Gipsskivor 13mm</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">Antal</span>12</span>
+                        <span><span className="md:hidden text-xs text-blue-500 block">À-pris</span>89 kr</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 px-3">
+                      <span className="text-xs text-blue-500 font-medium">Anledning:</span>
+                      <p className="text-sm text-blue-900 mt-0.5">Dolda rörledningar upptäcktes vid rivning, kräver omläggning</p>
+                    </div>
+                  </div>
+                )}
                 <div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px] gap-2 px-3 text-xs text-muted-foreground font-medium">
                   <span>Artikel</span>
                   <span>Enhet</span>
