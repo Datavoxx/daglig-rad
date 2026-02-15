@@ -22,6 +22,8 @@ import { CheckInFormCard } from "./CheckInFormCard";
 import { WorkOrderFormCard } from "./WorkOrderFormCard";
 import { PlanningFormCard } from "./PlanningFormCard";
 import { UpdateProjectFormCard } from "./UpdateProjectFormCard";
+import { AtaFormCard } from "./AtaFormCard";
+import { FileUploadFormCard } from "./FileUploadFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -104,6 +106,10 @@ interface MessageListProps {
   onPlanningFormCancel?: () => void;
   onUpdateProjectAction?: (projectId: string, category: string) => void;
   onUpdateProjectCancel?: () => void;
+  onAtaFormSubmit?: (data: { projectId: string; description: string; reason: string; estimatedCost: number | null; estimatedHours: number | null }) => void;
+  onAtaFormCancel?: () => void;
+  onFileUploadSubmit?: (data: { projectId: string; fileName: string; storagePath: string }) => void;
+  onFileUploadCancel?: () => void;
   onSendMessage?: (message: string) => void;
   isLoading?: boolean;
 }
@@ -141,6 +147,10 @@ export function MessageList({
   onPlanningFormCancel,
   onUpdateProjectAction,
   onUpdateProjectCancel,
+  onAtaFormSubmit,
+  onAtaFormCancel,
+  onFileUploadSubmit,
+  onFileUploadCancel,
   onSendMessage,
   isLoading,
 }: MessageListProps) {
@@ -390,6 +400,28 @@ export function MessageList({
                     projects={message.data.projects}
                     onAction={onUpdateProjectAction}
                     onCancel={onUpdateProjectCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* ATA form card */}
+                {message.type === "ata_form" && message.data?.preselectedProjectId && onAtaFormSubmit && onAtaFormCancel && (
+                  <AtaFormCard
+                    projectId={message.data.preselectedProjectId}
+                    projectName={message.data.project_name}
+                    onSubmit={onAtaFormSubmit}
+                    onCancel={onAtaFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* File upload form card */}
+                {message.type === "file_upload_form" && message.data?.preselectedProjectId && onFileUploadSubmit && onFileUploadCancel && (
+                  <FileUploadFormCard
+                    projectId={message.data.preselectedProjectId}
+                    projectName={message.data.project_name}
+                    onSubmit={onFileUploadSubmit}
+                    onCancel={onFileUploadCancel}
                     disabled={isLoading}
                   />
                 )}
