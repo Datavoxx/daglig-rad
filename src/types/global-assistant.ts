@@ -26,7 +26,8 @@ export interface Message {
     | "planning_form"
     | "update_project_form"
     | "ata_form"
-    | "file_upload_form";
+    | "file_upload_form"
+    | "budget_form";
   data?: MessageData;
 }
 

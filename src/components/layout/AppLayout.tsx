@@ -425,8 +425,12 @@ export function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-content px-3 py-4 md:px-6 md:py-8">
+        <main className={cn("flex-1", location.pathname === "/global-assistant" ? "overflow-hidden" : "overflow-auto")}>
+          <div className={cn(
+            location.pathname === "/global-assistant"
+              ? "h-full"
+              : "mx-auto max-w-content px-3 py-4 md:px-6 md:py-8"
+          )}>
             <RouteTransition>
               <Outlet />
             </RouteTransition>
