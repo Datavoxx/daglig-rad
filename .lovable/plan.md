@@ -1,43 +1,38 @@
 
-
-## Fix: Grön glow syns inte på aktiva flikar
+## Fix: Grön markering syns inte pa aktiva projektflikar
 
 ### Problem
-Den gröna shadow-effekten genereras inte av Tailwind. Kommatecknen i `hsl(142,69%,45%,0.25)` tolkas felaktigt av Tailwinds klassparser. Dessutom finns en konflikt i bas-stilen som kan motverka bakgrundsfärgen.
+Trots att Tailwind-klasser som `data-[state=active]:bg-primary/10` och `data-[state=active]:shadow-[...]` finns i koden, renderas de inte visuellt. Trolig orsak: Tailwinds arbitrary value-syntax for shadow fungerar inte korrekt i kombination med `data-[state=active]`, och `tailwind-merge` kan stripa klasserna.
 
-### Lösning
+### Losning
 
-**Fil: `src/components/ui/tabs.tsx`**
+Byt strategi -- istallet for att forlita sig pa Tailwind arbitrary values, definiera en CSS-klass i `index.css` som hanterar den grona glow-effekten, och anvand den i ProjectView.
 
-Ta bort `data-[state=active]:bg-background` från bas-stilen i TabsTrigger. Den klassen sätter en vit/mörk bakgrund som slåss mot `bg-primary/10`. Bas-stilen ska bara hantera layout och fokus -- inte aktiv-state-färger som nu hanteras per komponent.
+**Steg 1: `src/index.css`** -- Lagg till en CSS-klass
 
-Innan:
-```
-data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-md
-```
-
-Efter:
-```
-data-[state=active]:text-foreground
-```
-
-**Fil: `src/pages/ProjectView.tsx`**
-
-Fixa shadow-syntaxen. Byt komma-separerade HSL-värden till Tailwind-kompatibel syntax med understreck:
-
-Innan:
-```
-data-[state=active]:shadow-[0_0_12px_hsl(142,69%,45%,0.25)]
+```css
+.tab-active-glow[data-state="active"] {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-radius: 0.375rem;
+  box-shadow: 0 0 12px hsl(142 69% 45% / 0.25);
+}
 ```
 
-Efter:
-```
-data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)]
+**Steg 2: `src/pages/ProjectView.tsx`** -- Forenkla TabsTrigger-klasserna
+
+Ta bort alla `data-[state=active]:bg-primary/10`, `data-[state=active]:text-primary`, `data-[state=active]:rounded-md` och `data-[state=active]:shadow-[...]` fran varje TabsTrigger.
+
+Lagg istallet till klassen `tab-active-glow` pa varje trigger:
+
+```tsx
+<TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
 ```
 
-Alla sex triggers (Översikt, ÄTA, Arbetsorder, Filer, Planering, Dagbok) uppdateras med den korrekta syntaxen.
+Alla sex triggers (Oversikt, ATA, Arbetsorder, Filer, Planering, Dagbok) uppdateras pa samma satt.
 
 ### Resultat
-- Grön glow-shadow runt aktiv flik (samma känsla som sidomenyn)
-- Grön bakgrund (bg-primary/10) fungerar korrekt
-- Grön text och ikoner på aktiv flik
+- Gron bakgrund pa aktiv flik
+- Gron text och ikoner
+- Gron shadow/glow runt aktiv flik (samma kansla som sidomenyn)
+- Fungerar garanterat eftersom vi anvander ren CSS istallet for Tailwind arbitrary values
