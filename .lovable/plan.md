@@ -1,65 +1,37 @@
 
 
-## Koppla leverantörsfakturor till ekonomiöversikten i Byggio AI
+## Fix: Korrekt leverantörskostnad + beräknad marginal i ekonomikortet
 
-### Problem
-När du frågar Byggio AI om ekonomiöversikten för ett projekt hämtas bara kundfakturor. Leverantörsfakturor (inköp/kostnader) ignoreras helt, trots att de finns inlagda på projektet.
+### Problem 1: Fel belopp på Inköp
+Inköp visar 3 200 kr (exkl moms) men projektvyn visar 4 000 kr (inkl moms). Datan i databasen är korrekt -- leverantörsfakturan har `total_ex_vat: 3200` och `total_inc_vat: 4000`. Problemet är att EconomyCard visar ex-moms medan projektvyn visar inkl-moms.
+
+### Problem 2: Beräknad marginal saknas
+Projektvyn visar "Beräknad marginal: 459 088 kr" men assistentens ekonomikort saknar denna rad helt.
 
 ### Lösning
 
-Hämta leverantörsfakturor i edge-funktionen och visa dem i EconomyCard.
+**Fil 1: `src/components/global-assistant/EconomyCard.tsx`**
 
-**Steg 1: `supabase/functions/global-assistant/index.ts`**
+1. Byt från `vendor_cost_ex_vat` till `vendor_cost_inc_vat` i kortet -- detta matchar projektvyns beräkning (4 000 kr istället för 3 200 kr)
+2. Lägg till ett nytt "Beräknad marginal"-block längst ned, beräknat som:
+   - `marginal = offertbelopp + godkänd ÄTA - leverantörskostnad(inkl moms) - arbetskostnad`
+   - Visas med grön text om positiv, röd om negativ
+3. Uppdatera progress-barens beräkning att använda inkl-moms-beloppet
 
-I både `get_project_economy` och `get_project_overview`:
+### Tekniska detaljer
 
-- Lägg till en query mot `vendor_invoices` filtrerad på `project_id`
-- Beräkna total kostnad (ex moms och inkl moms)
-- Returnera nya fält: `vendor_cost_ex_vat`, `vendor_cost_inc_vat`, `vendor_invoice_count`
+Beräkning av marginal (samma logik som projektvyns `EconomicOverviewCard`):
+- Projektvyn beräknar: `totalProjectValue = offertbelopp + godkända ÄTA`
+- Sedan: `margin = totalProjectValue - totalExpenses`
+- Vi har inte arbetskostnad (timmar x timpris) i assistenten, men vi har leverantörskostnaden
 
-Ny kod (efter customer_invoices-queryn, ca rad 1618 och rad 1703):
-```typescript
-// Get vendor invoices (costs/expenses)
-const { data: vendorInvoices } = await supabase
-  .from("vendor_invoices")
-  .select("total_ex_vat, total_inc_vat, status, supplier_name")
-  .eq("project_id", project_id);
+Ändringar i EconomyCard:
+- Rad 36: `vendor_cost_ex_vat` byts till `vendor_cost_inc_vat`
+- Ny sektion efter progress bars: Beräknad marginal med formaterad siffra
+- Marginal beräknas som: `estimateTotal + ataApproved - vendorCost`
 
-const vendorCostExVat = (vendorInvoices || [])
-  .reduce((sum, v) => sum + (v.total_ex_vat || 0), 0);
-
-const vendorCostIncVat = (vendorInvoices || [])
-  .reduce((sum, v) => sum + (v.total_inc_vat || 0), 0);
+Nytt UI-block:
 ```
-
-Lägg till i return-objektet:
-```typescript
-vendor_cost_ex_vat: vendorCostExVat,
-vendor_cost_inc_vat: vendorCostIncVat,
-vendor_invoice_count: vendorInvoices?.length || 0,
+--- separator ---
+Beräknad marginal          459 088 kr (grön)
 ```
-
-**Steg 2: `src/components/global-assistant/EconomyCard.tsx`**
-
-- Utöka `data`-interfacet med `vendor_cost_ex_vat`, `vendor_cost_inc_vat`, `vendor_invoice_count`
-- Lägg till ett nytt visuellt kort i grid:et (bredvid ÄTA) som visar leverantörskostnader med en röd/orange ikon (t.ex. `ShoppingCart` eller `Truck`)
-- Lägg till en progress bar som visar "Kostnader vs offert" (vendor_cost / estimate_total)
-
-Nytt kort:
-```tsx
-{/* Leverantörskostnader */}
-<div className="p-3 rounded-lg bg-red-500/10 space-y-1">
-  <div className="flex items-center gap-2 text-red-600">
-    <ShoppingCart className="h-4 w-4" />
-    <span className="text-xs font-medium">Inköp ({data.vendor_invoice_count || 0})</span>
-  </div>
-  <p className="text-lg font-semibold">{formatCurrency(data.vendor_cost_ex_vat || 0)}</p>
-</div>
-```
-
-Grid ändras från `grid-cols-2` till att rymma 5 kort (3+2 eller fortfarande 2 kolumner med en extra rad).
-
-### Resultat
-- Leverantörsfakturor syns i ekonomiöversikten med totalbelopp
-- Antal leverantörsfakturor visas
-- Lättare att se projektets faktiska kostnader jämfört med budget/offert
