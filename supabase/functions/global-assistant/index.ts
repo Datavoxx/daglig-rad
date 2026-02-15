@@ -1588,13 +1588,17 @@ async function executeTool(
         estimate = estById;
       }
       
-      // Get time entries
+      // Get time entries with billing rates for labor cost
       const { data: timeEntries } = await supabase
         .from("time_entries")
-        .select("hours")
+        .select("hours, billing_types(hourly_rate)")
         .eq("project_id", project_id);
       
-      const totalHours = (timeEntries || []).reduce((sum, e) => sum + (e.hours || 0), 0);
+      const totalHours = (timeEntries || []).reduce((sum: number, e: any) => sum + (e.hours || 0), 0);
+      const laborCostActual = (timeEntries || []).reduce((sum: number, e: any) => {
+        const rate = e.billing_types?.hourly_rate || 0;
+        return sum + ((e.hours || 0) * rate);
+      }, 0);
       
       // Get ÄTA items
       const { data: ataItems } = await supabase
@@ -1653,6 +1657,7 @@ async function executeTool(
         vendor_cost_ex_vat: vendorCostExVat,
         vendor_cost_inc_vat: vendorCostIncVat,
         vendor_invoice_count: vendorInvoices?.length || 0,
+        labor_cost_actual: laborCostActual,
       };
     }
 
@@ -3422,6 +3427,7 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
     // === ECONOMY ===
     case "get_project_economy": {
       const eco = results as {
+        project_id?: string;
         project_name?: string;
         budget: number;
         estimate_total: number;
@@ -3434,28 +3440,46 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
         invoiced_amount: number;
         paid_amount: number;
         invoice_count: number;
+        vendor_cost_ex_vat: number;
+        vendor_cost_inc_vat: number;
+        vendor_invoice_count: number;
+        labor_cost_actual: number;
       };
+
+      const fmtKr = (n: number) => Math.round(n).toLocaleString("sv-SE") + " kr";
+      
+      let vendorLine = "";
+      if (eco.vendor_invoice_count > 0) {
+        vendorLine = `\n**Leverantörsfakturor:** (${eco.vendor_invoice_count} st)\n- Totalt inkl moms: ${fmtKr(eco.vendor_cost_inc_vat)}`;
+      }
+
+      const totalProjectValue = eco.estimate_total + eco.ata_approved;
+      const totalExpenses = eco.vendor_cost_inc_vat + eco.labor_cost_actual;
+      const margin = totalProjectValue - totalExpenses;
       
       return {
         type: "economy_overview",
         content: `**Ekonomisk översikt: ${eco.project_name || "Projekt"}**
 
 **Budget & Offert:**
-- Budget: ${eco.budget.toLocaleString("sv-SE")} kr
-- Offert totalt: ${eco.estimate_total.toLocaleString("sv-SE")} kr
-- Varav arbete: ${eco.estimate_labor.toLocaleString("sv-SE")} kr
-- Varav material: ${eco.estimate_material.toLocaleString("sv-SE")} kr
+- Budget: ${fmtKr(eco.budget)}
+- Offert totalt: ${fmtKr(eco.estimate_total)}
+- Varav arbete: ${fmtKr(eco.estimate_labor)}
+- Varav material: ${fmtKr(eco.estimate_material)}
 
 **Tidsredovisning:**
 - Totalt registrerade timmar: ${eco.total_hours}h
+- Arbetskostnad: ${fmtKr(eco.labor_cost_actual)}
 
 **ÄTA-arbeten:** (${eco.ata_count} st)
-- Godkända: ${eco.ata_approved.toLocaleString("sv-SE")} kr
-- Väntande: ${eco.ata_pending.toLocaleString("sv-SE")} kr
+- Godkända: ${fmtKr(eco.ata_approved)}
+- Väntande: ${fmtKr(eco.ata_pending)}
 
 **Fakturering:** (${eco.invoice_count} fakturor)
-- Fakturerat: ${eco.invoiced_amount.toLocaleString("sv-SE")} kr
-- Betalt: ${eco.paid_amount.toLocaleString("sv-SE")} kr`,
+- Fakturerat: ${fmtKr(eco.invoiced_amount)}
+- Betalt: ${fmtKr(eco.paid_amount)}${vendorLine}
+
+**Beräknad marginal:** ${fmtKr(margin)}`,
         data: {
           ...eco,
         },
