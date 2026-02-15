@@ -186,10 +186,19 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Override role from 'admin' (set by trigger) to 'user' (worker)
+    const { error: updateRoleError } = await supabase
+      .from("user_roles")
+      .update({ role: "user" })
+      .eq("user_id", userId);
+
+    if (updateRoleError) {
+      console.error("Error updating role to user:", updateRoleError);
+    } else {
+      console.log(`Role updated to 'user' for ${userId}`);
+    }
+
     // Set restricted modules for the employee (override the default full access)
-    // Employees only get: attendance (personalliggare), time-reporting, daily-reports
-    // They do NOT get access to projects, estimates, customers, invoices, settings, etc.
-    // Use UPSERT to ensure permissions are always set correctly even if row doesn't exist
     const { error: upsertPermissionsError } = await supabase
       .from("user_permissions")
       .upsert(
