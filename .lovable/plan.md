@@ -1,30 +1,25 @@
 
 
-## Fix: Redirecta lösenordsåterställning till byggio.io
+## Fix: Lösenordsåterställning redirectar till vanlig inloggning
 
 ### Problem
-När en användare klickar "Återställ lösenord" i mejlet, redirectas de först via Lovables domän innan de kommer till lösenordsformuläret. Användare som inte har Lovable-konto fastnar.
+När användaren klickar på återställningslänken i mejlet, hamnar de på vanliga inloggningssidan istället för formuläret för nytt lösenord. Orsaken är att `https://byggio.io/auth` inte finns med i listan över tillåtna redirect-URLer i autentiseringsinställningarna. Utan det tar inte backend emot recovery-token korrekt.
 
 ### Lösning
 
-**Fil: `src/pages/Auth.tsx`** (rad ~91)
+**Steg 1: Lägg till byggio.io som tillåten redirect-URL**
 
-Ändra `redirectTo` i `resetPasswordForEmail` från `window.location.origin + "/auth"` till en hårdkodad URL med custom domain:
+Via autentiseringskonfigurationen behöver `https://byggio.io/auth` läggas till som en godkänd redirect-URL. Detta gör att recovery-token skickas med korrekt till din domän.
 
-```typescript
-// Före:
-redirectTo: window.location.origin + "/auth",
+**Steg 2: Verifiera att koden fungerar**
 
-// Efter:
-redirectTo: "https://byggio.io/auth",
-```
-
-Detta gör att Supabase skickar användaren direkt till byggio.io/auth med recovery-token i URL:en, utan att gå via Lovables mellansteg.
+Koden i `Auth.tsx` är redan korrekt uppbyggd. Den lyssnar på `PASSWORD_RECOVERY`-eventet och visar formuläret för nytt lösenord. Problemet är enbart att redirect-URLen inte är godkänd i backend.
 
 ### Teknisk sammanfattning
 
-| Ändring | Fil | Rad |
-|---------|-----|-----|
-| Hårdkoda redirectTo till byggio.io | `src/pages/Auth.tsx` | ~91 |
+| Ändring | Vad |
+|---------|-----|
+| Autentiseringskonfiguration | Lägg till `https://byggio.io/auth` som tillåten redirect-URL |
 
-En rad ändras.
+Ingen kodändring behövs -- bara en konfigurationsuppdatering i backend.
+
