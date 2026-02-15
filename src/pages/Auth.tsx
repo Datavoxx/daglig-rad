@@ -40,6 +40,8 @@ export default function Auth() {
 
   // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
+    // Explicitly call getSession to trigger parsing of hash fragment (recovery token)
+    supabase.auth.getSession();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecoveryMode(true);

@@ -509,6 +509,35 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt filuppladdning");
   };
 
+  const handleBudgetOverview = async () => {
+    const { data: projects } = await supabase
+      .from("projects")
+      .select("id, name, address")
+      .order("created_at", { ascending: false });
+
+    if (!projects || projects.length === 0) {
+      await sendMessage("Visa budget översikt för ett projekt");
+      return;
+    }
+
+    const budgetFormMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: "",
+      type: "budget_form",
+      data: { projects },
+    };
+    setMessages((prev) => [...prev, budgetFormMessage]);
+  };
+
+  const handleBudgetFormSubmit = async (projectId: string, projectName: string) => {
+    await sendMessage(`Visa budget översikt för ${projectName}`, { selectedProjectId: projectId });
+  };
+
+  const handleBudgetFormCancel = async () => {
+    await sendMessage("Avbryt budget översikt");
+  };
+
   const handleEstimateItemsFormSubmit = async (formData: {
     estimateId: string;
     introduction: string;
@@ -638,7 +667,7 @@ export default function GlobalAssistant() {
           </p>
           <div className="w-full max-w-2xl space-y-4">
             <ChatInput onSend={sendMessage} disabled={isLoading} />
-            <QuickSuggestions onSelect={sendMessage} />
+            <QuickSuggestions onSelect={sendMessage} onBudgetOverview={handleBudgetOverview} />
           </div>
         </div>
       )}
@@ -683,6 +712,8 @@ export default function GlobalAssistant() {
             onAtaFormCancel={handleAtaFormCancel}
             onFileUploadSubmit={handleFileUploadSubmit}
             onFileUploadCancel={handleFileUploadCancel}
+            onBudgetFormSubmit={handleBudgetFormSubmit}
+            onBudgetFormCancel={handleBudgetFormCancel}
             onSendMessage={sendMessage}
             isLoading={isLoading}
           />

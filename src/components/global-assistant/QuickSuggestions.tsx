@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 
 interface QuickSuggestionsProps {
   onSelect: (prompt: string) => void;
+  onBudgetOverview?: () => void;
 }
 
 const suggestions = [
@@ -63,7 +64,7 @@ const suggestions = [
   },
 ];
 
-export function QuickSuggestions({ onSelect }: QuickSuggestionsProps) {
+export function QuickSuggestions({ onSelect, onBudgetOverview }: QuickSuggestionsProps) {
   return (
     <div className="flex flex-wrap justify-center gap-2">
       {suggestions.map((suggestion) => (
@@ -72,7 +73,13 @@ export function QuickSuggestions({ onSelect }: QuickSuggestionsProps) {
           variant="outline"
           size="sm"
           className="gap-2 rounded-full border-border/60 bg-card/50 hover:bg-card hover:border-primary/30 transition-all"
-          onClick={() => onSelect(suggestion.prompt)}
+          onClick={() => {
+            if (suggestion.label === "Budget översikt" && onBudgetOverview) {
+              onBudgetOverview();
+            } else {
+              onSelect(suggestion.prompt);
+            }
+          }}
         >
           <suggestion.icon className="h-4 w-4 text-muted-foreground" />
           <span>{suggestion.label}</span>

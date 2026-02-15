@@ -24,6 +24,7 @@ import { PlanningFormCard } from "./PlanningFormCard";
 import { UpdateProjectFormCard } from "./UpdateProjectFormCard";
 import { AtaFormCard } from "./AtaFormCard";
 import { FileUploadFormCard } from "./FileUploadFormCard";
+import { BudgetOverviewFormCard } from "./BudgetOverviewFormCard";
 import { cn } from "@/lib/utils";
 
 interface TimeFormData {
@@ -110,6 +111,8 @@ interface MessageListProps {
   onAtaFormCancel?: () => void;
   onFileUploadSubmit?: (data: { projectId: string; fileName: string; storagePath: string }) => void;
   onFileUploadCancel?: () => void;
+  onBudgetFormSubmit?: (projectId: string, projectName: string) => void;
+  onBudgetFormCancel?: () => void;
   onSendMessage?: (message: string) => void;
   isLoading?: boolean;
 }
@@ -151,6 +154,8 @@ export function MessageList({
   onAtaFormCancel,
   onFileUploadSubmit,
   onFileUploadCancel,
+  onBudgetFormSubmit,
+  onBudgetFormCancel,
   onSendMessage,
   isLoading,
 }: MessageListProps) {
@@ -422,6 +427,16 @@ export function MessageList({
                     projectName={message.data.project_name}
                     onSubmit={onFileUploadSubmit}
                     onCancel={onFileUploadCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Budget overview form card */}
+                {message.type === "budget_form" && message.data?.projects && onBudgetFormSubmit && onBudgetFormCancel && (
+                  <BudgetOverviewFormCard
+                    projects={message.data.projects}
+                    onSubmit={onBudgetFormSubmit}
+                    onCancel={onBudgetFormCancel}
                     disabled={isLoading}
                   />
                 )}
