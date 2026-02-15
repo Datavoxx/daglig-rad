@@ -10,7 +10,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
@@ -387,21 +387,34 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 <Save className="h-4 w-4" />
               )}
             </Button>
-            {estimate.state.status === "completed" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  if (estimate.state.status === "draft") {
+                    await handleSaveAsCompleted();
+                  } else {
                     const id = await estimate.saveAsync();
                     setSavedEstimateId(id);
                     setShowProjectRecommendation(true);
-                  } catch {}
-                }}
-                className="h-8 gap-1"
+                  }
+                } catch {}
+              }}
+              className="h-8 gap-1"
+            >
+              <FolderPlus className="h-4 w-4" />
+              Starta projekt
+            </Button>
+            {estimate.state.status === "completed" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleStatusChange("draft")}
+                className="h-8 text-muted-foreground hover:text-foreground"
               >
-                <FolderPlus className="h-4 w-4" />
-                Starta projekt
+                <Undo2 className="h-4 w-4" />
+                Ångra godkänd
               </Button>
             )}
             {estimate.hasExistingEstimate && (
