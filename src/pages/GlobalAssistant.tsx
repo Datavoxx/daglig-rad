@@ -469,7 +469,15 @@ export default function GlobalAssistant() {
       return;
     }
     if (category === "planning") {
-      await sendMessage(`Skapa planering för projekt med ID ${projectId}`, { selectedProjectId: projectId });
+      const projects = (messages.find(m => m.type === "update_project_form")?.data?.projects as Array<{id: string; name: string; address?: string}>) || [];
+      const planningFormMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "",
+        type: "planning_form",
+        data: { projects, preselectedProjectId: projectId },
+      };
+      setMessages(prev => [...prev, planningFormMessage]);
       return;
     }
     const prompts: Record<string, string> = {
