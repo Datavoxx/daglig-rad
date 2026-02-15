@@ -1,46 +1,48 @@
 
 
-## Tre rollnivåer: founder, admin, arbetare
+## Fixa befintliga roller och lägg till namn i user_roles
 
-### Sammanfattning
-Lägger till en tredje roll (`founder`) i systemet men behåller AI-användning kopplat till `mahad@datavoxx.se` som det redan är. Fokus ligger på att strukturera rollerna korrekt.
+### Problem
+1. Alla 10 befintliga konton har rollen `user` trots att triggern nu sätter `admin` för nya
+2. Tabellen `user_roles` saknar ett namnfält
 
-### Tre roller
-
-| Roll | Vem | Hur de skapas |
-|------|-----|---------------|
-| **founder** | Dig (tilldelar manuellt i databasen) | Manuellt via SQL |
-| **admin** | Chefer som registrerar konto | Automatiskt vid registrering |
-| **user** | Arbetare som bjuds in via länk | Automatiskt vid accepterad inbjudan |
-
-### Ändringar
+### Åtgärder
 
 #### 1. Databasmigrering (SQL)
-- Lägg till `'founder'` i `app_role`-enumen
-- Uppdatera `handle_new_user()`-funktionen: ändra default-rollen från `'user'` till `'admin'` (alla som registrerar sig själva är chefer)
+
+**Lägg till `name`-kolumn i `user_roles`:**
+- Ny kolumn `name TEXT` (nullable, fylls i från profiles-tabellen)
+
+**Uppdatera befintliga roller:**
+- Sätt alla konton till `admin` UTOM de två som är länkade arbetare (`linked_user_id` i employees-tabellen)
+- De två arbetarna (`mahad.abdullahi1@outlook.com`, `mmagenzy.info@gmail.com`) behåller `user`-rollen
+- Fyll i `name`-kolumnen från `profiles.full_name` för alla befintliga rader
+
+**Uppdatera `handle_new_user()`-triggern:**
+- Inkludera `name` (från `full_name` i user metadata) vid insättning i `user_roles`
 
 #### 2. Accept-invitation (Edge Function)
-**Fil: `supabase/functions/accept-invitation/index.ts`**
-- Efter att kontot skapats: uppdatera rollen i `user_roles` från `'admin'` (som triggern sätter) till `'user'` (arbetare)
+- Inkludera anställdas namn i `user_roles` vid kontoskapande
 
-#### 3. useUserPermissions
-**Fil: `src/hooks/useUserPermissions.ts`**
-- Lägg till hantering av `founder`-rollen -- founders behandlas som admins med full modulåtkomst
+### Vilka får vilken roll
 
-#### 4. AI-användning
-- **Ingen ändring** -- behålls som det är, kopplat till `mahad@datavoxx.se`
-
-### Manuell tilldelning av founder
-Du tilldelar founder-rollen i databasen:
-```text
-UPDATE user_roles SET role = 'founder' WHERE user_id = '<ditt-user-id>';
-```
+| Konto | Roll |
+|-------|------|
+| mahad@datavoxx.se (Isak Holmberg) | admin |
+| alvin@jiaab.se | admin |
+| info@datavoxx.se | admin |
+| philipruan0306@gmail.com | admin |
+| isak@jiaab.se | admin |
+| test@test.com | admin |
+| sugrow18@gmail.com | admin |
+| developer@datavoxx.se | admin |
+| mahad.abdullahi1@outlook.com | user (arbetare) |
+| mmagenzy.info@gmail.com | user (arbetare) |
 
 ### Filändringar
 
 | Fil | Ändring |
 |-----|---------|
-| SQL-migrering | `ALTER TYPE app_role ADD VALUE 'founder'`, uppdatera `handle_new_user()` |
-| `supabase/functions/accept-invitation/index.ts` | Ändra roll till `'user'` efter kontoskapande |
-| `src/hooks/useUserPermissions.ts` | Hantera `founder` som full-access |
+| SQL-migrering | Lägg till `name`-kolumn, uppdatera roller, uppdatera trigger |
+| `supabase/functions/accept-invitation/index.ts` | Inkludera namn vid roll-insättning |
 
