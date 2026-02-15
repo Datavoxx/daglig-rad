@@ -123,7 +123,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit">
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden xs:inline">Översikt</span>
+                <span>Översikt</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">Översikt</TooltipContent>
@@ -132,7 +132,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit">
                 <FileEdit className="h-4 w-4" />
-                <span className="hidden xs:inline">ÄTA</span>
+                <span>ÄTA</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">ÄTA</TooltipContent>
@@ -141,7 +141,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit">
                 <ClipboardList className="h-4 w-4" />
-                <span className="hidden xs:inline">Order</span>
+                <span>Arbetsorder</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">Arbetsorder</TooltipContent>
@@ -150,7 +150,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit">
                 <FolderOpen className="h-4 w-4" />
-                <span className="hidden xs:inline">Filer</span>
+                <span>Filer</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">Filer</TooltipContent>
@@ -159,7 +159,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit">
                 <CalendarDays className="h-4 w-4" />
-                <span className="hidden xs:inline">Plan</span>
+                <span>Planering</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">Planering</TooltipContent>
@@ -168,7 +168,7 @@ export default function ProjectView() {
             <TooltipTrigger asChild>
               <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit">
                 <BookOpen className="h-4 w-4" />
-                <span className="hidden xs:inline">Dagbok</span>
+                <span>Dagbok</span>
               </TabsTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">Dagbok</TooltipContent>
