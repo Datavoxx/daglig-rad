@@ -1624,6 +1624,18 @@ async function executeTool(
         .filter((i) => i.status === "paid")
         .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
       
+      // Get vendor invoices (costs/expenses)
+      const { data: vendorInvoices } = await supabase
+        .from("vendor_invoices")
+        .select("total_ex_vat, total_inc_vat, status, supplier_name")
+        .eq("project_id", project_id);
+      
+      const vendorCostExVat = (vendorInvoices || [])
+        .reduce((sum: number, v: any) => sum + (v.total_ex_vat || 0), 0);
+      
+      const vendorCostIncVat = (vendorInvoices || [])
+        .reduce((sum: number, v: any) => sum + (v.total_inc_vat || 0), 0);
+      
       return {
         project_id,
         project_name: project?.name,
@@ -1638,6 +1650,9 @@ async function executeTool(
         invoiced_amount: invoicedAmount,
         paid_amount: paidAmount,
         invoice_count: invoices?.length || 0,
+        vendor_cost_ex_vat: vendorCostExVat,
+        vendor_cost_inc_vat: vendorCostIncVat,
+        vendor_invoice_count: vendorInvoices?.length || 0,
       };
     }
 
@@ -1710,6 +1725,18 @@ async function executeTool(
         .filter((i) => i.status === "paid")
         .reduce((sum, i) => sum + (i.total_inc_vat || 0), 0);
       
+      // Get vendor invoices (costs/expenses)
+      const { data: vendorInvoices2 } = await supabase
+        .from("vendor_invoices")
+        .select("total_ex_vat, total_inc_vat")
+        .eq("project_id", project_id);
+      
+      const vendorCostExVat2 = (vendorInvoices2 || [])
+        .reduce((sum: number, v: any) => sum + (v.total_ex_vat || 0), 0);
+      
+      const vendorCostIncVat2 = (vendorInvoices2 || [])
+        .reduce((sum: number, v: any) => sum + (v.total_inc_vat || 0), 0);
+      
       // Get daily reports (recent activity)
       const { data: reports, count: reportsCount } = await supabase
         .from("daily_reports")
@@ -1752,6 +1779,9 @@ async function executeTool(
           invoiced_amount: invoicedAmount,
           paid_amount: paidAmount,
           invoice_count: invoices?.length || 0,
+          vendor_cost_ex_vat: vendorCostExVat2,
+          vendor_cost_inc_vat: vendorCostIncVat2,
+          vendor_invoice_count: vendorInvoices2?.length || 0,
         },
         time: {
           total_hours: totalHours,

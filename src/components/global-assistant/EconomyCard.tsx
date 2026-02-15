@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Clock, Receipt, AlertCircle } from "lucide-react";
+import { TrendingUp, Clock, Receipt, AlertCircle, ShoppingCart } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface EconomyCardProps {
@@ -18,6 +18,9 @@ interface EconomyCardProps {
     invoiced_amount?: number;
     paid_amount?: number;
     invoice_count?: number;
+    vendor_cost_ex_vat?: number;
+    vendor_cost_inc_vat?: number;
+    vendor_invoice_count?: number;
   };
 }
 
@@ -30,10 +33,12 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
   const estimateTotal = data.estimate_total || 0;
   const invoiced = data.invoiced_amount || 0;
   const paid = data.paid_amount || 0;
+  const vendorCost = data.vendor_cost_ex_vat || 0;
   
   // Calculate invoice progress
   const invoiceProgress = estimateTotal > 0 ? (invoiced / estimateTotal) * 100 : 0;
   const paymentProgress = invoiced > 0 ? (paid / invoiced) * 100 : 0;
+  const costProgress = estimateTotal > 0 ? (vendorCost / estimateTotal) * 100 : 0;
 
   return (
     <Card className="p-4 space-y-4">
@@ -83,6 +88,17 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
             </p>
           )}
         </div>
+        
+        {/* Leverantörskostnader */}
+        {(data.vendor_invoice_count || 0) > 0 && (
+          <div className="p-3 rounded-lg bg-red-500/10 space-y-1">
+            <div className="flex items-center gap-2 text-red-600">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="text-xs font-medium">Inköp ({data.vendor_invoice_count})</span>
+            </div>
+            <p className="text-lg font-semibold">{formatCurrency(vendorCost)}</p>
+          </div>
+        )}
       </div>
       
       {/* Progress Bars */}
@@ -104,6 +120,16 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
               <span className="font-medium">{Math.round(paymentProgress)}%</span>
             </div>
             <Progress value={paymentProgress} className="h-2 [&>div]:bg-green-500" />
+          </div>
+        )}
+        
+        {vendorCost > 0 && estimateTotal > 0 && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Inköpskostnader av offert</span>
+              <span className="font-medium">{Math.round(costProgress)}%</span>
+            </div>
+            <Progress value={costProgress} className="h-2 [&>div]:bg-red-500" />
           </div>
         )}
       </div>
