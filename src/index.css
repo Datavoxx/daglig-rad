@@ -164,13 +164,7 @@
     @apply text-xs text-muted-foreground;
   }
 
-  /* Tab active glow */
-  .tab-active-glow[data-state="active"] {
-    background-color: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
-    border-radius: 0.375rem;
-    box-shadow: 0 0 12px hsl(142 69% 45% / 0.25);
-  }
+  /* Tab active glow - moved outside @layer, see below */
 
   /* Premium filter bar */
   .filter-bar {
@@ -491,4 +485,12 @@
 
 .pac-logo::after {
   display: none !important;
+}
+
+/* Tab active glow - outside @layer for higher specificity */
+.tab-active-glow[data-state="active"] {
+  background-color: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
+  border-radius: 0.375rem;
+  box-shadow: 0 0 12px hsl(142 69% 45% / 0.25);
 }
