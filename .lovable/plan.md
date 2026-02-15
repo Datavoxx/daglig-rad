@@ -1,27 +1,26 @@
 
-## Förbättra "Starta projekt"-knappen och lägg till "Ångra godkänd"
+## Uppdatera offertlistan: "Klar" till "Godkänd" med bättre badge-stil
 
-### Nuvarande beteende
-- "Starta projekt"-knappen syns bara när offerten är godkänd
-- Det finns inget tydligt sätt att gå tillbaka från godkänd till draft
+### Problem
+Offertlistan (`/estimates`) visar fortfarande "Klar" med en solid grön bakgrund (`bg-green-600`) for godkända offerter. Detta matchar inte den uppdaterade headern som nu visar "GODKÄND" med den subtilare `success`-varianten.
 
-### Nytt beteende
+### Ändringar i `src/pages/Estimates.tsx`
 
-**När status = DRAFT:**
-- "Starta projekt"-knappen syns och fungerar som genväg: den sätter automatiskt status till "completed" (godkänd), sparar, och visar "Starta projekt?"-dialogen
+Det finns **två ställen** som behöver uppdateras (mobil-vy och desktop-vy):
 
-**När status = GODKÄND:**
-- "Starta projekt"-knappen syns fortfarande (samma funktion, sparar och visar dialogen)
-- En ny knapp "Ångra godkänd" dyker upp bredvid, som ändrar status tillbaka till draft
+#### 1. Mobil-vy (rad ~325-330)
+- Ändra texten från `"Klar"` till `"Godkänd"`
+- Byt från `variant="default"` med `className="bg-green-600"` till `variant="success"` (utan extra className)
+
+#### 2. Desktop-vy (rad ~407-412)
+- Samma ändring: `"Klar"` till `"Godkänd"` och `variant="success"` istället for grön bakgrund
 
 ### Teknisk sammanfattning
 
-| Fil | Ändring |
-|-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | Visa "Starta projekt" oavsett status (auto-godkänn vid draft). Lägg till "Ångra godkänd"-knapp som syns vid status completed. |
+| Fil | Rad | Ändring |
+|-----|-----|---------|
+| `src/pages/Estimates.tsx` | ~325-330 | Badge: "Klar" -> "Godkänd", variant `success`, ta bort `bg-green-600` |
+| `src/pages/Estimates.tsx` | ~407-412 | Badge: "Klar" -> "Godkänd", variant `success`, ta bort `bg-green-600` |
 
-### Detaljerade ändringar i `EstimateBuilder.tsx`
-
-1. **"Starta projekt"-knappen** (rad ~390-406): Ta bort villkoret `status === "completed"` -- knappen visas alltid. Vid klick: om status är draft, kör `handleSaveAsCompleted()` (sätter godkänd + sparar + visar dialog). Om redan godkänd, spara och visa dialog direkt.
-
-2. **Ny "Ångra godkänd"-knapp**: Läggs till bredvid "Starta projekt", visas bara vid `status === "completed"`. Klick kör `handleStatusChange("draft")` som redan finns och fungerar (sätter draft + sparar + visar toast).
+### Resultat
+Offertlistan matchar headerns stil: subtil grön badge med texten "Godkänd" istället for vit text på solid grön bakgrund med texten "Klar".
