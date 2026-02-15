@@ -323,10 +323,9 @@ export default function Estimates() {
                             )}
                           </div>
                           <Badge 
-                            variant={estimate.status === "draft" ? "secondary" : "default"}
-                            className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+                            variant={estimate.status === "draft" ? "secondary" : "success"}
                           >
-                            {estimate.status === "draft" ? "Draft" : "Klar"}
+                            {estimate.status === "draft" ? "Draft" : "Godkänd"}
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
@@ -405,10 +404,9 @@ export default function Estimates() {
                             </span>
                           )}
                           <Badge 
-                            variant={estimate.status === "draft" ? "secondary" : "default"}
-                            className={estimate.status === "completed" ? "bg-green-600 hover:bg-green-600" : ""}
+                            variant={estimate.status === "draft" ? "secondary" : "success"}
                           >
-                            {estimate.status === "draft" ? "Draft" : "Klar"}
+                            {estimate.status === "draft" ? "Draft" : "Godkänd"}
                           </Badge>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
