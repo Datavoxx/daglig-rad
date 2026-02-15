@@ -44,11 +44,7 @@ export function ConversationFeedbackProvider({ children }: ConversationFeedbackP
     if (lastConversationId && !dismissedRef.current && !location.pathname.includes("/global-assistant")) {
       checkExistingFeedback(lastConversationId).then((exists) => {
         if (!exists && !dismissedRef.current) {
-          timerRef.current = setTimeout(() => {
-            if (!dismissedRef.current) {
-              setShowPopup(true);
-            }
-          }, 30000);
+          setShowPopup(true);
         }
       });
     }

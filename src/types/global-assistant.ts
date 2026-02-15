@@ -24,7 +24,9 @@ export interface Message {
     | "invoice_filter_form"
     | "work_order_form"
     | "planning_form"
-    | "update_project_form";
+    | "update_project_form"
+    | "ata_form"
+    | "file_upload_form";
   data?: MessageData;
 }
 

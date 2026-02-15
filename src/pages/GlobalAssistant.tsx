@@ -443,11 +443,37 @@ export default function GlobalAssistant() {
   };
 
   const handleUpdateProjectAction = async (projectId: string, category: string) => {
+    if (category === "ata") {
+      // Show ATA form card
+      const project = (messages.find(m => m.type === "update_project_form")?.data?.projects as Array<{id: string; name: string}> || []).find(p => p.id === projectId);
+      const ataFormMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "",
+        type: "ata_form",
+        data: { preselectedProjectId: projectId, project_name: project?.name },
+      };
+      setMessages(prev => [...prev, ataFormMessage]);
+      return;
+    }
+    if (category === "files") {
+      const project = (messages.find(m => m.type === "update_project_form")?.data?.projects as Array<{id: string; name: string}> || []).find(p => p.id === projectId);
+      const fileFormMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "",
+        type: "file_upload_form",
+        data: { preselectedProjectId: projectId, project_name: project?.name },
+      };
+      setMessages(prev => [...prev, fileFormMessage]);
+      return;
+    }
+    if (category === "planning") {
+      await sendMessage(`Skapa planering för projekt med ID ${projectId}`, { selectedProjectId: projectId });
+      return;
+    }
     const prompts: Record<string, string> = {
-      ata: `Skapa ÄTA på projekt med ID ${projectId}`,
       work_order: `Skapa arbetsorder på projekt med ID ${projectId}`,
-      files: `Visa filer för projekt med ID ${projectId}`,
-      planning: `Skapa planering för projekt med ID ${projectId}`,
       diary: `Skapa dagrapport för projekt med ID ${projectId}`,
     };
     await sendMessage(prompts[category] || `Uppdatera projekt med ID ${projectId}`, { selectedProjectId: projectId });
@@ -455,6 +481,32 @@ export default function GlobalAssistant() {
 
   const handleUpdateProjectCancel = async () => {
     await sendMessage("Avbryt projektuppdatering");
+  };
+
+  const handleAtaFormSubmit = async (formData: {
+    projectId: string;
+    description: string;
+    reason: string;
+    estimatedCost: number | null;
+    estimatedHours: number | null;
+  }) => {
+    let msg = `Skapa ÄTA på projekt med ID ${formData.projectId}. Beskrivning: ${formData.description}`;
+    if (formData.reason) msg += `. Orsak: ${formData.reason}`;
+    if (formData.estimatedCost) msg += `. Uppskattad kostnad: ${formData.estimatedCost} kr`;
+    if (formData.estimatedHours) msg += `. Uppskattade timmar: ${formData.estimatedHours}`;
+    await sendMessage(msg, { selectedProjectId: formData.projectId });
+  };
+
+  const handleAtaFormCancel = async () => {
+    await sendMessage("Avbryt ÄTA-skapande");
+  };
+
+  const handleFileUploadSubmit = async (data: { projectId: string; fileName: string; storagePath: string }) => {
+    await sendMessage(`Fil "${data.fileName}" har laddats upp till projektet`, { selectedProjectId: data.projectId });
+  };
+
+  const handleFileUploadCancel = async () => {
+    await sendMessage("Avbryt filuppladdning");
   };
 
   const handleEstimateItemsFormSubmit = async (formData: {
@@ -627,6 +679,10 @@ export default function GlobalAssistant() {
             onPlanningFormCancel={handlePlanningFormCancel}
             onUpdateProjectAction={handleUpdateProjectAction}
             onUpdateProjectCancel={handleUpdateProjectCancel}
+            onAtaFormSubmit={handleAtaFormSubmit}
+            onAtaFormCancel={handleAtaFormCancel}
+            onFileUploadSubmit={handleFileUploadSubmit}
+            onFileUploadCancel={handleFileUploadCancel}
             onSendMessage={sendMessage}
             isLoading={isLoading}
           />

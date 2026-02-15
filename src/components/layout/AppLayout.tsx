@@ -27,7 +27,7 @@ import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useInactivityTimer } from "@/hooks/useInactivityTimer";
+
 import {
   Tooltip,
   TooltipContent,
@@ -88,10 +88,6 @@ export function AppLayout() {
   const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee } = useUserPermissions();
   const isMobile = useIsMobile();
 
-  const { resetTimer } = useInactivityTimer(() => {
-    setFeedbackTrigger("inactivity");
-    setShowSessionFeedback(true);
-  }, !showSessionFeedback);
 
   const handleLogoutClick = () => {
     setFeedbackTrigger("logout");
@@ -104,8 +100,6 @@ export function AppLayout() {
     if (feedbackTrigger === "logout") {
       await supabase.auth.signOut();
       navigate("/auth");
-    } else {
-      resetTimer();
     }
   };
 
