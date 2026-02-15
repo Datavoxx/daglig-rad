@@ -121,7 +121,7 @@ export default function ProjectView() {
         <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <LayoutDashboard className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
                 <span>Översikt</span>
               </TabsTrigger>
@@ -130,7 +130,7 @@ export default function ProjectView() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <FileEdit className="h-4 w-4" />
                 <span>ÄTA</span>
               </TabsTrigger>
@@ -139,7 +139,7 @@ export default function ProjectView() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <ClipboardList className="h-4 w-4" />
                 <span>Arbetsorder</span>
               </TabsTrigger>
@@ -148,7 +148,7 @@ export default function ProjectView() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <FolderOpen className="h-4 w-4" />
                 <span>Filer</span>
               </TabsTrigger>
@@ -157,7 +157,7 @@ export default function ProjectView() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <CalendarDays className="h-4 w-4" />
                 <span>Planering</span>
               </TabsTrigger>
@@ -166,7 +166,7 @@ export default function ProjectView() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:rounded-md data-[state=active]:shadow-[0_0_12px_hsl(142_69%_45%_/_0.25)] hover:bg-muted/50 py-2 px-3">
+              <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
                 <BookOpen className="h-4 w-4" />
                 <span>Dagbok</span>
               </TabsTrigger>
