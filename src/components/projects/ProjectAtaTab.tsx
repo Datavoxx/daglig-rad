@@ -442,7 +442,7 @@ export default function ProjectAtaTab({
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
                 agentName="Byggio AI"
-                agentAvatar={AI_AGENTS.diary.avatar}
+                variant="compact"
               />
 
               {/* Dynamic rows */}
