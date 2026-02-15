@@ -1,20 +1,19 @@
 
 
-## Mjukare dialog-animation vid redigering av ÄTA
+## Visa text på alla flikar i projektvyn
 
 ### Vad ändras
-Dialogen som öppnas vid klick på redigera-knappen (Pencil) ska animeras smidigare. Standard `DialogContent` använder en snabb zoom+fade som kan kännas abrupt. Vi förbättrar detta genom att lägga till mjukare CSS-transitions.
+Flikarna i projektvyn (Översikt, ÄTA, Arbetsorder, Filer, Planering, Dagbok) visar just nu texten bara på bredare skärmar (`hidden xs:inline`). Vi tar bort den dolda klassen så att texten alltid visas bredvid ikonen, precis som i referensbilden.
 
-### Teknisk ändring i `src/components/ui/dialog.tsx`
+Dessutom ändras "Order" till "Arbetsorder" för att matcha referensbilden.
 
-Uppdatera `DialogContent`-komponentens animationsklasser (rad 37-40):
-- Byt ut de snabba `zoom-in/out-95` och `slide-out/in`-animationerna mot längre, mjukare varianter
-- Ändra `duration-200` till `duration-300` för en långsammare, smidigare känsla
-- Byt easing från default till `ease-out` för öppning
-- Lägg till en subtilare scale-effekt: `data-[state=closed]:scale-[0.98] data-[state=open]:scale-100` istället för `zoom-out-95/zoom-in-95`
+### Teknisk ändring i `src/pages/ProjectView.tsx`
 
-Uppdatera `DialogOverlay` (rad 22-25):
-- Ändra overlay-animationen till `duration-300` för att matcha content-animationen
+- Rad 126: `<span className="hidden xs:inline">Översikt</span>` -- ta bort `hidden xs:inline`, behåll bara `<span>Översikt</span>`
+- Rad 135: Samma sak for "ÄTA"
+- Rad 144: Ändra texten från "Order" till "Arbetsorder" och ta bort `hidden xs:inline`
+- Rad 153: Samma sak for "Filer"
+- Rad 162 (ungefär): Samma sak for "Planering" (ändra label till "Planering")
+- Rad 171 (ungefär): Samma sak for "Dagbok"
 
-### Resultat
-Dialogen glider in mjukare med en subtilare skalning och längre duration, vilket ger en mer polerad upplevelse oavsett om man skapar ny ÄTA eller redigerar en befintlig.
+Alla sex `<span>`-element i TabsTrigger-komponenterna uppdateras från `className="hidden xs:inline"` till ingen className alls. Tooltip-wrapperna kan behållas som fallback men texten syns nu alltid.
