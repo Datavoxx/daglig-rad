@@ -1,28 +1,33 @@
 
+## Tydligare aktiv flik i projektnavigationen
 
-## Tydligare aktiv flik i projektvyn
+Samma stil som sidomenyn: en primärfärgad markering, bakgrundsfärg och förstärkt ikon på den aktiva fliken.
 
 ### Vad ändras
-Den aktiva fliken (t.ex. "Översikt") får en tydligare visuell markering så att det är uppenbart vilken flik man befinner sig i. Just nu får den aktiva fliken bara en subtil vit bakgrund och skugga -- vi förstärker detta med:
 
-- En **underline / bottom border** i primärfärgen på den aktiva fliken
-- Aktiv flik får **primärfärg på ikonen** (inte bara texten)
-- Lite **starkare kontrast** mellan aktiv och inaktiv
+**Fil: `src/pages/ProjectView.tsx`** -- TabsTrigger-klasserna
 
-### Teknisk ändring
+Varje `TabsTrigger` får uppdaterade klasser direkt i ProjectView (inte i den globala tabs.tsx, för att inte påverka andra ställen). Aktiv flik får:
 
-**Fil:** `src/components/ui/tabs.tsx` (TabsTrigger-stilen)
+- **Bakgrundsfärg**: `data-[state=active]:bg-primary/10` -- en lätt grön/primärfärgad bakgrund (samma mönster som sidomenyn)
+- **Textfärg**: `data-[state=active]:text-primary` -- primärfärg på text och ikon
+- **Bottenlinje**: Behåller `border-b-2 border-primary` (redan implementerat i tabs.tsx)
+- **Rundade hörn**: `data-[state=active]:rounded-md` istället för `rounded-b-none` så att bakgrundsfärgen ser snygg ut
+- **Förstärkt ikon**: Ikonen skalas upp lite med `scale-110` på aktiv flik (som sidomenyn gör)
 
-Uppdatera `data-[state=active]`-klasserna:
-- Lägg till `data-[state=active]:border-b-2 data-[state=active]:border-primary` för en tydlig underkant
-- Lägg till `data-[state=active]:text-primary` så att text och ikon byter till primärfärgen
-- Ta bort `data-[state=active]:shadow-sm` (ersätts av border-effekten)
-- Justera `rounded-sm` till `rounded-none` på aktiv state (så att underline ser ren ut)
+Inaktiva flikar behåller `text-muted-foreground` och `hover:bg-muted/50` för en subtil hover-effekt.
 
-**Fil:** `src/pages/ProjectView.tsx` (TabsList)
+### Tekniskt
 
-- Ändra TabsList-bakgrunden till `bg-transparent` eller `bg-card` istället för default `bg-muted`, så att flikarna ser mer ut som en navigationsrad
-- Lägg till `border-b border-border` på TabsList för en tunn linje under hela raden
+Varje TabsTrigger i ProjectView.tsx får klassen:
+```
+className="flex items-center gap-1.5 min-w-fit data-[state=active]:bg-primary/10 data-[state=active]:rounded-md py-2 px-3"
+```
 
-Resultatet blir att den aktiva fliken sticker ut med en primärfärgad underkant och primärfärgad text/ikon, medan inaktiva flikar är gråa -- en klassisk tab-navigationsdesign.
+Ikonen i varje trigger wrappas inte separat -- primärfärgen ärvs från `text-primary` på triggern.
 
+Dessutom tas `data-[state=active]:rounded-b-none` bort från den globala `tabs.tsx` och ersätts med `data-[state=active]:rounded-md` så att bakgrundsfärgen har rundade hörn. Bottenborder-effekten behålls men kombineras med bakgrundsfärgen.
+
+### Resultat
+
+Den aktiva fliken får samma visuella "glow" som sidomenyn: en tydlig bakgrundsfärg + primärfärgad text/ikon + underkant, medan inaktiva flikar är nedtonade. Det blir omöjligt att missa vilken flik man är inne på.
