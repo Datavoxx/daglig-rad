@@ -132,6 +132,7 @@ export interface MessageData {
   vendor_cost_ex_vat?: number;
   vendor_cost_inc_vat?: number;
   vendor_invoice_count?: number;
+  labor_cost_actual?: number;
 }
 
 export interface VerificationMatch {

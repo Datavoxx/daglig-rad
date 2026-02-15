@@ -1,11 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Clock, Receipt, AlertCircle, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Clock, Receipt, AlertCircle, ShoppingCart, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
 interface EconomyCardProps {
   content: string;
   data: {
+    project_id?: string;
     project_name?: string;
     budget?: number;
     estimate_total?: number;
@@ -21,11 +24,12 @@ interface EconomyCardProps {
     vendor_cost_ex_vat?: number;
     vendor_cost_inc_vat?: number;
     vendor_invoice_count?: number;
+    labor_cost_actual?: number;
   };
 }
 
 function formatCurrency(amount: number): string {
-  return amount.toLocaleString("sv-SE") + " kr";
+  return Math.round(amount).toLocaleString("sv-SE") + " kr";
 }
 
 export function EconomyCard({ content, data }: EconomyCardProps) {
@@ -35,10 +39,12 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
   const paid = data.paid_amount || 0;
   const vendorCost = data.vendor_cost_inc_vat || 0;
   const ataApproved = data.ata_approved || 0;
+  const laborCost = data.labor_cost_actual || 0;
   
   // Margin calculation (same logic as EconomicOverviewCard)
   const totalProjectValue = estimateTotal + ataApproved;
-  const margin = totalProjectValue - vendorCost;
+  const totalExpenses = vendorCost + laborCost;
+  const margin = totalProjectValue - totalExpenses;
   
   // Calculate invoice progress
   const invoiceProgress = estimateTotal > 0 ? (invoiced / estimateTotal) * 100 : 0;
@@ -47,6 +53,16 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
 
   return (
     <Card className="p-4 space-y-4">
+      {data.project_id && (
+        <div className="flex justify-end">
+          <Link to={`/projects/${data.project_id}`}>
+            <Button variant="outline" size="sm">
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Gå till projekt
+            </Button>
+          </Link>
+        </div>
+      )}
       <div className="prose prose-sm max-w-none text-foreground">
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
