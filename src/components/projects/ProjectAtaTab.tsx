@@ -483,6 +483,15 @@ export default function ProjectAtaTab({
                     Visa exempel
                   </Button>
                 </div>
+                <div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px] gap-2 px-3 text-xs text-muted-foreground font-medium">
+                  <span>Artikel</span>
+                  <span>Enhet</span>
+                  <span>Beskrivning</span>
+                  <span>Antal</span>
+                  <span>À-pris</span>
+                  <span>ROT</span>
+                  <span></span>
+                </div>
                 {formRows.map((row, index) => (
                   <div
                     key={row.id}
