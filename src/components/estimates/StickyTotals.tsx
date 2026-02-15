@@ -1,12 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Save, Download, Eye, Loader2, ChevronDown, FileEdit, CheckCircle } from "lucide-react";
+import { Save, Download, Eye, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface StickyTotalsProps {
   laborCost: number;
@@ -22,9 +16,7 @@ interface StickyTotalsProps {
   amountToPay: number;
   rotEnabled: boolean;
   rutEnabled?: boolean;
-  status: "draft" | "completed";
-  onSaveAsDraft: () => void;
-  onSaveAsCompleted: () => void;
+  onSave: () => void;
   onDownload: () => void;
   onPreview?: () => void;
   isSaving?: boolean;
@@ -44,9 +36,7 @@ export function StickyTotals({
   amountToPay,
   rotEnabled,
   rutEnabled = false,
-  status,
-  onSaveAsDraft,
-  onSaveAsCompleted,
+  onSave,
   onDownload,
   onPreview,
   isSaving = false,
@@ -91,28 +81,13 @@ export function StickyTotals({
             <Button variant="outline" size="icon" onClick={onDownload}>
               <Download className="h-4 w-4" />
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button disabled={isSaving} className="gap-1">
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onSaveAsDraft}>
-                  <FileEdit className="h-4 w-4 mr-2" />
-                  Spara som draft
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onSaveAsCompleted}>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Markera som klar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button disabled={isSaving} onClick={onSave}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -168,29 +143,14 @@ export function StickyTotals({
               <Download className="h-3.5 w-3.5 mr-1.5" />
               Ladda ner
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" disabled={isSaving} className="transition-all duration-200 hover:shadow-md h-8 gap-1">
-                  {isSaving ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Save className="h-3.5 w-3.5" />
-                  )}
-                  <span className="mr-0.5">Spara</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onSaveAsDraft}>
-                  <FileEdit className="h-4 w-4 mr-2" />
-                  Spara som draft
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onSaveAsCompleted}>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Markera som klar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button size="sm" disabled={isSaving} onClick={onSave} className="transition-all duration-200 hover:shadow-md h-8">
+              {isSaving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              <span className="mr-0.5">Spara</span>
+            </Button>
           </div>
         </div>
       </div>

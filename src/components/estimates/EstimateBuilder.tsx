@@ -189,10 +189,9 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     }
   }, [autoDownload, estimate.isLoading, estimate.state.items.length]);
 
-  const handleSaveAsDraft = () => {
-    estimate.updateStatus("draft");
-    setTimeout(() => estimate.save(), 0);
-    toast.success("Offert sparad som utkast");
+  const handleSave = () => {
+    estimate.save();
+    toast.success("Offert sparad");
   };
 
   const handleSaveAsCompleted = async () => {
@@ -310,7 +309,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             <div className="flex items-center gap-1">
               <Button
                 size="sm"
-                onClick={handleSaveAsDraft}
+                onClick={handleSave}
                 disabled={estimate.isSaving}
                 className="h-8"
               >
@@ -378,7 +377,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             </Button>
             <Button
               size="sm"
-              onClick={handleSaveAsDraft}
+              onClick={handleSave}
               disabled={estimate.isSaving}
               className="h-8"
             >
@@ -388,6 +387,23 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 <Save className="h-4 w-4" />
               )}
             </Button>
+            {estimate.state.status === "completed" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const id = await estimate.saveAsync();
+                    setSavedEstimateId(id);
+                    setShowProjectRecommendation(true);
+                  } catch {}
+                }}
+                className="h-8 gap-1"
+              >
+                <FolderPlus className="h-4 w-4" />
+                Starta projekt
+              </Button>
+            )}
             {estimate.hasExistingEstimate && (
               <Button
                 variant="ghost"
@@ -543,9 +559,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         amountToPay={estimate.totals.amountToPay}
         rotEnabled={estimate.state.rotEnabled}
         rutEnabled={estimate.state.rutEnabled}
-        status={estimate.state.status}
-        onSaveAsDraft={handleSaveAsDraft}
-        onSaveAsCompleted={handleSaveAsCompleted}
+        onSave={handleSave}
         onDownload={handleDownload}
         onPreview={isMobile ? () => setMobilePreviewOpen(true) : undefined}
         isSaving={estimate.isSaving}
@@ -635,7 +649,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 Starta projekt?
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Offerten är sparad! Vill du direkt skapa ett projekt från denna offert? 
+                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
                 Det gör att du snabbt kan börja planera och hantera arbetet.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -712,9 +726,9 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
               <FolderPlus className="h-5 w-5 text-primary" />
               Starta projekt?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Offerten är sparad! Vill du direkt skapa ett projekt från denna offert? 
-              Det gör att du snabbt kan börja planera och hantera arbetet.
+              <AlertDialogDescription>
+                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
+                Det gör att du snabbt kan börja planera och hantera arbetet.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
