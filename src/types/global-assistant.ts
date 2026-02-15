@@ -129,6 +129,9 @@ export interface MessageData {
   invoiced_amount?: number;
   paid_amount?: number;
   invoice_count?: number;
+  vendor_cost_ex_vat?: number;
+  vendor_cost_inc_vat?: number;
+  vendor_invoice_count?: number;
 }
 
 export interface VerificationMatch {
