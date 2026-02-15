@@ -113,24 +113,63 @@ export default function ProjectAtaTab({
   const [atas, setAtas] = useState<Ata[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  interface AtaRow {
+    id: string;
+    article: string;
+    unit: string;
+    description: string;
+    quantity: string;
+    unit_price: string;
+    rot_eligible: boolean;
+  }
+
+  const createEmptyRow = (): AtaRow => ({
+    id: crypto.randomUUID(),
     article: "Arbete",
-    description: "",
-    reason: "",
     unit: "tim",
+    description: "",
     quantity: "1",
     unit_price: "",
     rot_eligible: false,
-    status: "pending",
   });
+
+  const [formRows, setFormRows] = useState<AtaRow[]>([createEmptyRow()]);
+  const [formReason, setFormReason] = useState("");
+  const [formStatus, setFormStatus] = useState("pending");
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const { toast } = useToast();
 
+  const updateRow = (id: string, field: keyof AtaRow, value: any) => {
+    setFormRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const addRow = () => {
+    setFormRows((prev) => [...prev, createEmptyRow()]);
+  };
+
+  const removeRow = (id: string) => {
+    if (formRows.length === 1) return;
+    setFormRows((prev) => prev.filter((row) => row.id !== id));
+  };
+
   const handleVoiceInput = async (transcript: string) => {
     setIsVoiceProcessing(true);
     try {
+      const firstRow = formRows[0];
+      const formData = {
+        article: firstRow.article,
+        description: firstRow.description,
+        reason: formReason,
+        unit: firstRow.unit,
+        quantity: firstRow.quantity,
+        unit_price: firstRow.unit_price,
+        rot_eligible: firstRow.rot_eligible,
+        status: formStatus,
+      };
       const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
         body: {
           transcript,
@@ -142,16 +181,21 @@ export default function ProjectAtaTab({
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setFormData({
-        article: data.article || formData.article,
-        description: data.description || formData.description,
-        reason: data.reason || formData.reason,
-        unit: data.unit || formData.unit,
-        quantity: data.quantity?.toString() || formData.quantity,
-        unit_price: data.unit_price?.toString() || formData.unit_price,
-        rot_eligible: data.rot_eligible ?? formData.rot_eligible,
-        status: data.status || formData.status,
+      setFormRows((prev) => {
+        const updated = [...prev];
+        updated[0] = {
+          ...updated[0],
+          article: data.article || updated[0].article,
+          description: data.description || updated[0].description,
+          unit: data.unit || updated[0].unit,
+          quantity: data.quantity?.toString() || updated[0].quantity,
+          unit_price: data.unit_price?.toString() || updated[0].unit_price,
+          rot_eligible: data.rot_eligible ?? updated[0].rot_eligible,
+        };
+        return updated;
       });
+      if (data.reason) setFormReason(data.reason);
+      if (data.status) setFormStatus(data.status);
 
       toast({ title: "Fält ifyllda från röstinspelning" });
     } catch (error) {
@@ -182,15 +226,16 @@ export default function ProjectAtaTab({
     setLoading(false);
   };
 
-  const generateAtaNumber = () => {
+  const generateAtaNumber = (offset: number = 0) => {
     const year = new Date().getFullYear();
-    const count = atas.length + 1;
+    const count = atas.length + 1 + offset;
     return `ÄTA-${year}-${String(count).padStart(3, "0")}`;
   };
 
   const handleSubmit = async () => {
-    if (!formData.description.trim()) {
-      toast({ title: "Beskrivning krävs", variant: "destructive" });
+    const validRows = formRows.filter((r) => r.description.trim());
+    if (validRows.length === 0) {
+      toast({ title: "Minst en rad med beskrivning krävs", variant: "destructive" });
       return;
     }
 
@@ -202,34 +247,35 @@ export default function ProjectAtaTab({
       return;
     }
 
-    const quantity = formData.quantity ? parseFloat(formData.quantity) : 1;
-    const unitPrice = formData.unit_price ? parseFloat(formData.unit_price) : 0;
-    const subtotal = quantity * unitPrice;
+    const payloads = validRows.map((row, index) => {
+      const quantity = row.quantity ? parseFloat(row.quantity) : 1;
+      const unitPrice = row.unit_price ? parseFloat(row.unit_price) : 0;
+      const subtotal = quantity * unitPrice;
+      return {
+        project_id: projectId,
+        user_id: user.id,
+        ata_number: generateAtaNumber(index),
+        article: row.article,
+        description: row.description,
+        reason: formReason || null,
+        unit: row.unit,
+        quantity,
+        unit_price: unitPrice,
+        subtotal,
+        rot_eligible: row.rot_eligible,
+        status: formStatus,
+        estimated_hours: row.unit === "tim" ? quantity : null,
+        estimated_cost: subtotal > 0 ? subtotal : null,
+        sort_order: atas.length + index,
+      };
+    });
 
-    const payload = {
-      project_id: projectId,
-      user_id: user.id,
-      ata_number: generateAtaNumber(),
-      article: formData.article,
-      description: formData.description,
-      reason: formData.reason || null,
-      unit: formData.unit,
-      quantity,
-      unit_price: unitPrice,
-      subtotal,
-      rot_eligible: formData.rot_eligible,
-      status: formData.status,
-      estimated_hours: formData.unit === "tim" ? quantity : null,
-      estimated_cost: subtotal > 0 ? subtotal : null,
-      sort_order: atas.length,
-    };
-
-    const { error } = await supabase.from("project_ata").insert(payload);
+    const { error } = await supabase.from("project_ata").insert(payloads);
 
     if (error) {
       toast({ title: "Kunde inte skapa ÄTA", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "ÄTA skapad" });
+      toast({ title: `${payloads.length} ÄTA skapad${payloads.length > 1 ? "e" : ""}` });
       fetchAtas();
       closeDialog();
     }
@@ -239,16 +285,9 @@ export default function ProjectAtaTab({
 
   const closeDialog = () => {
     setDialogOpen(false);
-    setFormData({
-      article: "Arbete",
-      description: "",
-      reason: "",
-      unit: "tim",
-      quantity: "1",
-      unit_price: "",
-      rot_eligible: false,
-      status: "pending",
-    });
+    setFormRows([createEmptyRow()]);
+    setFormReason("");
+    setFormStatus("pending");
   };
 
   const handleFieldUpdate = async (ataId: string, field: string, value: any) => {
@@ -390,11 +429,11 @@ export default function ProjectAtaTab({
                 Ny ÄTA
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Ny ÄTA</DialogTitle>
               <DialogDescription>
-                Lägg till ett ändrings- eller tilläggsarbete
+                Lägg till ett eller flera ändrings- och tilläggsarbeten
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -405,99 +444,113 @@ export default function ProjectAtaTab({
                 agentName="Byggio AI"
                 agentAvatar={AI_AGENTS.diary.avatar}
               />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Artikel</Label>
-                  <Select
-                    value={formData.article}
-                    onValueChange={(value) => setFormData({ ...formData, article: value })}
+
+              {/* Dynamic rows */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Rader</Label>
+                {formRows.map((row, index) => (
+                  <div
+                    key={row.id}
+                    className="grid grid-cols-[1fr,1fr] md:grid-cols-[120px,80px,1fr,70px,90px,auto,32px] gap-2 p-3 bg-muted/30 rounded-lg items-end"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {articleCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Enhet</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {unitOptions.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground md:hidden">Artikel</Label>
+                      <Select
+                        value={row.article}
+                        onValueChange={(value) => updateRow(row.id, "article", value)}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {articleCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground md:hidden">Enhet</Label>
+                      <Select
+                        value={row.unit}
+                        onValueChange={(value) => updateRow(row.id, "unit", value)}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unitOptions.map((unit) => (
+                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-1">
+                      <Label className="text-xs text-muted-foreground md:hidden">Beskrivning</Label>
+                      <Input
+                        value={row.description}
+                        onChange={(e) => updateRow(row.id, "description", e.target.value)}
+                        placeholder="Beskrivning *"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground md:hidden">Antal</Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={row.quantity}
+                        onChange={(e) => updateRow(row.id, "quantity", e.target.value)}
+                        className="h-9 text-sm text-right"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground md:hidden">À-pris</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={row.unit_price}
+                        onChange={(e) => updateRow(row.id, "unit_price", e.target.value)}
+                        className="h-9 text-sm text-right"
+                      />
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={row.rot_eligible}
+                        onCheckedChange={(checked) => updateRow(row.id, "rot_eligible", checked === true)}
+                      />
+                      <span className="text-xs text-muted-foreground ml-1">ROT</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeRow(row.id)}
+                      disabled={formRows.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addRow} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Lägg till rad
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Beskrivning *</Label>
-                <Textarea
-                  placeholder="Beskriv arbetet..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                />
-              </div>
+
               <div className="space-y-2">
                 <Label>Anledning</Label>
                 <Input
                   placeholder="Varför behövs detta?"
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  value={formReason}
+                  onChange={(e) => setFormReason(e.target.value)}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Antal</Label>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>À-pris</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={formData.unit_price}
-                    onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rot-new"
-                  checked={formData.rot_eligible}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, rot_eligible: checked === true })
-                  }
-                />
-                <Label htmlFor="rot-new" className="cursor-pointer">
-                  ROT-avdrag
-                </Label>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  value={formStatus}
+                  onValueChange={(value) => setFormStatus(value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -517,7 +570,7 @@ export default function ProjectAtaTab({
                 Avbryt
               </Button>
               <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? "Sparar..." : "Skapa ÄTA"}
+                {saving ? "Sparar..." : `Skapa ${formRows.length > 1 ? formRows.length + " " : ""}ÄTA`}
               </Button>
             </DialogFooter>
           </DialogContent>
