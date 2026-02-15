@@ -276,7 +276,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
                 onTranscriptComplete={handleVoiceInput}
                 isProcessing={isVoiceProcessing}
                 agentName="Byggio AI"
-                agentAvatar={AI_AGENTS.diary.avatar}
+                variant="compact"
               />
               
               <div className="space-y-2">
