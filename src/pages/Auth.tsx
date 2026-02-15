@@ -95,7 +95,7 @@ export default function Auth() {
     setResetLoading(true);
     setValidationError(null);
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: window.location.origin + "/auth",
+      redirectTo: "https://byggio.io/auth",
     });
     setResetLoading(false);
 
