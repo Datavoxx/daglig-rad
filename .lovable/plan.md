@@ -1,39 +1,30 @@
 
 
-## Kompakt röst-UI överallt + exempelknapp i ÄTA
+## Fix: Beskrivningsfältet klipps av i ÄTA-raderna
 
-### Del 1: Kompakt VoicePromptButton i arbetsordrar
+### Problem
+Beskrivningsfältet ("Rivning av befintlig vägg") är för smalt i radernas grid-layout. Texten klipps av och syns inte helt. Grid-kolumnerna är `[120px,80px,1fr,70px,90px,auto,32px]` -- efter alla fasta kolumner blir `1fr` bara ~120px.
 
-`ProjectWorkOrdersTab.tsx` (rad ~275-280) har fortfarande `agentAvatar` och default-variant. Ändra till `variant="compact"` och ta bort `agentAvatar`, precis som vi gjorde i ÄTA.
+### Lösning
+Två justeringar som löser problemet utan att störa övriga fält:
 
-### Del 2: Kompakt VoiceFormSection i alla global-assistant-kort
+1. **Bredda dialogen** från `max-w-2xl` till `max-w-3xl` -- ger ca 130px extra utrymme totalt
+2. **Ge beskrivningen mer plats i gridet** -- ändra `1fr` till `2fr` så att beskrivningsfältet får dubbelt så mycket av det flexibla utrymmet
 
-`VoiceFormSection` (used i 7 formulärkort) har ett helt annat idle-utseende: en stor dashed-border box med ikon, rubrik, subtext och helstor knapp. Vi refaktorerar idle-state till en kompakt outline-knapp liknande VoicePromptButton compact-variant:
+### Teknisk ändring i `src/components/projects/ProjectAtaTab.tsx`
 
-**Fil: `src/components/global-assistant/VoiceFormSection.tsx`**
-- Byt ut idle-statens stora box (dashed border, ikon-cirkel, rubrik, description, helstor knapp, lightbulb-tip) mot en enkel outline-knapp med mikrofon-ikon och texten "Lat Byggio AI hjälpa dig"
-- Behall recording/confirming/processing/completed-states som de är (de är redan kompakta nog)
+**Rad ~489 (grid-layout):**
+```
+Från: md:grid-cols-[120px,80px,1fr,70px,90px,auto,32px]
+Till:  md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px]
+```
+Minskar artikel/enhet/antal/pris kolumnerna marginellt och ger beskrivningen dubbelt så mycket flex-utrymme.
 
-### Del 3: Exempelknapp i ÄTA-dialogen
-
-**Fil: `src/components/projects/ProjectAtaTab.tsx`**
-- Lagg till en liten "Visa exempel"-knapp (Lightbulb-ikon) bredvid rubriken "Rader" eller nara "Lagg till rad"
-- Klick fyller i formularet med ett realistiskt exempel:
-  - Rad 1: Arbete, tim, "Rivning av befintlig vagg", antal 4, a-pris 450
-  - Rad 2: Material, st, "Gipsskivor 13mm", antal 12, a-pris 89
-  - Anledning: "Dolda rorledningar upptacktes vid rivning, kraver omlaggning"
-  - Status: Vantande
-- Knappen ar diskret (ghost/outline, liten) sa den inte star i vagen
-
-### Teknisk sammanfattning
-
-| Fil | Andring |
-|-----|---------|
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | `variant="compact"`, ta bort `agentAvatar` |
-| `src/components/global-assistant/VoiceFormSection.tsx` | Refaktorera idle-state till kompakt knapp |
-| `src/components/projects/ProjectAtaTab.tsx` | Lagg till "Visa exempel"-knapp som fyller i exempeldata |
+**Rad ~436 (dialog-bredd):**
+```
+Från: max-w-2xl
+Till:  max-w-3xl
+```
 
 ### Resultat
-- Alla rost-UI:n i hela appen ar nu kompakta och minimalistiska
-- ATA-dialogen har en diskret exempelknapp som visar hur en ifylld ATA ser ut
-
+Beskrivningsfältet visar hela texten ("Rivning av befintlig vägg") utan att klippa av, och inget annat i layouten störs.
