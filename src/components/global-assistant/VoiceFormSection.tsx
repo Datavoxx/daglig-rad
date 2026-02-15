@@ -181,36 +181,15 @@ export function VoiceFormSection({
   // Idle state
   if (state === "idle") {
     return (
-      <div className="rounded-xl border border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-            <Mic className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-foreground">
-              Låt Byggio AI hjälpa dig
-            </h4>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Spela in ett röstmeddelande så fyller vi i {getFormTypeLabel()}en automatiskt
-            </p>
-          </div>
-        </div>
-
-        <Button
-          onClick={handleStartRecording}
-          disabled={disabled}
-          className="mt-3 w-full gap-2"
-          variant="outline"
-        >
-          <Mic className="h-4 w-4" />
-          Starta inspelning
-        </Button>
-
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <Lightbulb className="h-3.5 w-3.5 text-primary" />
-          <span>Spara 70% av din tid genom att prata</span>
-        </div>
-      </div>
+      <Button
+        onClick={handleStartRecording}
+        disabled={disabled}
+        variant="outline"
+        className="gap-2"
+      >
+        <Mic className="h-4 w-4" />
+        Låt Byggio AI hjälpa dig
+      </Button>
     );
   }
 

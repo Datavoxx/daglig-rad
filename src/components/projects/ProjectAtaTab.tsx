@@ -45,6 +45,7 @@ import {
   EyeOff,
   FileDown,
   Loader2,
+  Lightbulb,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -447,7 +448,41 @@ export default function ProjectAtaTab({
 
               {/* Dynamic rows */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Rader</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Rader</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs text-muted-foreground"
+                    onClick={() => {
+                      setFormRows([
+                        {
+                          id: crypto.randomUUID(),
+                          article: "Arbete",
+                          unit: "tim",
+                          description: "Rivning av befintlig vägg",
+                          quantity: "4",
+                          unit_price: "450",
+                          rot_eligible: false,
+                        },
+                        {
+                          id: crypto.randomUUID(),
+                          article: "Material",
+                          unit: "st",
+                          description: "Gipsskivor 13mm",
+                          quantity: "12",
+                          unit_price: "89",
+                          rot_eligible: false,
+                        },
+                      ]);
+                      setFormReason("Dolda rörledningar upptäcktes vid rivning, kräver omläggning");
+                      setFormStatus("pending");
+                    }}
+                  >
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    Visa exempel
+                  </Button>
+                </div>
                 {formRows.map((row, index) => (
                   <div
                     key={row.id}
