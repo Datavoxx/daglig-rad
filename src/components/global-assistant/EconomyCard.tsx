@@ -33,7 +33,12 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
   const estimateTotal = data.estimate_total || 0;
   const invoiced = data.invoiced_amount || 0;
   const paid = data.paid_amount || 0;
-  const vendorCost = data.vendor_cost_ex_vat || 0;
+  const vendorCost = data.vendor_cost_inc_vat || 0;
+  const ataApproved = data.ata_approved || 0;
+  
+  // Margin calculation (same logic as EconomicOverviewCard)
+  const totalProjectValue = estimateTotal + ataApproved;
+  const margin = totalProjectValue - vendorCost;
   
   // Calculate invoice progress
   const invoiceProgress = estimateTotal > 0 ? (invoiced / estimateTotal) * 100 : 0;
@@ -133,6 +138,19 @@ export function EconomyCard({ content, data }: EconomyCardProps) {
           </div>
         )}
       </div>
+      
+      {/* Margin */}
+      {totalProjectValue > 0 && (
+        <>
+          <div className="h-px bg-border" />
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm font-medium">Beräknad marginal</span>
+            <span className={`font-semibold text-lg ${margin >= 0 ? "text-green-600" : "text-destructive"}`}>
+              {formatCurrency(margin)}
+            </span>
+          </div>
+        </>
+      )}
     </Card>
   );
 }
