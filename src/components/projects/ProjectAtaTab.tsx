@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +46,8 @@ import {
   FileDown,
   Loader2,
   Lightbulb,
+  Pencil,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -139,6 +140,7 @@ export default function ProjectAtaTab({
   const [formReason, setFormReason] = useState("");
   const [formStatus, setFormStatus] = useState("pending");
   const [showExample, setShowExample] = useState(false);
+  const [editingAta, setEditingAta] = useState<Ata | null>(null);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
@@ -235,6 +237,22 @@ export default function ProjectAtaTab({
     return `ÄTA-${year}-${String(count).padStart(3, "0")}`;
   };
 
+  const openEditAta = (ata: Ata) => {
+    setEditingAta(ata);
+    setFormRows([{
+      id: crypto.randomUUID(),
+      article: ata.article || "Arbete",
+      unit: ata.unit || "tim",
+      description: ata.description,
+      quantity: ata.quantity?.toString() || "1",
+      unit_price: ata.unit_price?.toString() || "",
+      rot_eligible: ata.rot_eligible || false,
+    }]);
+    setFormReason(ata.reason || "");
+    setFormStatus(ata.status || "pending");
+    setDialogOpen(true);
+  };
+
   const handleSubmit = async () => {
     const validRows = formRows.filter((r) => r.description.trim());
     if (validRows.length === 0) {
@@ -250,14 +268,12 @@ export default function ProjectAtaTab({
       return;
     }
 
-    const payloads = validRows.map((row, index) => {
+    if (editingAta) {
+      const row = validRows[0];
       const quantity = row.quantity ? parseFloat(row.quantity) : 1;
       const unitPrice = row.unit_price ? parseFloat(row.unit_price) : 0;
       const subtotal = quantity * unitPrice;
-      return {
-        project_id: projectId,
-        user_id: user.id,
-        ata_number: generateAtaNumber(index),
+      const { error } = await supabase.from("project_ata").update({
         article: row.article,
         description: row.description,
         reason: formReason || null,
@@ -269,18 +285,48 @@ export default function ProjectAtaTab({
         status: formStatus,
         estimated_hours: row.unit === "tim" ? quantity : null,
         estimated_cost: subtotal > 0 ? subtotal : null,
-        sort_order: atas.length + index,
-      };
-    });
+      }).eq("id", editingAta.id);
 
-    const { error } = await supabase.from("project_ata").insert(payloads);
-
-    if (error) {
-      toast({ title: "Kunde inte skapa ÄTA", description: error.message, variant: "destructive" });
+      if (error) {
+        toast({ title: "Kunde inte uppdatera ÄTA", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "ÄTA uppdaterad" });
+        fetchAtas();
+        closeDialog();
+      }
     } else {
-      toast({ title: `${payloads.length} ÄTA skapad${payloads.length > 1 ? "e" : ""}` });
-      fetchAtas();
-      closeDialog();
+      const payloads = validRows.map((row, index) => {
+        const quantity = row.quantity ? parseFloat(row.quantity) : 1;
+        const unitPrice = row.unit_price ? parseFloat(row.unit_price) : 0;
+        const subtotal = quantity * unitPrice;
+        return {
+          project_id: projectId,
+          user_id: user.id,
+          ata_number: generateAtaNumber(index),
+          article: row.article,
+          description: row.description,
+          reason: formReason || null,
+          unit: row.unit,
+          quantity,
+          unit_price: unitPrice,
+          subtotal,
+          rot_eligible: row.rot_eligible,
+          status: formStatus,
+          estimated_hours: row.unit === "tim" ? quantity : null,
+          estimated_cost: subtotal > 0 ? subtotal : null,
+          sort_order: atas.length + index,
+        };
+      });
+
+      const { error } = await supabase.from("project_ata").insert(payloads);
+
+      if (error) {
+        toast({ title: "Kunde inte skapa ÄTA", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: `${payloads.length} ÄTA skapad${payloads.length > 1 ? "e" : ""}` });
+        fetchAtas();
+        closeDialog();
+      }
     }
 
     setSaving(false);
@@ -288,6 +334,7 @@ export default function ProjectAtaTab({
 
   const closeDialog = () => {
     setDialogOpen(false);
+    setEditingAta(null);
     setFormRows([createEmptyRow()]);
     setFormReason("");
     setFormStatus("pending");
@@ -434,9 +481,9 @@ export default function ProjectAtaTab({
             </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Ny ÄTA</DialogTitle>
+              <DialogTitle>{editingAta ? "Redigera ÄTA" : "Ny ÄTA"}</DialogTitle>
               <DialogDescription>
-                Lägg till ett eller flera ändrings- och tilläggsarbeten
+                {editingAta ? "Uppdatera ändrings- och tilläggsarbetet" : "Lägg till ett eller flera ändrings- och tilläggsarbeten"}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -462,8 +509,11 @@ export default function ProjectAtaTab({
                     {showExample ? "Dölj exempel" : "Visa exempel"}
                   </Button>
                 </div>
-                <Collapsible open={showExample} onOpenChange={setShowExample}>
-                  <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                <div
+                  className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                  style={{ gridTemplateRows: showExample ? "1fr" : "0fr" }}
+                >
+                  <div className="overflow-hidden min-h-0">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2 relative">
                       <Button
                         variant="ghost"
@@ -472,7 +522,7 @@ export default function ProjectAtaTab({
                         onClick={() => setShowExample(false)}
                       >
                         <span className="sr-only">Stäng</span>
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                       <h4 className="text-sm font-semibold text-blue-800 mb-3">Exempel på ifylld ÄTA</h4>
                       <div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px] gap-2 px-3 mb-1 text-xs text-blue-500 font-medium">
@@ -503,8 +553,8 @@ export default function ProjectAtaTab({
                         <p className="text-sm text-blue-900 mt-0.5">Dolda rörledningar upptäcktes vid rivning, kräver omläggning</p>
                       </div>
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                  </div>
+                </div>
                 <div className="hidden md:grid md:grid-cols-[110px,70px,2fr,60px,80px,auto,32px] gap-2 px-3 text-xs text-muted-foreground font-medium">
                   <span>Artikel</span>
                   <span>Enhet</span>
@@ -636,7 +686,7 @@ export default function ProjectAtaTab({
                 Avbryt
               </Button>
               <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? "Sparar..." : `Skapa ${formRows.length > 1 ? formRows.length + " " : ""}ÄTA`}
+                {saving ? "Sparar..." : editingAta ? "Uppdatera ÄTA" : `Skapa ${formRows.length > 1 ? formRows.length + " " : ""}ÄTA`}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -683,7 +733,7 @@ export default function ProjectAtaTab({
                   <TableHead className="w-28 text-right">Summa</TableHead>
                   <TableHead className="w-12 text-center">ROT</TableHead>
                   <TableHead className="w-28">Status</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -817,14 +867,24 @@ export default function ProjectAtaTab({
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(ata.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEditAta(ata)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(ata.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
