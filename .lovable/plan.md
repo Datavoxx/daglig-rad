@@ -1,37 +1,78 @@
 
 
-## Fix: Korrekt leverantörskostnad + beräknad marginal i ekonomikortet
+## Fix: Korrekt marginalberäkning, avrundning och projektlänk i ekonomikortet
 
-### Problem 1: Fel belopp på Inköp
-Inköp visar 3 200 kr (exkl moms) men projektvyn visar 4 000 kr (inkl moms). Datan i databasen är korrekt -- leverantörsfakturan har `total_ex_vat: 3200` och `total_inc_vat: 4000`. Problemet är att EconomyCard visar ex-moms medan projektvyn visar inkl-moms.
+### Problem 1: Olika marginalsummor (459 088 vs 462 938)
+Projektvyn beräknar: `marginal = (offert + ÄTA) - (leverantörskostnad + arbetskostnad)`
+Assistentens kort beräknar: `marginal = (offert + ÄTA) - leverantörskostnad`
 
-### Problem 2: Beräknad marginal saknas
-Projektvyn visar "Beräknad marginal: 459 088 kr" men assistentens ekonomikort saknar denna rad helt.
+Arbetskostnaden (timmar x timpris) saknas helt i assistentens beräkning. I projektvyn: arbetskostnad = 3 850 kr (7h x timpris). Det förklarar skillnaden: 462 938 - 3 850 = 459 088.
+
+### Problem 2: Ören/decimaler (461 437,5 kr)
+`formatCurrency` i EconomyCard använder `toLocaleString("sv-SE")` som visar decimaler. Ska avrundas till hela kronor (Sverige använder inte ören längre).
+
+### Problem 3: Ingen länk till projektet
+Användaren vill snabbt kunna navigera till projektet från ekonomikortet.
+
+---
 
 ### Lösning
 
-**Fil 1: `src/components/global-assistant/EconomyCard.tsx`**
+**Steg 1: Edge-funktionen (`supabase/functions/global-assistant/index.ts`)**
 
-1. Byt från `vendor_cost_ex_vat` till `vendor_cost_inc_vat` i kortet -- detta matchar projektvyns beräkning (4 000 kr istället för 3 200 kr)
-2. Lägg till ett nytt "Beräknad marginal"-block längst ned, beräknat som:
-   - `marginal = offertbelopp + godkänd ÄTA - leverantörskostnad(inkl moms) - arbetskostnad`
-   - Visas med grön text om positiv, röd om negativ
-3. Uppdatera progress-barens beräkning att använda inkl-moms-beloppet
+I `get_project_economy` (rad 1591-1597):
+- Hämta `billing_types(hourly_rate)` tillsammans med `hours` i time_entries-queryn
+- Beräkna `labor_cost_actual` (timmar x timpris per post)
+- Returnera `labor_cost_actual` och `project_id` i response-data
+
+I response-formatteringen (rad 3424-3462):
+- Inkludera `vendor_cost_ex_vat`, `vendor_cost_inc_vat`, `vendor_invoice_count` och `labor_cost_actual` i type-definitionen
+- Skicka med `project_id` i data-objektet
+- Avrunda alla `toLocaleString`-anrop med `{ maximumFractionDigits: 0 }`
+- Lägg till leverantörsfakturor i markdown-texten
+
+**Steg 2: EconomyCard (`src/components/global-assistant/EconomyCard.tsx`)**
+
+- Uppdatera `formatCurrency` att avrunda till hela kronor: `Math.round(amount).toLocaleString("sv-SE") + " kr"`
+- Uppdatera marginberäkningen: `margin = (offert + ÄTA) - (leverantörskostnad + arbetskostnad)`
+- Lägg till `labor_cost_actual` i data-interfacet
+- Lägg till en klickbar länk/knapp högst upp i kortet: "Gå till projekt" som navigerar till `/projects/{project_id}`
+
+**Steg 3: Typer (`src/types/global-assistant.ts`)**
+
+- Lägg till `labor_cost_actual` och `project_id` i `MessageData`
 
 ### Tekniska detaljer
 
-Beräkning av marginal (samma logik som projektvyns `EconomicOverviewCard`):
-- Projektvyn beräknar: `totalProjectValue = offertbelopp + godkända ÄTA`
-- Sedan: `margin = totalProjectValue - totalExpenses`
-- Vi har inte arbetskostnad (timmar x timpris) i assistenten, men vi har leverantörskostnaden
+Edge-funktionens nya time_entries-query:
+```typescript
+const { data: timeEntries } = await supabase
+  .from("time_entries")
+  .select("hours, billing_types(hourly_rate)")
+  .eq("project_id", project_id);
 
-Ändringar i EconomyCard:
-- Rad 36: `vendor_cost_ex_vat` byts till `vendor_cost_inc_vat`
-- Ny sektion efter progress bars: Beräknad marginal med formaterad siffra
-- Marginal beräknas som: `estimateTotal + ataApproved - vendorCost`
-
-Nytt UI-block:
+const totalHours = (timeEntries || []).reduce((sum, e) => sum + (e.hours || 0), 0);
+const laborCostActual = (timeEntries || []).reduce((sum, e) => {
+  const rate = e.billing_types?.hourly_rate || 0;
+  return sum + (e.hours * rate);
+}, 0);
 ```
---- separator ---
-Beräknad marginal          459 088 kr (grön)
+
+EconomyCard marginberäkning:
+```typescript
+const laborCost = data.labor_cost_actual || 0;
+const totalExpenses = vendorCost + laborCost;
+const margin = totalProjectValue - totalExpenses;
+```
+
+Projektlänk-knapp (högst upp i kortet):
+```tsx
+{data.project_id && (
+  <Link to={`/projects/${data.project_id}`}>
+    <Button variant="outline" size="sm">
+      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+      Gå till projekt
+    </Button>
+  </Link>
+)}
 ```
