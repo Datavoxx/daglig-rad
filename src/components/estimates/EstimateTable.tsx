@@ -71,6 +71,8 @@ export interface EstimateItem {
   sort_order: number;
   rot_eligible: boolean;
   rut_eligible: boolean;
+  markup_enabled: boolean;
+  markup_percent: number;
 }
 
 interface EstimateTableProps {
@@ -161,8 +163,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       comment: "",
       uncertainty: "medium",
       sort_order: items.length,
-      rot_eligible: rotEnabled, // Default to enabled when ROT is on
-      rut_eligible: rutEnabled, // Default to enabled when RUT is on
+      rot_eligible: rotEnabled,
+      rut_eligible: rutEnabled,
+      markup_enabled: false,
+      markup_percent: 0,
     };
     onItemsChange([...items, newItem]);
     
@@ -339,10 +343,11 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Antal</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={item.quantity ?? ""}
                           onChange={(e) =>
-                            updateItem(item.id, { quantity: e.target.value ? Number(e.target.value) : null })
+                            updateItem(item.id, { quantity: e.target.value === "" ? null : Number(e.target.value) })
                           }
                           className="w-full h-8 px-2 text-xs bg-muted/50 rounded border-0 outline-none focus:ring-1 focus:ring-primary/50"
                         />
@@ -350,10 +355,11 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Timmar</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={item.hours ?? ""}
                           onChange={(e) =>
-                            updateItem(item.id, { hours: e.target.value ? Number(e.target.value) : null })
+                            updateItem(item.id, { hours: e.target.value === "" ? null : Number(e.target.value) })
                           }
                           className="w-full h-8 px-2 text-xs bg-muted/50 rounded border-0 outline-none focus:ring-1 focus:ring-primary/50"
                           disabled={item.type !== "labor"}
@@ -585,7 +591,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 inputMode="decimal"
                 value={item.type === "labor" ? (item.hours ?? item.quantity ?? "") : (item.quantity ?? "")}
                 onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : null;
+                  const val = e.target.value === "" ? null : Number(e.target.value);
                   if (item.type === "labor") {
                     updateItem(item.id, { hours: val });
                   } else {
@@ -731,6 +737,8 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 sort_order: mode === "replace" ? index : items.length + index,
                 rot_eligible: rotEnabled,
                 rut_eligible: rutEnabled,
+                markup_enabled: false,
+                markup_percent: 0,
               }));
               
               if (mode === "replace") {

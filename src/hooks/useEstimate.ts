@@ -186,6 +186,8 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
             sort_order: item.sort_order,
             rot_eligible: item.rot_eligible ?? false,
             rut_eligible: item.rut_eligible ?? false,
+            markup_enabled: item.markup_enabled ?? false,
+            markup_percent: Number(item.markup_percent) || 0,
           };
         }),
         addons: existingEstimate.addons.map((addon: any) => ({
@@ -196,7 +198,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
           is_selected: addon.is_selected || false,
           sort_order: addon.sort_order || 0,
         })),
-        markupPercent: Number(existingEstimate.markup_percent) || 15,
+        markupPercent: Number(existingEstimate.markup_percent) || 0,
         rotEnabled: existingEstimate.rot_enabled || false,
         rotPercent: Number(existingEstimate.rot_percent) || 30,
         rutEnabled: (existingEstimate as any).rut_enabled || false,
@@ -256,7 +258,17 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       .reduce((sum, addon) => sum + addon.price, 0);
 
     const subtotal = laborCost + materialCost + subcontractorCost + addonsCost;
-    const markup = subtotal * (state.markupPercent / 100);
+    
+    // Per-item markup calculation
+    const markupFromItems = state.items.reduce((sum, item) => {
+      if (item.markup_enabled && item.markup_percent > 0) {
+        return sum + ((item.subtotal || 0) * (item.markup_percent / 100));
+      }
+      return sum;
+    }, 0);
+    
+    // Use per-item markup if any items have it, otherwise fall back to global
+    const markup = markupFromItems > 0 ? markupFromItems : subtotal * (state.markupPercent / 100);
     const totalExclVat = subtotal + markup;
     const vat = totalExclVat * 0.25;
     const totalInclVat = totalExclVat + vat;
@@ -500,6 +512,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
           uncertainty: item.uncertainty,
           sort_order: index,
           rot_eligible: item.rot_eligible ?? false,
+          markup_percent: item.markup_percent ?? null,
         }));
         const { error } = await supabase.from("estimate_items").insert(itemsToInsert);
         if (error) throw error;

@@ -20,6 +20,7 @@ import { ClosingSection } from "./ClosingSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
 import { TaxDeductionPanel } from "./TaxDeductionPanel";
+import { MarkupPanel } from "./MarkupPanel";
 import { StickyTotals } from "./StickyTotals";
 import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
@@ -546,6 +547,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         rutEligibleLaborCost={estimate.totals.rutEligibleLaborCost}
         onRutToggle={(enabled) => estimate.updateRut(enabled)}
         totalLaborCost={estimate.totals.laborCost}
+      />
+
+      {/* Markup panel */}
+      <MarkupPanel
+        items={estimate.state.items}
+        onItemsChange={estimate.updateItems}
       />
 
       {/* Divider */}

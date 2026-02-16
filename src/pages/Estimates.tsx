@@ -17,13 +17,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus } from "lucide-react";
+import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package } from "lucide-react";
 import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { EstimateWizard } from "@/components/estimates/EstimateWizard";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -41,6 +42,7 @@ interface SavedEstimate {
 
 export default function Estimates() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -279,6 +281,14 @@ export default function Estimates() {
         </div>
         <div className="flex items-center gap-2">
           <EstimateImportDialog onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["saved-estimates"] })} />
+          <Button
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            onClick={() => navigate("/settings?tab=articles")}
+          >
+            <Package className="h-4 w-4 mr-1" />
+            {isMobile ? "Artiklar" : "Artikelbibliotek"}
+          </Button>
           <Button onClick={() => setShowWizard(true)} size={isMobile ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-1" />
             {isMobile ? "Ny" : "Ny offert"}
