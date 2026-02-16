@@ -1,40 +1,38 @@
 
 
-## Fix: Visa lösenordsformuläret direkt vid recovery-länk
+## Rollval vid skapande av anställd (Admin / Arbetare)
 
-### Problem
-Recovery-token i URL-hashen (`#access_token=...&type=recovery`) fångas inte korrekt av `PASSWORD_RECOVERY`-eventet, troligen på grund av en race condition eller att hashen stripas under redirect via custom domain. Resultatet blir att vanliga inloggningssidan visas istället.
+### Vad ändras
 
-### Lösning
+En ny dropdown laggs till i formularet for anstallda dar man valjer om personen ska vara **Admin** (full atkomst, samma som dig) eller **Arbetare** (begransad atkomst).
 
-**Fil: `src/pages/Auth.tsx`** -- Uppdatera useEffect (rad 42-51)
+### Hur det fungerar
 
-Lägg till en fallback som direkt parsar URL-hashen efter `type=recovery`. Om den hittas, aktiveras recovery-läget oavsett om Supabase-eventet hinner firas eller inte.
+- **Admin**: Personen far tillgang till alla moduler (dashboard, projekt, offerter, kunder, fakturor, etc.) -- precis som du sjalv.
+- **Arbetare**: Personen far begransad tillgang (narvaro, tidsrapportering, dagrapporter) -- som idag.
 
-```typescript
-useEffect(() => {
-  // Fallback: check URL hash directly for recovery token
-  const hash = window.location.hash;
-  if (hash && hash.includes("type=recovery")) {
-    setIsRecoveryMode(true);
-  }
+### Tekniska andringar
 
-  // Also listen for the Supabase PASSWORD_RECOVERY event
-  supabase.auth.getSession();
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY") {
-      setIsRecoveryMode(true);
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
-```
+| Fil | Andring |
+|-----|---------|
+| `employees`-tabellen (migration) | Lagg till kolumn `employee_role` (text, default `'worker'`) |
+| `src/components/settings/EmployeeManager.tsx` | Lagg till en Select-dropdown for "Roll" med alternativen "Admin" och "Arbetare". Spara valet i `employee_role`-kolumnen. Visa rollen som badge pa varje anstalldsrad. |
+| `src/components/settings/EmployeeManager.tsx` | Skicka med `employeeRole` i anropet till `send-employee-invitation` |
+| `supabase/functions/send-employee-invitation/index.ts` | Ta emot `employeeRole` fran request body och spara det i `employee_invitations`-tabellen |
+| `employee_invitations`-tabellen (migration) | Lagg till kolumn `employee_role` (text, default `'worker'`) |
+| `supabase/functions/accept-invitation/index.ts` | Las av `employee_role` fran inbjudan. Om `'admin'`: satt roll till `'admin'` och ge ALL_MODULES. Om `'worker'`: behall nuvarande logik (roll `'user'`, begransade moduler). |
+| `src/hooks/useUserPermissions.ts` | Ingen andring behovs -- admins far redan full atkomst via befintlig logik. |
 
-### Teknisk sammanfattning
+### Flodet steg for steg
 
-| Ändring | Fil | Vad |
-|---------|-----|-----|
-| Lägg till URL-hash-fallback | `src/pages/Auth.tsx` | Parsar `type=recovery` från hash-fragmentet som backup |
+1. Du skapar en anstalld och valjer "Admin" eller "Arbetare"
+2. Valet sparas i `employees.employee_role`
+3. Nar inbjudan skickas foljer rollvalet med till `employee_invitations.employee_role`
+4. Nar personen accepterar inbjudan satts ratt roll (`admin` eller `user`) och ratt modulbehorigher automatiskt
 
-En liten tillägg i useEffect -- befintlig logik behålls som den är.
+### Sakerhetsaspekter
+
+- Rollvalet sker server-side i `accept-invitation`-funktionen, inte pa klienten
+- Bara agaren av anstallda-posten kan andra rollvalet (skyddat av RLS)
+- En admin-anstald far samma atkomst som organisationens agare till alla moduler
 
