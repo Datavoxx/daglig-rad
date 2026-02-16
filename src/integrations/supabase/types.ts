@@ -568,6 +568,7 @@ export type Database = {
           created_at: string | null
           email: string
           employee_id: string
+          employee_role: string
           expires_at: string
           id: string
           invited_by: string
@@ -579,6 +580,7 @@ export type Database = {
           created_at?: string | null
           email: string
           employee_id: string
+          employee_role?: string
           expires_at?: string
           id?: string
           invited_by: string
@@ -590,6 +592,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           employee_id?: string
+          employee_role?: string
           expires_at?: string
           id?: string
           invited_by?: string
@@ -610,6 +613,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          employee_role: string
           employment_number: string | null
           hourly_rate: number | null
           id: string
@@ -626,6 +630,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          employee_role?: string
           employment_number?: string | null
           hourly_rate?: number | null
           id?: string
@@ -642,6 +647,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          employee_role?: string
           employment_number?: string | null
           hourly_rate?: number | null
           id?: string
