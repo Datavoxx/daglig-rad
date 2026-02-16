@@ -417,10 +417,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       <div className={cn(
         "grid gap-0.5 px-0.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider",
         deductionColumns === 2 
-          ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_32px_32px_28px]"
+          ? "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_32px_32px_28px]"
           : deductionColumns === 1
-            ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_32px_28px]"
-            : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_28px]"
+            ? "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_32px_28px]"
+            : "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_28px]"
       )}>
         <div></div>
         <div>Artikel</div>
@@ -485,10 +485,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
             className={cn(
               "grid gap-0.5 px-0.5 py-0.5 items-center rounded transition-all duration-150 group stagger-item",
               deductionColumns === 2 
-                ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_32px_32px_28px]"
+                ? "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_32px_32px_28px]"
                 : deductionColumns === 1
-                  ? "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_32px_28px]"
-                  : "grid-cols-[20px_90px_1fr_32px_50px_50px_70px_50px_80px_28px]",
+                  ? "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_32px_28px]"
+                  : "grid-cols-[20px_90px_1fr_28px_60px_55px_80px_60px_90px_28px]",
               draggedIndex === index ? "opacity-50 bg-muted scale-[0.99]" : "hover:bg-muted/40",
               focusedCell?.id === item.id && "bg-muted/50 shadow-sm",
               (item.rot_eligible && rotEnabled) || (item.rut_eligible && rutEnabled) ? "bg-primary/5" : "",
