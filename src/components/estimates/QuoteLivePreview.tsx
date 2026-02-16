@@ -157,9 +157,14 @@ export function QuoteLivePreview({
             {assumptions && assumptions.length > 0 && (
               <div className="mb-6">
                 <h3 className="font-bold text-black mb-2">Tidsplan:</h3>
-                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                  {assumptions.join("\n")}
-                </p>
+                <ul className="space-y-1">
+                  {assumptions.map((item, idx) => (
+                    <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

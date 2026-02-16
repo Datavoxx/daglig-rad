@@ -66,32 +66,29 @@ export function EstimateTotals({
           <span>{formatNumber(subtotal)} kr</span>
         </div>
 
-        {markupPercent > 0 && (
-          <>
-            <div className="flex justify-between items-center text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Påslag</span>
-                {readOnly ? (
-                  <span className="text-muted-foreground">({markupPercent}%)</span>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      value={markupPercent}
-                      onChange={(e) => onMarkupChange(Number(e.target.value) || 0)}
-                      className="h-7 w-16 text-center"
-                      min={0}
-                      max={100}
-                    />
-                    <span className="text-muted-foreground">%</span>
-                  </div>
-                )}
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Påslag</span>
+            {readOnly ? (
+              <span className="text-muted-foreground">({markupPercent}%)</span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={markupPercent}
+                  onChange={(e) => onMarkupChange(Number(e.target.value) || 0)}
+                  className="h-7 w-16 text-center"
+                  min={0}
+                  max={100}
+                />
+                <span className="text-muted-foreground">%</span>
               </div>
-              <span>{formatNumber(markup)} kr</span>
-            </div>
-            <Separator />
-          </>
-        )}
+            )}
+          </div>
+          <span>{formatNumber(markup)} kr</span>
+        </div>
+
+        <Separator />
 
         <div className="flex justify-between font-medium">
           <span>Totalt exkl. moms</span>

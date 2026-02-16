@@ -716,7 +716,6 @@ export type Database = {
           estimate_id: string
           hours: number | null
           id: string
-          markup_percent: number | null
           moment: string
           quantity: number | null
           rot_eligible: boolean | null
@@ -737,7 +736,6 @@ export type Database = {
           estimate_id: string
           hours?: number | null
           id?: string
-          markup_percent?: number | null
           moment: string
           quantity?: number | null
           rot_eligible?: boolean | null
@@ -758,7 +756,6 @@ export type Database = {
           estimate_id?: string
           hours?: number | null
           id?: string
-          markup_percent?: number | null
           moment?: string
           quantity?: number | null
           rot_eligible?: boolean | null

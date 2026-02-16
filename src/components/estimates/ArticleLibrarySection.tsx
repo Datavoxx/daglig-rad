@@ -26,7 +26,6 @@ interface EstimateItem {
   quantity: number;
   unit: string;
   unit_price: number;
-  markup_percent: number;
   hours: number;
   subtotal: number;
   rot_eligible: boolean;
@@ -117,7 +116,6 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
           quantity: 1,
           unit: article.unit,
           unit_price: article.default_price,
-          markup_percent: 0,
           hours: 0,
           subtotal: article.default_price,
           rot_eligible: false,
