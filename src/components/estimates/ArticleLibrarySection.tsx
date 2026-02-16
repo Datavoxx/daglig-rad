@@ -34,6 +34,8 @@ interface EstimateItem {
   comment: string;
   uncertainty: "high" | "low" | "medium";
   sort_order: number;
+  markup_enabled: boolean;
+  markup_percent: number;
 }
 
 interface ArticleLibrarySectionProps {
@@ -124,6 +126,8 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
           comment: "",
           uncertainty: "medium",
           sort_order: sortOrder++,
+          markup_enabled: false,
+          markup_percent: 0,
         });
       }
     });

@@ -72,7 +72,15 @@ export function QuoteLivePreview({
     .reduce((sum, a) => sum + a.price, 0);
 
   const subtotal = laborCost + materialCost + subcontractorCost + addonsCost;
-  const markup = subtotal * (markupPercent / 100);
+  
+  // Per-item markup
+  const markupFromItems = items.reduce((sum, i) => {
+    if ((i as any).markup_enabled && (i as any).markup_percent > 0) {
+      return sum + (i.subtotal || 0) * ((i as any).markup_percent / 100);
+    }
+    return sum;
+  }, 0);
+  const markup = markupFromItems > 0 ? markupFromItems : subtotal * (markupPercent / 100);
   const totalExclVat = subtotal + markup;
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;

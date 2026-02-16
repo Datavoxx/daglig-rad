@@ -66,27 +66,12 @@ export function EstimateTotals({
           <span>{formatNumber(subtotal)} kr</span>
         </div>
 
-        <div className="flex justify-between items-center text-sm">
-          <div className="flex items-center gap-2">
+        {markup > 0 && (
+          <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Påslag</span>
-            {readOnly ? (
-              <span className="text-muted-foreground">({markupPercent}%)</span>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  value={markupPercent}
-                  onChange={(e) => onMarkupChange(Number(e.target.value) || 0)}
-                  className="h-7 w-16 text-center"
-                  min={0}
-                  max={100}
-                />
-                <span className="text-muted-foreground">%</span>
-              </div>
-            )}
+            <span>{formatNumber(markup)} kr</span>
           </div>
-          <span>{formatNumber(markup)} kr</span>
-        </div>
+        )}
 
         <Separator />
 
