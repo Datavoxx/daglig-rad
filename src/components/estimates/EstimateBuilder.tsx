@@ -486,7 +486,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             value={estimate.state.assumptions.join("\n")}
             onChange={(e) =>
               estimate.updateAssumptions(
-                e.target.value.split("\n").filter((s) => s.trim())
+                e.target.value.split("\n")
               )
             }
             placeholder="En punkt per rad..."
