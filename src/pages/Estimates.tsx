@@ -17,8 +17,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package } from "lucide-react";
 import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
+import { ArticleManager } from "@/components/settings/ArticleManager";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { EstimateWizard } from "@/components/estimates/EstimateWizard";
@@ -52,6 +54,7 @@ export default function Estimates() {
   const paramKey = `${estimateIdFromUrl || ""}-${offerNumberFromUrl || ""}`;
   
   const [showWizard, setShowWizard] = useState(false);
+  const [showArticles, setShowArticles] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   
   // Initialize state based on URL parameters to prevent flicker
@@ -278,6 +281,10 @@ export default function Estimates() {
           <p className="text-muted-foreground text-sm">Skapa och hantera offerter</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setShowArticles(true)}>
+            <Package className="h-4 w-4 mr-1" />
+            {isMobile ? "Artiklar" : "Artiklar"}
+          </Button>
           <EstimateImportDialog onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["saved-estimates"] })} />
           <Button onClick={() => setShowWizard(true)} size={isMobile ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-1" />
@@ -461,6 +468,18 @@ export default function Estimates() {
           </Tabs>
         </CardContent>
       </Card>
+      {/* Articles Sheet */}
+      <Sheet open={showArticles} onOpenChange={setShowArticles}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
+          <SheetHeader className="p-6 pb-4 border-b">
+            <SheetTitle>Artiklar</SheetTitle>
+            <SheetDescription>Hantera dina artiklar för offerter</SheetDescription>
+          </SheetHeader>
+          <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+            <ArticleManager />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

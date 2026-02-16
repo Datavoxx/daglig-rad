@@ -1,0 +1,1 @@
+ALTER TABLE public.estimate_items ADD COLUMN IF NOT EXISTS markup_percent numeric DEFAULT 0;
