@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send, Clock, Shield, Wrench } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Clock, Shield, Wrench, Copy, Link, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -54,12 +49,17 @@ interface Employee {
   invitation_status: string | null;
   employment_number: string | null;
   personal_number: string | null;
+  employee_role: string;
 }
 
 export function EmployeeManager() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [inviteLinkDialogOpen, setInviteLinkDialogOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteEmployeeName, setInviteEmployeeName] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -70,7 +70,6 @@ export function EmployeeManager() {
     employee_role: "worker" as "worker" | "admin",
   });
 
-  // Fetch company settings for organization name
   const { data: companySettings } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => {
@@ -141,6 +140,25 @@ export function EmployeeManager() {
     },
   });
 
+  const createInvitation = async (employee: { id: string; name: string; email: string; employee_role: string }) => {
+    const organizationName = companySettings?.organization_name || companySettings?.company_name || "Din organisation";
+
+    const { data, error } = await supabase.functions.invoke("send-employee-invitation", {
+      body: {
+        employeeId: employee.id,
+        employeeEmail: employee.email || "",
+        employeeName: employee.name,
+        employeeRole: employee.employee_role,
+        organizationName,
+        baseUrl: "https://daglig-rad.lovable.app",
+      },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (employee: Partial<Employee>) => {
       const { data: userData } = await supabase.auth.getUser();
@@ -150,36 +168,65 @@ export function EmployeeManager() {
         const { error } = await supabase
           .from("employees")
           .update({
-          name: employee.name,
-          role: employee.role || null,
-          phone: employee.phone || null,
-          email: employee.email || null,
-          hourly_rate: employee.hourly_rate || null,
-          employment_number: (employee as any).employment_number || null,
-          personal_number: (employee as any).personal_number || null,
-          employee_role: (employee as any).employee_role || "worker",
-        })
-        .eq("id", currentEmployee.id);
+            name: employee.name,
+            role: employee.role || null,
+            phone: employee.phone || null,
+            email: employee.email || null,
+            hourly_rate: employee.hourly_rate || null,
+            employment_number: employee.employment_number || null,
+            personal_number: employee.personal_number || null,
+            employee_role: employee.employee_role || "worker",
+          })
+          .eq("id", currentEmployee.id);
         if (error) throw error;
+        return { isNew: false, employeeId: currentEmployee.id };
       } else {
-        const { error } = await supabase.from("employees").insert({
+        const { data, error } = await supabase.from("employees").insert({
           user_id: userData.user.id,
           name: employee.name,
           role: employee.role || null,
           phone: employee.phone || null,
           email: employee.email || null,
           hourly_rate: employee.hourly_rate || null,
-          employment_number: (employee as any).employment_number || null,
-          personal_number: (employee as any).personal_number || null,
-          employee_role: (employee as any).employee_role || "worker",
-        });
+          employment_number: employee.employment_number || null,
+          personal_number: employee.personal_number || null,
+          employee_role: employee.employee_role || "worker",
+        }).select("id").single();
         if (error) throw error;
+        return { isNew: true, employeeId: data.id };
       }
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success(currentEmployee ? "Anställd uppdaterad" : "Anställd tillagd");
-      closeDialog();
+      
+      if (currentEmployee) {
+        toast.success("Anställd uppdaterad");
+        closeDialog();
+      } else {
+        toast.success("Anställd tillagd");
+        closeDialog();
+        
+        // Create invitation and show link
+        try {
+          const invData = await createInvitation({
+            id: result.employeeId,
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            employee_role: formData.employee_role,
+          });
+          
+          if (invData?.inviteUrl) {
+            setInviteLink(invData.inviteUrl);
+            setInviteEmployeeName(formData.name.trim());
+            setLinkCopied(false);
+            setInviteLinkDialogOpen(true);
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+          }
+        } catch (err) {
+          console.error("Failed to create invitation:", err);
+          toast.error("Anställd tillagd men kunde inte skapa inbjudningslänk");
+        }
+      }
     },
     onError: (error: Error) => {
       toast.error("Kunde inte spara", { description: error.message });
@@ -199,37 +246,6 @@ export function EmployeeManager() {
     },
     onError: (error: Error) => {
       toast.error("Kunde inte ta bort", { description: error.message });
-    },
-  });
-
-  const inviteMutation = useMutation({
-    mutationFn: async (employee: Employee) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("Not authenticated");
-
-      const organizationName = companySettings?.organization_name || companySettings?.company_name || "Din organisation";
-
-      const { data, error } = await supabase.functions.invoke("send-employee-invitation", {
-        body: {
-          employeeId: employee.id,
-          employeeEmail: employee.email,
-          employeeName: employee.name,
-          employeeRole: (employee as any).employee_role || "worker",
-          organizationName,
-          baseUrl: "https://daglig-rad.lovable.app",
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Inbjudan skickad!");
-    },
-    onError: (error: Error) => {
-      toast.error("Kunde inte skicka inbjudan", { description: error.message });
     },
   });
 
@@ -258,7 +274,7 @@ export function EmployeeManager() {
       email: employee.email || "",
       employment_number: employee.employment_number || "",
       personal_number: employee.personal_number || "",
-      employee_role: (employee as any).employee_role || "worker",
+      employee_role: (employee.employee_role as "worker" | "admin") || "worker",
     });
     setDialogOpen(true);
   };
@@ -296,12 +312,15 @@ export function EmployeeManager() {
     }
   };
 
-  const handleInvite = (employee: Employee) => {
-    if (!employee.email) {
-      toast.error("Anställd saknar e-postadress");
-      return;
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      toast.success("Länk kopierad!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error("Kunde inte kopiera länken");
     }
-    inviteMutation.mutate(employee);
   };
 
   const getInvitationStatusBadge = (employee: Employee) => {
@@ -309,7 +328,7 @@ export function EmployeeManager() {
       case "accepted":
         return <Badge variant="success" className="text-xs">Aktiv</Badge>;
       case "pending":
-        return <Badge variant="warning" className="text-xs">Inbjudan skickad</Badge>;
+        return <Badge variant="warning" className="text-xs">Inbjudan skapad</Badge>;
       default:
         return <Badge variant="secondary" className="text-xs">Ej inbjuden</Badge>;
     }
@@ -364,7 +383,7 @@ export function EmployeeManager() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm">{employee.name}</p>
-                        {(employee as any).employee_role === "admin" ? (
+                        {employee.employee_role === "admin" ? (
                           <Badge variant="default" className="text-xs gap-1">
                             <Shield className="h-3 w-3" />
                             Admin
@@ -405,37 +424,6 @@ export function EmployeeManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleInvite(employee)}
-                          disabled={
-                            !employee.email ||
-                            employee.invitation_status === "pending" ||
-                            employee.invitation_status === "accepted" ||
-                            inviteMutation.isPending
-                          }
-                        >
-                          {inviteMutation.isPending && inviteMutation.variables?.id === employee.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {!employee.email
-                          ? "Lägg till e-post för att bjuda in"
-                          : employee.invitation_status === "accepted"
-                          ? "Redan aktiverad"
-                          : employee.invitation_status === "pending"
-                          ? "Inbjudan redan skickad"
-                          : "Skicka inbjudan"}
-                      </TooltipContent>
-                    </Tooltip>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -571,6 +559,54 @@ export function EmployeeManager() {
             <Button onClick={handleSave} disabled={saveMutation.isPending}>
               {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {currentEmployee ? "Spara" : "Lägg till"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Link Dialog */}
+      <Dialog open={inviteLinkDialogOpen} onOpenChange={setInviteLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="h-5 w-5 text-primary" />
+              Inbjudningslänk skapad
+            </DialogTitle>
+            <DialogDescription>
+              Kopiera länken nedan och skicka den till <strong>{inviteEmployeeName}</strong> via SMS, WhatsApp eller annan kanal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={inviteLink}
+                className="font-mono text-xs"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <Button onClick={handleCopyLink} variant="outline" className="shrink-0 gap-2">
+                {linkCopied ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-500" />
+                    Kopierad
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Kopiera
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Länken är giltig i 7 dagar. Mottagaren skapar ett lösenord och aktiverar sitt konto.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setInviteLinkDialogOpen(false)}>
+              Klar
             </Button>
           </DialogFooter>
         </DialogContent>
