@@ -484,10 +484,7 @@ export function QuotePreviewSheet({
               <div>
                 <h4 className="font-bold text-black mb-2">Personuppgifter</h4>
                 <p>
-                  Vid godkännande av denna offert accepterar du att vi behandlar dina 
-                  personuppgifter i enlighet med GDPR. Vi sparar endast de uppgifter som 
-                  är nödvändiga för att fullfölja vårt avtal med dig. Läs mer på vår 
-                  hemsida {company?.website || "www.foretag.se"}.
+                  Vid godkännande av denna offert accepterar du att vi behandlar dina personuppgifter för att kunna fullfölja vårt åtagande gentemot dig som kund. Den information vi behandlar för er är information som berörs och är nödvändig för byggprojektens administration. Personuppgifterna lagras och hanteras i projektverktyget Bygglet som har tekniska och organisatoriska säkerhetsåtgärder för att skydda hanteringen av Personuppgifter och lever upp till de krav som ställs enligt EU:s dataskyddsförordning (GDPR). Vi kommer om ni begär det att radera eller anonymisera och oavsett anledning därtill, inklusive att radera samtliga kopior som inte enligt GDPR måste sparas. Vi kommer inte att överföra Personuppgifter till land utanför EU/ESS
                 </p>
               </div>
 
