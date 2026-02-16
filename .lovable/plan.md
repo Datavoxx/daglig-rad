@@ -1,20 +1,20 @@
 
 
-## Byt inbjudningslankens doman till byggio.io
+## Uppdatera GDPR-texten under "Personuppgifter" i offertforhandsgranskningen
 
 ### Vad andras
 
-En enda rad i `src/components/settings/EmployeeManager.tsx` dar `baseUrl` satts till `"https://daglig-rad.lovable.app"`. Den byts till `"https://byggio.io"`.
+Den korta GDPR-texten under rubriken "Personuppgifter" pa sida 3 (Forutsattningar och villkor) byts ut mot den langre, specifika texten du angav. Detta gors i bade `QuoteLivePreview.tsx` (live-forhandsgranskningen i sidopanelen) och `QuotePreviewSheet.tsx` (fullskarms-forhandsgranskningen).
 
-### Teknisk detalj
+### Ny text
 
-| Fil | Rad | Fran | Till |
-|-----|-----|------|------|
-| `src/components/settings/EmployeeManager.tsx` | 153 | `baseUrl: "https://daglig-rad.lovable.app"` | `baseUrl: "https://byggio.io"` |
+> Vid godkannande av denna offert accepterar du att vi behandlar dina personuppgifter for att kunna fullfoja vart atagande gentemot dig som kund. Den information vi behandlar for er ar information som berors och ar nodvandig for byggprojektens administration. Personuppgifterna lagras och hanteras i projektverktyget Bygglet som har tekniska och organisatoriska sakerhetsatgarder for att skydda hanteringen av Personuppgifter och lever upp till de krav som stalls enligt EU:s dataskyddsforordning (GDPR). Vi kommer om ni begar det att radera eller anonymisera och oavsett anledning dartill, inklusive att radera samtliga kopior som inte enligt GDPR maste sparas. Vi kommer inte att overfora Personuppgifter till land utanfor EU/ESS
 
-Efter andringen kommer inbjudningslankar se ut som: `https://byggio.io/accept-invitation?token=abc123...`
+### Tekniska andringar
 
-### Forutsattning
+| Fil | Rad | Andring |
+|-----|-----|---------|
+| `src/components/estimates/QuoteLivePreview.tsx` | 413-415 | Byt ut den korta texten mot den fullstandiga texten ovan |
+| `src/components/estimates/QuotePreviewSheet.tsx` | 486-490 | Byt ut den befintliga langre texten mot den nya texten ovan |
 
-Domanen `byggio.io` maste vara kopplad till projektet och aktiv (status "Active") i Lovable. Om den inte ar det annu sa kommer lankarna inte fungera forran DNS-konfigurationen ar klar.
-
+Ingen annan logik eller struktur andras -- bara sjalva textstycket under "Personuppgifter".
