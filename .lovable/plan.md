@@ -1,43 +1,46 @@
 
 
-## Fix: E-postinbjudningar levereras inte
+## Inbjudningslank direkt efter "Lagg till" -- utan e-post
 
-### Problem
-Resend-API:et returnerar "success" (inget error-objekt), men mejlen levereras aldrig till mottagarna. Koden loggar bara `error` fran Resend -- inte `data`-objektet som innehaller e-post-ID och eventuella varningar.
+### Vad andras
 
-### Grundorsak (mest troligt)
-Domanen `datavoxx.se` ar troligen inte fullstandigt verifierad i Resend. Nar en doman inte ar verifierad koar Resend i **sandbox-lage** dar mejl bara levereras till kontots agare -- inte till externa mottagare. API:et returnerar anda "success", vilket ar vilseledande.
+Hela e-postflödet tas bort. Istallet visas en inbjudningslank direkt i gransnittet efter att du klickar "Lagg till". Du kopierar lanken och skickar den sjalv (SMS, WhatsApp, etc.).
 
-### Losning i tva steg
+### Flodet steg for steg
 
-**Steg 1: Battre loggning (kodandring)**
+1. Du fyller i namn, telefon, e-post, personnummer, anstallningsnummer och valjer roll (Admin/Arbetare)
+2. Du klickar "Lagg till"
+3. Anstallden sparas i databasen
+4. Systemet skapar automatiskt en inbjudan med en unik token i `employee_invitations`-tabellen
+5. En dialog visas med inbjudningslanken (t.ex. `https://daglig-rad.lovable.app/accept-invitation?token=abc123...`)
+6. Du kopierar lanken med en "Kopiera"-knapp
+7. Du skickar lanken till den anstallda via valfri kanal
+8. Mottagaren klickar pa lanken, skapar ett losenord, och kontot aktiveras (detta flode finns redan via `AcceptInvitation`-sidan)
 
-Uppdatera `supabase/functions/send-employee-invitation/index.ts` for att logga hela Resend-svaret (bade `data` och `error`). Detta ger oss e-post-ID:t och eventuella problem.
+### Tekniska andringar
 
-```typescript
-// Rad 221-226: Andra fran
-const { error: emailError } = await resend.emails.send({ ... });
+| Fil | Andring |
+|-----|---------|
+| `supabase/functions/send-employee-invitation/index.ts` | Ta bort all Resend/e-post-logik. Funktionen skapar bara inbjudan i databasen och returnerar `inviteUrl`. Tar bort beroendet pa `RESEND_API_KEY`. |
+| `src/components/settings/EmployeeManager.tsx` | 1. Efter lyckat "Lagg till" (saveMutation), anropa edge-funktionen direkt for att skapa inbjudan och fa tillbaka lanken. 2. Visa en ny dialog med lanken och en "Kopiera"-knapp. 3. Ta bort den separata "Skicka inbjudan"-knappen (Send-ikonen) fran anstalldsraderna. |
 
-// Till
-const { data: emailData, error: emailError } = await resend.emails.send({ ... });
-console.log("Resend response data:", JSON.stringify(emailData));
-console.log("Resend response error:", JSON.stringify(emailError));
-```
+### Detaljerad logik
 
-**Steg 2: Verifiera domanen i Resend (manuellt steg)**
+**Edge-funktionen (forenklad):**
+- Tar emot `employeeId`, `employeeEmail`, `employeeName`, `employeeRole`, `organizationName`, `baseUrl`
+- Genererar token, sparar i `employee_invitations`
+- Uppdaterar `employees.invitation_status` till `"pending"`
+- Returnerar `{ inviteUrl: "https://daglig-rad.lovable.app/accept-invitation?token=..." }`
+- Ingen Resend-import, ingen e-post
 
-Du behover logga in pa [resend.com/domains](https://resend.com/domains) och:
-1. Kontrollera att `datavoxx.se` ar listad och har status **Verified**
-2. Om den inte ar verifierad: lagg till de DNS-poster (SPF, DKIM, DMARC) som Resend visar
-3. Kontrollera att din API-nyckel ar kopplad till ratt doman
+**EmployeeManager (UI-andringar):**
+- `saveMutation.onSuccess`: Nar en ny anstalld skapas (inte redigering), anropa edge-funktionen och visa inbjudningsdialogen med lanken
+- Ny state: `inviteLinkDialogOpen` och `inviteLink`
+- Ny dialog som visar lanken med ett inputfalt (readonly) och en "Kopiera lank"-knapp
+- Ta bort `inviteMutation`, `handleInvite` och Send-knappen fran varje anstalldsrad
+- Behall badges for status (Aktiv, Inbjudan skickad, Ej inbjuden) men byt "Inbjudan skickad" till "Inbjudan skapad"
 
-### Teknisk sammanfattning
+### Befintligt acceptera-flode
 
-| Andring | Fil | Syfte |
-|---------|-----|-------|
-| Logga Resend `data`-objekt | `supabase/functions/send-employee-invitation/index.ts` | Se e-post-ID och faktiskt svar fran Resend |
-| Verifiera doman | Resend dashboard (manuellt) | Aktivera leverans till externa mottagare |
+Sidan `AcceptInvitation` och edge-funktionerna `validate-invitation` och `accept-invitation` finns redan och fungerar. Mottagaren anger ett losenord, kontot skapas, och ratt roll/behörigheter satts beroende pa om det ar admin eller arbetare.
 
-### Alternativ om domanen inte kan verifieras
-
-Om det ar brakttom kan vi tilfalligt byta avsandaradress till `onboarding@resend.dev` (Resends testdoman som alltid fungerar) medan DNS-verifieringen ordnas.
