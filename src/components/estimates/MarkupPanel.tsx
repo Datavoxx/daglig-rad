@@ -67,7 +67,7 @@ export function MarkupPanel({ items, onItemsChange }: MarkupPanelProps) {
       {hasAnyMarkup && (
         <CardContent className="px-3 pb-3 pt-0 space-y-2">
           {items
-            .filter((item) => (item.description || item.moment) && item.subtotal > 0)
+            .filter((item) => (item.description || item.moment))
             .map((item) => (
               <div
                 key={item.id}

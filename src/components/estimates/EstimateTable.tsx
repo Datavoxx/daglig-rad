@@ -155,9 +155,9 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
       show_only_total: false,
       moment: "",
       type: "labor",
-      quantity: 1,
+      quantity: 0,
       unit: "tim",
-      hours: 1,
+      hours: 0,
       unit_price: 0,
       subtotal: 0,
       comment: "",
@@ -589,7 +589,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 ref={(el) => el && inputRefs.current.set(`${item.id}-quantity`, el)}
                 type="text"
                 inputMode="decimal"
-                value={item.type === "labor" ? (item.hours ?? item.quantity ?? "") : (item.quantity ?? "")}
+                value={item.type === "labor" ? (item.hours ?? "") : (item.quantity ?? "")}
                 onChange={(e) => {
                   const val = e.target.value === "" ? null : Number(e.target.value);
                   if (item.type === "labor") {
