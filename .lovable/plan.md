@@ -1,38 +1,43 @@
 
 
-## Rollval vid skapande av anställd (Admin / Arbetare)
+## Fix: E-postinbjudningar levereras inte
 
-### Vad ändras
+### Problem
+Resend-API:et returnerar "success" (inget error-objekt), men mejlen levereras aldrig till mottagarna. Koden loggar bara `error` fran Resend -- inte `data`-objektet som innehaller e-post-ID och eventuella varningar.
 
-En ny dropdown laggs till i formularet for anstallda dar man valjer om personen ska vara **Admin** (full atkomst, samma som dig) eller **Arbetare** (begransad atkomst).
+### Grundorsak (mest troligt)
+Domanen `datavoxx.se` ar troligen inte fullstandigt verifierad i Resend. Nar en doman inte ar verifierad koar Resend i **sandbox-lage** dar mejl bara levereras till kontots agare -- inte till externa mottagare. API:et returnerar anda "success", vilket ar vilseledande.
 
-### Hur det fungerar
+### Losning i tva steg
 
-- **Admin**: Personen far tillgang till alla moduler (dashboard, projekt, offerter, kunder, fakturor, etc.) -- precis som du sjalv.
-- **Arbetare**: Personen far begransad tillgang (narvaro, tidsrapportering, dagrapporter) -- som idag.
+**Steg 1: Battre loggning (kodandring)**
 
-### Tekniska andringar
+Uppdatera `supabase/functions/send-employee-invitation/index.ts` for att logga hela Resend-svaret (bade `data` och `error`). Detta ger oss e-post-ID:t och eventuella problem.
 
-| Fil | Andring |
-|-----|---------|
-| `employees`-tabellen (migration) | Lagg till kolumn `employee_role` (text, default `'worker'`) |
-| `src/components/settings/EmployeeManager.tsx` | Lagg till en Select-dropdown for "Roll" med alternativen "Admin" och "Arbetare". Spara valet i `employee_role`-kolumnen. Visa rollen som badge pa varje anstalldsrad. |
-| `src/components/settings/EmployeeManager.tsx` | Skicka med `employeeRole` i anropet till `send-employee-invitation` |
-| `supabase/functions/send-employee-invitation/index.ts` | Ta emot `employeeRole` fran request body och spara det i `employee_invitations`-tabellen |
-| `employee_invitations`-tabellen (migration) | Lagg till kolumn `employee_role` (text, default `'worker'`) |
-| `supabase/functions/accept-invitation/index.ts` | Las av `employee_role` fran inbjudan. Om `'admin'`: satt roll till `'admin'` och ge ALL_MODULES. Om `'worker'`: behall nuvarande logik (roll `'user'`, begransade moduler). |
-| `src/hooks/useUserPermissions.ts` | Ingen andring behovs -- admins far redan full atkomst via befintlig logik. |
+```typescript
+// Rad 221-226: Andra fran
+const { error: emailError } = await resend.emails.send({ ... });
 
-### Flodet steg for steg
+// Till
+const { data: emailData, error: emailError } = await resend.emails.send({ ... });
+console.log("Resend response data:", JSON.stringify(emailData));
+console.log("Resend response error:", JSON.stringify(emailError));
+```
 
-1. Du skapar en anstalld och valjer "Admin" eller "Arbetare"
-2. Valet sparas i `employees.employee_role`
-3. Nar inbjudan skickas foljer rollvalet med till `employee_invitations.employee_role`
-4. Nar personen accepterar inbjudan satts ratt roll (`admin` eller `user`) och ratt modulbehorigher automatiskt
+**Steg 2: Verifiera domanen i Resend (manuellt steg)**
 
-### Sakerhetsaspekter
+Du behover logga in pa [resend.com/domains](https://resend.com/domains) och:
+1. Kontrollera att `datavoxx.se` ar listad och har status **Verified**
+2. Om den inte ar verifierad: lagg till de DNS-poster (SPF, DKIM, DMARC) som Resend visar
+3. Kontrollera att din API-nyckel ar kopplad till ratt doman
 
-- Rollvalet sker server-side i `accept-invitation`-funktionen, inte pa klienten
-- Bara agaren av anstallda-posten kan andra rollvalet (skyddat av RLS)
-- En admin-anstald far samma atkomst som organisationens agare till alla moduler
+### Teknisk sammanfattning
 
+| Andring | Fil | Syfte |
+|---------|-----|-------|
+| Logga Resend `data`-objekt | `supabase/functions/send-employee-invitation/index.ts` | Se e-post-ID och faktiskt svar fran Resend |
+| Verifiera doman | Resend dashboard (manuellt) | Aktivera leverans till externa mottagare |
+
+### Alternativ om domanen inte kan verifieras
+
+Om det ar brakttom kan vi tilfalligt byta avsandaradress till `onboarding@resend.dev` (Resends testdoman som alltid fungerar) medan DNS-verifieringen ordnas.
