@@ -1,20 +1,50 @@
 
 
-## Uppdatera GDPR-texten under "Personuppgifter" i offertforhandsgranskningen
+## Tre andringar i offertbyggaren
 
-### Vad andras
+### 1. Lagg till Paslag-kolumn per offertrad (mellan A-pris och Summa)
 
-Den korta GDPR-texten under rubriken "Personuppgifter" pa sida 3 (Forutsattningar och villkor) byts ut mot den langre, specifika texten du angav. Detta gors i bade `QuoteLivePreview.tsx` (live-forhandsgranskningen i sidopanelen) och `QuotePreviewSheet.tsx` (fullskarms-forhandsgranskningen).
+Varje offertrad far ett nytt falt `markup_percent` (standard 0). I tabellhuvudet laggs en ny kolumn "Pasl%" mellan "A-pris" och "Summa". Anvandaren skriver in en procentsats per rad, och subtotalen raknas som `(antal * a-pris) * (1 + paslag/100)`.
 
-### Ny text
+Det hardkodade globala paslaget (15%) tas bort helt:
+- `useEstimate.ts` rad 199: `|| 15` andras till `|| 0`
+- Globala markup-berakningen i `calculateTotals` slopas (markup = 0 alltid, da paslaget nu ar per rad)
+- `StickyTotals`: Paslags-raden doljs nar markup ar 0
+- `EstimateTotals`: Paslags-sektionen doljs nar markup ar 0
+- Forhandsgranskning och PDF: Ingen separat paslags-rad visas langre, paslaget ar redan inbakat i radernas summa
 
-> Vid godkannande av denna offert accepterar du att vi behandlar dina personuppgifter for att kunna fullfoja vart atagande gentemot dig som kund. Den information vi behandlar for er ar information som berors och ar nodvandig for byggprojektens administration. Personuppgifterna lagras och hanteras i projektverktyget Bygglet som har tekniska och organisatoriska sakerhetsatgarder for att skydda hanteringen av Personuppgifter och lever upp till de krav som stalls enligt EU:s dataskyddsforordning (GDPR). Vi kommer om ni begar det att radera eller anonymisera och oavsett anledning dartill, inklusive att radera samtliga kopior som inte enligt GDPR maste sparas. Vi kommer inte att overfora Personuppgifter till land utanfor EU/ESS
+**Tekniska andringar:**
 
-### Tekniska andringar
+| Fil | Andring |
+|-----|---------|
+| `EstimateItem` interface i `EstimateTable.tsx` | Lagg till `markup_percent: number` |
+| `EstimateTable.tsx` header och rader | Ny kolumn "Pasl%" (input, ca 50px) mellan A-pris och Summa. Grid-template uppdateras. |
+| `EstimateTable.tsx` `updateItem` | Rakna subtotal med paslag: `base * (1 + markup_percent/100)` |
+| `EstimateTable.tsx` `addItem` | Default `markup_percent: 0` |
+| `useEstimate.ts` rad 199 | `\|\| 15` till `\|\| 0` |
+| `useEstimate.ts` `calculateTotals` | `markup` sjalva slopas (alltid 0), paslaget ar inbakat i per-rad subtotal |
+| `useEstimate.ts` sparfunktionen | Spara `markup_percent` per item |
+| `useEstimate.ts` ladda befintlig | Ladda `markup_percent` fran sparad data |
+| `StickyTotals.tsx` | Dolj "Pasl:" nar markup ar 0 |
+| `EstimateTotals.tsx` | Dolj paslags-raden nar markupPercent ar 0 |
+| DB migration | Lagg till kolumn `markup_percent numeric default 0` pa `estimate_items` |
 
-| Fil | Rad | Andring |
-|-----|-----|---------|
-| `src/components/estimates/QuoteLivePreview.tsx` | 413-415 | Byt ut den korta texten mot den fullstandiga texten ovan |
-| `src/components/estimates/QuotePreviewSheet.tsx` | 486-490 | Byt ut den befintliga langre texten mot den nya texten ovan |
+### 2. Flytta Artiklar fran Installningar till Offert-sidan
 
-Ingen annan logik eller struktur andras -- bara sjalva textstycket under "Personuppgifter".
+Knappen "Artiklar" laggs bredvid "Importera" pa offertlistsidan (`Estimates.tsx`). Den oppnar `ArticleManager`-komponenten i en dialog/sheet.
+
+| Fil | Andring |
+|-----|---------|
+| `src/pages/Estimates.tsx` | Lagg till en "Artiklar"-knapp bredvid Importera som oppnar en Sheet med `ArticleManager` |
+| `src/pages/Settings.tsx` | Behall artikelfliken i installningar ocksa (eller ta bort -- beroende pa onskemal) |
+
+### 3. Tidsplan: ta bort punktlistformat, gor till fritext
+
+Punkterna ("bullet points") i forhandsgranskningen tas bort. Istallet renderas tidsplanen som ett enda textstycke med `whitespace-pre-wrap` sa att radbrytningar bevaras utan bullet-symboler.
+
+| Fil | Andring |
+|-----|---------|
+| `QuoteLivePreview.tsx` rad 160-168 | Byt fran `<ul>/<li>` med bullet-punkt till `<p className="whitespace-pre-wrap">{assumptions.join("\n")}</p>` |
+| `QuotePreviewSheet.tsx` rad 218-226 | Samma andring -- fritext istallet for lista |
+| `generateQuotePdf.ts` | Uppdatera PDF-genereringen att inte anvanda bullet-format |
+
