@@ -218,12 +218,15 @@ const handler = async (req: Request): Promise<Response> => {
     // Send the email
     const emailHtml = generateEmailHtml(organizationName, employeeName, inviteUrl);
 
-    const { error: emailError } = await resend.emails.send({
+    const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Byggio <info@datavoxx.se>",
       to: [employeeEmail],
       subject: `Du har bjudits in till ${organizationName} på Byggio`,
       html: emailHtml,
     });
+
+    console.log("Resend response data:", JSON.stringify(emailData));
+    console.log("Resend response error:", JSON.stringify(emailError));
 
     if (emailError) {
       console.error("Error sending email:", emailError);
@@ -233,7 +236,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Invitation sent successfully to ${employeeEmail}`);
+    console.log(`Invitation sent successfully to ${employeeEmail} with id: ${emailData?.id}`);
 
     return new Response(
       JSON.stringify({ success: true, message: "Invitation sent successfully" }),
