@@ -219,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = generateEmailHtml(organizationName, employeeName, inviteUrl);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Byggio <info@datavoxx.se>",
+      from: "Byggio <onboarding@resend.dev>",
       to: [employeeEmail],
       subject: `Du har bjudits in till ${organizationName} på Byggio`,
       html: emailHtml,
