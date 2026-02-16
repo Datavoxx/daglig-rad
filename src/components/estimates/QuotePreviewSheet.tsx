@@ -224,14 +224,13 @@ export function QuotePreviewSheet({
             {assumptions && assumptions.length > 0 && (
               <div className="mb-6">
                 <h3 className="font-bold text-black mb-2">Tidsplan:</h3>
-                <ul className="space-y-1">
+                <div className="space-y-1">
                   {assumptions.map((item, idx) => (
-                    <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
+                    <p key={idx} className="text-sm text-gray-800 whitespace-pre-line">
                       {item}
-                    </li>
+                    </p>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
