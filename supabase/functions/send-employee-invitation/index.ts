@@ -43,6 +43,7 @@ interface InvitationRequest {
   employeeId: string;
   employeeEmail: string;
   employeeName: string;
+  employeeRole?: string;
   organizationName: string;
   baseUrl: string;
 }
@@ -171,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const userId = claims.claims.sub as string;
 
-    const { employeeId, employeeEmail, employeeName, organizationName, baseUrl }: InvitationRequest = await req.json();
+    const { employeeId, employeeEmail, employeeName, employeeRole, organizationName, baseUrl }: InvitationRequest = await req.json();
 
     if (!employeeId || !employeeEmail || !organizationName || !baseUrl) {
       return new Response(
@@ -193,6 +194,7 @@ const handler = async (req: Request): Promise<Response> => {
         token: inviteToken,
         email: employeeEmail,
         organization_name: organizationName,
+        employee_role: employeeRole || "worker",
       });
 
     if (insertError) {

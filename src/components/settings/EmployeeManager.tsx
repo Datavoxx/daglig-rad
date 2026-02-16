@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send, Clock } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, User, Phone, Mail, Users, Send, Clock, Shield, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -66,6 +67,7 @@ export function EmployeeManager() {
     email: "",
     employment_number: "",
     personal_number: "",
+    employee_role: "worker" as "worker" | "admin",
   });
 
   // Fetch company settings for organization name
@@ -148,15 +150,16 @@ export function EmployeeManager() {
         const { error } = await supabase
           .from("employees")
           .update({
-            name: employee.name,
-            role: employee.role || null,
-            phone: employee.phone || null,
-            email: employee.email || null,
-            hourly_rate: employee.hourly_rate || null,
-            employment_number: (employee as any).employment_number || null,
-            personal_number: (employee as any).personal_number || null,
-          })
-          .eq("id", currentEmployee.id);
+          name: employee.name,
+          role: employee.role || null,
+          phone: employee.phone || null,
+          email: employee.email || null,
+          hourly_rate: employee.hourly_rate || null,
+          employment_number: (employee as any).employment_number || null,
+          personal_number: (employee as any).personal_number || null,
+          employee_role: (employee as any).employee_role || "worker",
+        })
+        .eq("id", currentEmployee.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("employees").insert({
@@ -168,6 +171,7 @@ export function EmployeeManager() {
           hourly_rate: employee.hourly_rate || null,
           employment_number: (employee as any).employment_number || null,
           personal_number: (employee as any).personal_number || null,
+          employee_role: (employee as any).employee_role || "worker",
         });
         if (error) throw error;
       }
@@ -210,6 +214,7 @@ export function EmployeeManager() {
           employeeId: employee.id,
           employeeEmail: employee.email,
           employeeName: employee.name,
+          employeeRole: (employee as any).employee_role || "worker",
           organizationName,
           baseUrl: "https://daglig-rad.lovable.app",
         },
@@ -235,6 +240,7 @@ export function EmployeeManager() {
       email: "",
       employment_number: "",
       personal_number: "",
+      employee_role: "worker",
     });
   };
 
@@ -252,6 +258,7 @@ export function EmployeeManager() {
       email: employee.email || "",
       employment_number: employee.employment_number || "",
       personal_number: employee.personal_number || "",
+      employee_role: (employee as any).employee_role || "worker",
     });
     setDialogOpen(true);
   };
@@ -279,6 +286,7 @@ export function EmployeeManager() {
       email: formData.email.trim(),
       employment_number: formData.employment_number.trim(),
       personal_number: formData.personal_number.trim(),
+      employee_role: formData.employee_role,
     } as any);
   };
 
@@ -356,6 +364,17 @@ export function EmployeeManager() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm">{employee.name}</p>
+                        {(employee as any).employee_role === "admin" ? (
+                          <Badge variant="default" className="text-xs gap-1">
+                            <Shield className="h-3 w-3" />
+                            Admin
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Wrench className="h-3 w-3" />
+                            Arbetare
+                          </Badge>
+                        )}
                         {getInvitationStatusBadge(employee)}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -464,6 +483,37 @@ export function EmployeeManager() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Erik Svensson"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="employee_role">Roll *</Label>
+              <Select
+                value={formData.employee_role}
+                onValueChange={(value: "worker" | "admin") => setFormData({ ...formData, employee_role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="worker">
+                    <span className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4" />
+                      Arbetare
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <span className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin (full åtkomst)
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.employee_role === "admin"
+                  ? "Admin har tillgång till alla moduler – samma som du."
+                  : "Arbetare har tillgång till närvaro, tidsrapportering och dagrapporter."}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

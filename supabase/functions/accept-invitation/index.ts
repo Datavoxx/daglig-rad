@@ -186,25 +186,32 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Override role from 'admin' (set by trigger) to 'user' (worker) and set name
+    // Determine role and permissions based on employee_role from invitation
+    const isAdmin = invitation.employee_role === "admin";
+    const targetRole = isAdmin ? "admin" : "user";
+    const targetModules = isAdmin
+      ? ["dashboard", "projects", "estimates", "customers", "guide", "settings", "invoices", "time-reporting", "attendance", "daily-reports", "payroll-export"]
+      : ["attendance", "time-reporting", "daily-reports"];
+
+    // Override role set by trigger
     const { error: updateRoleError } = await supabase
       .from("user_roles")
-      .update({ role: "user", name: invitation.employees?.name || "" })
+      .update({ role: targetRole, name: invitation.employees?.name || "" })
       .eq("user_id", userId);
 
     if (updateRoleError) {
-      console.error("Error updating role to user:", updateRoleError);
+      console.error("Error updating role:", updateRoleError);
     } else {
-      console.log(`Role updated to 'user' for ${userId}`);
+      console.log(`Role updated to '${targetRole}' for ${userId}`);
     }
 
-    // Set restricted modules for the employee (override the default full access)
+    // Set modules based on role
     const { error: upsertPermissionsError } = await supabase
       .from("user_permissions")
       .upsert(
         {
           user_id: userId,
-          modules: ["attendance", "time-reporting", "daily-reports"],
+          modules: targetModules,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
@@ -213,7 +220,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (upsertPermissionsError) {
       console.error("Error upserting permissions:", upsertPermissionsError);
     } else {
-      console.log(`Permissions restricted to attendance, time-reporting, daily-reports for ${userId}`);
+      console.log(`Permissions set to [${targetModules.join(", ")}] for ${userId}`);
     }
 
     console.log(`User account created for ${invitation.email}, linked to employee ${invitation.employee_id}`);
