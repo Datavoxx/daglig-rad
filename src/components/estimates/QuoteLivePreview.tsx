@@ -405,6 +405,13 @@ export function QuoteLivePreview({
                 <p>10 dagar netto.</p>
               </div>
 
+              <div>
+                <h4 className="font-bold text-black mb-2">ÄTA (ändrings- och tilläggsarbeten)</h4>
+                <p>
+                  Skulle det under projektets gång uppstå oförutsedda förhållanden eller behov av ändringar som påverkar det avtalade arbetet, kommer vi att upprätta en separat ÄTA-offert (ändrings- och tilläggsarbeten) för godkännande innan arbetet påbörjas. Inget tillkommande arbete utförs utan skriftligt godkännande.
+                </p>
+              </div>
+
               {rotEnabled && (
                 <div>
                   <h4 className="font-bold text-black mb-2">ROT</h4>

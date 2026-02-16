@@ -624,6 +624,22 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
 
   yPos += 12;
 
+  // ÄTA
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text("ÄTA (ändrings- och tilläggsarbeten)", margin, yPos);
+  yPos += 6;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(50, 50, 50);
+  const ataText = doc.splitTextToSize(
+    "Skulle det under projektets gång uppstå oförutsedda förhållanden eller behov av ändringar som påverkar det avtalade arbetet, kommer vi att upprätta en separat ÄTA-offert (ändrings- och tilläggsarbeten) för godkännande innan arbetet påbörjas. Inget tillkommande arbete utförs utan skriftligt godkännande.",
+    pageWidth - margin * 2
+  );
+  doc.text(ataText, margin, yPos);
+  yPos += ataText.length * 4 + 8;
+
   // ROT/RUT
   if (data.rotEnabled || data.rutEnabled) {
     doc.setFontSize(11);
