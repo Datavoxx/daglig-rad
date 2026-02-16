@@ -307,10 +307,10 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50, 50, 50);
     
-    data.conditions.forEach((condition) => {
-      doc.text(`•  ${condition}`, margin, yPos);
-      yPos += 4;
-    });
+    const conditionText = data.conditions.join("\n");
+    const conditionLines = doc.splitTextToSize(conditionText, pageWidth - margin * 2);
+    doc.text(conditionLines, margin, yPos);
+    yPos += conditionLines.length * 4;
     yPos += 4;
   }
 

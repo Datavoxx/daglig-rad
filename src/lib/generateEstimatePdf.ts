@@ -135,10 +135,10 @@ export async function generateEstimatePdf(data: EstimateData): Promise<void> {
     yPos += 6;
     doc.setFontSize(9);
     doc.setTextColor(...MUTED);
-    data.assumptions.forEach((assumption) => {
-      doc.text(`• ${assumption}`, margin + 2, yPos);
-      yPos += 5;
-    });
+    const assumptionText = data.assumptions.join("\n");
+    const assumptionLines = doc.splitTextToSize(assumptionText, pageWidth - margin * 2 - 2);
+    doc.text(assumptionLines, margin + 2, yPos);
+    yPos += assumptionLines.length * 5;
     yPos += 5;
   }
   
@@ -243,7 +243,9 @@ export async function generateEstimatePdf(data: EstimateData): Promise<void> {
   doc.line(totalsX, yPos, totalsX + 75, yPos);
   yPos += 5;
   addTotalRow("Summa", `${formatNumber(subtotal)} kr`, true);
-  addTotalRow(`Påslag (${data.markupPercent}%)`, `${formatNumber(markup)} kr`);
+  if (data.markupPercent > 0) {
+    addTotalRow(`Påslag (${data.markupPercent}%)`, `${formatNumber(markup)} kr`);
+  }
   yPos += 2;
   doc.line(totalsX, yPos, totalsX + 75, yPos);
   yPos += 5;

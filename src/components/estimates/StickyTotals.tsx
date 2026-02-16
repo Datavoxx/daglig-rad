@@ -56,7 +56,7 @@ export function StickyTotals({
           <span className="whitespace-nowrap">Arb: <span className="font-medium text-foreground tabular-nums">{formatNumber(laborCost)}</span></span>
           <span className="whitespace-nowrap">Mat: <span className="font-medium text-foreground tabular-nums">{formatNumber(materialCost)}</span></span>
           <span className="whitespace-nowrap">UE: <span className="font-medium text-foreground tabular-nums">{formatNumber(subcontractorCost)}</span></span>
-          <span className="whitespace-nowrap">Påsl: <span className="font-medium text-foreground tabular-nums">{formatNumber(markup)}</span></span>
+          {markup > 0 && <span className="whitespace-nowrap">Påsl: <span className="font-medium text-foreground tabular-nums">{formatNumber(markup)}</span></span>}
           <span className="whitespace-nowrap">Moms: <span className="font-medium text-foreground tabular-nums">{formatNumber(vat)}</span></span>
         </div>
         
@@ -117,10 +117,12 @@ export function StickyTotals({
               <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(addonsCost)}</span>
             </div>
           )}
-          <div className="hidden md:block">
-            <span className="text-muted-foreground">Påsl:</span>
-            <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(markup)}</span>
-          </div>
+          {markup > 0 && (
+            <div className="hidden md:block">
+              <span className="text-muted-foreground">Påsl:</span>
+              <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(markup)}</span>
+            </div>
+          )}
           <div>
             <span className="text-muted-foreground">Moms:</span>
             <span className="ml-0.5 font-medium tabular-nums number-animate">{formatNumber(vat)}</span>
