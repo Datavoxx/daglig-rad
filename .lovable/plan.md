@@ -1,74 +1,34 @@
 
 
-## Fyra andringar i offertbyggaren
+## Fixa antal-faltet och verifiera paslagspanelen
 
-### 1. Fixa antal-faltet sa man kan radera och skriva nytt
+### Problem 1: Antal-faltet kan inte rensas
 
-Antal-faltet i offerttabellen (desktop) anvander `type="text"` men konverterar till Number pa ett satt som kan bli konstigt. Andringar:
+Grundorsaken ar tva saker:
 
-- **EstimateTable.tsx (desktop, rad ~582-599)**: Andra `value`-logiken sa att ett tomt falt verkligen visar tom strang, och att onChange hanterar tomma strang korrekt utan att aterstalla till 0.
-- **EstimateTable.tsx (mobil, rad ~341-348)**: Samma fix for mobilversionen -- byt fran `type="number"` till `type="text"` med `inputMode="decimal"` for battre kontroll.
+**a) Desktop-inputen (rad 592)** anvander `item.hours ?? item.quantity ?? ""` for arbetsrader. Nar man suddar faltets varde satter koden `hours: null`, men `quantity` ar fortfarande `1` (fran nar raden skapades). Da faller `??`-operatorn tillbaka till `1` och ettan dyker upp igen.
 
-### 2. Ta bort hardkodad paslag-ruta fran summeringen
+**Fix:** Andra value-logiken sa att den inte blandar ihop `hours` och `quantity`. For arbetsrader ska den bara visa `hours`, for ovriga bara `quantity`. Dessutom ska `null` rendera som `""` (tomt falt) men beraknas som `0`.
 
-- **StickyTotals.tsx**: Ta bort visningen av "Pasl:" fran breakdownraden (desktop rad 120-123, mobil rad 59).
-- **EstimateTotals.tsx**: Ta bort hela paslag-sektionen (rad 69-89) och behall bara subtotal, moms, och total. Denna komponent anvands inte aktivt i buildern men rensas for konsistens.
-- **useEstimate.ts**: Satt `markupPercent` till 0 som default (redan 0 pa rad 55, men saker att det inte aterstalls till 15 fran befintliga offerter pa rad 199 -- andra fallback fran `|| 15` till `|| 0`).
+**b) Nya rader skapas med `quantity: 1` och `hours: 1`** (rad 158-160). Anvandaren vill att default ska vara `0` istallet for `1`.
 
-### 3. Ny paslagspanel under skatteavdrag
+### Andringar
 
-Skapa en ny komponent `MarkupPanel.tsx` som placeras under TaxDeductionPanel i EstimateBuilder:
+| Fil | Rad | Andring |
+|-----|-----|---------|
+| `EstimateTable.tsx` | 158-160 | Andra default fran `quantity: 1, hours: 1` till `quantity: 0, hours: 0` |
+| `EstimateTable.tsx` | 592 | Andra value fran `item.hours ?? item.quantity ?? ""` till bara `item.hours ?? ""` for labor, `item.quantity ?? ""` for ovriga. Behall separat logik for respektive typ. |
 
-**Funktionalitet:**
-- En switch "Paslag" for att aktivera/avaktivera
-- Nar aktiverad visas alla offertrader i en lista
-- Varje rad har en checkbox (valdbar) och ett procentfalt
-- Paslaget beraknas per rad: `radSumma * (procent / 100)`
-- Totalt paslag summeras och visas
+### Problem 2: Paslagspanelen
 
-**Datamodell:**
-- Utoka `EstimateItem` med tva nya falt:
-  - `markup_enabled: boolean` (default false)
-  - `markup_percent: number` (default 0)
-- Uppdatera `useEstimate.ts` totalberakning sa att `markup` summeras fran individuella raders paslag istallet for en global procent
-- Uppdatera `StickyTotals` for att visa totalt paslag baserat pa per-rad-berakning
+MarkupPanel-komponenten finns redan och ser korrekt ut i koden. Jag verifierar att den renderas ratt i EstimateBuilder (rad 553-555) och att `onItemsChange` korrekt uppdaterar state. Om det finns nagot renderingsproblem (t.ex. att raderna inte visas) kan det bero pa att alla items har `subtotal: 0` -- panelen filtrerar bort rader dar `subtotal > 0` inte ar uppfyllt. Jag andrar filtret sa att alla rader med en beskrivning visas oavsett subtotal.
 
-**Tekniska andringar:**
+| Fil | Rad | Andring |
+|-----|-----|---------|
+| `MarkupPanel.tsx` | ~76 | Ta bort filtret `item.subtotal > 0` sa att alla rader med beskrivning visas |
 
-| Fil | Andring |
-|-----|---------|
-| `src/components/estimates/EstimateTable.tsx` | Lagg till `markup_enabled` och `markup_percent` i `EstimateItem`-interfacet |
-| `src/components/estimates/MarkupPanel.tsx` | Ny komponent -- switch, radlista med checkboxar och procentfalt |
-| `src/components/estimates/EstimateBuilder.tsx` | Importera och rendera MarkupPanel under TaxDeductionPanel, ta bort gammal markup-prop |
-| `src/hooks/useEstimate.ts` | Andra `calculateTotals` sa markup beraknas per rad, ta bort `markupPercent` fran state (eller behall for bakatkompabilitet men anvand inte) |
-| `src/components/estimates/StickyTotals.tsx` | Visa paslag fran ny berakning |
-| `src/components/estimates/QuoteLivePreview.tsx` | Uppdatera paslag-visning |
-| `src/components/estimates/QuotePreviewSheet.tsx` | Uppdatera paslag-visning |
-| `src/lib/generateQuotePdf.ts` | Uppdatera PDF-generering for nya paslag |
+### Sammanfattning
 
-### 4. Lagg till Artikelbibliotek-knapp pa offertlistan
-
-Pa sidan `/estimates` (listvy) lagg till en knapp "Artikelbibliotek" bredvid "Importera"-knappen.
-
-**Andring i `src/pages/Estimates.tsx`:**
-- Rad 280-286: Lagg till en ny knapp med ikon `Package` mellan "Importera" och "Ny offert"
-- Knappen oppnar antingen en dialog med artikelbiblioteket eller navigerar till installningar dar artiklar hanteras
-
-Eftersom artikelbiblioteket i dag ar kopplat till en specifik offert (med `onAddArticles`-callback), och pa listsidan finns ingen aktiv offert, ar det mest logiskt att:
-- Lata knappen navigera till Installningar -> Artikelhantering (`/settings` med ratt tab)
-- Eller skapa en dialog som visar artikelbiblioteket for oversikt
-
-Jag rekommenderar att knappen navigerar till artikelhanteringen i installningar, da det ger mest mening fran listsidan.
-
-### Sammanfattning av filer som andras
-
-1. `src/components/estimates/EstimateTable.tsx` -- fixa antal-input, lagg till markup-falt i interface
-2. `src/components/estimates/MarkupPanel.tsx` -- ny komponent
-3. `src/components/estimates/EstimateBuilder.tsx` -- integrera MarkupPanel, ta bort gammal markup
-4. `src/hooks/useEstimate.ts` -- uppdatera totalberakning
-5. `src/components/estimates/StickyTotals.tsx` -- uppdatera paslag-visning
-6. `src/components/estimates/EstimateTotals.tsx` -- ta bort gammal paslag-sektion
-7. `src/pages/Estimates.tsx` -- lagg till Artikelbibliotek-knapp
-8. `src/components/estimates/QuoteLivePreview.tsx` -- uppdatera paslag
-9. `src/components/estimates/QuotePreviewSheet.tsx` -- uppdatera paslag
-10. `src/lib/generateQuotePdf.ts` -- uppdatera PDF
+Tva filer andras:
+1. **EstimateTable.tsx** -- fixa quantity/hours value-logik och default-varden
+2. **MarkupPanel.tsx** -- visa alla rader oavsett subtotal
