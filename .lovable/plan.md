@@ -1,28 +1,25 @@
 
-
-## Lagg till "Skapa ny artikel" i Artikelbiblioteket
+## Flytta "Logga ut" till topbar pa mobil
 
 ### Vad andras
 
-En knapp **"+ Ny artikel"** laggs till i `ArticleLibrarySection.tsx` sa att man kan skapa nya artiklar direkt fran offertsidan, utan att behova ga till installningar.
+Pa mobilen laggs en **Logga ut-ikon** (LogOut) i toppmenyn, placerad **mellan ringklockan och profilavataren**. Ordningen blir:
 
-### Hur det fungerar
+```text
+[Klocka]  [Ringklocka]  [Logga ut]  [Profilavatar]
+```
 
-- En liten dialog (samma stil som i ArticleManager) oppnas med falt for: Namn, Beskrivning, Kategori (dynamisk fran `useArticleCategories`), Enhet och Standardpris
-- Nar man sparar laggs artikeln till i databasen och listan uppdateras direkt
-- Knappen placeras bredvid sokfaltet eller i headern pa kortet
-- Panelen visas aven nar det inte finns nagra artiklar annu (idag doljs den helt med `return null`)
+### Teknisk andring
 
-### Fil som andras
+**Fil:** `src/components/layout/AppLayout.tsx`
 
-| Fil | Andring |
-|-----|---------|
-| `src/components/estimates/ArticleLibrarySection.tsx` | Lagg till create-dialog, "Ny artikel"-knapp, importera `useArticleCategories`, visa panelen aven vid 0 artiklar |
+1. **Lagg till en logga ut-knapp i topbar** (mellan Bell-knappen och profilavataren, rad ~401-402), synlig bara pa mobil (`isMobile`):
+   - Samma `handleLogoutClick`-funktion som redan finns
+   - Samma ikon (`LogOut`) och storlek som ovriga topbar-knappar (`h-9 w-9`)
+   - Styling: `variant="ghost"`, destructive-farg for tydlighet
 
-### Teknisk detalj
+2. **Behall logga ut i hamburgarmenyn** -- den kan finnas pa bada stallena for tillganglighet, eller tas bort fran hamburgarmenyn om du foredrar det
 
-- Ateranvander samma formular-logik som finns i `ArticleManager.tsx` (Dialog med namn, beskrivning, kategori, enhet, pris)
-- Anvander `useArticleCategories` for dynamiska kategorier i dropdown
-- Efter sparande kallas `fetchArticles()` for att uppdatera listan
-- Panelen visas alltid (tar bort `if (articles.length === 0) return null`) sa att nya anvandare kan skapa sin forsta artikel direkt fran offerten
+### Resultat
 
+Anvandare pa telefon ser logga ut-ikonen direkt i toppmenyn utan att behova oppna hamburgarmenyn.
