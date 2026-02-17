@@ -1,25 +1,36 @@
 
-## Flytta "Logga ut" till topbar pa mobil
 
-### Vad andras
+## Pinch-to-zoom och panorering i offertens forhandsgranskning (mobil)
 
-Pa mobilen laggs en **Logga ut-ikon** (LogOut) i toppmenyn, placerad **mellan ringklockan och profilavataren**. Ordningen blir:
+### Problem
 
-```text
-[Klocka]  [Ringklocka]  [Logga ut]  [Profilavatar]
-```
+Pa mobilen anvands en fast CSS-skalning (`scale-[0.55]` med `w-[182%]`) som gor att hoger sida klipps bort och man varken kan zooma eller scrolla horisontellt.
 
-### Teknisk andring
+### Losning
 
-**Fil:** `src/components/layout/AppLayout.tsx`
+Bygga en **pinch-to-zoom-container** som omsluter offertinnehallet pa mobilen. Anvandaren kan:
+- **Zooma in/ut** med tva fingrar (pinch)
+- **Panorera** (dra) horisontellt och vertikalt
+- **Dubbelklicka** for att vaxla mellan inzoomad och utzoomad vy
+- Starta utzoomad sa att hela papprets bredd syns
 
-1. **Lagg till en logga ut-knapp i topbar** (mellan Bell-knappen och profilavataren, rad ~401-402), synlig bara pa mobil (`isMobile`):
-   - Samma `handleLogoutClick`-funktion som redan finns
-   - Samma ikon (`LogOut`) och storlek som ovriga topbar-knappar (`h-9 w-9`)
-   - Styling: `variant="ghost"`, destructive-farg for tydlighet
+### Teknisk detalj
 
-2. **Behall logga ut i hamburgarmenyn** -- den kan finnas pa bada stallena for tillganglighet, eller tas bort fran hamburgarmenyn om du foredrar det
+| Fil | Andring |
+|-----|---------|
+| `src/components/estimates/PinchZoomContainer.tsx` | **Ny fil** -- en ateranvandbar komponent som hanterar touch-gester (pinch, pan, double-tap) med React state och touch-events |
+| `src/components/estimates/QuotePreviewSheet.tsx` | Byt ut den fasta `scale-[0.55] w-[182%]` pa mobil mot `PinchZoomContainer`. Desktop oforandrad |
+| `src/components/estimates/QuoteLivePreview.tsx` | Samma andring -- byt ut fast skalning mot `PinchZoomContainer` |
+
+### PinchZoomContainer-komponenten
+
+- Hanterar `onTouchStart`, `onTouchMove`, `onTouchEnd` for pinch och pan
+- State: `scale` (startar pa ~0.48 sa att 210mm-bredden passar skarmbredden), `translateX`, `translateY`
+- Min-zoom: ca 0.4 (hela pappret synligt), Max-zoom: 1.5 (narzoom)
+- Dubbelklick/dubbeltryck vaxlar mellan min-zoom och 1.0
+- Anvander `touch-action: none` for att forhindra webbkasarens standardgester
+- Renderas bara pa mobil; pa desktop visas innehallet som vanligt
 
 ### Resultat
 
-Anvandare pa telefon ser logga ut-ikonen direkt i toppmenyn utan att behova oppna hamburgarmenyn.
+Anvandaren kan se hela offertforhandsgranskningen pa telefonen, zooma in for att lasa detaljer, och panorera fritt i alla riktningar.
