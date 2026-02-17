@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Package, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useArticleCategories } from "@/hooks/useArticleCategories";
 
 interface Article {
   id: string;
@@ -23,25 +24,12 @@ interface Article {
   sort_order: number;
 }
 
-const ARTICLE_CATEGORIES = [
-  "Material",
-  "Arbete",
-  "Bygg",
-  "Deponi",
-  "El",
-  "Maskin",
-  "Målning",
-  "Plattsättning",
-  "UE",
-  "VVS",
-  "Övrigt",
-];
-
 const UNITS = ["st", "m", "m²", "m³", "kg", "tim", "h", "dag", "paket", "rulle"];
 
 export function ArticleManager() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const { categoryNames } = useArticleCategories();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
@@ -345,7 +333,7 @@ export function ArticleManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ARTICLE_CATEGORIES.map((cat) => (
+                    {categoryNames.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {cat}
                       </SelectItem>
