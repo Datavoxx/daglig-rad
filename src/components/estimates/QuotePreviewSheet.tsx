@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { PinchZoomContainer } from "./PinchZoomContainer";
 interface CompanyInfo {
   company_name?: string;
   org_number?: string;
@@ -153,13 +154,9 @@ export function QuotePreviewSheet({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-100px)]">
-          {/* Scaled container for mobile - zooms out to show entire quote */}
-          <div className={cn(
-            "origin-top-left",
-            isMobile && "transform scale-[0.55] w-[182%]"
-          )}>
-          {/* ============ PAGE 1 - Main Quote ============ */}
+        {(() => {
+          const pageContent = (
+            <div className={isMobile ? "w-[210mm]" : undefined}>
           <div className={cn(
             "bg-white text-black min-h-[297mm] relative",
             isMobile ? "p-6" : "p-8"
@@ -537,8 +534,21 @@ export function QuotePreviewSheet({
               <p className="text-xs text-gray-400 text-right mt-2">Sida 3 (3)</p>
             </div>
           </div>
-          </div>{/* End of scaled container */}
-        </ScrollArea>
+            </div>
+          );
+
+          return isMobile ? (
+            <div className="h-[calc(100vh-80px)]">
+              <PinchZoomContainer initialScale={0.48} minScale={0.35} maxScale={1.5}>
+                {pageContent}
+              </PinchZoomContainer>
+            </div>
+          ) : (
+            <ScrollArea className="h-[calc(100vh-100px)]">
+              {pageContent}
+            </ScrollArea>
+          );
+        })()}
       </SheetContent>
     </Sheet>
   );

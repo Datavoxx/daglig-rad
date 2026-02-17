@@ -1,5 +1,7 @@
 import { format, addDays } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PinchZoomContainer } from "./PinchZoomContainer";
 import { cn } from "@/lib/utils";
 import type { EstimateItem } from "./EstimateTable";
 import type { EstimateAddon } from "@/hooks/useEstimate";
@@ -48,6 +50,7 @@ export function QuoteLivePreview({
   offerNumber = "OFF-001",
   validDays = 30,
 }: QuoteLivePreviewProps) {
+  const isMobile = useIsMobile();
   const today = new Date();
   const validUntil = addDays(today, validDays);
 
@@ -101,13 +104,10 @@ export function QuoteLivePreview({
   const customerAddressLines = parseAddress(project?.address);
   const selectedAddons = addons.filter((a) => a.is_selected);
 
-  return (
-    <ScrollArea className="h-full">
-      <div className="p-4">
-        {/* Scaled preview container */}
-        <div className="origin-top-left transform scale-[0.55] w-[182%]">
-          {/* Page 1 */}
-          <div className="bg-white text-black p-8 shadow-lg rounded-lg mb-4" style={{ minHeight: "297mm" }}>
+  const pageContent = (
+    <div className={isMobile ? "w-[210mm]" : undefined}>
+      {/* Page 1 */}
+      <div className="bg-white text-black p-8 shadow-lg rounded-lg mb-4" style={{ minHeight: "297mm" }}>
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -431,6 +431,20 @@ export function QuoteLivePreview({
             </div>
             <p className="text-xs text-gray-400 text-right mt-8">Sida 3 (3)</p>
           </div>
+    </div>
+  );
+
+  return isMobile ? (
+    <div className="h-full">
+      <PinchZoomContainer initialScale={0.48} minScale={0.35} maxScale={1.5}>
+        {pageContent}
+      </PinchZoomContainer>
+    </div>
+  ) : (
+    <ScrollArea className="h-full">
+      <div className="p-4">
+        <div className="origin-top-left transform scale-[0.55] w-[182%]">
+          {pageContent}
         </div>
       </div>
     </ScrollArea>
