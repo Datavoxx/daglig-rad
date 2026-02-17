@@ -399,6 +399,17 @@ export function AppLayout() {
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <Bell className="h-[18px] w-[18px]" />
             </Button>
+            {/* Mobile: Logout in topbar */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+                onClick={handleLogoutClick}
+              >
+                <LogOut className="h-[18px] w-[18px]" />
+              </Button>
+            )}
             {/* Mobile: Profile avatar in topbar */}
             {isMobile && (
               <button
