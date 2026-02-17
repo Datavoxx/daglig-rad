@@ -1,22 +1,70 @@
 
-## Lagg till ATA-sektion i villkorssidan
 
-### Vad andras
+## Dynamiska artikelkategorier
 
-En ny rubrik **"ATA (andrings- och tillaggsarbeten)"** laggs till mellan "Betalningsvillkor" och "Personuppgifter" (eller ROT om den finns) pa sida 3 i offerten. Texten forklarar att om det uppstar hinder eller tillkommande arbete sa skickas en separat offert for ATA.
+### Oversikt
 
-### Foreslag pa text
+Idag ar kategorierna (Material, Arbete, Bygg, Maskin osv.) hardkodade i koden. Du vill kunna skapa egna kategorier och se dem i en separat panel **"Artikelkategorier"** bredvid **"Artikelbibliotek"** inne pa offertsidan.
 
-> Skulle det under projektets gang uppsta oforutsedda forhallanden eller behov av andringar som paverkar det avtalade arbetet, kommer vi att upprata en separat ATA-offert (andrings- och tillaggsarbeten) for godkannande innan arbetet paborjas. Inget tillkommande arbete utfors utan skriftligt godkannande.
+### Steg 1: Ny databastabell
 
-### Filer som andras
+Skapa en tabell `article_categories` som sparar anvandarens egna kategorier:
 
-| Fil | Plats | Andring |
-|-----|-------|---------|
-| `QuoteLivePreview.tsx` | Rad 406-407 (efter Betalningsvillkor, fore ROT/Personuppgifter) | Lagg till ny `<div>` med rubrik "ATA" och textstycket |
-| `QuotePreviewSheet.tsx` | Rad 477-479 (efter Betalningsvillkor, fore ROT/Personuppgifter) | Samma ny sektion |
-| `generateQuotePdf.ts` | Rad 625 (efter Betalningsvillkor-blocket, fore ROT-blocket) | Lagg till rubrik + text med `splitTextToSize` |
+- `id` (uuid, PK)
+- `user_id` (uuid, NOT NULL)
+- `name` (text, NOT NULL) -- t.ex. "Plattsattning", "El"
+- `type` (text) -- "labor", "material", eller "subcontractor" (for korrekt finansiell mappning)
+- `sort_order` (integer)
+- `is_active` (boolean, default true)
+- `created_at` / `updated_at`
 
-### Teknisk detalj
+RLS: Anvandare ser/hanterar bara sina egna kategorier. Vid forsta inloggningen seedas standardkategorierna (Arbete, Material, Bygg osv.) sa att anvandaren startar med en basuppsattning.
 
-Sektionen ar alltid synlig (inte villkorad) eftersom ATA-information ar relevant oavsett projekttyp. Ingen ny data eller props behovs -- det ar en statisk textsektion.
+### Steg 2: Ny komponent -- ArticleCategorySection
+
+En ny panel liknande `ArticleLibrarySection` men for kategorier:
+
+- Visa alla kategorier i en lista (namn + typ-badge)
+- Knapp for att lagga till ny kategori (inline eller liten dialog)
+- Redigera/ta bort befintliga kategorier
+- Placeras bredvid Artikelbiblioteket i `EstimateBuilder.tsx`
+
+### Steg 3: Ersatt hardkodade kategorier
+
+Overallt dar `ARTICLE_CATEGORIES` eller liknande listor anvands idag byter vi till att hamta fran databasen:
+
+| Fil | Andring |
+|-----|---------|
+| `EstimateTable.tsx` | Byt hardkodad `ARTICLE_CATEGORIES` mot dynamisk lista fran `article_categories`-tabellen |
+| `ArticleManager.tsx` | Byt hardkodad `ARTICLE_CATEGORIES` mot dynamisk lista |
+| `ArticleLibrarySection.tsx` | Ingen andring behovs (lasser redan `article_category` fran articles-tabellen) |
+| `EstimateBuilder.tsx` | Lagg till `ArticleCategorySection` bredvid `ArticleLibrarySection` |
+
+### Steg 4: Seed-funktion
+
+Nar en anvandare inte har nagra kategorier annu skapas standardkategorierna automatiskt vid forsta laddningen (13 st fran den befintliga listan: Arbete, Bygg, Deponi, Material osv.).
+
+### Layout i EstimateBuilder
+
+```text
++---------------------------+---------------------------+
+|   Artikelkategorier       |   Artikelbibliotek        |
+|   [+ Ny kategori]         |   [Sok artiklar...]       |
+|                           |                           |
+|   Arbete (Arbete)         |   Gipsplatta 13mm  150kr  |
+|   Material (Material)     |   Spackel         89kr    |
+|   El (Arbete)             |   ...                     |
+|   ...                     |                           |
++---------------------------+---------------------------+
+```
+
+### Filer som skapas/andras
+
+| Fil | Typ |
+|-----|-----|
+| `article_categories` (databastabell) | Ny |
+| `src/components/estimates/ArticleCategorySection.tsx` | Ny |
+| `src/components/estimates/EstimateBuilder.tsx` | Andras -- lagg till ny komponent |
+| `src/components/estimates/EstimateTable.tsx` | Andras -- dynamiska kategorier |
+| `src/components/settings/ArticleManager.tsx` | Andras -- dynamiska kategorier |
+
