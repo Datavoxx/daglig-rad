@@ -18,41 +18,19 @@ import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Circle, Home, Spark
 import { EstimateItemsImportDialog, type ParsedEstimateItem } from "./EstimateItemsImportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useArticleCategories } from "@/hooks/useArticleCategories";
 
 // Map article values to labor/material/subcontractor types
-function mapArticleToType(article: string): "labor" | "material" | "subcontractor" {
+function mapArticleToType(article: string, categoryMap: Map<string, string>): "labor" | "material" | "subcontractor" {
+  // Check dynamic categories first
+  const mapped = categoryMap.get(article);
+  if (mapped === "labor" || mapped === "material" || mapped === "subcontractor") return mapped;
+
   const lower = article.toLowerCase().trim();
-  
-  // Material types
-  if (["material", "mat", "bygg", "förbrukning"].includes(lower)) {
-    return "material";
-  }
-  
-  // Subcontractor
-  if (["ue", "underentreprenör", "underleverantör"].includes(lower)) {
-    return "subcontractor";
-  }
-  
-  // Default to labor
+  if (["material", "mat", "bygg", "förbrukning"].includes(lower)) return "material";
+  if (["ue", "underentreprenör", "underleverantör"].includes(lower)) return "subcontractor";
   return "labor";
 }
-
-// Article categories - Bygglet style
-const ARTICLE_OPTIONS = [
-  "Arbete",
-  "Bygg",
-  "Deponi",
-  "Framkörning",
-  "Förbrukning",
-  "Förvaltning",
-  "Markarbete",
-  "Maskin",
-  "Material",
-  "Målning",
-  "Snöröjning",
-  "Städ",
-  "Trädgårdsskötsel",
-] as const;
 
 export interface EstimateItem {
   id: string;
@@ -113,6 +91,10 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
   const [focusedCell, setFocusedCell] = useState<{ id: string; field: string } | null>(null);
   const isMobile = useIsMobile();
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const { categoryNames, categories } = useArticleCategories();
+
+  // Build a map from category name to type for quick lookup
+  const categoryTypeMap = new Map(categories.map(c => [c.name, c.type || "material"]));
 
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) => {
@@ -517,8 +499,8 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 <SelectTrigger className="h-6 text-[11px] border-0 bg-transparent hover:bg-muted/60 focus:bg-muted/60 focus:ring-0 px-1">
                   <SelectValue placeholder="Välj..." />
                 </SelectTrigger>
-                <SelectContent>
-                  {ARTICLE_OPTIONS.map((opt) => (
+              <SelectContent>
+                  {categoryNames.map((opt) => (
                     <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                   ))}
                 </SelectContent>
@@ -726,7 +708,7 @@ export function EstimateTable({ items, onItemsChange, readOnly = false, rotEnabl
                 description: item.description || "",
                 show_only_total: false,
                 moment: item.moment || item.description || "",
-                type: mapArticleToType(item.article || ""),
+                type: mapArticleToType(item.article || "", categoryTypeMap),
                 quantity: item.quantity,
                 unit: item.unit || "",
                 hours: item.hours,

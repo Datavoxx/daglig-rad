@@ -25,6 +25,7 @@ import { StickyTotals } from "./StickyTotals";
 import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
 import { ArticleLibrarySection } from "./ArticleLibrarySection";
+import { ArticleCategorySection } from "./ArticleCategorySection";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { AI_AGENTS } from "@/config/aiAgents";
@@ -499,13 +500,16 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       {/* Divider */}
       <div className="h-px bg-border" />
 
-      {/* Article Library Section */}
-      <ArticleLibrarySection 
-        onAddArticles={(newItems) => {
-          const updatedItems = [...estimate.state.items, ...newItems];
-          estimate.updateItems(updatedItems);
-        }}
-      />
+      {/* Article Categories + Library side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ArticleCategorySection />
+        <ArticleLibrarySection 
+          onAddArticles={(newItems) => {
+            const updatedItems = [...estimate.state.items, ...newItems];
+            estimate.updateItems(updatedItems);
+          }}
+        />
+      </div>
 
       {/* Estimate items table */}
       <section className="space-y-2">
