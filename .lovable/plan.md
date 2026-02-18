@@ -1,36 +1,62 @@
 
 
-## Pinch-to-zoom och panorering i offertens forhandsgranskning (mobil)
+## Lagg till `get_dashboard_summary`-verktyg i Global Assistant
 
-### Problem
+### Vad det gor
 
-Pa mobilen anvands en fast CSS-skalning (`scale-[0.55]` med `w-[182%]`) som gor att hoger sida klipps bort och man varken kan zooma eller scrolla horisontellt.
+Ett nytt verktyg som ger Byggio AI en komplett oversikt over anvandardata -- antal projekt, offerter per status, obetalda fakturor, timmar denna vecka, och mer. Nar anvandaren fragar "hur gar det?" eller "hur manga offerter har jag?" kan AI:n svara direkt med ratt siffror.
 
-### Losning
+### Teknisk andring
 
-Bygga en **pinch-to-zoom-container** som omsluter offertinnehallet pa mobilen. Anvandaren kan:
-- **Zooma in/ut** med tva fingrar (pinch)
-- **Panorera** (dra) horisontellt och vertikalt
-- **Dubbelklicka** for att vaxla mellan inzoomad och utzoomad vy
-- Starta utzoomad sa att hela papprets bredd syns
+**Fil:** `supabase/functions/global-assistant/index.ts`
 
-### Teknisk detalj
+#### 1. Ny verktygsdefinition (i `tools`-arrayen)
+
+```text
+{
+  name: "get_dashboard_summary",
+  description: "Hamta en komplett oversikt: antal projekt per status, offerter per status, obetalda/forsenade fakturor, timmar denna vecka, antal kunder, antal anstallda. Anvand nar anvandaren fragar om sin oversikt, sammanfattning, eller 'hur manga X har jag?'",
+  parameters: { type: "object", properties: {}, required: [] }
+}
+```
+
+#### 2. Ny `executeTool`-case
+
+Gor **6 parallella databasfragar** (med `Promise.all`):
+
+| Fraga | Tabell | Vad den hamtar |
+|-------|--------|----------------|
+| Projekt per status | `projects` | Antal per status (planning/active/closing/completed) |
+| Offerter per status | `project_estimates` | Antal per status (draft/sent/accepted/rejected) + totalt belopp |
+| Kundfakturor | `customer_invoices` | Antal draft, sent (obetalda), paid, totalt obetalat belopp |
+| Timmar denna vecka | `time_entries` | Summerade timmar for innevarande vecka (mandag-sondag) |
+| Antal kunder | `customers` | Totalt antal |
+| Antal anstallda | `employees` | Antal aktiva |
+
+Returnerar ett sammanfattningsobjekt med alla siffror.
+
+#### 3. Ny `formatToolResults`-case
+
+Returnerar `type: "text"` med en markdown-formaterad sammanfattning, t.ex.:
+
+```text
+## Din oversikt
+
+**Projekt:** 3 aktiva, 1 i planering, 2 avslutade
+**Offerter:** 5 utkast, 2 skickade, 3 accepterade (totalt 450 000 kr)
+**Fakturor:** 2 obetalda (85 000 kr), 1 forsenad
+**Timmar denna vecka:** 32 h
+**Kunder:** 12
+**Anstallda:** 4 aktiva
+```
+
+### Inget nytt UI-kort behovs
+
+Resultatet visas som vanlig markdown-text i chatten -- inget nytt React-kort eller typ behover skapas. AI:n far ratt data och kan sedan svara pa foljdfragor ("hur manga draft-offerter?") direkt fran det den redan vet.
+
+### Filer som andras
 
 | Fil | Andring |
 |-----|---------|
-| `src/components/estimates/PinchZoomContainer.tsx` | **Ny fil** -- en ateranvandbar komponent som hanterar touch-gester (pinch, pan, double-tap) med React state och touch-events |
-| `src/components/estimates/QuotePreviewSheet.tsx` | Byt ut den fasta `scale-[0.55] w-[182%]` pa mobil mot `PinchZoomContainer`. Desktop oforandrad |
-| `src/components/estimates/QuoteLivePreview.tsx` | Samma andring -- byt ut fast skalning mot `PinchZoomContainer` |
+| `supabase/functions/global-assistant/index.ts` | Lagg till verktygsdefinition, executeTool-case, formatToolResults-case |
 
-### PinchZoomContainer-komponenten
-
-- Hanterar `onTouchStart`, `onTouchMove`, `onTouchEnd` for pinch och pan
-- State: `scale` (startar pa ~0.48 sa att 210mm-bredden passar skarmbredden), `translateX`, `translateY`
-- Min-zoom: ca 0.4 (hela pappret synligt), Max-zoom: 1.5 (narzoom)
-- Dubbelklick/dubbeltryck vaxlar mellan min-zoom och 1.0
-- Anvander `touch-action: none` for att forhindra webbkasarens standardgester
-- Renderas bara pa mobil; pa desktop visas innehallet som vanligt
-
-### Resultat
-
-Anvandaren kan se hela offertforhandsgranskningen pa telefonen, zooma in for att lasa detaljer, och panorera fritt i alla riktningar.
