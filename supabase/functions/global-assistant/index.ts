@@ -952,6 +952,19 @@ const tools = [
       },
     },
   },
+  // === DASHBOARD SUMMARY ===
+  {
+    type: "function",
+    function: {
+      name: "get_dashboard_summary",
+      description: "Hämta en komplett översikt: antal projekt per status, offerter per status, obetalda/försenade fakturor, timmar denna vecka, antal kunder, antal anställda. Använd när användaren frågar om sin översikt, sammanfattning, eller 'hur många X har jag?'",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
 ];
 
 // Execute tool calls against the database
@@ -2699,6 +2712,79 @@ async function executeTool(
       return { ...customer, projects: projects || [], estimates: estimates || [] };
     }
 
+    case "get_dashboard_summary": {
+      // Get Monday of current week
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      const mondayStr = monday.toISOString().split("T")[0];
+      const sundayDate = new Date(monday);
+      sundayDate.setDate(monday.getDate() + 6);
+      const sundayStr = sundayDate.toISOString().split("T")[0];
+
+      const [projectsRes, estimatesRes, invoicesRes, timeRes, customersRes, employeesRes] = await Promise.all([
+        supabase.from("projects").select("status").eq("user_id", userId),
+        supabase.from("project_estimates").select("status, total_incl_vat").eq("user_id", userId),
+        supabase.from("customer_invoices").select("status, total_inc_vat, due_date").eq("user_id", userId),
+        supabase.from("time_entries").select("hours").eq("employer_id", userId).gte("date", mondayStr).lte("date", sundayStr),
+        supabase.from("customers").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("employees").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("is_active", true),
+      ]);
+
+      // Count projects by status
+      const projects = projectsRes.data || [];
+      const projectsByStatus: Record<string, number> = {};
+      for (const p of projects) {
+        const s = p.status || "planning";
+        projectsByStatus[s] = (projectsByStatus[s] || 0) + 1;
+      }
+
+      // Count estimates by status
+      const estimates = estimatesRes.data || [];
+      const estimatesByStatus: Record<string, number> = {};
+      let estimatesTotalAmount = 0;
+      for (const e of estimates) {
+        const s = e.status || "draft";
+        estimatesByStatus[s] = (estimatesByStatus[s] || 0) + 1;
+        estimatesTotalAmount += (e.total_incl_vat || 0);
+      }
+
+      // Count invoices by status
+      const invoices = invoicesRes.data || [];
+      const invoicesByStatus: Record<string, number> = {};
+      let unpaidAmount = 0;
+      let overdueCount = 0;
+      const todayStr = now.toISOString().split("T")[0];
+      for (const inv of invoices) {
+        const s = inv.status || "draft";
+        invoicesByStatus[s] = (invoicesByStatus[s] || 0) + 1;
+        if (s === "sent" || s === "draft") {
+          unpaidAmount += (inv.total_inc_vat || 0);
+        }
+        if (s === "sent" && inv.due_date && inv.due_date < todayStr) {
+          overdueCount++;
+        }
+      }
+
+      // Sum hours this week
+      const timeEntries = timeRes.data || [];
+      let weeklyHours = 0;
+      for (const t of timeEntries) {
+        weeklyHours += (t.hours || 0);
+      }
+
+      return {
+        projects: { total: projects.length, byStatus: projectsByStatus },
+        estimates: { total: estimates.length, byStatus: estimatesByStatus, totalAmount: estimatesTotalAmount },
+        invoices: { total: invoices.length, byStatus: invoicesByStatus, unpaidAmount, overdueCount },
+        weeklyHours,
+        customerCount: customersRes.count || 0,
+        employeeCount: employeesRes.count || 0,
+      };
+    }
+
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -4200,6 +4286,55 @@ ${itemsDetails}
             { label: "Skapa offert", icon: "file-text", prompt: "Skapa offert för denna kund" },
             { label: "Skapa projekt", icon: "folder", prompt: "Skapa projekt för denna kund" },
             { label: "Redigera kund", icon: "edit", prompt: "Redigera denna kund" },
+          ],
+        },
+      };
+    }
+
+    case "get_dashboard_summary": {
+      const summary = results as {
+        projects: { total: number; byStatus: Record<string, number> };
+        estimates: { total: number; byStatus: Record<string, number>; totalAmount: number };
+        invoices: { total: number; byStatus: Record<string, number>; unpaidAmount: number; overdueCount: number };
+        weeklyHours: number;
+        customerCount: number;
+        employeeCount: number;
+      };
+
+      const statusMapProject: Record<string, string> = {
+        planning: "planering", active: "aktiva", closing: "avslutning", completed: "avslutade",
+      };
+      const statusMapEstimate: Record<string, string> = {
+        draft: "utkast", sent: "skickade", accepted: "accepterade", rejected: "avvisade",
+      };
+      const statusMapInvoice: Record<string, string> = {
+        draft: "utkast", sent: "obetalda", paid: "betalda",
+      };
+
+      const fmtStatus = (byStatus: Record<string, number>, map: Record<string, string>) =>
+        Object.entries(byStatus)
+          .map(([k, v]) => `${v} ${map[k] || k}`)
+          .join(", ");
+
+      const fmtKr = (n: number) => n.toLocaleString("sv-SE");
+
+      const lines = [
+        `**Projekt:** ${summary.projects.total} totalt (${fmtStatus(summary.projects.byStatus, statusMapProject)})`,
+        `**Offerter:** ${summary.estimates.total} totalt (${fmtStatus(summary.estimates.byStatus, statusMapEstimate)}) — ${fmtKr(summary.estimates.totalAmount)} kr`,
+        `**Fakturor:** ${summary.invoices.total} totalt (${fmtStatus(summary.invoices.byStatus, statusMapInvoice)})${summary.invoices.unpaidAmount > 0 ? ` — ${fmtKr(summary.invoices.unpaidAmount)} kr obetalat` : ""}${summary.invoices.overdueCount > 0 ? `, ${summary.invoices.overdueCount} försenade` : ""}`,
+        `**Timmar denna vecka:** ${summary.weeklyHours} h`,
+        `**Kunder:** ${summary.customerCount}`,
+        `**Anställda:** ${summary.employeeCount} aktiva`,
+      ];
+
+      return {
+        type: "text",
+        content: `## Din översikt\n\n${lines.join("\n")}`,
+        data: {
+          nextActions: [
+            { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+            { label: "Visa offerter", icon: "file-text", prompt: "Visa mina offerter" },
+            { label: "Visa fakturor", icon: "receipt", prompt: "Visa mina fakturor" },
           ],
         },
       };
