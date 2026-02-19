@@ -1,47 +1,50 @@
 
 
-## Fix: Korrupt text i PDF + marginalberakning
+## Uppgradera Oversikts-PDF: Temafarg, cirkeldiagram och battre information
 
-### Problem 1: Korrupt text pa "Beraknad marginal"-raden
+### Problem som fixas
 
-Raden visar `"&&4& &0&0&0& &k&r& &"` istallet for t.ex. "-4 000 kr (0%)".
+1. **Forsattssidan visar fel "arbetade timmar"**: Forsattssidan summerar `daily_reports.total_hours` (dagrapport-timmar), men KPI-sidan anvander `time_entries.hours` (tidrapporterade timmar). Dessa ar olika datakallor och visar olika siffror. Forsattssidan ska anvanda samma kalla som KPI:erna (time_entries).
 
-**Orsak:** `toLocaleString("sv-SE")` producerar Unicode-tecken som jsPDF inte kan rendera med standardfonten:
-- Unicode-minustecken (U+2212) istallet for vanligt bindestreck
-- Non-breaking space (U+00A0) som tusentalsavgransare
+2. **Saknar appens temafarger**: PDF:en anvander teal (`[13, 148, 136]`) istallet for appens gron (`[34, 197, 94]` -- BYGGIO_GREEN). Alla farger ska uppdateras till att matcha appen.
 
-### Problem 2: Marginal visar 0% nar offert saknas
+3. **Saknar cirkeldiagram**: Dashboardsidan visar bara KPI-rutor och en tabell. Ett cirkeldiagram (donut) ska laggas till som visar fordelningen Marginal / Utgifter / ATA -- precis som i appen.
 
-Nar offertvardet ar 0 kr och utgifterna ar 4 000 kr borde marginalen inte visa 0% -- den borde antingen visa "Ingen offert kopplad" eller ett negativt varde.
+4. **Inte tillrackligt informativ**: Forsattssidan ska visa korrekt data fran KPI:erna istallet for separata berakningar fran dagrapporter.
 
-### Losning
+### Andringar i detalj
 
 **Fil: `src/lib/generateProjectPdf.ts`**
 
-1. **Fixa toLocaleString-problemet:** Byt ut `toLocaleString("sv-SE")` i alla PDF-stallen mot en saker `formatCurrency`-funktion som bara anvander ASCII-tecken (vanligt bindestreck, vanligt mellanslag). Den befintliga `formatCurrency`-hjalpfunktionen anvander redan `toFixed()` som ar sakert -- utoka den eller skapa en ny `safeFormatNumber`-funktion.
+#### 1. Uppdatera alla farger till appens tema
+- `PRIMARY` andras fran teal `[13, 148, 136]` till BYGGIO_GREEN `[34, 197, 94]`
+- KPI-korten far konsekvent fargpalett som matchar appen
+- Tabellhuvuden och linjer anvander den grona temat
 
-2. **Fixa marginberakningen:** Om `quoteValue` ar 0, visa "Ej kopplad" eller liknande istallet for 0%.
+#### 2. Fixa forsattssidans statistik
+- Ta bort de separata berakningarna fran `daily_reports` (raderna som beraknar `totalHours` fran rapporter)
+- Anvand istallet `kpiData` for att visa korrekt statistik pa forsattssidan:
+  - "Totalt arbetade timmar: X h" (fran `kpiData.totalHours`)
+  - "Medarbetare: X"
+  - "Dagrapporter: X"
+  - "ATA-arbeten: X"
+- Nar `kpiData` saknas, faller den tillbaka till grundlaggande rapportdata
 
-### Tekniska andringar
+#### 3. Lagg till cirkeldiagram (donut) pa dashboardsidan
+- Rita en donut-chart med jsPDF:s cirkel-primitiver (arc/ellipse)
+- Tre segment: Marginal (gron), Utgifter (rod), ATA (amber)
+- Centraltext med totalvardet
+- Fargforklaring (legend) under diagrammet
+- Placeras mellan KPI-gridden och den ekonomiska tabellen
+- Implementeras med `doc.setFillColor()` + `doc.ellipse()` och vinklar for varje segment, alternativt anvanda sektorer via linjer och bagar
 
-Ersatt alla `toLocaleString("sv-SE")` i PDF-generatorn med en ASCII-saker formateringsfunktion:
-
-```typescript
-function safeFormatNumber(value: number): string {
-  const isNegative = value < 0;
-  const abs = Math.abs(value);
-  const formatted = abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return isNegative ? `-${formatted}` : formatted;
-}
-```
-
-Uppdatera marginal-raden:
-- Om `quoteValue === 0`: Visa "Ingen offert kopplad" i marginal-KPI:n och tabellen
-- Om `quoteValue > 0`: Berakna och visa korrekt
+#### 4. Battre informationstathtet
+- Forsattssidan visar projektperiod, antal medarbetare, och ekonomisk snabb-sammanfattning
+- Dashboardsidan far tydligare layout med cirkeldiagrammet som visuellt centrum
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/lib/generateProjectPdf.ts` | Lagg till `safeFormatNumber`, ersatt alla `toLocaleString("sv-SE")` i tabellen, fixa marginal-logik for 0-offert |
+| `src/lib/generateProjectPdf.ts` | Uppdatera PRIMARY-farg till gron, fixa forsattssidans statistik att anvanda kpiData, lagg till donut-chart pa dashboardsidan, forbattra informationsdensitet |
 
