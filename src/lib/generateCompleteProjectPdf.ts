@@ -86,6 +86,7 @@ interface TimeEntry {
   billing_type_name: string | null;
   salary_type_name: string | null;
   user_name: string | null;
+  billing_rate?: number | null;
 }
 
 interface WorkOrder {
@@ -142,11 +143,10 @@ interface CompleteProjectPdfOptions {
 
 const formatCurrency = (amount: number | null | undefined) => {
   if (!amount && amount !== 0) return "-";
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency: "SEK",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const isNegative = amount < 0;
+  const abs = Math.abs(amount);
+  const formatted = abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${isNegative ? "-" : ""}${formatted} kr`;
 };
 
 const formatDate = (dateString: string | null) => {
@@ -797,14 +797,19 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
   const estimateTotal = estimate?.total_incl_vat || 0;
   const grandTotal = estimateTotal + ataTotal;
   const vendorTotal = vendorInvoices.reduce((sum, inv) => sum + inv.total_inc_vat, 0);
+  const laborCost = timeEntries.reduce((sum, e) => sum + (e.hours * (e.billing_rate || 0)), 0);
+  const totalCosts = vendorTotal + laborCost;
 
   const economyData: [string, string][] = [
     ["Offertbelopp (inkl. moms)", formatCurrency(estimateTotal)],
-    ["ÄTA-arbeten", formatCurrency(ataTotal)],
-    ["Slutsumma intäkter", formatCurrency(grandTotal)],
+    ["ATA-arbeten", formatCurrency(ataTotal)],
+    ["Slutsumma intakter", formatCurrency(grandTotal)],
     ["", ""],
-    ["Leverantörskostnader", formatCurrency(vendorTotal)],
-    ["Bruttoresultat", formatCurrency(grandTotal - vendorTotal)],
+    ["Leverantorskostnader", formatCurrency(vendorTotal)],
+    ["Arbetskostnad (timmar x rate)", formatCurrency(laborCost)],
+    ["Totala kostnader", formatCurrency(totalCosts)],
+    ["", ""],
+    ["Bruttoresultat", formatCurrency(grandTotal - totalCosts)],
   ];
 
   if (project.budget) {

@@ -81,6 +81,31 @@ interface ProjectFile {
   category: string | null;
   file_size: number | null;
   created_at: string | null;
+  storage_path?: string;
+}
+
+// Helper to fetch image as base64
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// Helper to check if file is an image
+function isImageFile(fileName: string): boolean {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+  const lowerName = fileName.toLowerCase();
+  return imageExtensions.some(ext => lowerName.endsWith(ext));
 }
 
 interface ProjectReport {
@@ -804,7 +829,7 @@ function renderPlanningPage(doc: jsPDF, plan: ProjectPlan) {
 }
 
 // ---- Files page ----
-function renderFilesPage(doc: jsPDF, files: ProjectFile[]) {
+async function renderFilesPage(doc: jsPDF, files: ProjectFile[]) {
   if (!files.length) return;
   const margin = 15;
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -821,35 +846,98 @@ function renderFilesPage(doc: jsPDF, files: ProjectFile[]) {
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 8;
 
-  function formatFileSize(bytes: number | null): string {
-    if (!bytes) return "—";
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)} KB`;
-    return `${bytes} B`;
+  const imageFiles = files.filter(f => isImageFile(f.file_name) && f.storage_path);
+  const otherFiles = files.filter(f => !isImageFile(f.file_name) || !f.storage_path);
+
+  // Render embedded images
+  if (imageFiles.length > 0) {
+    doc.setFontSize(14);
+    doc.setTextColor(...DARK);
+    doc.text("Bilder", margin, yPos);
+    yPos += 8;
+
+    for (const file of imageFiles) {
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const publicUrl = `https://ddxcbbycvybdpbtufdqr.supabase.co/storage/v1/object/public/project-files/${file.storage_path}`;
+      const base64Image = await fetchImageAsBase64(publicUrl);
+
+      if (base64Image) {
+        try {
+          const imgWidth = 100;
+          const imgHeight = 75;
+          doc.addImage(base64Image, 'JPEG', margin, yPos, imgWidth, imgHeight);
+
+          doc.setFontSize(9);
+          doc.setTextColor(...DARK);
+          doc.text(file.file_name, margin + imgWidth + 6, yPos + 5);
+          doc.setFontSize(8);
+          doc.setTextColor(...MUTED);
+          if (file.created_at) {
+            doc.text(`Uppladdad: ${format(new Date(file.created_at), "d MMM yyyy", { locale: sv })}`, margin + imgWidth + 6, yPos + 12);
+          }
+
+          yPos += imgHeight + 10;
+        } catch {
+          doc.setFontSize(9);
+          doc.setTextColor(...DARK);
+          doc.text(`[Bild kunde inte laddas: ${file.file_name}]`, margin, yPos);
+          yPos += 8;
+        }
+      } else {
+        doc.setFontSize(9);
+        doc.setTextColor(...DARK);
+        doc.text(`${file.file_name}`, margin, yPos);
+        yPos += 8;
+      }
+    }
   }
 
-  const categoryLabels: Record<string, string> = {
-    document: "Dokument",
-    image: "Bild",
-    drawing: "Ritning",
-    contract: "Avtal",
-    other: "Övrigt",
-  };
+  // Render other files as table
+  if (otherFiles.length > 0) {
+    if (yPos > 240) {
+      doc.addPage();
+      yPos = 20;
+    }
 
-  autoTable(doc, {
-    startY: yPos,
-    margin: { left: margin, right: margin },
-    head: [["Filnamn", "Kategori", "Storlek", "Uppladdad"]],
-    body: files.map((f) => [
-      f.file_name,
-      categoryLabels[f.category || ""] || f.category || "—",
-      formatFileSize(f.file_size),
-      f.created_at ? format(new Date(f.created_at), "d MMM yyyy", { locale: sv }) : "—",
-    ]),
-    theme: "striped",
-    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
-    styles: { fontSize: 8, cellPadding: 3 },
-  });
+    doc.setFontSize(14);
+    doc.setTextColor(...DARK);
+    doc.text("Ovriga filer", margin, yPos);
+    yPos += 8;
+
+    function formatFileSize(bytes: number | null): string {
+      if (!bytes) return "—";
+      if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+      if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)} KB`;
+      return `${bytes} B`;
+    }
+
+    const categoryLabels: Record<string, string> = {
+      document: "Dokument",
+      image: "Bild",
+      drawing: "Ritning",
+      contract: "Avtal",
+      other: "Ovrigt",
+    };
+
+    autoTable(doc, {
+      startY: yPos,
+      margin: { left: margin, right: margin },
+      head: [["Filnamn", "Kategori", "Storlek", "Uppladdad"]],
+      body: otherFiles.map((f) => [
+        f.file_name,
+        categoryLabels[f.category || ""] || f.category || "—",
+        formatFileSize(f.file_size),
+        f.created_at ? format(new Date(f.created_at), "d MMM yyyy", { locale: sv }) : "—",
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3 },
+    });
+  }
 }
 
 // ---- Main export ----
@@ -887,7 +975,7 @@ export async function generateProjectPdf(data: ProjectReport): Promise<void> {
 
   // Files
   if (data.projectFiles?.length) {
-    renderFilesPage(doc, data.projectFiles);
+    await renderFilesPage(doc, data.projectFiles);
   }
 
   // Footer on all pages
