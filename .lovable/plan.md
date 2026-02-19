@@ -1,48 +1,40 @@
 
 
-## Fix: Chat-interfacet kollapsar vid langa konversationer
+## Fix: AI lovar saker den inte kan gora (PDF, mejla, etc.)
 
-### Rotorsak
+### Problem
 
-Problemet uppstar BARA i den langa konversationen (40 meddelanden) pa grund av `scrollIntoView()` i `MessageList.tsx` (rad 166):
+Byggio AI papekar att den kan "skapa en PDF" och "lagga upp en nedladdningslanken" eller "mejla filen" nar anvandaren fragar om ekonomirapporter. Detta ar falskt -- assistenten har INGA verktyg for att generera PDF:er, skicka mejl eller skapa nedladdningslankar (forutom det som redan ar inbyggt i offert-floden).
 
-```typescript
-bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-```
-
-`scrollIntoView` scrollar ALLA scrollbara foraldra-element for att gora elementet synligt - inte bara den narmaste `overflow-y-auto`-containern. Med manga meddelanden gor detta att foraldra-layouten (AppLayout, main, page-transition) ocksa scrollas, vilket pressar inputfaltet uppat och ut ur synfaltet.
+AI:n hallucinerar dessa formagar eftersom systemprompten inte explicit forbjuder det.
 
 ### Losning
 
-Byt ut `scrollIntoView` mot direkt `scrollTop`-manipulation pa scroll-containern. Detta garanterar att bara MessageList-containern scrollar, aldrig nagon foraldra-element.
+Lagg till en `<restrictions>`-sektion i systemprompten som tydligt listar vad AI:n INTE kan gora. Detta hindrar modellen fran att lova funktionalitet som inte finns.
 
 ### Teknisk implementation
 
-**Fil: `src/components/global-assistant/MessageList.tsx`**
+**Fil: `supabase/functions/global-assistant/index.ts`**
 
-1. Lagg till en `ref` pa den yttre scroll-containern (`overflow-y-auto`-diven)
-2. Ersatt `scrollIntoView` med:
-   ```typescript
-   const scrollRef = useRef<HTMLDivElement>(null);
-   
-   useEffect(() => {
-     const el = scrollRef.current;
-     if (el) {
-       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-     }
-   }, [messages]);
-   ```
-3. Ta bort `bottomRef` (behovs inte langre)
+Lagg till foljande sektion i systemprompten (efter `<rules>`-sektionen, rad ~4747):
 
-### Varfor detta fixar problemet
+```
+<restrictions>
+DU KAN INTE:
+- Skapa PDF-filer eller generera dokument
+- Skicka e-post eller mejla filer
+- Lagga upp nedladdningslankar
+- Komma at externa system eller API:er
+- Gora berakningar utover vad verktygen returnerar
 
-- `scrollTo` pa scroll-containern paverkar BARA den containern
-- Inga foraldra-element scrollas oavsett hur manga meddelanden som finns
-- Fungerar identiskt for 1 meddelande och 1000 meddelanden
+Om anvandaren fragar om nagon av dessa saker:
+- Forklara att du inte kan gora det fran chatten
+- Hanvisa till ratt del av systemet (t.ex. "Du kan ladda ner PDF fran projektsidan" eller "Ga till Fakturor for att exportera")
+</restrictions>
+```
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/components/global-assistant/MessageList.tsx` | Byt `scrollIntoView` till `scrollTo` pa scroll-containern |
-
+| `supabase/functions/global-assistant/index.ts` | Lagg till `<restrictions>` i systemprompten |
