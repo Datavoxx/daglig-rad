@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Plus, Trash2, ExternalLink } from "lucide-react";
+import { FileText, Plus, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { VoiceFormSection } from "./VoiceFormSection";
+import { useArticleCategories } from "@/hooks/useArticleCategories";
 
 interface EstimateItem {
   id: string;
@@ -55,7 +56,7 @@ interface EstimateItemsFormCardProps {
   disabled?: boolean;
 }
 
-const ARTICLE_OPTIONS = [
+const FALLBACK_ARTICLE_OPTIONS = [
   "Arbete",
   "Bygg",
   "Deponi",
@@ -81,6 +82,9 @@ export function EstimateItemsFormCard({
   onOpenEstimate,
   disabled = false,
 }: EstimateItemsFormCardProps) {
+  const { categoryNames, loading: categoriesLoading } = useArticleCategories();
+  const articleOptions = categoryNames.length > 0 ? categoryNames : FALLBACK_ARTICLE_OPTIONS;
+
   const [introduction, setIntroduction] = useState("");
   const [timeline, setTimeline] = useState("");
   const [items, setItems] = useState<EstimateItem[]>([
@@ -318,11 +322,17 @@ export function EstimateItemsFormCard({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {ARTICLE_OPTIONS.map((article) => (
-                        <SelectItem key={article} value={article}>
-                          {article}
-                        </SelectItem>
-                      ))}
+                      {categoriesLoading ? (
+                        <div className="flex items-center justify-center py-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                        articleOptions.map((article) => (
+                          <SelectItem key={article} value={article}>
+                            {article}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <Select

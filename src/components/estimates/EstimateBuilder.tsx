@@ -27,6 +27,7 @@ import { QuotePreviewSheet } from "./QuotePreviewSheet";
 import { ArticleLibrarySection } from "./ArticleLibrarySection";
 import { ArticleCategorySection } from "./ArticleCategorySection";
 import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
 import { AI_AGENTS } from "@/config/aiAgents";
 import {
@@ -434,27 +435,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       </div>
 
       {/* Voice control prompt - inline in header area */}
-      <div 
-        className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
-        onClick={() => {
-          // Trigger VoiceInputOverlay - we'll use a workaround by setting state
-          const voiceButton = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
-          if (voiceButton) voiceButton.click();
-        }}
-      >
-        <img 
-          src={AI_AGENTS.estimate.avatar}
-          alt="Byggio AI"
-          className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
-        />
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-primary">
-            <Mic className="h-5 w-5" />
-            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
-          </div>
-          <span className="text-sm text-muted-foreground">Spara 60% av din tid</span>
-        </div>
-      </div>
+      <VoicePromptButton
+        variant="compact"
+        agentName="Byggio AI"
+        onTranscriptComplete={handleVoiceEdit}
+        isProcessing={isApplyingVoice}
+      />
 
 
       {/* Scope / Project description */}
