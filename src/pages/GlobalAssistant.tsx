@@ -511,6 +511,43 @@ export default function GlobalAssistant() {
     await sendMessage("Avbryt projektuppdatering");
   };
 
+  const handleUpdateEntitySuccess = (entityType: string, entityName: string) => {
+    const successMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: `${entityType} "${entityName}" har uppdaterats!`,
+      type: "result",
+      data: {
+        success: true,
+        resultMessage: `${entityType} uppdaterad!`,
+        nextActions: [
+          { label: "Uppdatera en till", icon: "pencil", prompt: "Jag vill uppdatera något" },
+          { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+        ],
+      },
+    };
+    setMessages(prev => [...prev, successMessage]);
+  };
+
+  const handleUpdateEntityCancel = async () => {
+    await sendMessage("Avbryt uppdatering");
+  };
+
+  const handleUpdateEntityCreateNew = async (entityType: string, projectId: string) => {
+    const prompts: Record<string, string> = {
+      work_order: `Skapa arbetsorder på projekt med ID ${projectId}`,
+      ata: `Skapa ÄTA på projekt med ID ${projectId}`,
+      estimate: `Skapa offert`,
+      planning: `Skapa planering för projekt med ID ${projectId}`,
+      diary: `Skapa dagrapport för projekt med ID ${projectId}`,
+    };
+    await sendMessage(prompts[entityType] || "Skapa ny", { selectedProjectId: projectId });
+  };
+
+  const handleUpdateEntityNavigate = (path: string) => {
+    navigate(path);
+  };
+
   const handleAtaFormSubmit = async (formData: {
     projectId: string;
     description: string;
@@ -744,6 +781,10 @@ export default function GlobalAssistant() {
             onPlanningFormCancel={handlePlanningFormCancel}
             onUpdateProjectAction={handleUpdateProjectAction}
             onUpdateProjectCancel={handleUpdateProjectCancel}
+            onUpdateEntitySuccess={handleUpdateEntitySuccess}
+            onUpdateEntityCancel={handleUpdateEntityCancel}
+            onUpdateEntityCreateNew={handleUpdateEntityCreateNew}
+            onUpdateEntityNavigate={handleUpdateEntityNavigate}
             onAtaFormSubmit={handleAtaFormSubmit}
             onAtaFormCancel={handleAtaFormCancel}
             onFileUploadSubmit={handleFileUploadSubmit}
