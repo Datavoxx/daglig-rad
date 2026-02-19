@@ -82,6 +82,13 @@ const KPI_COLORS = {
   red:    { bg: [254, 226, 226], text: [220, 38, 38] },
 } as const;
 
+function safeFormatNumber(value: number): string {
+  const isNegative = value < 0;
+  const abs = Math.abs(value);
+  const formatted = abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return isNegative ? `-${formatted}` : formatted;
+}
+
 function formatCurrency(value: number): string {
   if (Math.abs(value) >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)} mkr`;
@@ -151,13 +158,14 @@ function renderKpiDashboardPage(doc: jsPDF, data: ProjectReport) {
   const cardW = (gridWidth - gap * 2) / 3;
   const cardH = 38;
 
+  const hasQuote = kpi.quoteValue > 0;
   const marginColor = kpi.marginPercent >= 0 ? KPI_COLORS.green : KPI_COLORS.red;
 
   const kpiItems = [
     { title: "Totala timmar", value: `${kpi.totalHours.toFixed(1)}`, sub: "rapporterade timmar", colors: KPI_COLORS.teal },
     { title: "Medarbetare", value: `${kpi.uniqueWorkers}`, sub: "unika personer", colors: KPI_COLORS.violet },
     { title: "Dagrapporter", value: `${kpi.reportCount}`, sub: "rapporter", colors: KPI_COLORS.blue },
-    { title: "Marginal", value: `${kpi.marginPercent.toFixed(0)}%`, sub: "av projektvärde", colors: marginColor },
+    { title: "Marginal", value: hasQuote ? `${kpi.marginPercent.toFixed(0)}%` : "—", sub: hasQuote ? "av projektvärde" : "Ingen offert kopplad", colors: hasQuote ? marginColor : KPI_COLORS.amber },
     { title: "ÄTA-arbeten", value: `${kpi.ataCount}`, sub: formatCurrency(kpi.ataTotal), colors: KPI_COLORS.amber },
     { title: "Utgifter", value: formatCurrency(kpi.expensesTotal), sub: "leverantörsfakturor", colors: KPI_COLORS.red },
   ];
@@ -186,10 +194,10 @@ function renderKpiDashboardPage(doc: jsPDF, data: ProjectReport) {
     margin: { left: margin, right: margin },
     head: [["Post", "Belopp"]],
     body: [
-      ["Offertvärde", `${kpi.quoteValue.toLocaleString("sv-SE")} kr`],
-      ["Godkända ÄTA", `${kpi.ataTotal.toLocaleString("sv-SE")} kr`],
-      ["Totala utgifter (leverantörer)", `${kpi.expensesTotal.toLocaleString("sv-SE")} kr`],
-      ["Beräknad marginal", `${marginValue.toLocaleString("sv-SE")} kr (${kpi.marginPercent.toFixed(0)}%)`],
+      ["Offertvärde", hasQuote ? `${safeFormatNumber(kpi.quoteValue)} kr` : "Ingen offert kopplad"],
+      ["Godkända ÄTA", `${safeFormatNumber(kpi.ataTotal)} kr`],
+      ["Totala utgifter (leverantörer)", `${safeFormatNumber(kpi.expensesTotal)} kr`],
+      ["Beräknad marginal", hasQuote ? `${safeFormatNumber(marginValue)} kr (${kpi.marginPercent.toFixed(0)}%)` : "Ej beräkningsbar"],
     ],
     theme: "striped",
     headStyles: {
