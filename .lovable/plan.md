@@ -1,60 +1,121 @@
 
 
-## Korrigeringar i offertfloden
+## Forbattra Byggio AI:s offertformular
 
-### 1. Rostknapp i offertbyggaren -- minimalistisk stil
+Malet ar att `EstimateItemsFormCard` (AI-chatten) ska spegla den manuella offertbyggaren battre genom att lagga till fyra saknade funktioner: ROT/RUT-avdrag, paslag (markup), avslutningstext och artikelbibliotek.
 
-**Fil:** `src/components/estimates/EstimateBuilder.tsx`
+### Oversikt av andringar
 
-**Nuvarande problem:** Rad 437-457 anvander en manuell `<div>` med stor avatar-bild (128px), gron text, och `border-dashed border-primary/30` -- den gamla stilen.
-
-**Andring:**
-- Importera `VoicePromptButton` fran `@/components/shared/VoicePromptButton`
-- Ta bort hela `<div>`-blocket (rad 437-457) med avatar, `bg-primary/5`, och dashed border
-- Ersatt med:
-
-```text
-<VoicePromptButton
-  variant="compact"
-  agentName="Byggio AI"
-  onTranscriptComplete={handleVoiceEdit}
-  isProcessing={isAiProcessing}
-/>
-```
-
-- Ta bort `Mic`-importen om den inte anvands pa andra stallen (den anvands troligen fortfarande i andra delar)
-
-**Resultat:** En smal, svart/vit knapp med texten "Lat Byggio AI hjalpa dig" -- samma stil som ovriga rostkomponenter i appen.
+Alla fyra funktioner laggs till direkt i formularkortets UI och skickas med till backend vid sparning. Databasen stodjer redan alla dessa falt (`rot_enabled`, `rut_enabled`, `closing_text`, `markup_percent`, etc.) sa inga migreringar behovs.
 
 ---
 
-### 2. Dynamiska artikelkategorier i Byggio AI:s offertformular
+### 1. Utoka EstimateItemsFormData-interfacet
 
 **Fil:** `src/components/global-assistant/EstimateItemsFormCard.tsx`
 
-**Nuvarande problem:** Rad 58-72 har en hardkodad `ARTICLE_OPTIONS`-array med 13 fasta kategorier. Nya kategorier som laggs till i databasen syns aldrig har.
-
-**Andring:**
-- Importera `useArticleCategories` fran `@/hooks/useArticleCategories`
-- Byt namn pa hardkodade arrayen till `FALLBACK_ARTICLE_OPTIONS` (behall som fallback)
-- Inuti komponenten, anropa hooken:
+Lagg till nya falt i `EstimateItemsFormData`:
 
 ```text
-const { categoryNames, loading: categoriesLoading } = useArticleCategories();
-const articleOptions = categoryNames.length > 0 ? categoryNames : FALLBACK_ARTICLE_OPTIONS;
+export interface EstimateItemsFormData {
+  estimateId: string;
+  introduction: string;
+  timeline: string;
+  items: Array<{ ... }>;  // befintlig
+  addons: Array<{ ... }>; // befintlig
+  // NYA:
+  closingText: string;
+  rotEnabled: boolean;
+  rutEnabled: boolean;
+  markupPercent: number;
+}
 ```
 
-- Ersatt alla referenser till `ARTICLE_OPTIONS` med `articleOptions`
-- Visa eventuellt en kort laddningsindikator om `categoriesLoading` ar true
+### 2. Lagg till ROT/RUT-toggle i formularet
 
-**Resultat:** Nar anvandaren skapar en offert i Byggio AI-chatten visas exakt samma kategorier som i den manuella offertbyggaren, inklusive nyligen tillagda kategorier.
+Lagg till ett kompakt avsnitt efter tillval-sektionen med tva Switch-komponenter:
+
+- **ROT-avdrag (30%)** -- en `Switch` som togglar `rotEnabled`
+- **RUT-avdrag (50%)** -- en `Switch` som togglar `rutEnabled`
+
+Enkel design med `Switch` + label, ingen full `TaxDeductionPanel` (den ar for detaljerad for ett chatformular). Visas i en kompakt card-sektion.
+
+### 3. Lagg till paslag (markup) i formularet
+
+Ett enkelt inmatningsfalt for global markup-procent:
+
+- Label: "Paslag (%)"
+- Input type number, default 0
+- Visas som en rad under ROT/RUT-sektionen
+
+Det per-rad-paslaget fran MarkupPanel ar for komplext for chatformulaet -- anvandaren kan finslipa det i den manuella byggaren. Har racker en global procent.
+
+### 4. Lagg till avslutningstext
+
+Ett `Textarea`-falt med en enkel dropdown for att valja fran standardmallar (samma tre som i `ClosingSection`):
+
+- Standard villkor
+- Kort version  
+- ROT-villkor
+
+Implementeras som en `Select`-komponent ovanfor textarea for att snabbt fylla i text.
+
+### 5. Lagg till artikelbibliotek (snabbval)
+
+Lagg till en "Valj fran artikelbiblioteket"-knapp som oppnar en enkel lista over anvandardens sparade artiklar fran `articles`-tabellen. Nar en artikel valjs laggs den till som en ny offertrad med forifyllt namn, kategori, enhet och pris.
+
+Implementeras som en `Collapsible`-sektion (liknande den manuella byggaren men enklare) med:
+- Sokfalt
+- Klickbara artikelrader som gor "lagg till"
+
+### 6. Uppdatera totalberkning
+
+`calculateTotal` uppdateras for att inkludera markup i summan:
+
+```text
+const subtotal = itemsTotal + addonsTotal;
+const markup = subtotal * (markupPercent / 100);
+return subtotal + markup;
+```
+
+Visa aven separat rad for paslag i totalsektionen om > 0.
+
+### 7. Uppdatera handleSubmit och handleVoiceData
+
+- `handleSubmit`: Inkludera `closingText`, `rotEnabled`, `rutEnabled`, `markupPercent` i onSubmit-data
+- `handleVoiceData`: Hantera aven dessa falt fran rostinmatning
+
+### 8. Uppdatera backend (global-assistant)
+
+**Fil:** `supabase/functions/global-assistant/index.ts`
+
+I `add_estimate_items`-caset, utoka `estimateUpdateData` for att aven spara:
+
+```text
+if (closing_text) estimateUpdateData.closing_text = closing_text;
+if (rot_enabled !== undefined) estimateUpdateData.rot_enabled = rot_enabled;
+if (rut_enabled !== undefined) estimateUpdateData.rut_enabled = rut_enabled;
+if (markup_percent !== undefined) estimateUpdateData.markup_percent = markup_percent;
+```
+
+Utoka aven `add_estimate_items`-verktygsdefinitionen i `tools`-arrayen med dessa nya parametrar.
+
+### 9. Uppdatera GlobalAssistant.tsx
+
+**Fil:** `src/pages/GlobalAssistant.tsx`
+
+Utoka `handleEstimateItemsFormSubmit` for att inkludera de nya falten i meddelandet och `pendingData`.
 
 ---
 
-### Sammanfattning
+### Sammanfattning av filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | Byt manuell rost-div mot `VoicePromptButton variant="compact"` |
-| `src/components/global-assistant/EstimateItemsFormCard.tsx` | Ersatt hardkodad `ARTICLE_OPTIONS` med `useArticleCategories` hook |
+| `src/components/global-assistant/EstimateItemsFormCard.tsx` | Lagg till ROT/RUT-togglar, markup-falt, avslutningstext med mallval, artikelbibliotek-knapp |
+| `src/pages/GlobalAssistant.tsx` | Utoka handleEstimateItemsFormSubmit med nya falt |
+| `supabase/functions/global-assistant/index.ts` | Utoka add_estimate_items med closing_text, rot_enabled, rut_enabled, markup_percent |
 
+### Designprincip
+
+Formularet i chatten ska vara ett "80%-flode" -- tillrackligt for att skapa en komplett offert, men utan den fulla komplexiteten i per-rad-paslag, ROT-per-rad-markering, och full PDF-forhandsvisning. En "Oppna offert"-knapp finns redan for att navigera till den manuella byggaren for finjusteringar.
