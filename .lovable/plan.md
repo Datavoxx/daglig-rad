@@ -1,50 +1,67 @@
 
 
-## Uppgradera Oversikts-PDF: Temafarg, cirkeldiagram och battre information
+## Utoka Oversikts-PDF med alla projektflikar + fixa cirkeldiagram
 
-### Problem som fixas
+### Problem
 
-1. **Forsattssidan visar fel "arbetade timmar"**: Forsattssidan summerar `daily_reports.total_hours` (dagrapport-timmar), men KPI-sidan anvander `time_entries.hours` (tidrapporterade timmar). Dessa ar olika datakallor och visar olika siffror. Forsattssidan ska anvanda samma kalla som KPI:erna (time_entries).
+1. **Cirkeldiagrammet syns inte** -- det renderas bara om en offert ar kopplad (`quoteValue > 0`). Diagrammet ska alltid visas med de data som finns (utgifter + ATA), aven utan offert.
 
-2. **Saknar appens temafarger**: PDF:en anvander teal (`[13, 148, 136]`) istallet for appens gron (`[34, 197, 94]` -- BYGGIO_GREEN). Alla farger ska uppdateras till att matcha appen.
+2. **PDF:en saknar sektioner** -- den visar bara KPI-dashboard och dagrapporter. Alla projektflikar ska finnas med:
+   - ATA-arbeten (detaljerad tabell med nummer, beskrivning, belopp, status)
+   - Arbetsorder (tabell med titel, tilldelad, forfallodag, status)
+   - Planering (faser med veckor och beskrivningar)
+   - Dagbok/Dagrapporter (redan finns, behaller)
+   - Filer (lista over uppladdade filer med namn, kategori, storlek)
 
-3. **Saknar cirkeldiagram**: Dashboardsidan visar bara KPI-rutor och en tabell. Ett cirkeldiagram (donut) ska laggas till som visar fordelningen Marginal / Utgifter / ATA -- precis som i appen.
+### Andringar
 
-4. **Inte tillrackligt informativ**: Forsattssidan ska visa korrekt data fran KPI:erna istallet for separata berakningar fran dagrapporter.
+**Fil 1: `src/pages/ProjectView.tsx`** (handleOverviewPdf)
 
-### Andringar i detalj
+Utoka datahamtningen med:
+- `project_ata` -- hamta alla falt (inte bara subtotal/status)
+- `project_work_orders` -- alla arbetsorder
+- `project_plans` -- planering med faser
+- `project_files` -- fillistning
 
-**Fil: `src/lib/generateProjectPdf.ts`**
+Skicka med alla dessa som nya falt i `ProjectReport`-objektet.
 
-#### 1. Uppdatera alla farger till appens tema
-- `PRIMARY` andras fran teal `[13, 148, 136]` till BYGGIO_GREEN `[34, 197, 94]`
-- KPI-korten far konsekvent fargpalett som matchar appen
-- Tabellhuvuden och linjer anvander den grona temat
+**Fil 2: `src/lib/generateProjectPdf.ts`**
 
-#### 2. Fixa forsattssidans statistik
-- Ta bort de separata berakningarna fran `daily_reports` (raderna som beraknar `totalHours` fran rapporter)
-- Anvand istallet `kpiData` for att visa korrekt statistik pa forsattssidan:
-  - "Totalt arbetade timmar: X h" (fran `kpiData.totalHours`)
-  - "Medarbetare: X"
-  - "Dagrapporter: X"
-  - "ATA-arbeten: X"
-- Nar `kpiData` saknas, faller den tillbaka till grundlaggande rapportdata
+1. **Utoka `ProjectReport`-interfacet** med:
+   - `ataItems` -- array med ATA-detaljer (nummer, beskrivning, artikel, antal, enhet, a-pris, subtotal, status)
+   - `workOrders` -- array med arbetsorder (titel, beskrivning, tilldelad, forfallodag, status)
+   - `plan` -- planeringsobjekt med faser
+   - `projectFiles` -- array med filer (namn, kategori, storlek, datum)
 
-#### 3. Lagg till cirkeldiagram (donut) pa dashboardsidan
-- Rita en donut-chart med jsPDF:s cirkel-primitiver (arc/ellipse)
-- Tre segment: Marginal (gron), Utgifter (rod), ATA (amber)
-- Centraltext med totalvardet
-- Fargforklaring (legend) under diagrammet
-- Placeras mellan KPI-gridden och den ekonomiska tabellen
-- Implementeras med `doc.setFillColor()` + `doc.ellipse()` och vinklar for varje segment, alternativt anvanda sektorer via linjer och bagar
+2. **Fixa cirkeldiagrammet** -- ta bort villkoret `if (hasQuote)`. Visa alltid diagrammet med de segment som har data (utgifter, ATA, och marginal om offert finns). Om bara utgifter och ATA finns, visa dessa tva.
 
-#### 4. Battre informationstathtet
-- Forsattssidan visar projektperiod, antal medarbetare, och ekonomisk snabb-sammanfattning
-- Dashboardsidan far tydligare layout med cirkeldiagrammet som visuellt centrum
+3. **Lagg till nya render-funktioner**:
+   - `renderAtaPage()` -- tabell med alla ATA-poster (nr, beskrivning, antal, a-pris, summa, status) med fargkodad status
+   - `renderWorkOrdersPage()` -- tabell med arbetsorder (nummer, titel, tilldelad, forfallodatum, status)
+   - `renderPlanningPage()` -- lista over planeringsfaser med namn, veckor och beskrivning
+   - `renderFilesPage()` -- tabell med alla filer (namn, kategori, storlek, uppladdningsdatum)
+
+4. **Uppdatera huvudfunktionen** -- rendera sidorna i ordning:
+   - Sida 1: Forsattssida
+   - Sida 2: KPI Dashboard + cirkeldiagram
+   - Sida 3: ATA-arbeten (om finns)
+   - Sida 4: Arbetsorder (om finns)
+   - Sida 5: Planering (om finns)
+   - Sida 6+: Dagbok/Dagrapporter (om finns)
+   - Sista: Fillista (om finns)
+
+### Visuell design
+
+Varje ny sektion foljer samma designsprak:
+- Gron rubrik med avskiljarlinje
+- `autoTable` med gront tabellhuvud
+- Konsekvent typografi och farger
+- Fargkodade statusbadgar (gron = godkand/klar, gul = pagaende, rod = avvisad)
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/lib/generateProjectPdf.ts` | Uppdatera PRIMARY-farg till gron, fixa forsattssidans statistik att anvanda kpiData, lagg till donut-chart pa dashboardsidan, forbattra informationsdensitet |
+| `src/lib/generateProjectPdf.ts` | Ta bort hasQuote-villkor for donut, lagg till renderAtaPage, renderWorkOrdersPage, renderPlanningPage, renderFilesPage, utoka interface |
+| `src/pages/ProjectView.tsx` | Hamta ATA (alla falt), arbetsorder, planering, filer och skicka till generateProjectPdf |
 
