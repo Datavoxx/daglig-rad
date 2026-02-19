@@ -48,20 +48,45 @@ export default function ProjectView() {
     if (!project) return;
     setGeneratingOverview(true);
     try {
-      const { data: reports } = await supabase
-        .from("daily_reports")
-        .select("*")
-        .eq("project_id", project.id)
-        .order("report_date", { ascending: false });
+      const [
+        { data: reports },
+        { data: timeEntries },
+        { data: ataItems },
+        { data: vendorInvoices },
+        { data: estimate },
+      ] = await Promise.all([
+        supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
+        supabase.from("time_entries").select("hours, user_id").eq("project_id", project.id),
+        supabase.from("project_ata").select("subtotal, status").eq("project_id", project.id),
+        supabase.from("vendor_invoices").select("total_inc_vat").eq("project_id", project.id),
+        project.estimate_id
+          ? supabase.from("project_estimates").select("total_incl_vat").eq("id", project.estimate_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
 
-      if (!reports?.length) {
-        toast.error("Inga dagrapporter att exportera");
-        return;
-      }
+      // Calculate KPI data
+      const totalHours = (timeEntries || []).reduce((sum, e) => sum + (Number(e.hours) || 0), 0);
+      const uniqueWorkers = new Set((timeEntries || []).map(e => e.user_id)).size;
+      const reportCount = (reports || []).length;
+      const ataCount = (ataItems || []).length;
+      const ataTotal = (ataItems || []).reduce((sum, a) => sum + (Number(a.subtotal) || 0), 0);
+      const expensesTotal = (vendorInvoices || []).reduce((sum, v) => sum + (Number(v.total_inc_vat) || 0), 0);
+      const quoteValue = Number(estimate?.total_incl_vat) || 0;
+      const marginPercent = quoteValue > 0 ? ((quoteValue - expensesTotal) / quoteValue) * 100 : 0;
 
       await generateProjectPdf({
         project: { name: project.name, client_name: project.client_name, address: project.address },
-        reports: reports as any,
+        reports: (reports || []) as any,
+        kpiData: {
+          totalHours,
+          uniqueWorkers,
+          reportCount,
+          marginPercent,
+          ataCount,
+          ataTotal,
+          expensesTotal,
+          quoteValue,
+        },
       });
       toast.success("Översikts-PDF skapad");
     } catch (e) {
