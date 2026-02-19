@@ -3683,9 +3683,15 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       }
       
       return {
-        type: "text",
-        content: summary,
+        type: "result",
+        content: "",
         data: {
+          success: true,
+          resultMessage: summary,
+          link: {
+            label: "Öppna projekt",
+            href: `/projects/${data.project.id}`,
+          },
           project_name: data.project.name,
           ...data.economy,
           total_hours: data.time.total_hours,
@@ -3694,7 +3700,6 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
           warnings: data.warnings,
           nextActions: [
             { label: "Visa ekonomi", icon: "dollar-sign", prompt: `ekonomi för ${data.project.name}` },
-            { label: "Öppna projekt", icon: "folder", prompt: `visa ${data.project.name}` },
             { label: "Skapa dagrapport", icon: "file-text", prompt: `ny dagrapport för ${data.project.name}` },
           ],
         },
@@ -3812,6 +3817,19 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
 
     case "get_time_summary": {
       const summary = results as { totalHours: number; entries: any[]; period: { start_date: string; end_date: string } };
+      
+      // Extract unique project names from entries
+      const uniqueProjects = [...new Set(
+        summary.entries
+          .map((e: any) => e.projects?.name)
+          .filter(Boolean)
+      )] as string[];
+      
+      // If exactly 1 project, link directly to it instead of "Visa mina projekt"
+      const projectAction = uniqueProjects.length === 1
+        ? { label: `Visa ${uniqueProjects[0]}`, icon: "folder", prompt: `visa ${uniqueProjects[0]}` }
+        : { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" };
+      
       return {
         type: "result",
         content: "",
@@ -3824,7 +3842,7 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
           },
           nextActions: [
             { label: "Registrera tid", icon: "plus", prompt: "Registrera tid" },
-            { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
+            projectAction,
           ],
         },
       };
@@ -4347,9 +4365,11 @@ ${itemsDetails}
       ];
 
       return {
-        type: "text",
-        content: `## Din översikt\n\n${lines.join("\n")}`,
+        type: "result",
+        content: "Vill du att jag kollar på något specifikt projekt?",
         data: {
+          success: true,
+          resultMessage: `## Din översikt\n\n${lines.join("\n")}`,
           nextActions: [
             { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
             { label: "Visa offerter", icon: "file-text", prompt: "Visa mina offerter" },
