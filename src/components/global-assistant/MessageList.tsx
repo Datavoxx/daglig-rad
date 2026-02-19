@@ -22,6 +22,7 @@ import { CheckInFormCard } from "./CheckInFormCard";
 import { WorkOrderFormCard } from "./WorkOrderFormCard";
 import { PlanningFormCard } from "./PlanningFormCard";
 import { UpdateProjectFormCard } from "./UpdateProjectFormCard";
+import { UpdateEntityCard } from "./UpdateEntityCard";
 import { AtaFormCard } from "./AtaFormCard";
 import { FileUploadFormCard } from "./FileUploadFormCard";
 import { BudgetOverviewFormCard } from "./BudgetOverviewFormCard";
@@ -107,6 +108,10 @@ interface MessageListProps {
   onPlanningFormCancel?: () => void;
   onUpdateProjectAction?: (projectId: string, category: string) => void;
   onUpdateProjectCancel?: () => void;
+  onUpdateEntitySuccess?: (entityType: string, entityName: string) => void;
+  onUpdateEntityCancel?: () => void;
+  onUpdateEntityCreateNew?: (entityType: string, projectId: string) => void;
+  onUpdateEntityNavigate?: (path: string) => void;
   onAtaFormSubmit?: (data: { projectId: string; description: string; reason: string; estimatedCost: number | null; estimatedHours: number | null }) => void;
   onAtaFormCancel?: () => void;
   onFileUploadSubmit?: (data: { projectId: string; fileName: string; storagePath: string }) => void;
@@ -150,6 +155,10 @@ export function MessageList({
   onPlanningFormCancel,
   onUpdateProjectAction,
   onUpdateProjectCancel,
+  onUpdateEntitySuccess,
+  onUpdateEntityCancel,
+  onUpdateEntityCreateNew,
+  onUpdateEntityNavigate,
   onAtaFormSubmit,
   onAtaFormCancel,
   onFileUploadSubmit,
@@ -440,6 +449,18 @@ export function MessageList({
                     projects={message.data.projects}
                     onSubmit={onBudgetFormSubmit}
                     onCancel={onBudgetFormCancel}
+                    disabled={isLoading}
+                  />
+                )}
+
+                {/* Update entity form card */}
+                {message.type === "update_entity_form" && message.data?.projects && onUpdateEntitySuccess && onUpdateEntityCancel && onUpdateEntityCreateNew && onUpdateEntityNavigate && (
+                  <UpdateEntityCard
+                    projects={message.data.projects}
+                    onSuccess={onUpdateEntitySuccess}
+                    onCancel={onUpdateEntityCancel}
+                    onCreateNew={onUpdateEntityCreateNew}
+                    onNavigate={onUpdateEntityNavigate}
                     disabled={isLoading}
                   />
                 )}

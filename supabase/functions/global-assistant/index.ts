@@ -760,7 +760,7 @@ const tools = [
     type: "function",
     function: {
       name: "get_projects_for_update",
-      description: "Get active projects for update project form. Use when user wants to update a project, or says 'uppdatera projekt'.",
+      description: "Get active projects for the update entity form. Use when user wants to update a project, work order, ATA, estimate, planning, diary, or says 'uppdatera arbetsorder/äta/offert/planering/dagbok/projekt'.",
       parameters: {
         type: "object",
         properties: {},
@@ -4067,7 +4067,7 @@ ${plan.notes ? `**Anteckningar:** ${plan.notes}` : ""}`,
       if (result.projects.length === 0) {
         return { type: "text", content: "Du har inga aktiva projekt att uppdatera." };
       }
-      return { type: "update_project_form", content: "", data: { projects: result.projects } };
+      return { type: "update_entity_form", content: "", data: { projects: result.projects } };
     }
 
     case "get_projects_for_check_in": {
@@ -4539,7 +4539,7 @@ serve(async (req) => {
         args: {},
       },
       {
-        patterns: [/\b(uppdatera|ändra|redigera)\b.*\bprojekt\b/],
+        patterns: [/\b(uppdatera|ändra|redigera)\b.*\b(projekt|arbetsorder|äta|ata|offert|planering|dagbok)\b/, /\b(projekt|arbetsorder|äta|ata|offert|planering|dagbok)\b.*\b(uppdatera|ändra|redigera)\b/],
         tool: "get_projects_for_update",
         args: {},
       },
