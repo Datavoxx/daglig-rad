@@ -4473,6 +4473,69 @@ serve(async (req) => {
       });
     }
 
+    // === DIRECT FORM PATTERNS ===
+    // Bypass AI for common form-showing commands (saves 3-5 seconds)
+    const lowerMessage = message.toLowerCase().trim();
+
+    const formPatterns = [
+      {
+        patterns: [/\b(skapa|ny|skriva|göra|gör)\b.*\boffert\b/, /\boffert\b.*\b(skapa|ny)\b/],
+        tool: "get_customers_for_estimate",
+        args: {},
+      },
+      {
+        patterns: [/\bregistrera\s*tid\b/, /\btidrapport\b/, /\brapportera\s*tid\b/],
+        tool: "get_active_projects_for_time",
+        args: {},
+      },
+      {
+        patterns: [/\b(skapa|ny)\b.*\bdagrapport\b/, /\bdagrapport\b.*\b(skapa|ny)\b/],
+        tool: "get_projects_for_daily_report",
+        args: {},
+      },
+      {
+        patterns: [/\b(skapa|ny)\b.*\barbetsorder\b/, /\barbetsorder\b.*\b(skapa|ny)\b/],
+        tool: "get_projects_for_work_order",
+        args: {},
+      },
+      {
+        patterns: [/\bchecka\s*in\b/, /\bstämpla\s*in\b/],
+        tool: "get_projects_for_check_in",
+        args: {},
+      },
+      {
+        patterns: [/\b(skapa|ny)\b.*\bplanering\b/, /\bplanering\b.*\b(skapa|ny)\b/],
+        tool: "get_projects_for_planning",
+        args: {},
+      },
+      {
+        patterns: [/\b(ny|skapa|lägg till)\b.*\bkund\b/, /\bkund\b.*\b(ny|skapa)\b/],
+        tool: "get_customer_form",
+        args: {},
+      },
+      {
+        patterns: [/\b(skapa|ny)\b.*\bprojekt\b/, /\bprojekt\b.*\b(skapa|ny)\b/],
+        tool: "get_project_form",
+        args: {},
+      },
+      {
+        patterns: [/\b(uppdatera|ändra|redigera)\b.*\bprojekt\b/],
+        tool: "get_projects_for_update",
+        args: {},
+      },
+    ];
+
+    for (const fp of formPatterns) {
+      if (fp.patterns.some(p => p.test(lowerMessage))) {
+        console.log("Direct form pattern matched:", fp.tool);
+        const result = await executeTool(supabase, userId, fp.tool, fp.args, context);
+        const formatted = formatToolResults(fp.tool, result);
+        return new Response(JSON.stringify(formatted), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Define which tools need auto-injection of IDs
     const PROJECT_TOOLS = [
       "create_work_order", "search_work_orders", 
