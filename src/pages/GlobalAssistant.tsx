@@ -10,6 +10,7 @@ import { QuickSuggestions } from "@/components/global-assistant/QuickSuggestions
 import { ChatHistorySidebar } from "@/components/global-assistant/ChatHistorySidebar";
 import type { Message, VerificationMatch, NextAction, ConversationContext, Conversation } from "@/types/global-assistant";
 import type { Json } from "@/integrations/supabase/types";
+import type { ReferenceTag } from "@/components/global-assistant/ReferenceTagPicker";
 
 
 export default function GlobalAssistant() {
@@ -24,6 +25,7 @@ export default function GlobalAssistant() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const initialMessageProcessed = useRef(false);
+  const [activeReference, setActiveReference] = useState<ReferenceTag | null>(null);
   
   // Use refs to track current values for cleanup
   const conversationIdRef = useRef<string | null>(null);
@@ -159,9 +161,15 @@ export default function GlobalAssistant() {
   }, [userId]);
 
   const sendMessage = async (content: string, contextOverride?: Partial<ConversationContext>) => {
-    const effectiveContext = contextOverride 
-      ? { ...context, ...contextOverride } 
-      : context;
+    // Merge active reference into context
+    let refContext: Partial<ConversationContext> = {};
+    if (activeReference) {
+      if (activeReference.type === "customer") refContext = { selectedCustomerId: activeReference.id };
+      else if (activeReference.type === "project") refContext = { selectedProjectId: activeReference.id };
+      else if (activeReference.type === "estimate") refContext = { selectedEstimateId: activeReference.id };
+    }
+
+    const effectiveContext = { ...context, ...refContext, ...contextOverride };
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -676,7 +684,13 @@ export default function GlobalAssistant() {
             Jag kan hjälpa dig skapa offerter, hitta projekt, söka kunder och mycket mer.
           </p>
           <div className="w-full max-w-2xl space-y-4">
-            <ChatInput onSend={sendMessage} disabled={isLoading} />
+            <ChatInput
+              onSend={sendMessage}
+              disabled={isLoading}
+              activeReference={activeReference}
+              onReferenceSelect={setActiveReference}
+              onReferenceClear={() => setActiveReference(null)}
+            />
             <QuickSuggestions onSelect={sendMessage} onBudgetOverview={handleBudgetOverview} />
           </div>
         </div>
@@ -733,6 +747,9 @@ export default function GlobalAssistant() {
                 onSend={sendMessage}
                 disabled={isLoading}
                 placeholder="Skriv ett meddelande..."
+                activeReference={activeReference}
+                onReferenceSelect={setActiveReference}
+                onReferenceClear={() => setActiveReference(null)}
               />
             </div>
           </div>
