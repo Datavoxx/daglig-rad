@@ -1,67 +1,51 @@
 
 
-## Utoka Oversikts-PDF med alla projektflikar + fixa cirkeldiagram
+## Fix: Visa bilder i Oversikts-PDF + fixa ekonomi i Summerings-PDF
 
-### Problem
+### Problem 1: Projektfiler visar bara text i Oversikts-PDF
 
-1. **Cirkeldiagrammet syns inte** -- det renderas bara om en offert ar kopplad (`quoteValue > 0`). Diagrammet ska alltid visas med de data som finns (utgifter + ATA), aven utan offert.
+Oversikts-PDF:en (`generateProjectPdf.ts`) visar filer som en enkel tabell med filnamn, kategori, storlek och datum. Den borde visa bildfiler som inbaddade bilder -- precis som Summerings-PDF:en redan gor.
 
-2. **PDF:en saknar sektioner** -- den visar bara KPI-dashboard och dagrapporter. Alla projektflikar ska finnas med:
-   - ATA-arbeten (detaljerad tabell med nummer, beskrivning, belopp, status)
-   - Arbetsorder (tabell med titel, tilldelad, forfallodag, status)
-   - Planering (faser med veckor och beskrivningar)
-   - Dagbok/Dagrapporter (redan finns, behaller)
-   - Filer (lista over uppladdade filer med namn, kategori, storlek)
+**Orsak:** `ProjectFile`-interfacet i Oversikts-PDF:en saknar `storage_path` som behovs for att hamta bilden fran lagringen.
 
-### Andringar
+### Problem 2: Ekonomisk sammanfattning i Summerings-PDF ar felaktig
 
-**Fil 1: `src/pages/ProjectView.tsx`** (handleOverviewPdf)
+Summerings-PDF:en (`generateCompleteProjectPdf.ts`) har tva problem:
 
-Utoka datahamtningen med:
-- `project_ata` -- hamta alla falt (inte bara subtotal/status)
-- `project_work_orders` -- alla arbetsorder
-- `project_plans` -- planering med faser
-- `project_files` -- fillistning
+1. **Saknar arbetskostnad** -- den raknar bara leverantorsfakturor som kostnader, men appens dashboard (`EconomicOverviewCard`) inkluderar aven arbetskostnad (timmar x debiteringsrate). Darfor blir "Bruttoresultat" for hogt.
 
-Skicka med alla dessa som nya falt i `ProjectReport`-objektet.
+2. **Unicode-bugg** -- `formatCurrency` anvander `Intl.NumberFormat("sv-SE")` som producerar Unicode-tecken som jsPDF inte kan rendera korrekt (samma bugg som vi fixade i Oversikts-PDF:en).
 
-**Fil 2: `src/lib/generateProjectPdf.ts`**
+### Losning
 
-1. **Utoka `ProjectReport`-interfacet** med:
-   - `ataItems` -- array med ATA-detaljer (nummer, beskrivning, artikel, antal, enhet, a-pris, subtotal, status)
-   - `workOrders` -- array med arbetsorder (titel, beskrivning, tilldelad, forfallodag, status)
-   - `plan` -- planeringsobjekt med faser
-   - `projectFiles` -- array med filer (namn, kategori, storlek, datum)
+**Fil 1: `src/lib/generateProjectPdf.ts`**
 
-2. **Fixa cirkeldiagrammet** -- ta bort villkoret `if (hasQuote)`. Visa alltid diagrammet med de segment som har data (utgifter, ATA, och marginal om offert finns). Om bara utgifter och ATA finns, visa dessa tva.
+- Lagg till `storage_path` i `ProjectFile`-interfacet
+- Gor `generateProjectPdf` till en `async`-funktion (behovs for `fetch`)
+- Lagg till `fetchImageAsBase64` och `isImageFile` hjalpfunktioner (samma som finns i `generateCompleteProjectPdf.ts`)
+- Skriv om `renderFilesPage` till att:
+  - Separera bildfiler fran ovriga filer
+  - Hamta och badda in bilder med `doc.addImage()`
+  - Visa ovriga filer i en tabell
 
-3. **Lagg till nya render-funktioner**:
-   - `renderAtaPage()` -- tabell med alla ATA-poster (nr, beskrivning, antal, a-pris, summa, status) med fargkodad status
-   - `renderWorkOrdersPage()` -- tabell med arbetsorder (nummer, titel, tilldelad, forfallodatum, status)
-   - `renderPlanningPage()` -- lista over planeringsfaser med namn, veckor och beskrivning
-   - `renderFilesPage()` -- tabell med alla filer (namn, kategori, storlek, uppladdningsdatum)
+**Fil 2: `src/lib/generateCompleteProjectPdf.ts`**
 
-4. **Uppdatera huvudfunktionen** -- rendera sidorna i ordning:
-   - Sida 1: Forsattssida
-   - Sida 2: KPI Dashboard + cirkeldiagram
-   - Sida 3: ATA-arbeten (om finns)
-   - Sida 4: Arbetsorder (om finns)
-   - Sida 5: Planering (om finns)
-   - Sida 6+: Dagbok/Dagrapporter (om finns)
-   - Sista: Fillista (om finns)
+- Byt ut `Intl.NumberFormat("sv-SE")` i `formatCurrency` mot en ASCII-saker formateringsfunktion (samma `safeFormatNumber`-logik)
+- Lagg till arbetskostnad i ekonomisk sammanfattning:
+  - Utoka `TimeEntry`-interfacet med `billing_rate` (eller hamta billing_types)
+  - Berakna `laborCost = timmar x debiteringsrate`
+  - Visa separat rad for "Arbetskostnad"
+  - Uppdatera "Bruttoresultat" att inkludera bade leverantorskostnader och arbetskostnad
 
-### Visuell design
+**Fil 3: `src/pages/ProjectView.tsx`**
 
-Varje ny sektion foljer samma designsprak:
-- Gron rubrik med avskiljarlinje
-- `autoTable` med gront tabellhuvud
-- Konsekvent typografi och farger
-- Fargkodade statusbadgar (gron = godkand/klar, gul = pagaende, rod = avvisad)
+- I `handleSummaryPdf`: Utoka `time_entries`-queryn med `billing_type_name` och join till `billing_types(hourly_rate)` sa att arbetskostnaden kan beraknas korrekt
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/lib/generateProjectPdf.ts` | Ta bort hasQuote-villkor for donut, lagg till renderAtaPage, renderWorkOrdersPage, renderPlanningPage, renderFilesPage, utoka interface |
-| `src/pages/ProjectView.tsx` | Hamta ATA (alla falt), arbetsorder, planering, filer och skicka till generateProjectPdf |
+| `src/lib/generateProjectPdf.ts` | Lagg till `storage_path` i interface, lagg till `fetchImageAsBase64`/`isImageFile`, skriv om `renderFilesPage` till att badda in bilder, gor den async |
+| `src/lib/generateCompleteProjectPdf.ts` | Byt `Intl.NumberFormat` mot ASCII-saker formatering, lagg till arbetskostnad i ekonomisk sammanfattning |
+| `src/pages/ProjectView.tsx` | Utoka time_entries-query i `handleSummaryPdf` med billing rate |
 
