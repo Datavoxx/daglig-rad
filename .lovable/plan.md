@@ -1,121 +1,103 @@
 
 
-## Forbattra Byggio AI:s offertformular
+## Varfor tar det 5 sekunder?
 
-Malet ar att `EstimateItemsFormCard` (AI-chatten) ska spegla den manuella offertbyggaren battre genom att lagga till fyra saknade funktioner: ROT/RUT-avdrag, paslag (markup), avslutningstext och artikelbibliotek.
+### Rotorsaken
 
-### Oversikt av andringar
+Nar du skriver "Jag vill skapa en ny offert" sker foljande steg:
 
-Alla fyra funktioner laggs till direkt i formularkortets UI och skickas med till backend vid sparning. Databasen stodjer redan alla dessa falt (`rot_enabled`, `rut_enabled`, `closing_text`, `markup_percent`, etc.) sa inga migreringar behovs.
+1. Edge function startar (snabbt, ~30ms)
+2. Autentisering kontrolleras (snabbt)
+3. Meddelandet matchar INGEN direkt pattern (det ar bara en allman forfragan, inte "Skapa offert X for kund med ID Y")
+4. **AI-anrop till OpenAI gpt-5-mini** -- HaR aR FLASKHALSEN
+5. AI:n bestammer att anropa verktyget `get_customers_for_estimate`
+6. Kundlistan hamtas fran databasen
+7. Svaret formateras och skickas tillbaka
 
----
+### Varfor ar steg 4 sa langsamt?
 
-### 1. Utoka EstimateItemsFormData-interfacet
+Edge-funktionen skickar **50+ verktygsdefinitioner** (over 900 rader JSON) till AI-modellen varje gang. AI:n maste:
+- Lasa och forsta alla verktyg
+- Matcha frasen "skapa offert" mot ratt verktyg
+- Generera ett tool_call-svar
 
-**Fil:** `src/components/global-assistant/EstimateItemsFormCard.tsx`
+Detta tar 3-5 sekunder -- bara for att AI:n ska bestamma att du vill visa ett offertformular.
 
-Lagg till nya falt i `EstimateItemsFormData`:
+### Losning: Direkt pattern-matching for vanliga kommandon
 
-```text
-export interface EstimateItemsFormData {
-  estimateId: string;
-  introduction: string;
-  timeline: string;
-  items: Array<{ ... }>;  // befintlig
-  addons: Array<{ ... }>; // befintlig
-  // NYA:
-  closingText: string;
-  rotEnabled: boolean;
-  rutEnabled: boolean;
-  markupPercent: number;
-}
-```
+Samma teknik som redan anvands for `create_estimate` (rad 4406-4427) och `add_estimate_items` (rad 4429-4473) -- de kor verktygen DIREKT utan AI-anrop.
 
-### 2. Lagg till ROT/RUT-toggle i formularet
-
-Lagg till ett kompakt avsnitt efter tillval-sektionen med tva Switch-komponenter:
-
-- **ROT-avdrag (30%)** -- en `Switch` som togglar `rotEnabled`
-- **RUT-avdrag (50%)** -- en `Switch` som togglar `rutEnabled`
-
-Enkel design med `Switch` + label, ingen full `TaxDeductionPanel` (den ar for detaljerad for ett chatformular). Visas i en kompakt card-sektion.
-
-### 3. Lagg till paslag (markup) i formularet
-
-Ett enkelt inmatningsfalt for global markup-procent:
-
-- Label: "Paslag (%)"
-- Input type number, default 0
-- Visas som en rad under ROT/RUT-sektionen
-
-Det per-rad-paslaget fran MarkupPanel ar for komplext for chatformulaet -- anvandaren kan finslipa det i den manuella byggaren. Har racker en global procent.
-
-### 4. Lagg till avslutningstext
-
-Ett `Textarea`-falt med en enkel dropdown for att valja fran standardmallar (samma tre som i `ClosingSection`):
-
-- Standard villkor
-- Kort version  
-- ROT-villkor
-
-Implementeras som en `Select`-komponent ovanfor textarea for att snabbt fylla i text.
-
-### 5. Lagg till artikelbibliotek (snabbval)
-
-Lagg till en "Valj fran artikelbiblioteket"-knapp som oppnar en enkel lista over anvandardens sparade artiklar fran `articles`-tabellen. Nar en artikel valjs laggs den till som en ny offertrad med forifyllt namn, kategori, enhet och pris.
-
-Implementeras som en `Collapsible`-sektion (liknande den manuella byggaren men enklare) med:
-- Sokfalt
-- Klickbara artikelrader som gor "lagg till"
-
-### 6. Uppdatera totalberkning
-
-`calculateTotal` uppdateras for att inkludera markup i summan:
+Vi laggar till **direktmatchning for formularvyer** i borjan av serve-handleren, INNAN AI-anropet:
 
 ```text
-const subtotal = itemsTotal + addonsTotal;
-const markup = subtotal * (markupPercent / 100);
-return subtotal + markup;
+"skapa offert" / "ny offert"      -> get_customers_for_estimate (direkt)
+"registrera tid"                  -> get_active_projects_for_time (direkt)
+"skapa dagrapport" / "ny dagrapport" -> get_projects_for_daily_report (direkt)
+"skapa arbetsorder"               -> get_projects_for_work_order (direkt)
+"checka in"                       -> get_projects_for_check_in (direkt)
+"skapa planering"                 -> get_projects_for_planning (direkt)
+"ny kund"                         -> get_customer_form (direkt)
+"skapa projekt"                   -> get_project_form (direkt)
+"uppdatera projekt"               -> get_projects_for_update (direkt)
 ```
 
-Visa aven separat rad for paslag i totalsektionen om > 0.
-
-### 7. Uppdatera handleSubmit och handleVoiceData
-
-- `handleSubmit`: Inkludera `closingText`, `rotEnabled`, `rutEnabled`, `markupPercent` i onSubmit-data
-- `handleVoiceData`: Hantera aven dessa falt fran rostinmatning
-
-### 8. Uppdatera backend (global-assistant)
+### Teknisk implementation
 
 **Fil:** `supabase/functions/global-assistant/index.ts`
 
-I `add_estimate_items`-caset, utoka `estimateUpdateData` for att aven spara:
+Lagg till ett block efter de befintliga direktmatchningarna (rad ~4474) men INNAN AI-anropet (rad ~4692):
 
 ```text
-if (closing_text) estimateUpdateData.closing_text = closing_text;
-if (rot_enabled !== undefined) estimateUpdateData.rot_enabled = rot_enabled;
-if (rut_enabled !== undefined) estimateUpdateData.rut_enabled = rut_enabled;
-if (markup_percent !== undefined) estimateUpdateData.markup_percent = markup_percent;
+// === DIRECT FORM PATTERNS ===
+// Bypass AI for common form-showing commands (saves 3-5 seconds)
+const lowerMessage = message.toLowerCase().trim();
+
+const formPatterns = [
+  {
+    patterns: [/\b(skapa|ny|skriva|göra)\b.*\boffert\b/, /\boffert\b.*\b(skapa|ny)\b/],
+    tool: "get_customers_for_estimate",
+    args: {},
+  },
+  {
+    patterns: [/\bregistrera\s*tid\b/, /\btidrapport/],
+    tool: "get_active_projects_for_time",
+    args: {},
+  },
+  {
+    patterns: [/\b(skapa|ny)\b.*\bdagrapport\b/, /\bdagrapport\b.*\b(skapa|ny)\b/],
+    tool: "get_projects_for_daily_report",
+    args: {},
+  },
+  // ... etc for each form command
+];
+
+for (const fp of formPatterns) {
+  if (fp.patterns.some(p => p.test(lowerMessage))) {
+    const result = await executeTool(supabase, userId, fp.tool, fp.args, context);
+    const formatted = formatToolResults(fp.tool, result);
+    return new Response(JSON.stringify(formatted), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+}
 ```
 
-Utoka aven `add_estimate_items`-verktygsdefinitionen i `tools`-arrayen med dessa nya parametrar.
+### Forvantat resultat
 
-### 9. Uppdatera GlobalAssistant.tsx
+| Fore | Efter |
+|------|-------|
+| "Skapa offert" -> AI-anrop (3-5 sek) -> tool call -> DB-fraga | "Skapa offert" -> DB-fraga direkt (~200ms) |
+| Totaltid: ~5 sekunder | Totaltid: under 1 sekund |
 
-**Fil:** `src/pages/GlobalAssistant.tsx`
+### Vad paverkas INTE
 
-Utoka `handleEstimateItemsFormSubmit` for att inkludera de nya falten i meddelandet och `pendingData`.
+- Oppna fragor ("hur gar projektet?") gar fortfarande genom AI
+- Komplexa kommandon med namn/parametrar gar genom AI
+- Endast tydliga formularvyer kortslutas
 
----
-
-### Sammanfattning av filandringar
+### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/components/global-assistant/EstimateItemsFormCard.tsx` | Lagg till ROT/RUT-togglar, markup-falt, avslutningstext med mallval, artikelbibliotek-knapp |
-| `src/pages/GlobalAssistant.tsx` | Utoka handleEstimateItemsFormSubmit med nya falt |
-| `supabase/functions/global-assistant/index.ts` | Utoka add_estimate_items med closing_text, rot_enabled, rut_enabled, markup_percent |
+| `supabase/functions/global-assistant/index.ts` | Lagg till ~40 rader direktmatchning for formularkommandon innan AI-anropet |
 
-### Designprincip
-
-Formularet i chatten ska vara ett "80%-flode" -- tillrackligt for att skapa en komplett offert, men utan den fulla komplexiteten i per-rad-paslag, ROT-per-rad-markering, och full PDF-forhandsvisning. En "Oppna offert"-knapp finns redan for att navigera till den manuella byggaren for finjusteringar.
