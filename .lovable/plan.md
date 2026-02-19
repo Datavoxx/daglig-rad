@@ -1,68 +1,42 @@
 
 
-## Skicka referensnamnet med i meddelandet
+## Fixa: Referenstaggen kvarstår + Uppdatera-fel
 
-### Problem
-Referensen (kund/projekt/offert) skickas korrekt som kontext-ID till backend, men **namnet** inkluderas inte i meddelandetexten. Det betyder att AI:n inte direkt ser vad användaren refererar till utan att behöva slå upp ID:t.
+### Problem 1: Referenstaggen forsvinner inte
+Efter att ett meddelande skickats med en referenstagg (t.ex. `[Projekt: Badrumsrenovering]`) ligger taggen kvar ovanfor inputrutan. Den borde forsvinna direkt efter att meddelandet skickats.
 
-### Lösning
-Uppdatera `sendMessage` i `GlobalAssistant.tsx` så att om det finns en aktiv referens, prefixas meddelandet med referensnamnet.
+### Problem 2: Uppdatera-fel (alla typer)
+Felet beror pa att AI:n skickar offert-nummer (t.ex. `"OFF-2026-0001"`) som `estimate_id` istallet for det riktiga UUID:t. Systemet har redan logik for att automatiskt losa upp `project_id` och `customer_id` fran namn till UUID, men den logiken saknas for `estimate_id`. Nar systemet forsker anvanda `"OFF-2026-0001"` som UUID i en databasfraga far vi felmeddelandet `invalid input syntax for type uuid`.
 
-### Teknisk ändring
+---
 
-**Fil: `src/pages/GlobalAssistant.tsx`** (rad ~172-178)
+### Andringar
 
-Nuvarande:
-```typescript
-const effectiveContext = { ...context, ...refContext, ...contextOverride };
+#### 1. `src/pages/GlobalAssistant.tsx`
+Lagga till `setActiveReference(null)` direkt efter att meddelandet skapats, sa att taggen forsvinner nar meddelandet skickas.
 
-const userMessage: Message = {
-  id: crypto.randomUUID(),
-  role: "user",
-  content,
-  type: "text",
-};
+#### 2. `supabase/functions/global-assistant/index.ts`
+Tre andringar:
+
+**a) Lagg till `ESTIMATE_TOOLS`-lista** (bredvid `PROJECT_TOOLS` och `CUSTOMER_TOOLS`):
+```text
+ESTIMATE_TOOLS = [
+  "get_estimate", "update_estimate", "delete_estimate",
+  "add_estimate_items", "delete_estimate_item",
+  "create_project_from_estimate"
+]
 ```
 
-Ny version:
-```typescript
-const effectiveContext = { ...context, ...refContext, ...contextOverride };
+**b) Lagg till auto-inject av `estimate_id` fran kontext:**
+Om `selectedEstimateId` finns i kontexten och verktyget behover `estimate_id`, injicera det automatiskt.
 
-// Prefix message with reference name so the AI sees it
-let enrichedContent = content;
-if (activeReference) {
-  const typeLabel = activeReference.type === "customer" ? "Kund" 
-    : activeReference.type === "project" ? "Projekt" 
-    : "Offert";
-  enrichedContent = `[${typeLabel}: ${activeReference.name}] ${content}`;
-}
+**c) Lagg till resolve-logik for `estimate_id`:**
+Om AI:n skickar nagon som inte ar ett UUID (t.ex. `"OFF-2026-0001"`), sok upp det riktiga UUID:t via `offer_number` i `project_estimates`-tabellen.
 
-const userMessage: Message = {
-  id: crypto.randomUUID(),
-  role: "user",
-  content: enrichedContent,
-  type: "text",
-};
-```
+### Filandringar
 
-Meddelandet som skickas till `global-assistant` (rad 195) använder redan `content`-variabeln, men vi behöver uppdatera den till `enrichedContent` också:
-
-```typescript
-body: {
-  message: enrichedContent,
-  history: messages.filter((m) => m.type !== "loading"),
-  context: effectiveContext,
-},
-```
-
-### Resultat
-- Meddelandet till AI:n blir t.ex.: `[Projekt: Badrumsrenovering Strandvägen] visa ekonomi`
-- AI:n ser direkt vilket projekt det gäller
-- Referens-ID:t skickas fortfarande som kontext (`selectedProjectId` etc.)
-
-### Filändringar
-
-| Fil | Ändring |
+| Fil | Andring |
 |-----|---------|
-| `src/pages/GlobalAssistant.tsx` | Prefixa meddelandet med referensnamn + skicka det till backend |
+| `src/pages/GlobalAssistant.tsx` | Lagg till `setActiveReference(null)` efter meddelande skickats |
+| `supabase/functions/global-assistant/index.ts` | Lagg till ESTIMATE_TOOLS, auto-inject + resolve for estimate_id |
 
