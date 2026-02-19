@@ -50,10 +50,47 @@ export interface KpiData {
   quoteValue: number;
 }
 
+interface ProjectAtaItem {
+  ata_number: string | null;
+  description: string;
+  article: string | null;
+  quantity: number | null;
+  unit: string | null;
+  unit_price: number | null;
+  subtotal: number | null;
+  status: string | null;
+}
+
+interface ProjectWorkOrder {
+  order_number: string | null;
+  title: string;
+  description: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
+  status: string | null;
+}
+
+interface ProjectPlan {
+  phases: { name: string; weeks: number; description?: string }[];
+  start_date: string | null;
+  total_weeks: number | null;
+}
+
+interface ProjectFile {
+  file_name: string;
+  category: string | null;
+  file_size: number | null;
+  created_at: string | null;
+}
+
 interface ProjectReport {
   project: Project;
   reports: DailyReport[];
   kpiData?: KpiData;
+  ataItems?: ProjectAtaItem[];
+  workOrders?: ProjectWorkOrder[];
+  plan?: ProjectPlan | null;
+  projectFiles?: ProjectFile[];
 }
 
 const deviationTypes: Record<string, string> = {
@@ -260,35 +297,38 @@ function renderKpiDashboardPage(doc: jsPDF, data: ProjectReport) {
 
   yPos += 2 * (cardH + gap) + 10;
 
-  // ---- Donut chart ----
-  if (hasQuote) {
-    const marginValue = Math.max(0, kpi.quoteValue - kpi.expensesTotal - kpi.ataTotal);
+  // ---- Donut chart (always show if there's any economic data) ----
+  const hasEconomicData = kpi.expensesTotal > 0 || kpi.ataTotal > 0 || kpi.quoteValue > 0;
+  if (hasEconomicData) {
+    const marginValue = hasQuote ? Math.max(0, kpi.quoteValue - kpi.expensesTotal - kpi.ataTotal) : 0;
     const chartCx = pageWidth / 2 - 30;
     const chartCy = yPos + 28;
 
     doc.setFontSize(14);
     doc.setTextColor(...DARK);
-    doc.text("Ekonomisk fordelning", margin, yPos);
+    doc.text("Ekonomisk fördelning", margin, yPos);
     yPos += 6;
 
-    const segments: { value: number; color: [number, number, number]; label: string }[] = [
-      { value: marginValue, color: [34, 197, 94], label: "Marginal" },
-      { value: kpi.expensesTotal, color: [239, 68, 68], label: "Utgifter" },
-      { value: kpi.ataTotal, color: [245, 158, 11], label: "ATA" },
-    ];
+    const segments: { value: number; color: [number, number, number]; label: string }[] = [];
+    if (marginValue > 0) segments.push({ value: marginValue, color: [34, 197, 94], label: "Marginal" });
+    if (kpi.expensesTotal > 0) segments.push({ value: kpi.expensesTotal, color: [239, 68, 68], label: "Utgifter" });
+    if (kpi.ataTotal > 0) segments.push({ value: kpi.ataTotal, color: [245, 158, 11], label: "ÄTA" });
 
-    drawDonutChart(doc, chartCx, chartCy, 22, 12, segments);
+    if (segments.length > 0) {
+      drawDonutChart(doc, chartCx, chartCy, 22, 12, segments);
 
-    // Center text
-    doc.setFontSize(10);
-    doc.setTextColor(...DARK);
-    doc.text(formatCurrency(kpi.quoteValue), chartCx, chartCy + 1, { align: "center" });
-    doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.text("totalt", chartCx, chartCy + 5, { align: "center" });
+      // Center text
+      const totalValue = hasQuote ? kpi.quoteValue : kpi.expensesTotal + kpi.ataTotal;
+      doc.setFontSize(10);
+      doc.setTextColor(...DARK);
+      doc.text(formatCurrency(totalValue), chartCx, chartCy + 1, { align: "center" });
+      doc.setFontSize(7);
+      doc.setTextColor(...MUTED);
+      doc.text(hasQuote ? "offertvärde" : "totalt", chartCx, chartCy + 5, { align: "center" });
 
-    // Legend to the right
-    renderDonutLegend(doc, chartCx + 32, chartCy - 8, segments);
+      // Legend to the right
+      renderDonutLegend(doc, chartCx + 32, chartCy - 8, segments);
+    }
 
     yPos = chartCy + 35;
   }
@@ -615,6 +655,203 @@ function renderDailyReportPages(doc: jsPDF, data: ProjectReport) {
   }
 }
 
+// ---- ÄTA page ----
+function renderAtaPage(doc: jsPDF, items: ProjectAtaItem[]) {
+  if (!items.length) return;
+  const margin = 15;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.addPage();
+  let yPos = 20;
+
+  doc.setFontSize(20);
+  doc.setTextColor(...PRIMARY);
+  doc.text("ÄTA-ARBETEN", margin, yPos);
+  yPos += 4;
+  doc.setDrawColor(...PRIMARY);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  const statusLabels: Record<string, string> = {
+    pending: "Väntande",
+    approved: "Godkänd",
+    rejected: "Avvisad",
+    completed: "Klar",
+  };
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Nr", "Beskrivning", "Antal", "Enhet", "À-pris", "Summa", "Status"]],
+    body: items.map((a) => [
+      a.ata_number || "—",
+      a.description,
+      a.quantity?.toString() || "—",
+      a.unit || "st",
+      a.unit_price ? `${safeFormatNumber(a.unit_price)} kr` : "—",
+      a.subtotal ? `${safeFormatNumber(a.subtotal)} kr` : "—",
+      statusLabels[a.status || ""] || a.status || "—",
+    ]),
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+    styles: { fontSize: 8, cellPadding: 3 },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 55 },
+      4: { halign: "right" },
+      5: { halign: "right", fontStyle: "bold" },
+    },
+    didParseCell: (hookData) => {
+      if (hookData.section === "body" && hookData.column.index === 6) {
+        const val = hookData.cell.raw as string;
+        if (val === "Godkänd" || val === "Klar") hookData.cell.styles.textColor = [...KPI_COLORS.green.text] as [number, number, number];
+        else if (val === "Avvisad") hookData.cell.styles.textColor = [...KPI_COLORS.red.text] as [number, number, number];
+        else hookData.cell.styles.textColor = [...KPI_COLORS.amber.text] as [number, number, number];
+      }
+    },
+  });
+}
+
+// ---- Work Orders page ----
+function renderWorkOrdersPage(doc: jsPDF, orders: ProjectWorkOrder[]) {
+  if (!orders.length) return;
+  const margin = 15;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.addPage();
+  let yPos = 20;
+
+  doc.setFontSize(20);
+  doc.setTextColor(...PRIMARY);
+  doc.text("ARBETSORDER", margin, yPos);
+  yPos += 4;
+  doc.setDrawColor(...PRIMARY);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  const statusLabels: Record<string, string> = {
+    pending: "Väntande",
+    in_progress: "Pågående",
+    completed: "Klar",
+  };
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Nr", "Titel", "Tilldelad", "Förfallodatum", "Status"]],
+    body: orders.map((o) => [
+      o.order_number || "—",
+      o.title,
+      o.assigned_to || "—",
+      o.due_date ? format(new Date(o.due_date), "d MMM yyyy", { locale: sv }) : "—",
+      statusLabels[o.status || ""] || o.status || "—",
+    ]),
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+    styles: { fontSize: 9, cellPadding: 3 },
+    columnStyles: { 0: { cellWidth: 18 } },
+    didParseCell: (hookData) => {
+      if (hookData.section === "body" && hookData.column.index === 4) {
+        const val = hookData.cell.raw as string;
+        if (val === "Klar") hookData.cell.styles.textColor = [...KPI_COLORS.green.text] as [number, number, number];
+        else if (val === "Pågående") hookData.cell.styles.textColor = [...KPI_COLORS.amber.text] as [number, number, number];
+      }
+    },
+  });
+}
+
+// ---- Planning page ----
+function renderPlanningPage(doc: jsPDF, plan: ProjectPlan) {
+  if (!plan.phases?.length) return;
+  const margin = 15;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.addPage();
+  let yPos = 20;
+
+  doc.setFontSize(20);
+  doc.setTextColor(...PRIMARY);
+  doc.text("PLANERING", margin, yPos);
+  yPos += 4;
+  doc.setDrawColor(...PRIMARY);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  if (plan.start_date) {
+    doc.setFontSize(10);
+    doc.setTextColor(...MUTED);
+    doc.text(`Startdatum: ${format(new Date(plan.start_date), "d MMM yyyy", { locale: sv })}  |  Totalt: ${plan.total_weeks || "—"} veckor`, margin, yPos);
+    yPos += 8;
+  }
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Fas", "Veckor", "Beskrivning"]],
+    body: plan.phases.map((p: any) => [
+      p.name || "—",
+      p.weeks?.toString() || "—",
+      p.description || "—",
+    ]),
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+    styles: { fontSize: 9, cellPadding: 3 },
+    columnStyles: { 1: { cellWidth: 20, halign: "center" } },
+  });
+}
+
+// ---- Files page ----
+function renderFilesPage(doc: jsPDF, files: ProjectFile[]) {
+  if (!files.length) return;
+  const margin = 15;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.addPage();
+  let yPos = 20;
+
+  doc.setFontSize(20);
+  doc.setTextColor(...PRIMARY);
+  doc.text("PROJEKTFILER", margin, yPos);
+  yPos += 4;
+  doc.setDrawColor(...PRIMARY);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  function formatFileSize(bytes: number | null): string {
+    if (!bytes) return "—";
+    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)} KB`;
+    return `${bytes} B`;
+  }
+
+  const categoryLabels: Record<string, string> = {
+    document: "Dokument",
+    image: "Bild",
+    drawing: "Ritning",
+    contract: "Avtal",
+    other: "Övrigt",
+  };
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Filnamn", "Kategori", "Storlek", "Uppladdad"]],
+    body: files.map((f) => [
+      f.file_name,
+      categoryLabels[f.category || ""] || f.category || "—",
+      formatFileSize(f.file_size),
+      f.created_at ? format(new Date(f.created_at), "d MMM yyyy", { locale: sv }) : "—",
+    ]),
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+    styles: { fontSize: 8, cellPadding: 3 },
+  });
+}
+
 // ---- Main export ----
 export async function generateProjectPdf(data: ProjectReport): Promise<void> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -630,8 +867,28 @@ export async function generateProjectPdf(data: ProjectReport): Promise<void> {
     renderKpiDashboardPage(doc, data);
   }
 
-  // Remaining pages: Daily reports
+  // ÄTA
+  if (data.ataItems?.length) {
+    renderAtaPage(doc, data.ataItems);
+  }
+
+  // Work Orders
+  if (data.workOrders?.length) {
+    renderWorkOrdersPage(doc, data.workOrders);
+  }
+
+  // Planning
+  if (data.plan) {
+    renderPlanningPage(doc, data.plan);
+  }
+
+  // Daily reports
   renderDailyReportPages(doc, data);
+
+  // Files
+  if (data.projectFiles?.length) {
+    renderFilesPage(doc, data.projectFiles);
+  }
 
   // Footer on all pages
   const pageCount = doc.getNumberOfPages();
