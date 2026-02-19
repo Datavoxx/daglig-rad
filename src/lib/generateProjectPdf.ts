@@ -39,9 +39,21 @@ interface Project {
   address: string | null;
 }
 
+export interface KpiData {
+  totalHours: number;
+  uniqueWorkers: number;
+  reportCount: number;
+  marginPercent: number;
+  ataCount: number;
+  ataTotal: number;
+  expensesTotal: number;
+  quoteValue: number;
+}
+
 interface ProjectReport {
   project: Project;
   reports: DailyReport[];
+  kpiData?: KpiData;
 }
 
 const deviationTypes: Record<string, string> = {
@@ -59,6 +71,148 @@ const deviationTypes: Record<string, string> = {
 const PRIMARY: [number, number, number] = [13, 148, 136]; // teal-600
 const DARK: [number, number, number] = [30, 41, 59]; // slate-800
 const MUTED: [number, number, number] = [100, 116, 139]; // slate-500
+
+// KPI card colors (light backgrounds)
+const KPI_COLORS = {
+  teal:   { bg: [230, 248, 246], text: [13, 148, 136] },
+  violet: { bg: [237, 233, 254], text: [109, 40, 217] },
+  blue:   { bg: [224, 242, 254], text: [14, 116, 194] },
+  green:  { bg: [220, 252, 231], text: [22, 163, 74] },
+  amber:  { bg: [254, 243, 199], text: [180, 83, 9] },
+  red:    { bg: [254, 226, 226], text: [220, 38, 38] },
+} as const;
+
+function formatCurrency(value: number): string {
+  if (Math.abs(value) >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)} mkr`;
+  }
+  if (Math.abs(value) >= 1_000) {
+    return `${(value / 1_000).toFixed(0)} tkr`;
+  }
+  return `${value.toFixed(0)} kr`;
+}
+
+function drawRoundedRect(
+  doc: jsPDF,
+  x: number, y: number, w: number, h: number,
+  r: number,
+  fillColor: number[]
+) {
+  doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+  doc.roundedRect(x, y, w, h, r, r, "F");
+}
+
+function renderKpiCard(
+  doc: jsPDF,
+  x: number, y: number, w: number, h: number,
+  title: string, value: string, subtitle: string,
+  colors: { bg: readonly number[]; text: readonly number[] }
+) {
+  drawRoundedRect(doc, x, y, w, h, 3, [...colors.bg]);
+
+  // Title
+  doc.setFontSize(9);
+  doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+  doc.text(title.toUpperCase(), x + w / 2, y + 10, { align: "center" });
+
+  // Value
+  doc.setFontSize(22);
+  doc.setTextColor(...DARK);
+  doc.text(value, x + w / 2, y + 24, { align: "center" });
+
+  // Subtitle
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  doc.text(subtitle, x + w / 2, y + 32, { align: "center" });
+}
+
+function renderKpiDashboardPage(doc: jsPDF, data: ProjectReport) {
+  const kpi = data.kpiData!;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+
+  doc.addPage();
+  let yPos = 20;
+
+  // Page title
+  doc.setFontSize(20);
+  doc.setTextColor(...PRIMARY);
+  doc.text("PROJEKTDASHBOARD", margin, yPos);
+  yPos += 4;
+
+  doc.setDrawColor(...PRIMARY);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 12;
+
+  // 3x2 KPI grid
+  const gridWidth = pageWidth - margin * 2;
+  const gap = 5;
+  const cardW = (gridWidth - gap * 2) / 3;
+  const cardH = 38;
+
+  const marginColor = kpi.marginPercent >= 0 ? KPI_COLORS.green : KPI_COLORS.red;
+
+  const kpiItems = [
+    { title: "Totala timmar", value: `${kpi.totalHours.toFixed(1)}`, sub: "rapporterade timmar", colors: KPI_COLORS.teal },
+    { title: "Medarbetare", value: `${kpi.uniqueWorkers}`, sub: "unika personer", colors: KPI_COLORS.violet },
+    { title: "Dagrapporter", value: `${kpi.reportCount}`, sub: "rapporter", colors: KPI_COLORS.blue },
+    { title: "Marginal", value: `${kpi.marginPercent.toFixed(0)}%`, sub: "av projektvärde", colors: marginColor },
+    { title: "ÄTA-arbeten", value: `${kpi.ataCount}`, sub: formatCurrency(kpi.ataTotal), colors: KPI_COLORS.amber },
+    { title: "Utgifter", value: formatCurrency(kpi.expensesTotal), sub: "leverantörsfakturor", colors: KPI_COLORS.red },
+  ];
+
+  for (let i = 0; i < kpiItems.length; i++) {
+    const row = Math.floor(i / 3);
+    const col = i % 3;
+    const x = margin + col * (cardW + gap);
+    const y = yPos + row * (cardH + gap);
+    const item = kpiItems[i];
+    renderKpiCard(doc, x, y, cardW, cardH, item.title, item.value, item.sub, item.colors);
+  }
+
+  yPos += 2 * (cardH + gap) + 10;
+
+  // Economic summary table
+  doc.setFontSize(14);
+  doc.setTextColor(...DARK);
+  doc.text("Ekonomisk sammanfattning", margin, yPos);
+  yPos += 6;
+
+  const marginValue = kpi.quoteValue - kpi.expensesTotal;
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Post", "Belopp"]],
+    body: [
+      ["Offertvärde", `${kpi.quoteValue.toLocaleString("sv-SE")} kr`],
+      ["Godkända ÄTA", `${kpi.ataTotal.toLocaleString("sv-SE")} kr`],
+      ["Totala utgifter (leverantörer)", `${kpi.expensesTotal.toLocaleString("sv-SE")} kr`],
+      ["Beräknad marginal", `${marginValue.toLocaleString("sv-SE")} kr (${kpi.marginPercent.toFixed(0)}%)`],
+    ],
+    theme: "striped",
+    headStyles: {
+      fillColor: PRIMARY,
+      textColor: [255, 255, 255],
+      fontSize: 10,
+      fontStyle: "bold",
+    },
+    styles: { fontSize: 10, cellPadding: 4 },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { halign: "right", fontStyle: "bold" },
+    },
+    didParseCell: (hookData) => {
+      // Color the margin row
+      if (hookData.section === "body" && hookData.row.index === 3) {
+        hookData.cell.styles.textColor = marginValue >= 0
+          ? [...KPI_COLORS.green.text] as [number, number, number]
+          : [...KPI_COLORS.red.text] as [number, number, number];
+      }
+    },
+  });
+}
 
 export async function generateProjectPdf(data: ProjectReport): Promise<void> {
   const doc = new jsPDF({
@@ -141,193 +295,198 @@ export async function generateProjectPdf(data: ProjectReport): Promise<void> {
     doc.text(`Rapporter med ÄTA: ${totalAta}`, pageWidth / 2, yPos, { align: "center" });
   }
 
+  // ============= KPI DASHBOARD (sida 2) =============
+  if (data.kpiData) {
+    renderKpiDashboardPage(doc, data);
+  }
+
   // ============= DAGRAPPORTER =============
-  // Sortera i omvänd ordning (nyast först) för läsbarhet
-  const reportsToRender = [...data.reports].sort(
-    (a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime()
-  );
+  if (data.reports.length > 0) {
+    const reportsToRender = [...data.reports].sort(
+      (a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime()
+    );
 
-  for (let i = 0; i < reportsToRender.length; i++) {
-    const report = reportsToRender[i];
-    
-    // Ny sida för varje rapport
-    doc.addPage();
-    yPos = 20;
+    for (let i = 0; i < reportsToRender.length; i++) {
+      const report = reportsToRender[i];
+      
+      doc.addPage();
+      yPos = 20;
 
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`DAGRAPPORT ${i + 1}`, margin, yPos);
-    yPos += 8;
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(...PRIMARY);
+      doc.text(`DAGRAPPORT ${i + 1}`, margin, yPos);
+      yPos += 8;
 
-    // Datum
-    doc.setFontSize(14);
-    doc.setTextColor(...DARK);
-    const dateStr = format(new Date(report.report_date), "d MMMM yyyy", { locale: sv });
-    doc.text(dateStr, margin, yPos);
-    yPos += 10;
+      // Datum
+      doc.setFontSize(14);
+      doc.setTextColor(...DARK);
+      const dateStr = format(new Date(report.report_date), "d MMMM yyyy", { locale: sv });
+      doc.text(dateStr, margin, yPos);
+      yPos += 10;
 
-    // Divider
-    doc.setDrawColor(...PRIMARY);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 10;
+      // Divider
+      doc.setDrawColor(...PRIMARY);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
 
-    // Bemanning
-    doc.setFontSize(12);
-    doc.setTextColor(...DARK);
-    doc.text("BEMANNING", margin, yPos);
-    yPos += 5;
-
-    autoTable(doc, {
-      startY: yPos,
-      margin: { left: margin, right: margin },
-      head: [],
-      body: [
-        ["Antal personer", report.headcount?.toString() || "—"],
-        ["Timmar/person", report.hours_per_person ? `${report.hours_per_person}h` : "—"],
-        ["Totala timmar", report.total_hours ? `${report.total_hours}h` : "—"],
-        ["Roller", report.roles?.length ? report.roles.join(", ") : "—"],
-      ],
-      theme: "plain",
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { textColor: MUTED, cellWidth: 45 },
-        1: { textColor: DARK, fontStyle: "bold" },
-      },
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 8;
-
-    // Utfört arbete
-    if (report.work_items?.length) {
+      // Bemanning
       doc.setFontSize(12);
       doc.setTextColor(...DARK);
-      doc.text("UTFÖRT ARBETE", margin, yPos);
+      doc.text("BEMANNING", margin, yPos);
       yPos += 5;
 
       autoTable(doc, {
         startY: yPos,
         margin: { left: margin, right: margin },
         head: [],
-        body: report.work_items.map((item) => [`• ${item}`]),
-        theme: "plain",
-        styles: { fontSize: 9, cellPadding: 2, textColor: DARK },
-      });
-
-      yPos = (doc as any).lastAutoTable.finalY + 8;
-    }
-
-    // Avvikelser
-    if (report.deviations?.length) {
-      doc.setFontSize(12);
-      doc.setTextColor(...DARK);
-      doc.text("AVVIKELSER", margin, yPos);
-      yPos += 5;
-
-      autoTable(doc, {
-        startY: yPos,
-        margin: { left: margin, right: margin },
-        head: [["Typ", "Beskrivning", "Timmar"]],
-        body: report.deviations.map((d) => [
-          deviationTypes[d.type] || d.type,
-          d.description,
-          d.hours ? `${d.hours}h` : "—",
-        ]),
-        theme: "striped",
-        headStyles: {
-          fillColor: PRIMARY,
-          textColor: [255, 255, 255],
-          fontSize: 9,
-          fontStyle: "bold",
-        },
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          2: { cellWidth: 18, halign: "center" },
-        },
-      });
-
-      yPos = (doc as any).lastAutoTable.finalY + 8;
-    }
-
-    // ÄTA
-    if (report.ata?.has_ata && report.ata.items?.length) {
-      doc.setFontSize(12);
-      doc.setTextColor(...DARK);
-      doc.text("ÄTA", margin, yPos);
-      yPos += 5;
-
-      autoTable(doc, {
-        startY: yPos,
-        margin: { left: margin, right: margin },
-        head: [["Anledning", "Konsekvens", "Timmar"]],
-        body: report.ata.items.map((item) => [
-          item.reason,
-          item.consequence,
-          item.estimated_hours ? `${item.estimated_hours}h` : "—",
-        ]),
-        theme: "striped",
-        headStyles: {
-          fillColor: [59, 130, 246] as [number, number, number],
-          textColor: [255, 255, 255],
-          fontSize: 9,
-          fontStyle: "bold",
-        },
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: { 2: { cellWidth: 18, halign: "center" } },
-      });
-
-      yPos = (doc as any).lastAutoTable.finalY + 8;
-    }
-
-    // Material
-    if (report.materials_delivered?.length || report.materials_missing?.length) {
-      doc.setFontSize(12);
-      doc.setTextColor(...DARK);
-      doc.text("MATERIAL", margin, yPos);
-      yPos += 5;
-
-      const materialRows: string[][] = [];
-      if (report.materials_delivered?.length) {
-        materialRows.push(["Levererat", report.materials_delivered.join(", ")]);
-      }
-      if (report.materials_missing?.length) {
-        materialRows.push(["Saknas", report.materials_missing.join(", ")]);
-      }
-
-      autoTable(doc, {
-        startY: yPos,
-        margin: { left: margin, right: margin },
-        head: [],
-        body: materialRows,
+        body: [
+          ["Antal personer", report.headcount?.toString() || "—"],
+          ["Timmar/person", report.hours_per_person ? `${report.hours_per_person}h` : "—"],
+          ["Totala timmar", report.total_hours ? `${report.total_hours}h` : "—"],
+          ["Roller", report.roles?.length ? report.roles.join(", ") : "—"],
+        ],
         theme: "plain",
         styles: { fontSize: 9, cellPadding: 2 },
         columnStyles: {
-          0: { textColor: MUTED, cellWidth: 25, fontStyle: "bold" },
-          1: { textColor: DARK },
+          0: { textColor: MUTED, cellWidth: 45 },
+          1: { textColor: DARK, fontStyle: "bold" },
         },
       });
 
       yPos = (doc as any).lastAutoTable.finalY + 8;
-    }
 
-    // Anteckningar
-    if (report.notes) {
-      if (yPos > 240) {
-        doc.addPage();
-        yPos = 20;
+      // Utfört arbete
+      if (report.work_items?.length) {
+        doc.setFontSize(12);
+        doc.setTextColor(...DARK);
+        doc.text("UTFÖRT ARBETE", margin, yPos);
+        yPos += 5;
+
+        autoTable(doc, {
+          startY: yPos,
+          margin: { left: margin, right: margin },
+          head: [],
+          body: report.work_items.map((item) => [`• ${item}`]),
+          theme: "plain",
+          styles: { fontSize: 9, cellPadding: 2, textColor: DARK },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 8;
       }
 
-      doc.setFontSize(12);
-      doc.setTextColor(...DARK);
-      doc.text("ANTECKNINGAR", margin, yPos);
-      yPos += 5;
+      // Avvikelser
+      if (report.deviations?.length) {
+        doc.setFontSize(12);
+        doc.setTextColor(...DARK);
+        doc.text("AVVIKELSER", margin, yPos);
+        yPos += 5;
 
-      doc.setFontSize(9);
-      doc.setTextColor(...DARK);
-      const splitNotes = doc.splitTextToSize(report.notes, pageWidth - margin * 2);
-      doc.text(splitNotes, margin, yPos);
+        autoTable(doc, {
+          startY: yPos,
+          margin: { left: margin, right: margin },
+          head: [["Typ", "Beskrivning", "Timmar"]],
+          body: report.deviations.map((d) => [
+            deviationTypes[d.type] || d.type,
+            d.description,
+            d.hours ? `${d.hours}h` : "—",
+          ]),
+          theme: "striped",
+          headStyles: {
+            fillColor: PRIMARY,
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: "bold",
+          },
+          styles: { fontSize: 9, cellPadding: 2 },
+          columnStyles: {
+            0: { cellWidth: 30 },
+            2: { cellWidth: 18, halign: "center" },
+          },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // ÄTA
+      if (report.ata?.has_ata && report.ata.items?.length) {
+        doc.setFontSize(12);
+        doc.setTextColor(...DARK);
+        doc.text("ÄTA", margin, yPos);
+        yPos += 5;
+
+        autoTable(doc, {
+          startY: yPos,
+          margin: { left: margin, right: margin },
+          head: [["Anledning", "Konsekvens", "Timmar"]],
+          body: report.ata.items.map((item) => [
+            item.reason,
+            item.consequence,
+            item.estimated_hours ? `${item.estimated_hours}h` : "—",
+          ]),
+          theme: "striped",
+          headStyles: {
+            fillColor: [59, 130, 246] as [number, number, number],
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: "bold",
+          },
+          styles: { fontSize: 9, cellPadding: 2 },
+          columnStyles: { 2: { cellWidth: 18, halign: "center" } },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // Material
+      if (report.materials_delivered?.length || report.materials_missing?.length) {
+        doc.setFontSize(12);
+        doc.setTextColor(...DARK);
+        doc.text("MATERIAL", margin, yPos);
+        yPos += 5;
+
+        const materialRows: string[][] = [];
+        if (report.materials_delivered?.length) {
+          materialRows.push(["Levererat", report.materials_delivered.join(", ")]);
+        }
+        if (report.materials_missing?.length) {
+          materialRows.push(["Saknas", report.materials_missing.join(", ")]);
+        }
+
+        autoTable(doc, {
+          startY: yPos,
+          margin: { left: margin, right: margin },
+          head: [],
+          body: materialRows,
+          theme: "plain",
+          styles: { fontSize: 9, cellPadding: 2 },
+          columnStyles: {
+            0: { textColor: MUTED, cellWidth: 25, fontStyle: "bold" },
+            1: { textColor: DARK },
+          },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // Anteckningar
+      if (report.notes) {
+        if (yPos > 240) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(12);
+        doc.setTextColor(...DARK);
+        doc.text("ANTECKNINGAR", margin, yPos);
+        yPos += 5;
+
+        doc.setFontSize(9);
+        doc.setTextColor(...DARK);
+        const splitNotes = doc.splitTextToSize(report.notes, pageWidth - margin * 2);
+        doc.text(splitNotes, margin, yPos);
+      }
     }
   }
 
