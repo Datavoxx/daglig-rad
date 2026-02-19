@@ -1,57 +1,66 @@
 
 
-## Uppdatera Byggio AI:s systemprompt med komplett kapacitetsbeskrivning
+## Förenkla Byggio AI:s självbeskrivning
 
-### Vad som andras
+Byggio AI ska bara berätta att den kan göra det som har förhandsval (formulär) samt visa sammanfattningar. Allt annat tas bort från beskrivningen (verktygen finns kvar i bakgrunden).
 
-**Fil: `supabase/functions/global-assistant/index.ts`**
+### Vad AI:n ska säga att den kan
 
-Tva delar av systemprompt-stringen uppdateras:
+Baserat på de formulär som finns:
+- Skapa offert
+- Registrera tid
+- Ny dagrapport
+- Skapa arbetsorder
+- Checka in (närvaro)
+- Skapa planering
+- Ny kund
+- Skapa projekt
+- Uppdatera projekt
+- Visa projektsammanfattning och ekonomiöversikt
 
-#### 1. Utoka `<role>`-sektionen
-Nuvarande:
+### Ändringar i `supabase/functions/global-assistant/index.ts`
+
+#### 1. Ny `<role>`-sektion
+Nuvarande text nämner fakturor, egenkontroller m.m. Ny version:
+
 ```
-Du ar Byggio AI - en effektiv assistent for byggforetag. Korta svar, snabba verktyg.
-```
-
-Ny version som forklarar vad AI:n ar och kan (visas nar anvandaren fragar "vad kan du gora?"):
-```
-Du ar Byggio AI - en AI-assistent for svenska byggforetag.
-Du hjalper till med allt fran att skapa offerter och projekt till att soka fakturor,
-visa dashboard-sammanfattningar, hantera egenkontroller och mycket mer.
+Du är Byggio AI - en AI-assistent för svenska byggföretag.
+Du kan skapa offerter, projekt, arbetsorder, planeringar, dagrapporter,
+registrera tid, hantera kunder, checka in personal,
+samt visa projektsammanfattningar och ekonomiöversikter.
 Korta svar, snabba verktyg.
 ```
 
-#### 2. Utoka `<tools_quick_ref>` med saknade verktyg
-Lagga till:
-- `get_dashboard_summary` under en ny kategori "OVERSIKT"
-- `search_customer_invoices`, `search_vendor_invoices` under "SOKA"
-- `search_inspections`, `create_inspection` under bade "SOKA" och "SKAPA"
+#### 2. Rensa `<form_policy>`
+Ta bort:
+- `"egenkontroll" / "inspektion"` (rad 4712)
+- `"mina fakturor" / "visa fakturor"` (rad 4713)
+- `"dashboard" / "sammanfattning" / "översikt"` (rad 4714)
 
-Nuvarande:
-```
-SOKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
-SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
-```
+Behåll alla formulärvägar som har förhandsval (offert, tid, dagrapport, arbetsorder, checka in, kund, projekt, planering, uppdatera projekt).
+
+#### 3. Rensa `<tools_quick_ref>`
+Ta bort raden `ÖVERSIKT: get_dashboard_summary` som egen kategori.
+Ta bort `search_customer_invoices`, `search_vendor_invoices`, `search_inspections` från SÖKA.
+Ta bort `create_inspection` från SKAPA.
 
 Ny version:
 ```
-OVERSIKT: get_dashboard_summary
-SOKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata, search_customer_invoices, search_vendor_invoices, search_inspections
-SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report, create_inspection
+SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
+SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
+VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_overview, get_project_plan, list_project_files, get_dashboard_summary
+FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form, get_projects_for_planning, get_projects_for_update
+UPPDATERA: update_work_order, update_ata, update_customer, update_project
+NÄRVARO: generate_attendance_qr, check_in, check_out
 ```
 
-#### 3. Utoka `<form_policy>` med inspektioner
-Lagga till:
-```
-- "egenkontroll" / "inspektion" → search_inspections eller create_inspection
-- "mina fakturor" / "visa fakturor" → search_customer_invoices
-- "dashboard" / "sammanfattning" / "oversikt" → get_dashboard_summary
-```
+(`get_dashboard_summary` flyttas till VISA-raden, inspektioner och fakturasökning tas bort.)
 
-### Filandringar
+Verktygen finns kvar och fungerar fortfarande om användaren ber om dem -- de nämns bara inte proaktivt.
 
-| Fil | Andring |
+### Filändringar
+
+| Fil | Ändring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Utoka role, tools_quick_ref, och form_policy i systemprompt-stringen |
+| `supabase/functions/global-assistant/index.ts` | Uppdatera role, form_policy och tools_quick_ref |
 
