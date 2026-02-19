@@ -1,103 +1,45 @@
 
 
-## Varfor tar det 5 sekunder?
+## Tre forandringar i Byggio AI:s svar
 
-### Rotorsaken
+### 1. "Visa projekt" efter tidssammanfattning ska visa ratt projekt
 
-Nar du skriver "Jag vill skapa en ny offert" sker foljande steg:
+**Problem:** Nar du far en tidssammanfattning och klickar "Visa projekt" skickas "Visa mina projekt" -- vilket listar alla 10 projekt istallet for det/de projekt du registrerade tid pa.
 
-1. Edge function startar (snabbt, ~30ms)
-2. Autentisering kontrolleras (snabbt)
-3. Meddelandet matchar INGEN direkt pattern (det ar bara en allman forfragan, inte "Skapa offert X for kund med ID Y")
-4. **AI-anrop till OpenAI gpt-5-mini** -- HaR aR FLASKHALSEN
-5. AI:n bestammer att anropa verktyget `get_customers_for_estimate`
-6. Kundlistan hamtas fran databasen
-7. Svaret formateras och skickas tillbaka
+**Fix i:** `supabase/functions/global-assistant/index.ts` (formatToolResults, case `get_time_summary`)
 
-### Varfor ar steg 4 sa langsamt?
+- Hamta unika projektnamn fran `summary.entries` (varje entry har `projects.name`)
+- Om det finns exakt 1 projekt: byt "Visa projekt" till `prompt: "visa {projektnamn}"`
+- Om det finns flera: behall "Visa mina projekt" (for da ar det relevant)
+- Byt aven label till projektnamnet om det bara ar ett: `label: "Visa {namn}"`
 
-Edge-funktionen skickar **50+ verktygsdefinitioner** (over 900 rader JSON) till AI-modellen varje gang. AI:n maste:
-- Lasa och forsta alla verktyg
-- Matcha frasen "skapa offert" mot ratt verktyg
-- Generera ett tool_call-svar
+### 2. Oversiktssammanfattningen ska visas som ett kort
 
-Detta tar 3-5 sekunder -- bara for att AI:n ska bestamma att du vill visa ett offertformular.
+**Problem:** "Kan du gora en sammanfattning" returnerar `type: "text"` -- det renderas som vanlig markdown-text utan nagon visuell avgransning.
 
-### Losning: Direkt pattern-matching for vanliga kommandon
+**Fix i:** `supabase/functions/global-assistant/index.ts` (formatToolResults, case `get_dashboard_summary`)
 
-Samma teknik som redan anvands for `create_estimate` (rad 4406-4427) och `add_estimate_items` (rad 4429-4473) -- de kor verktygen DIREKT utan AI-anrop.
+- Byt `type: "text"` till `type: "result"` -- da renderas det som ett `ResultCard` med ram, ikon och knappar
+- Flytta innehallet till `data.resultMessage` och satt `data.success: true`
+- Lagg till en foljdtext i `content`: "Vill du att jag kollar pa nagot specifikt projekt?"
 
-Vi laggar till **direktmatchning for formularvyer** i borjan av serve-handleren, INNAN AI-anropet:
+Resultatet blir ett kort med gron bockikon, sammanfattningen inuti, och next-action-knappar -- plus en foljdfraga under kortet.
 
-```text
-"skapa offert" / "ny offert"      -> get_customers_for_estimate (direkt)
-"registrera tid"                  -> get_active_projects_for_time (direkt)
-"skapa dagrapport" / "ny dagrapport" -> get_projects_for_daily_report (direkt)
-"skapa arbetsorder"               -> get_projects_for_work_order (direkt)
-"checka in"                       -> get_projects_for_check_in (direkt)
-"skapa planering"                 -> get_projects_for_planning (direkt)
-"ny kund"                         -> get_customer_form (direkt)
-"skapa projekt"                   -> get_project_form (direkt)
-"uppdatera projekt"               -> get_projects_for_update (direkt)
-```
+### 3. Projektsammanfattning ska ocksa visas som ett kort
 
-### Teknisk implementation
+**Problem:** "Kan du gora en sammanfattning pa ett projekt?" + projectnamn returnerar `type: "text"` -- samma problem, bara platt text.
 
-**Fil:** `supabase/functions/global-assistant/index.ts`
+**Fix i:** `supabase/functions/global-assistant/index.ts` (formatToolResults, case `get_project_overview`)
 
-Lagg till ett block efter de befintliga direktmatchningarna (rad ~4474) men INNAN AI-anropet (rad ~4692):
+- Byt `type: "text"` till `type: "result"`
+- Flytta sammanfattningen till `data.resultMessage`
+- Satt `data.success: true`
+- Lagg till lank till projektsidan: `data.link: { label: "Oppna projekt", href: "/projects/{id}" }`
 
-```text
-// === DIRECT FORM PATTERNS ===
-// Bypass AI for common form-showing commands (saves 3-5 seconds)
-const lowerMessage = message.toLowerCase().trim();
-
-const formPatterns = [
-  {
-    patterns: [/\b(skapa|ny|skriva|göra)\b.*\boffert\b/, /\boffert\b.*\b(skapa|ny)\b/],
-    tool: "get_customers_for_estimate",
-    args: {},
-  },
-  {
-    patterns: [/\bregistrera\s*tid\b/, /\btidrapport/],
-    tool: "get_active_projects_for_time",
-    args: {},
-  },
-  {
-    patterns: [/\b(skapa|ny)\b.*\bdagrapport\b/, /\bdagrapport\b.*\b(skapa|ny)\b/],
-    tool: "get_projects_for_daily_report",
-    args: {},
-  },
-  // ... etc for each form command
-];
-
-for (const fp of formPatterns) {
-  if (fp.patterns.some(p => p.test(lowerMessage))) {
-    const result = await executeTool(supabase, userId, fp.tool, fp.args, context);
-    const formatted = formatToolResults(fp.tool, result);
-    return new Response(JSON.stringify(formatted), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-}
-```
-
-### Forvantat resultat
-
-| Fore | Efter |
-|------|-------|
-| "Skapa offert" -> AI-anrop (3-5 sek) -> tool call -> DB-fraga | "Skapa offert" -> DB-fraga direkt (~200ms) |
-| Totaltid: ~5 sekunder | Totaltid: under 1 sekund |
-
-### Vad paverkas INTE
-
-- Oppna fragor ("hur gar projektet?") gar fortfarande genom AI
-- Komplexa kommandon med namn/parametrar gar genom AI
-- Endast tydliga formularvyer kortslutas
-
-### Filandringar
+### Sammanfattning av filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Lagg till ~40 rader direktmatchning for formularkommandon innan AI-anropet |
+| `supabase/functions/global-assistant/index.ts` | 1. Fixa "Visa projekt"-prompt i get_time_summary 2. Byt type till "result" for get_dashboard_summary med foljdfraga 3. Byt type till "result" for get_project_overview |
 
+Inga frontendandringar behovs -- `ResultCard`-komponenten stodjer redan `resultMessage`, `link`, `nextActions` och renderar kortet med ram och ikon.
