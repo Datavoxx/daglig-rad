@@ -159,15 +159,18 @@ export function MessageList({
   onSendMessage,
   isLoading,
 }: MessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
   }, [messages]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-4">
         {messages.map((message) => (
           <div
@@ -444,7 +447,6 @@ export function MessageList({
             )}
           </div>
         ))}
-        <div ref={bottomRef} />
       </div>
     </div>
   );
