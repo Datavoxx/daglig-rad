@@ -171,10 +171,19 @@ export default function GlobalAssistant() {
 
     const effectiveContext = { ...context, ...refContext, ...contextOverride };
 
+    // Prefix message with reference name so the AI sees it
+    let enrichedContent = content;
+    if (activeReference) {
+      const typeLabel = activeReference.type === "customer" ? "Kund" 
+        : activeReference.type === "project" ? "Projekt" 
+        : "Offert";
+      enrichedContent = `[${typeLabel}: ${activeReference.name}] ${content}`;
+    }
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      content,
+      content: enrichedContent,
       type: "text",
     };
     
@@ -192,7 +201,7 @@ export default function GlobalAssistant() {
     try {
       const { data, error } = await supabase.functions.invoke("global-assistant", {
         body: {
-          message: content,
+          message: enrichedContent,
           history: messages.filter((m) => m.type !== "loading"),
           context: effectiveContext,
         },
