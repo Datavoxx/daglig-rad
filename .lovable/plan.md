@@ -1,36 +1,67 @@
 
 
-## Fix: Chatten kollapsar nar man skriver i inputfaltet
+## Fix: Chatten kollapsar -- bruten hojdkedja genom RouteTransition
 
 ### Rotorsak
 
-Layouten i `GlobalAssistant.tsx` anvander en flex-kolumn med `flex-1` pa `MessageList`. I CSS flexbox ar standardvardet for `min-height` satt till `auto`, vilket betyder att ett flex-barn aldrig krymper mindre an sitt innehall. Nar textarean i `ChatInput` andrar storlek (auto-resize vid knapptryckning) rakar flex-layouten om och `MessageList` kollapsar till noll hojd eftersom webbläsaren inte kan bestamma korrekt hojd for alla barn.
+Layoutkedjan fran `AppLayout` till `GlobalAssistant` ser ut sa har:
 
-Losningen ar att lagga till `min-h-0` pa `MessageList`-wrappern och `overflow-hidden` pa yttre containern. Detta tvingar flexboxen att respektera den fasta hojden och lata `overflow-y-auto` pa `MessageList` hantera scrollning korrekt.
+```text
+AppLayout (h-screen, flex, overflow-hidden)
+  main-content (flex-1, flex-col, overflow-hidden)
+    header (h-14)
+    main (flex-1, overflow-hidden)
+      div (h-full)                          <-- OK
+        RouteTransition div.page-transition <-- INGEN HOJD! Bryter kedjan
+          GlobalAssistant (h-[calc(100vh-3.5rem)])  <-- Fel referens
+```
 
-### Teknisk implementation
+Tva problem:
+1. **`RouteTransition`** wrappar allt i en `div` utan hojd -- det bryter hojdkedjan sa att `h-full` inte propageras vidare
+2. **`GlobalAssistant`** anvander `h-[calc(100vh-3.5rem)]` som beraknar fran viewport istallet for foralderns faktiska storlek. Pa vissa enheter/skarmar kan detta ge en storre hojd an det tillgangliga utrymmet, vilket pressar inputfaltet utanfor synligt omrade
 
-**Fil 1:** `src/pages/GlobalAssistant.tsx` (rad 611)
+### Losning
 
-Lagg till `overflow-hidden` pa yttre containern:
-- Fran: `className="relative flex h-[calc(100vh-3.5rem)] flex-col"`
-- Till: `className="relative flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden"`
+Tva filandringar som skapar en obruten hojdkedja:
 
-**Fil 2:** `src/components/global-assistant/MessageList.tsx` (rad 170)
+**Fil 1: `src/components/layout/RouteTransition.tsx`**
 
-Lagg till `min-h-0` pa MessageList-wrappern:
-- Fran: `className="flex-1 overflow-y-auto px-4 py-6"`
-- Till: `className="flex-1 min-h-0 overflow-y-auto px-4 py-6"`
+Nar routen ar `/global-assistant`, lagg till `h-full` pa wrapper-diven sa att hojden propageras:
+
+```typescript
+export function RouteTransition({ children, className = "" }: RouteTransitionProps) {
+  const location = useLocation();
+  const needsFullHeight = location.pathname === "/global-assistant";
+  
+  return (
+    <div 
+      key={location.pathname}
+      className={`page-transition ${className} ${needsFullHeight ? "h-full" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+**Fil 2: `src/pages/GlobalAssistant.tsx`**
+
+Byt fran viewport-baserad hojd till `h-full`:
+
+- Fran: `className="relative flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden"`
+- Till: `className="relative flex h-full flex-col overflow-hidden"`
 
 ### Varfor detta fixar problemet
 
-- `overflow-hidden` pa foraldra-containern sager at flexboxen: "du far INTE vaxa utanfor denna hojd"
-- `min-h-0` pa `MessageList` overskrider standard `min-height: auto` och tillater flex-barnet att krympa korrekt
-- Resultatet: `MessageList` fyller alltid det tillgangliga utrymmet mellan headern och inputfaltet, och scrollar internt
+- `RouteTransition` med `h-full` lat hojden floda fran `AppLayout` hela vagen ner
+- `h-full` pa `GlobalAssistant` arver exakt den tillgangliga hojden fran foraldra-elementet, inte en separat viewport-berakning
+- Oavsett antal meddelanden fyller `MessageList` (med `flex-1 min-h-0`) alltid utrymmet mellan header och input
+- Inputfaltet stannar alltid langst ner
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/pages/GlobalAssistant.tsx` | Lagg till `overflow-hidden` pa yttre flex-containern |
-| `src/components/global-assistant/MessageList.tsx` | Lagg till `min-h-0` pa wrapper-diven |
+| `src/components/layout/RouteTransition.tsx` | Villkorlig `h-full` for `/global-assistant` |
+| `src/pages/GlobalAssistant.tsx` | Byt `h-[calc(100vh-3.5rem)]` till `h-full` |
+
