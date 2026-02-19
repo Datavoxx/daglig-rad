@@ -1,51 +1,57 @@
 
 
-## Fix: Visa bilder i Oversikts-PDF + fixa ekonomi i Summerings-PDF
+## Uppdatera Byggio AI:s systemprompt med komplett kapacitetsbeskrivning
 
-### Problem 1: Projektfiler visar bara text i Oversikts-PDF
+### Vad som andras
 
-Oversikts-PDF:en (`generateProjectPdf.ts`) visar filer som en enkel tabell med filnamn, kategori, storlek och datum. Den borde visa bildfiler som inbaddade bilder -- precis som Summerings-PDF:en redan gor.
+**Fil: `supabase/functions/global-assistant/index.ts`**
 
-**Orsak:** `ProjectFile`-interfacet i Oversikts-PDF:en saknar `storage_path` som behovs for att hamta bilden fran lagringen.
+Tva delar av systemprompt-stringen uppdateras:
 
-### Problem 2: Ekonomisk sammanfattning i Summerings-PDF ar felaktig
+#### 1. Utoka `<role>`-sektionen
+Nuvarande:
+```
+Du ar Byggio AI - en effektiv assistent for byggforetag. Korta svar, snabba verktyg.
+```
 
-Summerings-PDF:en (`generateCompleteProjectPdf.ts`) har tva problem:
+Ny version som forklarar vad AI:n ar och kan (visas nar anvandaren fragar "vad kan du gora?"):
+```
+Du ar Byggio AI - en AI-assistent for svenska byggforetag.
+Du hjalper till med allt fran att skapa offerter och projekt till att soka fakturor,
+visa dashboard-sammanfattningar, hantera egenkontroller och mycket mer.
+Korta svar, snabba verktyg.
+```
 
-1. **Saknar arbetskostnad** -- den raknar bara leverantorsfakturor som kostnader, men appens dashboard (`EconomicOverviewCard`) inkluderar aven arbetskostnad (timmar x debiteringsrate). Darfor blir "Bruttoresultat" for hogt.
+#### 2. Utoka `<tools_quick_ref>` med saknade verktyg
+Lagga till:
+- `get_dashboard_summary` under en ny kategori "OVERSIKT"
+- `search_customer_invoices`, `search_vendor_invoices` under "SOKA"
+- `search_inspections`, `create_inspection` under bade "SOKA" och "SKAPA"
 
-2. **Unicode-bugg** -- `formatCurrency` anvander `Intl.NumberFormat("sv-SE")` som producerar Unicode-tecken som jsPDF inte kan rendera korrekt (samma bugg som vi fixade i Oversikts-PDF:en).
+Nuvarande:
+```
+SOKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
+SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
+```
 
-### Losning
+Ny version:
+```
+OVERSIKT: get_dashboard_summary
+SOKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata, search_customer_invoices, search_vendor_invoices, search_inspections
+SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report, create_inspection
+```
 
-**Fil 1: `src/lib/generateProjectPdf.ts`**
-
-- Lagg till `storage_path` i `ProjectFile`-interfacet
-- Gor `generateProjectPdf` till en `async`-funktion (behovs for `fetch`)
-- Lagg till `fetchImageAsBase64` och `isImageFile` hjalpfunktioner (samma som finns i `generateCompleteProjectPdf.ts`)
-- Skriv om `renderFilesPage` till att:
-  - Separera bildfiler fran ovriga filer
-  - Hamta och badda in bilder med `doc.addImage()`
-  - Visa ovriga filer i en tabell
-
-**Fil 2: `src/lib/generateCompleteProjectPdf.ts`**
-
-- Byt ut `Intl.NumberFormat("sv-SE")` i `formatCurrency` mot en ASCII-saker formateringsfunktion (samma `safeFormatNumber`-logik)
-- Lagg till arbetskostnad i ekonomisk sammanfattning:
-  - Utoka `TimeEntry`-interfacet med `billing_rate` (eller hamta billing_types)
-  - Berakna `laborCost = timmar x debiteringsrate`
-  - Visa separat rad for "Arbetskostnad"
-  - Uppdatera "Bruttoresultat" att inkludera bade leverantorskostnader och arbetskostnad
-
-**Fil 3: `src/pages/ProjectView.tsx`**
-
-- I `handleSummaryPdf`: Utoka `time_entries`-queryn med `billing_type_name` och join till `billing_types(hourly_rate)` sa att arbetskostnaden kan beraknas korrekt
+#### 3. Utoka `<form_policy>` med inspektioner
+Lagga till:
+```
+- "egenkontroll" / "inspektion" → search_inspections eller create_inspection
+- "mina fakturor" / "visa fakturor" → search_customer_invoices
+- "dashboard" / "sammanfattning" / "oversikt" → get_dashboard_summary
+```
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/lib/generateProjectPdf.ts` | Lagg till `storage_path` i interface, lagg till `fetchImageAsBase64`/`isImageFile`, skriv om `renderFilesPage` till att badda in bilder, gor den async |
-| `src/lib/generateCompleteProjectPdf.ts` | Byt `Intl.NumberFormat` mot ASCII-saker formatering, lagg till arbetskostnad i ekonomisk sammanfattning |
-| `src/pages/ProjectView.tsx` | Utoka time_entries-query i `handleSummaryPdf` med billing rate |
+| `supabase/functions/global-assistant/index.ts` | Utoka role, tools_quick_ref, och form_policy i systemprompt-stringen |
 
