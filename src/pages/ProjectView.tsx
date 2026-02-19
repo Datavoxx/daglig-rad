@@ -9,8 +9,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen, FileDown, Loader2 } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { generateProjectPdf } from "@/lib/generateProjectPdf";
+import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
+import { toast } from "sonner";
 import ProjectOverviewTab from "@/components/projects/ProjectOverviewTab";
 import ProjectAtaTab from "@/components/projects/ProjectAtaTab";
 import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
@@ -37,7 +40,95 @@ export default function ProjectView() {
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generatingOverview, setGeneratingOverview] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const { loading: permissionsLoading } = useUserPermissions();
+
+  const handleOverviewPdf = async () => {
+    if (!project) return;
+    setGeneratingOverview(true);
+    try {
+      const { data: reports } = await supabase
+        .from("daily_reports")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("report_date", { ascending: false });
+
+      if (!reports?.length) {
+        toast.error("Inga dagrapporter att exportera");
+        return;
+      }
+
+      await generateProjectPdf({
+        project: { name: project.name, client_name: project.client_name, address: project.address },
+        reports: reports as any,
+      });
+      toast.success("Översikts-PDF skapad");
+    } catch (e) {
+      console.error(e);
+      toast.error("Kunde inte skapa PDF");
+    } finally {
+      setGeneratingOverview(false);
+    }
+  };
+
+  const handleSummaryPdf = async () => {
+    if (!project) return;
+    setGeneratingSummary(true);
+    try {
+      const [
+        { data: estimate },
+        { data: ataItems },
+        { data: diaryReports },
+        { data: timeEntries },
+        { data: workOrders },
+        { data: projectFiles },
+        { data: vendorInvoices },
+        { data: companySettings },
+      ] = await Promise.all([
+        supabase.from("project_estimates").select("*").eq("project_id", project.id).maybeSingle(),
+        supabase.from("project_ata").select("*").eq("project_id", project.id).order("sort_order"),
+        supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
+        supabase.from("time_entries").select("*").eq("project_id", project.id).order("date", { ascending: false }),
+        supabase.from("project_work_orders").select("*").eq("project_id", project.id).order("created_at", { ascending: false }),
+        supabase.from("project_files").select("*").eq("project_id", project.id),
+        supabase.from("vendor_invoices").select("*").eq("project_id", project.id),
+        supabase.from("company_settings").select("*").limit(1).maybeSingle(),
+      ]);
+
+      let estimateItems: any[] = [];
+      if (estimate) {
+        const { data } = await supabase.from("estimate_items").select("*").eq("estimate_id", estimate.id).order("sort_order");
+        estimateItems = data || [];
+      }
+
+      let plan = null;
+      const { data: planData } = await supabase.from("project_plans").select("*").eq("project_id", project.id).maybeSingle();
+      if (planData) {
+        plan = { ...planData, phases: (planData.phases as any) || [] };
+      }
+
+      await generateCompleteProjectPdf({
+        project,
+        estimate: estimate as any,
+        estimateItems: estimateItems as any,
+        ataItems: (ataItems || []) as any,
+        plan: plan as any,
+        diaryReports: (diaryReports || []) as any,
+        timeEntries: (timeEntries || []) as any,
+        workOrders: (workOrders || []) as any,
+        projectFiles: (projectFiles || []) as any,
+        vendorInvoices: (vendorInvoices || []) as any,
+        companySettings: companySettings as any,
+      });
+      toast.success("Summerings-PDF skapad");
+    } catch (e) {
+      console.error(e);
+      toast.error("Kunde inte skapa PDF");
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   const fetchProject = async () => {
     if (!id) return;
@@ -99,8 +190,8 @@ export default function ProjectView() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="space-y-1 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
+        <div className="space-y-1 flex-1 min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight truncate">{project.name}</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {project.client_name && <span>{project.client_name}</span>}
             {project.address && <span>{project.address}</span>}
@@ -113,6 +204,26 @@ export default function ProjectView() {
               </span>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" onClick={handleOverviewPdf} disabled={generatingOverview}>
+                {generatingOverview ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                <span className="hidden sm:inline">Översikt</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ladda ner översikts-PDF med dagrapporter</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" onClick={handleSummaryPdf} disabled={generatingSummary}>
+                {generatingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                <span className="hidden sm:inline">Summering</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ladda ner komplett projektsammanfattning som PDF</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
