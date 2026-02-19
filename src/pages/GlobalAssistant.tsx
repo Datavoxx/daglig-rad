@@ -198,6 +198,9 @@ export default function GlobalAssistant() {
     setMessages(newMessagesWithLoading);
     setIsLoading(true);
 
+    // Clear reference tag after sending
+    setActiveReference(null);
+
     try {
       const { data, error } = await supabase.functions.invoke("global-assistant", {
         body: {

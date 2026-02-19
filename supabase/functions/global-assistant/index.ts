@@ -4574,6 +4574,47 @@ serve(async (req) => {
       "create_estimate", "create_project",
     ];
 
+    const ESTIMATE_TOOLS = [
+      "get_estimate", "update_estimate", "delete_estimate",
+      "add_estimate_items", "delete_estimate_item",
+      "create_project",
+    ];
+
+    // Helper function to resolve estimate identifier (offer_number or name) to UUID
+    async function resolveEstimateId(input: string): Promise<{ id: string; offer_number: string | null } | null> {
+      if (!input) return null;
+      
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(input)) {
+        const { data } = await supabase
+          .from("project_estimates")
+          .select("id, offer_number")
+          .eq("id", input)
+          .eq("user_id", userId)
+          .maybeSingle();
+        return data;
+      }
+      
+      // Try by offer_number first (e.g. "OFF-2026-0001")
+      const { data: byNumber } = await supabase
+        .from("project_estimates")
+        .select("id, offer_number")
+        .eq("user_id", userId)
+        .eq("offer_number", input)
+        .maybeSingle();
+      if (byNumber) return byNumber;
+      
+      // Try by manual_project_name
+      const { data: byName } = await supabase
+        .from("project_estimates")
+        .select("id, offer_number")
+        .eq("user_id", userId)
+        .ilike("manual_project_name", `%${input}%`)
+        .limit(1)
+        .maybeSingle();
+      return byName;
+    }
+
     // Helper function to resolve project name to UUID
     async function resolveProjectId(input: string): Promise<{ id: string; name: string } | null> {
       if (!input) return null;
@@ -4880,6 +4921,39 @@ VIKTIGT: Lova ALDRIG funktionalitet du inte har verktyg för. Om du är osäker,
                 nextActions: [
                   { label: "Visa projekt", icon: "folder", prompt: "Visa mina projekt" },
                   { label: "Sök projekt", icon: "search", prompt: "Sök efter projekt" },
+                ],
+              },
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+      }
+
+      // AUTO-INJECT estimate_id if missing but exists in context
+      if (!toolArgs.estimate_id && context?.selectedEstimateId && ESTIMATE_TOOLS.includes(toolName)) {
+        toolArgs.estimate_id = context.selectedEstimateId;
+        console.log(`Auto-injected estimate_id: ${context.selectedEstimateId} for tool: ${toolName}`);
+      }
+
+      // RESOLVE estimate_id from offer_number/name to UUID if it's not a valid UUID
+      if (toolArgs.estimate_id && ESTIMATE_TOOLS.includes(toolName)) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(toolArgs.estimate_id)) {
+          console.log(`Resolving estimate identifier "${toolArgs.estimate_id}" to UUID...`);
+          const resolved = await resolveEstimateId(toolArgs.estimate_id);
+          if (resolved) {
+            console.log(`Resolved to: ${resolved.id} (${resolved.offer_number})`);
+            toolArgs.estimate_id = resolved.id;
+          } else {
+            console.log(`Estimate not found: ${toolArgs.estimate_id}`);
+            return new Response(JSON.stringify({
+              type: "text",
+              content: `Jag kunde inte hitta någon offert med "${toolArgs.estimate_id}". Försök med ett annat namn eller välj en offert från listan.`,
+              data: {
+                nextActions: [
+                  { label: "Visa offerter", icon: "file-text", prompt: "Visa mina offerter" },
+                  { label: "Sök offert", icon: "search", prompt: "Sök efter offert" },
                 ],
               },
             }), {
