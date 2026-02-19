@@ -1,76 +1,47 @@
 
 
-## Uppgradera Oversikts-PDF med KPI-dashboard
+## Fix: Korrupt text i PDF + marginalberakning
 
-### Vad som ska goras
+### Problem 1: Korrupt text pa "Beraknad marginal"-raden
 
-Den nuvarande oversikts-PDF:en har en enkel forsattssida med bara grundlaggande statistik (timmar, avvikelser, ATA-antal). Den ska uppgraderas med en professionell KPI-sida som matchar dashboarden i appen -- samma 6 KPI:er plus ekonomisk oversikt.
+Raden visar `"&&4& &0&0&0& &k&r& &"` istallet for t.ex. "-4 000 kr (0%)".
 
-### KPI:er som laggs till pa sida 2 (ny "Dashboard-sida")
+**Orsak:** `toLocaleString("sv-SE")` producerar Unicode-tecken som jsPDF inte kan rendera med standardfonten:
+- Unicode-minustecken (U+2212) istallet for vanligt bindestreck
+- Non-breaking space (U+00A0) som tusentalsavgransare
 
-| KPI | Varde | Kalla |
-|-----|-------|-------|
-| Totala timmar | Summerade timmar fran time_entries | time_entries |
-| Medarbetare | Unika anvandare | time_entries |
-| Dagrapporter | Antal rapporter | daily_reports |
-| Marginal | (Projektvarde - Utgifter) / Projektvarde i % | Beraknat |
-| ATA-arbeten | Antal + totalbelopp | project_ata |
-| Utgifter | Totalt leverantorsfakturor | vendor_invoices |
+### Problem 2: Marginal visar 0% nar offert saknas
 
-### Andringar
+Nar offertvardet ar 0 kr och utgifterna ar 4 000 kr borde marginalen inte visa 0% -- den borde antingen visa "Ingen offert kopplad" eller ett negativt varde.
 
-**Fil 1: `src/pages/ProjectView.tsx`** (handleOverviewPdf)
+### Losning
 
-Utoka datahamtningen att aven hamta:
-- `time_entries` (timmar, user_id) for projektet
-- `project_ata` (subtotal, status) for projektet
-- `vendor_invoices` (total_inc_vat) for projektet
-- `project_estimates` (total_incl_vat) for kopplad offert
+**Fil: `src/lib/generateProjectPdf.ts`**
 
-Skicka med denna data till `generateProjectPdf` via ett nytt `kpiData`-objekt.
+1. **Fixa toLocaleString-problemet:** Byt ut `toLocaleString("sv-SE")` i alla PDF-stallen mot en saker `formatCurrency`-funktion som bara anvander ASCII-tecken (vanligt bindestreck, vanligt mellanslag). Den befintliga `formatCurrency`-hjalpfunktionen anvander redan `toFixed()` som ar sakert -- utoka den eller skapa en ny `safeFormatNumber`-funktion.
 
-**Fil 2: `src/lib/generateProjectPdf.ts`**
+2. **Fixa marginberakningen:** Om `quoteValue` ar 0, visa "Ej kopplad" eller liknande istallet for 0%.
 
-1. Utoka `ProjectReport`-interfacet med ett valfritt `kpiData`-objekt:
-   - totalHoursReported, uniqueWorkers, reportCount, marginPercent, ataCount, ataTotal, expensesTotal, quoteValue
+### Tekniska andringar
 
-2. Lagg till en ny **sida 2** efter forsattssidan -- "PROJEKTDASHBOARD":
-   - Rendera 6 KPI-rutor i ett 3x2 grid med fargade bakgrunder (runda horn, teal/violett/gron/rod/amber)
-   - Varje ruta visar: titel, stort varde, undertitel
-   - Under KPI-gridden: en ekonomisk sammanfattning med offertbelopp, utgifter, ATA-total och beraknad marginal
+Ersatt alla `toLocaleString("sv-SE")` i PDF-generatorn med en ASCII-saker formateringsfunktion:
 
-3. Layout for KPI-gridden (3 kolumner, 2 rader):
-   ```text
-   +------------------+------------------+------------------+
-   | Totala timmar    | Medarbetare      | Dagrapporter     |
-   | 8.0 rapporterat  | 1 personer       | 0 rapporter      |
-   +------------------+------------------+------------------+
-   | Marginal         | ATA-arbeten      | Utgifter         |
-   | -770% av proj.   | 1   460 kr       | 4 tkr totalt     |
-   +------------------+------------------+------------------+
-   ```
+```typescript
+function safeFormatNumber(value: number): string {
+  const isNegative = value < 0;
+  const abs = Math.abs(value);
+  const formatted = abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return isNegative ? `-${formatted}` : formatted;
+}
+```
 
-4. Ekonomisk sammanfattning under gridden:
-   - Offertbelopp
-   - Godkanda ATA
-   - Totala utgifter (leverantorsfakturor)
-   - Beraknad marginal
-
-5. Befintlig dagrapport-sektion (sida 3+) forblir oforandrad.
-
-6. Ta bort kravet pa att dagrapporter maste finnas -- PDF:en ska kunna genereras aven utan dagrapporter (bara KPI-sidan visas da).
-
-### Visuell design i PDF
-
-- KPI-rutorna far ljusa bakgrundsfyllningar (rundade rektanglar)
-- Stora siffror i mork text, titlar i mutad farg
-- Ekonomisk sammanfattning som en snygg tabell med autoTable
-- Fargkodad marginal (gron om positiv, rod om negativ)
+Uppdatera marginal-raden:
+- Om `quoteValue === 0`: Visa "Ingen offert kopplad" i marginal-KPI:n och tabellen
+- Om `quoteValue > 0`: Berakna och visa korrekt
 
 ### Filandringar
 
 | Fil | Andring |
 |-----|---------|
-| `src/lib/generateProjectPdf.ts` | Utoka interface, lagg till KPI-dashboard-sida med 6 KPI-rutor + ekonomisk sammanfattning |
-| `src/pages/ProjectView.tsx` | Hamta extra data (time_entries, ATA, vendor_invoices, estimate) och skicka som kpiData |
+| `src/lib/generateProjectPdf.ts` | Lagg till `safeFormatNumber`, ersatt alla `toLocaleString("sv-SE")` i tabellen, fixa marginal-logik for 0-offert |
 
