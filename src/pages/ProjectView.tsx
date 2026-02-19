@@ -54,14 +54,20 @@ export default function ProjectView() {
         { data: ataItems },
         { data: vendorInvoices },
         { data: estimate },
+        { data: workOrders },
+        { data: planData },
+        { data: projectFiles },
       ] = await Promise.all([
         supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
         supabase.from("time_entries").select("hours, user_id").eq("project_id", project.id),
-        supabase.from("project_ata").select("subtotal, status").eq("project_id", project.id),
+        supabase.from("project_ata").select("*").eq("project_id", project.id).order("sort_order"),
         supabase.from("vendor_invoices").select("total_inc_vat").eq("project_id", project.id),
         project.estimate_id
           ? supabase.from("project_estimates").select("total_incl_vat").eq("id", project.estimate_id).maybeSingle()
           : Promise.resolve({ data: null }),
+        supabase.from("project_work_orders").select("*").eq("project_id", project.id).order("created_at", { ascending: false }),
+        supabase.from("project_plans").select("*").eq("project_id", project.id).maybeSingle(),
+        supabase.from("project_files").select("*").eq("project_id", project.id),
       ]);
 
       // Calculate KPI data
@@ -87,6 +93,10 @@ export default function ProjectView() {
           expensesTotal,
           quoteValue,
         },
+        ataItems: (ataItems || []) as any,
+        workOrders: (workOrders || []) as any,
+        plan: planData ? { ...planData, phases: (planData.phases as any) || [] } : null,
+        projectFiles: (projectFiles || []) as any,
       });
       toast.success("Översikts-PDF skapad");
     } catch (e) {
