@@ -1,62 +1,60 @@
 
 
-## Lagg till `get_dashboard_summary`-verktyg i Global Assistant
+## Korrigeringar i offertfloden
 
-### Vad det gor
+### 1. Rostknapp i offertbyggaren -- minimalistisk stil
 
-Ett nytt verktyg som ger Byggio AI en komplett oversikt over anvandardata -- antal projekt, offerter per status, obetalda fakturor, timmar denna vecka, och mer. Nar anvandaren fragar "hur gar det?" eller "hur manga offerter har jag?" kan AI:n svara direkt med ratt siffror.
+**Fil:** `src/components/estimates/EstimateBuilder.tsx`
 
-### Teknisk andring
+**Nuvarande problem:** Rad 437-457 anvander en manuell `<div>` med stor avatar-bild (128px), gron text, och `border-dashed border-primary/30` -- den gamla stilen.
 
-**Fil:** `supabase/functions/global-assistant/index.ts`
-
-#### 1. Ny verktygsdefinition (i `tools`-arrayen)
-
-```text
-{
-  name: "get_dashboard_summary",
-  description: "Hamta en komplett oversikt: antal projekt per status, offerter per status, obetalda/forsenade fakturor, timmar denna vecka, antal kunder, antal anstallda. Anvand nar anvandaren fragar om sin oversikt, sammanfattning, eller 'hur manga X har jag?'",
-  parameters: { type: "object", properties: {}, required: [] }
-}
-```
-
-#### 2. Ny `executeTool`-case
-
-Gor **6 parallella databasfragar** (med `Promise.all`):
-
-| Fraga | Tabell | Vad den hamtar |
-|-------|--------|----------------|
-| Projekt per status | `projects` | Antal per status (planning/active/closing/completed) |
-| Offerter per status | `project_estimates` | Antal per status (draft/sent/accepted/rejected) + totalt belopp |
-| Kundfakturor | `customer_invoices` | Antal draft, sent (obetalda), paid, totalt obetalat belopp |
-| Timmar denna vecka | `time_entries` | Summerade timmar for innevarande vecka (mandag-sondag) |
-| Antal kunder | `customers` | Totalt antal |
-| Antal anstallda | `employees` | Antal aktiva |
-
-Returnerar ett sammanfattningsobjekt med alla siffror.
-
-#### 3. Ny `formatToolResults`-case
-
-Returnerar `type: "text"` med en markdown-formaterad sammanfattning, t.ex.:
+**Andring:**
+- Importera `VoicePromptButton` fran `@/components/shared/VoicePromptButton`
+- Ta bort hela `<div>`-blocket (rad 437-457) med avatar, `bg-primary/5`, och dashed border
+- Ersatt med:
 
 ```text
-## Din oversikt
-
-**Projekt:** 3 aktiva, 1 i planering, 2 avslutade
-**Offerter:** 5 utkast, 2 skickade, 3 accepterade (totalt 450 000 kr)
-**Fakturor:** 2 obetalda (85 000 kr), 1 forsenad
-**Timmar denna vecka:** 32 h
-**Kunder:** 12
-**Anstallda:** 4 aktiva
+<VoicePromptButton
+  variant="compact"
+  agentName="Byggio AI"
+  onTranscriptComplete={handleVoiceEdit}
+  isProcessing={isAiProcessing}
+/>
 ```
 
-### Inget nytt UI-kort behovs
+- Ta bort `Mic`-importen om den inte anvands pa andra stallen (den anvands troligen fortfarande i andra delar)
 
-Resultatet visas som vanlig markdown-text i chatten -- inget nytt React-kort eller typ behover skapas. AI:n far ratt data och kan sedan svara pa foljdfragor ("hur manga draft-offerter?") direkt fran det den redan vet.
+**Resultat:** En smal, svart/vit knapp med texten "Lat Byggio AI hjalpa dig" -- samma stil som ovriga rostkomponenter i appen.
 
-### Filer som andras
+---
+
+### 2. Dynamiska artikelkategorier i Byggio AI:s offertformular
+
+**Fil:** `src/components/global-assistant/EstimateItemsFormCard.tsx`
+
+**Nuvarande problem:** Rad 58-72 har en hardkodad `ARTICLE_OPTIONS`-array med 13 fasta kategorier. Nya kategorier som laggs till i databasen syns aldrig har.
+
+**Andring:**
+- Importera `useArticleCategories` fran `@/hooks/useArticleCategories`
+- Byt namn pa hardkodade arrayen till `FALLBACK_ARTICLE_OPTIONS` (behall som fallback)
+- Inuti komponenten, anropa hooken:
+
+```text
+const { categoryNames, loading: categoriesLoading } = useArticleCategories();
+const articleOptions = categoryNames.length > 0 ? categoryNames : FALLBACK_ARTICLE_OPTIONS;
+```
+
+- Ersatt alla referenser till `ARTICLE_OPTIONS` med `articleOptions`
+- Visa eventuellt en kort laddningsindikator om `categoriesLoading` ar true
+
+**Resultat:** Nar anvandaren skapar en offert i Byggio AI-chatten visas exakt samma kategorier som i den manuella offertbyggaren, inklusive nyligen tillagda kategorier.
+
+---
+
+### Sammanfattning
 
 | Fil | Andring |
 |-----|---------|
-| `supabase/functions/global-assistant/index.ts` | Lagg till verktygsdefinition, executeTool-case, formatToolResults-case |
+| `src/components/estimates/EstimateBuilder.tsx` | Byt manuell rost-div mot `VoicePromptButton variant="compact"` |
+| `src/components/global-assistant/EstimateItemsFormCard.tsx` | Ersatt hardkodad `ARTICLE_OPTIONS` med `useArticleCategories` hook |
 
