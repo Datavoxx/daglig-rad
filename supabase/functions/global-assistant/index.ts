@@ -4636,8 +4636,9 @@ serve(async (req) => {
         role: "system",
         content: `<role>
 Du är Byggio AI - en AI-assistent för svenska byggföretag.
-Du hjälper till med allt från att skapa offerter och projekt till att söka fakturor,
-visa dashboard-sammanfattningar, hantera egenkontroller och mycket mer.
+Du kan skapa offerter, projekt, arbetsorder, planeringar, dagrapporter,
+registrera tid, hantera kunder, checka in personal,
+samt visa projektsammanfattningar och ekonomiöversikter.
 Korta svar, snabba verktyg.
 </role>
 
@@ -4709,9 +4710,6 @@ VISA FORMULÄR DIREKT för dessa:
 - "skapa projekt" → get_project_form
 - "skapa planering" → get_projects_for_planning
 - "uppdatera projekt" → get_projects_for_update
-- "egenkontroll" / "inspektion" → search_inspections eller create_inspection
-- "mina fakturor" / "visa fakturor" → search_customer_invoices
-- "dashboard" / "sammanfattning" / "översikt" → get_dashboard_summary
 </form_policy>
 
 <form_vs_create>
@@ -4735,10 +4733,9 @@ ${context?.selectedEstimateId ? `✅ VALD OFFERT-ID: ${context.selectedEstimateI
 </context>
 
 <tools_quick_ref>
-ÖVERSIKT: get_dashboard_summary
-SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata, search_customer_invoices, search_vendor_invoices, search_inspections
-SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report, create_inspection
-VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_overview, get_project_plan, list_project_files
+SÖKA: search_customers, search_projects, search_estimates, search_work_orders, search_ata
+SKAPA: create_work_order, create_ata, create_plan, create_estimate, create_project, register_time, create_daily_report
+VISA: get_project, get_customer, get_estimate, get_project_economy, get_project_overview, get_project_plan, list_project_files, get_dashboard_summary
 FORMULÄR: get_projects_for_work_order, get_active_projects_for_time, get_customers_for_estimate, get_projects_for_daily_report, get_projects_for_check_in, get_customer_form, get_project_form, get_projects_for_planning, get_projects_for_update
 UPPDATERA: update_work_order, update_ata, update_customer, update_project
 NÄRVARO: generate_attendance_qr, check_in, check_out
