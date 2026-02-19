@@ -647,6 +647,10 @@ const tools = [
           estimate_id: { type: "string", description: "Estimate ID" },
           introduction: { type: "string", description: "Project description (saved to scope field)" },
           timeline: { type: "string", description: "Timeline/schedule - one item per line (saved to assumptions field)" },
+          closing_text: { type: "string", description: "Closing/terms text for the estimate" },
+          rot_enabled: { type: "boolean", description: "Whether ROT tax deduction (30%) is enabled" },
+          rut_enabled: { type: "boolean", description: "Whether RUT tax deduction (50%) is enabled" },
+          markup_percent: { type: "number", description: "Global markup percentage" },
           items: {
             type: "array",
             items: {
@@ -1855,10 +1859,14 @@ async function executeTool(
     }
 
     case "add_estimate_items": {
-      const { estimate_id, introduction, timeline, items, addons } = args as {
+      const { estimate_id, introduction, timeline, items, addons, closing_text, rot_enabled, rut_enabled, markup_percent } = args as {
         estimate_id: string;
         introduction?: string;
         timeline?: string;
+        closing_text?: string;
+        rot_enabled?: boolean;
+        rut_enabled?: boolean;
+        markup_percent?: number;
         items?: Array<{
           article: string;
           description: string;
@@ -1890,8 +1898,19 @@ async function executeTool(
         estimateUpdateData.scope = introduction;
       }
       if (timeline) {
-        // Convert timeline text to array (one line per item)
         estimateUpdateData.assumptions = timeline.split("\n").filter((s: string) => s.trim());
+      }
+      if (closing_text !== undefined) {
+        estimateUpdateData.closing_text = closing_text;
+      }
+      if (rot_enabled !== undefined) {
+        estimateUpdateData.rot_enabled = rot_enabled;
+      }
+      if (rut_enabled !== undefined) {
+        estimateUpdateData.rut_enabled = rut_enabled;
+      }
+      if (markup_percent !== undefined) {
+        estimateUpdateData.markup_percent = markup_percent;
       }
       
       if (Object.keys(estimateUpdateData).length > 0) {
@@ -4435,6 +4454,10 @@ serve(async (req) => {
         timeline: context.pendingData.timeline,
         items: context.pendingData.items,
         addons: context.pendingData.addons,
+        closing_text: context.pendingData.closingText,
+        rot_enabled: context.pendingData.rotEnabled,
+        rut_enabled: context.pendingData.rutEnabled,
+        markup_percent: context.pendingData.markupPercent,
       }, context);
       
       const formatted = formatToolResults("add_estimate_items", result);
