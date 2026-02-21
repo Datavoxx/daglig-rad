@@ -282,7 +282,7 @@ export function AppLayout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-sm px-3 md:px-6">
+        <header className="relative flex h-14 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-sm px-3 md:px-6">
           <div className="flex items-center gap-3">
             {/* Mobile: Hamburger menu */}
             {isMobile && (
@@ -391,6 +391,16 @@ export function AppLayout() {
               />
             </div>
           </div>
+
+          {/* Centered logo - mobile only */}
+          <button
+            onClick={() => navigate(getDefaultRoute())}
+            className="absolute left-1/2 -translate-x-1/2 md:hidden"
+            aria-label="Gå till hem"
+          >
+            <img src={byggioLogo} alt="Byggio" className="h-8 w-auto" />
+          </button>
+
           <div className="flex items-center gap-1.5">
             {/* Live clock */}
             <span className="text-sm font-medium text-muted-foreground tabular-nums hidden sm:block">
