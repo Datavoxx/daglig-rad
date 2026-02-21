@@ -1781,6 +1781,7 @@ export type Database = {
       receipts: {
         Row: {
           ai_extracted: boolean | null
+          category: string | null
           created_at: string
           id: string
           image_storage_path: string | null
@@ -1802,6 +1803,7 @@ export type Database = {
         }
         Insert: {
           ai_extracted?: boolean | null
+          category?: string | null
           created_at?: string
           id?: string
           image_storage_path?: string | null
@@ -1823,6 +1825,7 @@ export type Database = {
         }
         Update: {
           ai_extracted?: boolean | null
+          category?: string | null
           created_at?: string
           id?: string
           image_storage_path?: string | null

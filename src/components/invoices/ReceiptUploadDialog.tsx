@@ -49,6 +49,7 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [projectId, setProjectId] = useState<string>("none");
+  const [category, setCategory] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -143,6 +144,7 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
         receipt_date: extracted.receipt_date || null,
         payment_method: extracted.payment_method || null,
         project_id: projectId !== "none" ? projectId : null,
+        category: category || null,
         items: extracted.items || [],
         vat_breakdown: extracted.vat_breakdown || [],
         total_ex_vat: extracted.total_ex_vat || 0,
@@ -172,6 +174,7 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
     setImageBase64(null);
     setFileName("");
     setProjectId("none");
+    setCategory("");
     setIsExtracting(false);
     onOpenChange(false);
   };
@@ -331,6 +334,20 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
               {projectId === "none" && (
                 <p className="text-xs text-muted-foreground">Välj ett projekt för att spara kvittot</p>
               )}
+            </div>
+
+            {/* Category selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Kategori</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Välj kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="material">Material</SelectItem>
+                  <SelectItem value="lunch">Lunch</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Actions */}

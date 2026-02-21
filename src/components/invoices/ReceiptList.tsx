@@ -36,6 +36,7 @@ interface ReceiptRow {
   receipt_date: string | null;
   payment_method: string | null;
   project_id: string | null;
+  category: string | null;
   items: any[];
   vat_breakdown: any[];
   total_ex_vat: number;
@@ -213,6 +214,11 @@ export function ReceiptList({ autoOpen }: ReceiptListProps) {
                       <Badge variant={statusConfig[receipt.status].variant} className="text-xs">
                         {statusConfig[receipt.status].label}
                       </Badge>
+                      {receipt.category && (
+                        <Badge variant="info" className="text-xs">
+                          {receipt.category === "material" ? "Material" : "Lunch"}
+                        </Badge>
+                      )}
                       {receipt.ai_extracted && (
                         <Badge variant="outline" className="text-xs gap-1">
                           <Sparkles className="h-3 w-3" />
