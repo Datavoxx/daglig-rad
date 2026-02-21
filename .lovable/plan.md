@@ -1,77 +1,132 @@
 
 
-## Lägg till branschval vid registrering
+## Fas 1: Service-arbetsorder for Elektriker och VVS
 
-### Vad ändras
-Vid registrering visas ett nytt fält "Bransch" med fyra alternativ: **Målare**, **VVS**, **Elektriker**, **Bygg**. Användaren måste välja ett innan de kan registrera sig. Valet sparas i databasen för analys av vilken målgrupp som registrerar sig mest.
+### Oversikt
+Nar en anvandare med bransch "vvs" eller "elektriker" oppnar arbetsorder-tabben i ett projekt visas ett helt annat UI anpassat for servicejobb. Arbetsordern blir ett jobbkort med sektioner for kundinfo, tid, material, anteckningar, bilder och fakturering.
 
-### Steg
+Bygg- och Malare-anvandare paverkas inte -- de behallar nuvarande arbetsorder.
 
-1. **Databasmigrering** -- Lägg till kolumn `industry` (text, nullable) i tabellen `profiles`.
+### Databasandringar
 
-2. **`src/pages/Register.tsx`**
-   - Lägg till state `industry` och en `Select`-komponent med de fyra alternativen
-   - Validering: kräv att en bransch väljs innan registrering
-   - Skicka `industry` som user_metadata vid signup
-   - Uppdatera `profiles`-tabellen efter registrering med vald bransch
+**Nya tabeller:**
 
-3. **`handle_new_user`-triggerfunktionen** -- Uppdatera den befintliga triggern så att `industry` sparas från `raw_user_meta_data` till `profiles`.
+1. `work_order_time_entries` -- tid kopplad direkt till en arbetsorder
+   - id (uuid, PK)
+   - work_order_id (uuid, FK -> project_work_orders)
+   - user_id (uuid)
+   - date (date)
+   - hours (numeric)
+   - billing_type (text, t.ex. "service", "installation", "jour")
+   - description (text, nullable)
+   - is_billable (boolean, default true)
+   - created_at (timestamptz)
 
-4. **`notify-new-account`** -- Skicka med `industry` i webhook-anropet så att ni kan se bransch i notifieringen.
+2. `work_order_materials` -- material anvant i arbetsordern
+   - id (uuid, PK)
+   - work_order_id (uuid, FK -> project_work_orders)
+   - user_id (uuid)
+   - article_name (text)
+   - quantity (numeric)
+   - unit (text, default "st")
+   - unit_price (numeric)
+   - category (text, nullable, t.ex. "kabel", "ror", "koppling")
+   - is_billable (boolean, default true)
+   - sort_order (integer)
+   - created_at (timestamptz)
 
-### Tekniska detaljer
+3. `work_order_notes` -- enkel jobblogg
+   - id (uuid, PK)
+   - work_order_id (uuid, FK -> project_work_orders)
+   - user_id (uuid)
+   - content (text)
+   - created_at (timestamptz)
 
-**SQL-migrering:**
-```sql
-ALTER TABLE public.profiles ADD COLUMN industry text;
+**Andringar i befintliga tabeller:**
 
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-    INSERT INTO public.profiles (id, email, full_name, industry)
-    VALUES (
-        NEW.id,
-        NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-        NEW.raw_user_meta_data->>'industry'
-    );
-    -- ... resten av rollsättning oförändrad
-END;
-$$;
-```
+- `project_work_orders` -- lagg till kolumner:
+  - `customer_name` (text, nullable)
+  - `customer_phone` (text, nullable)
+  - `customer_address` (text, nullable)
+  - `work_order_type` (text, default "standard") -- "standard" for bygg, "service" for el/vvs
+  - `invoice_id` (uuid, nullable) -- koppling till skapad faktura
 
-**Register.tsx -- ny state + UI:**
-```tsx
-const [industry, setIndustry] = useState<string>("");
+- `project_work_orders.status` -- nya statusar for service: "planned", "in_progress", "waiting", "completed", "invoiced"
 
-// Validering: kräv branschval
-if (!industry) {
-  setValidationError("Välj en bransch");
-  return false;
-}
+**RLS-policies** for alla nya tabeller: Anvandare kan hantera egna poster (via user_id).
 
-// Skicka med i signup metadata:
-data: {
-  full_name: fullName,
-  industry: industry,
-}
+### Kodfiler som andras/skapas
 
-// UI (Select-komponent före lösenord):
-<Select value={industry} onValueChange={setIndustry}>
-  <SelectItem value="malare">Målare</SelectItem>
-  <SelectItem value="vvs">VVS</SelectItem>
-  <SelectItem value="elektriker">Elektriker</SelectItem>
-  <SelectItem value="bygg">Bygg</SelectItem>
-</Select>
-```
+**Nya filer:**
 
-**notify-new-account -- utöka body:**
-```tsx
-body: { email, full_name: fullName, user_id: data.user.id, industry }
-```
+1. `src/hooks/useUserIndustry.ts`
+   - Hook som hamtar inloggad anvandares bransch fran `profiles.industry`
+   - Returnerar `{ industry, isServiceIndustry, loading }`
+   - `isServiceIndustry` ar true om industry = "vvs" eller "elektriker"
 
-Fyra ändringar: en migrering, Register.tsx, triggerfunktion, notify-webhook.
+2. `src/components/projects/ServiceWorkOrderView.tsx` (STOR komponent)
+   - Detaljvy for en enskild service-arbetsorder
+   - Visar kundinfo, status, tid, material, anteckningar, bilder, ATA
+   - Mobil-first design med tabs/sektioner
+   - Innehaller:
+     - Kundinfo-header (namn, adress, telefon klickbart)
+     - Statusflode-knappar (Planerad -> Pagaende -> Vantar -> Klar -> Fakturerad)
+     - Tid-sektion: manuell registrering (timmar, datum, debiteringstyp)
+     - Material-sektion: lagg till artiklar, fri rad, pris, debiterbar/ej
+     - Anteckningar-sektion: enkel logg
+     - Bilder-sektion: ladda upp/ta foto (ateranvander befintlig fil-logik)
+     - Extra arbete-sektion (enkel ATA-liknande)
+     - Summering: total tid, total materialkostnad
+     - Knapp "Skapa faktura" (visas nar status = Klar)
+
+3. `src/components/projects/ServiceWorkOrderList.tsx`
+   - Lista over arbetsorder for el/vvs-anvandare
+   - Kort med kundnamn, status-badge, tilldelad tekniker
+   - Klick oppnar ServiceWorkOrderView
+   - Snabb-skapa ny arbetsorder med utokad dialog (kundinfo + telefon)
+
+4. `src/components/projects/ServiceWorkOrderCreateDialog.tsx`
+   - Skapardialog anpassad for service: kundnamn, adress, telefon, jobbtitel, beskrivning, tilldelad tekniker
+
+**Andringar i befintliga filer:**
+
+5. `src/pages/ProjectView.tsx`
+   - Importera `useUserIndustry` hook
+   - I arbetsorder-tabben: om `isServiceIndustry` --> rendera `ServiceWorkOrderList` istallet for `ProjectWorkOrdersTab`
+
+6. `src/components/projects/ProjectWorkOrdersTab.tsx`
+   - Ingen andring -- detta forblir bygg/malare-varianten
+
+### Fakturaflode (Fas 1 -- grundlaggande)
+
+Nar anvandaren klickar "Skapa faktura" fran en klar arbetsorder:
+1. Samla all debiterbar tid och allt debiterbart material
+2. Oppna `CustomerInvoiceDialog` med forifyld data (rader fran tid + material)
+3. Anvandaren granskar och sparar
+4. Status satt till "invoiced", invoice_id satt
+
+### Mobil-first design
+
+- Alla sektioner i ServiceWorkOrderView anvander accordion/tabs for att minimera scrollning
+- Primara actions (lagg tid, lagg material) har stora knappar langst upp
+- Kundtelefon ar klickbar (tel: link)
+- Snabbflode: oppna arbetsorder -> klicka "Lagg tid" -> skriv timmar -> spara = 3 klick
+
+### Teknisk sekvens
+
+1. Databasmigrering (nya tabeller + kolumner)
+2. `useUserIndustry` hook
+3. `ServiceWorkOrderCreateDialog`
+4. `ServiceWorkOrderList`
+5. `ServiceWorkOrderView` (med tid, material, anteckningar, bilder)
+6. Koppling i `ProjectView.tsx`
+7. Fakturaflode fran arbetsorder
+
+### Vad som INTE ingaar i Fas 1
+
+- Start/stopp-timer (manuella timmar forst, timer i Fas 2)
+- Avancerad artikelsokning fran artikelbibliotek (fri text forst)
+- PDF-generering av service-arbetsorder
+- Notifikationer till tekniker
+- Integration med befintligt tidrapporteringssystem (tiderna lever i work_order_time_entries)
+
