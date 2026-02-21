@@ -1,29 +1,85 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface DefaultData {
+  projectName: string;
+  clientName: string;
+  clientPhone: string;
+  address: string;
+  description: string;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   onCreated: () => void;
+  defaultData?: DefaultData;
 }
 
-export default function ServiceWorkOrderCreateDialog({ open, onOpenChange, projectId, onCreated }: Props) {
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    customer_name: "",
-    customer_phone: "",
-    customer_address: "",
+const emptyForm = {
+  title: "",
+  description: "",
+  customer_name: "",
+  customer_phone: "",
+  customer_address: "",
+  assigned_to: "",
+};
+
+function buildFormFromDefault(d: DefaultData) {
+  return {
+    title: d.projectName,
+    description: d.description,
+    customer_name: d.clientName,
+    customer_phone: d.clientPhone,
+    customer_address: d.address,
     assigned_to: "",
-  });
+  };
+}
+
+export default function ServiceWorkOrderCreateDialog({ open, onOpenChange, projectId, onCreated, defaultData }: Props) {
+  const hasDefault = defaultData && (defaultData.clientName || defaultData.projectName);
+  const [saving, setSaving] = useState(false);
+  const [useProjectData, setUseProjectData] = useState(true);
+  const [form, setForm] = useState(emptyForm);
+
+  // Initialize form when dialog opens
+  useEffect(() => {
+    if (open) {
+      if (hasDefault && useProjectData) {
+        setForm(buildFormFromDefault(defaultData!));
+      } else {
+        setForm(emptyForm);
+      }
+    }
+  }, [open]);
+
+  // Update form when defaultData changes (e.g. async phone/scope loaded)
+  useEffect(() => {
+    if (open && hasDefault && useProjectData && defaultData) {
+      setForm(prev => ({
+        ...prev,
+        customer_phone: defaultData.clientPhone || prev.customer_phone,
+        description: defaultData.description || prev.description,
+      }));
+    }
+  }, [defaultData?.clientPhone, defaultData?.description]);
+
+  const handleToggle = (checked: boolean) => {
+    setUseProjectData(checked);
+    if (checked && defaultData) {
+      setForm(buildFormFromDefault(defaultData));
+    } else {
+      setForm({ ...emptyForm, assigned_to: form.assigned_to });
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.title.trim()) {
@@ -60,7 +116,8 @@ export default function ServiceWorkOrderCreateDialog({ open, onOpenChange, proje
       toast.error("Kunde inte skapa arbetsorder");
     } else {
       toast.success("Arbetsorder skapad");
-      setForm({ title: "", description: "", customer_name: "", customer_phone: "", customer_address: "", assigned_to: "" });
+      setForm(emptyForm);
+      setUseProjectData(true);
       onCreated();
       onOpenChange(false);
     }
@@ -73,6 +130,20 @@ export default function ServiceWorkOrderCreateDialog({ open, onOpenChange, proje
         <DialogHeader>
           <DialogTitle>Nytt servicejobb</DialogTitle>
         </DialogHeader>
+
+        {hasDefault && (
+          <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <Label htmlFor="use-project-data" className="text-sm cursor-pointer">
+              Hämta från projekt
+            </Label>
+            <Switch
+              id="use-project-data"
+              checked={useProjectData}
+              onCheckedChange={handleToggle}
+            />
+          </div>
+        )}
+
         <div className="grid gap-3 py-2">
           <div className="space-y-1">
             <Label>Jobbtitel *</Label>

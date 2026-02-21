@@ -26,6 +26,9 @@ interface ServiceWorkOrder {
 interface Props {
   projectId: string;
   projectName: string;
+  clientName?: string | null;
+  address?: string | null;
+  estimateId?: string | null;
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -36,11 +39,13 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
   invoiced: { label: "Fakturerad", variant: "secondary" },
 };
 
-export default function ServiceWorkOrderList({ projectId, projectName }: Props) {
+export default function ServiceWorkOrderList({ projectId, projectName, clientName, address, estimateId }: Props) {
   const [orders, setOrders] = useState<ServiceWorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [estimateScope, setEstimateScope] = useState("");
 
   const fetchOrders = async () => {
     const { data, error } = await supabase
@@ -59,6 +64,39 @@ export default function ServiceWorkOrderList({ projectId, projectName }: Props) 
 
   useEffect(() => { fetchOrders(); }, [projectId]);
 
+  // Fetch customer phone and estimate scope when dialog opens
+  useEffect(() => {
+    if (!createOpen) return;
+
+    const fetchExtra = async () => {
+      // Fetch customer phone
+      if (clientName) {
+        const { data: cust } = await supabase
+          .from("customers")
+          .select("phone, mobile")
+          .ilike("name", clientName)
+          .limit(1);
+        if (cust && cust.length > 0) {
+          setCustomerPhone(cust[0].phone || cust[0].mobile || "");
+        }
+      }
+
+      // Fetch estimate scope
+      if (estimateId) {
+        const { data: est } = await supabase
+          .from("project_estimates")
+          .select("scope")
+          .eq("id", estimateId)
+          .maybeSingle();
+        if (est?.scope) {
+          setEstimateScope(est.scope);
+        }
+      }
+    };
+
+    fetchExtra();
+  }, [createOpen, clientName, estimateId]);
+
   const selectedOrder = orders.find(o => o.id === selectedId);
 
   if (selectedOrder) {
@@ -72,6 +110,14 @@ export default function ServiceWorkOrderList({ projectId, projectName }: Props) 
       />
     );
   }
+
+  const defaultData = {
+    projectName: projectName || "",
+    clientName: clientName || "",
+    clientPhone: customerPhone,
+    address: address || "",
+    description: estimateScope,
+  };
 
   return (
     <div className="space-y-4">
@@ -143,6 +189,7 @@ export default function ServiceWorkOrderList({ projectId, projectName }: Props) 
         onOpenChange={setCreateOpen}
         projectId={projectId}
         onCreated={fetchOrders}
+        defaultData={defaultData}
       />
     </div>
   );
