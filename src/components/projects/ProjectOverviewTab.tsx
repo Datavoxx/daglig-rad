@@ -79,8 +79,9 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
     diaryReports: any[];
     atas: any[];
     vendorInvoices: any[];
+    receipts: any[];
     plan: any | null;
-  }>({ timeEntries: [], diaryReports: [], atas: [], vendorInvoices: [], plan: null });
+  }>({ timeEntries: [], diaryReports: [], atas: [], vendorInvoices: [], receipts: [], plan: null });
 
   useEffect(() => {
     fetchEstimates();
@@ -106,12 +107,13 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
   };
 
   const fetchDashboardData = async () => {
-    const [timeRes, reportsRes, ataRes, invoiceRes, planRes] = await Promise.all([
+    const [timeRes, reportsRes, ataRes, invoiceRes, planRes, receiptRes] = await Promise.all([
       supabase.from("time_entries").select("id, hours, user_id, date").eq("project_id", project.id),
       supabase.from("daily_reports").select("id, report_date").eq("project_id", project.id),
       supabase.from("project_ata").select("id, subtotal, status").eq("project_id", project.id),
       supabase.from("vendor_invoices").select("id, total_inc_vat").eq("project_id", project.id),
       supabase.from("project_plans").select("phases, total_weeks, start_date").eq("project_id", project.id).maybeSingle(),
+      supabase.from("receipts" as any).select("id, total_inc_vat").eq("project_id", project.id),
     ]);
     setDashboardData({
       timeEntries: timeRes.data || [],
@@ -119,19 +121,22 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
       atas: ataRes.data || [],
       vendorInvoices: invoiceRes.data || [],
       plan: planRes.data,
+      receipts: (receiptRes.data || []) as any[],
     });
   };
 
   // KPI calculations
   const kpis = useMemo(() => {
-    const { timeEntries, diaryReports, atas, vendorInvoices } = dashboardData;
+    const { timeEntries, diaryReports, atas, vendorInvoices, receipts } = dashboardData;
 
     const totalHours = timeEntries.reduce((sum: number, e: any) => sum + (e.hours || 0), 0);
     const uniqueUsers = new Set(timeEntries.map((e: any) => e.user_id)).size;
     const reportCount = diaryReports.length;
     const ataCount = atas.length;
     const ataTotal = atas.reduce((sum: number, a: any) => sum + (a.subtotal || 0), 0);
-    const expensesTotal = vendorInvoices.reduce((sum: number, v: any) => sum + (v.total_inc_vat || 0), 0);
+    const vendorExpenses = vendorInvoices.reduce((sum: number, v: any) => sum + (v.total_inc_vat || 0), 0);
+    const receiptsExpenses = receipts.reduce((sum: number, r: any) => sum + (r.total_inc_vat || 0), 0);
+    const expensesTotal = vendorExpenses + receiptsExpenses;
 
     const quoteValue = linkedEstimate?.total_incl_vat || 0;
     const totalProjectValue = quoteValue + ataTotal;
