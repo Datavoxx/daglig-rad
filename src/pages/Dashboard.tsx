@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { AIUsageDialog } from "@/components/dashboard/AIUsageDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,7 @@ interface UpcomingDeadline {
 }
 
 const Dashboard = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
@@ -361,8 +363,31 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Global Assistant Widget */}
-      <DashboardAssistantWidget />
+      {/* Global Assistant Widget / Mobile Quick Grid */}
+      {isMobile ? (
+        <section className="grid grid-cols-2 gap-3">
+          {[
+            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant" },
+            { title: "Offert", icon: Calculator, href: "/estimates" },
+            { title: "Projekt", icon: FolderKanban, href: "/projects" },
+            { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
+            { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
+            { title: "Kunder", icon: Users, href: "/customers" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices" },
+          ].map((item) => (
+            <button
+              key={item.title}
+              onClick={() => navigate(item.href)}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card/50 p-5 ring-1 ring-black/5 dark:ring-white/5 active:scale-95 transition-transform"
+            >
+              <item.icon className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium text-foreground">{item.title}</span>
+            </button>
+          ))}
+        </section>
+      ) : (
+        <DashboardAssistantWidget />
+      )}
 
       {/* Primary KPI Cards - Most important metrics */}
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
