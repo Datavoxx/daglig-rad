@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { email, full_name, user_id } = await req.json();
+    const { email, full_name, user_id, industry } = await req.json();
 
     console.log(`[NEW ACCOUNT] Notifying webhook for: ${email}`);
 
@@ -24,6 +24,7 @@ serve(async (req) => {
         email,
         full_name,
         user_id,
+        industry,
         registered_at: new Date().toISOString(),
         source: "byggio-web",
       }),
