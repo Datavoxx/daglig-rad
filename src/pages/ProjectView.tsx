@@ -267,61 +267,31 @@ export default function ProjectView() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <LayoutDashboard className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
-                <span>Översikt</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Översikt</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <FileEdit className="h-4 w-4" />
-                <span>ÄTA</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">ÄTA</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <ClipboardList className="h-4 w-4" />
-                <span>Arbetsorder</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Arbetsorder</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <FolderOpen className="h-4 w-4" />
-                <span>Filer</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Filer</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <CalendarDays className="h-4 w-4" />
-                <span>Planering</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Planering</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
-                <BookOpen className="h-4 w-4" />
-                <span>Dagbok</span>
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Dagbok</TooltipContent>
-          </Tooltip>
+        <TabsList className="w-full justify-start flex-nowrap overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
+          <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden md:inline">Översikt</span>
+          </TabsTrigger>
+          <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <FileEdit className="h-4 w-4" />
+            <span className="hidden md:inline">ÄTA</span>
+          </TabsTrigger>
+          <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden md:inline">Arbetsorder</span>
+          </TabsTrigger>
+          <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden md:inline">Filer</span>
+          </TabsTrigger>
+          <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden md:inline">Planering</span>
+          </TabsTrigger>
+          <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden md:inline">Dagbok</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
