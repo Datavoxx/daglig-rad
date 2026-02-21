@@ -23,6 +23,7 @@ interface ReceiptRow {
   total_vat: number;
   total_inc_vat: number;
   image_storage_path: string | null;
+  category: string | null;
   ai_extracted: boolean;
   status: string;
   projects?: { name: string } | null;
@@ -74,6 +75,11 @@ export function ReceiptDetailDialog({ receipt, open, onOpenChange }: Props) {
               {receipt.status === "reviewed" ? "Granskat" : "Nytt"}
             </Badge>
             {receipt.payment_method && <Badge variant="outline">{receipt.payment_method}</Badge>}
+            {receipt.category && (
+              <Badge variant="info">
+                {receipt.category === "material" ? "Material" : "Lunch"}
+              </Badge>
+            )}
           </div>
 
           {receipt.org_number && (
