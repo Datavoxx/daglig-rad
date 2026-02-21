@@ -1663,44 +1663,59 @@ export type Database = {
         Row: {
           assigned_to: string | null
           created_at: string | null
+          customer_address: string | null
+          customer_name: string | null
+          customer_phone: string | null
           description: string | null
           due_date: string | null
           estimate_id: string | null
           id: string
+          invoice_id: string | null
           order_number: string | null
           project_id: string
           status: string | null
           title: string
           updated_at: string | null
           user_id: string
+          work_order_type: string
         }
         Insert: {
           assigned_to?: string | null
           created_at?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           description?: string | null
           due_date?: string | null
           estimate_id?: string | null
           id?: string
+          invoice_id?: string | null
           order_number?: string | null
           project_id: string
           status?: string | null
           title: string
           updated_at?: string | null
           user_id: string
+          work_order_type?: string
         }
         Update: {
           assigned_to?: string | null
           created_at?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           description?: string | null
           due_date?: string | null
           estimate_id?: string | null
           id?: string
+          invoice_id?: string | null
           order_number?: string | null
           project_id?: string
           status?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
+          work_order_type?: string
         }
         Relationships: [
           {
@@ -2253,6 +2268,132 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_materials: {
+        Row: {
+          article_name: string
+          category: string | null
+          created_at: string
+          id: string
+          is_billable: boolean
+          quantity: number
+          sort_order: number
+          unit: string
+          unit_price: number
+          user_id: string
+          work_order_id: string
+        }
+        Insert: {
+          article_name: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_billable?: boolean
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          user_id: string
+          work_order_id: string
+        }
+        Update: {
+          article_name?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_billable?: boolean
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          user_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_materials_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+          work_order_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+          work_order_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_notes_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_time_entries: {
+        Row: {
+          billing_type: string
+          created_at: string
+          date: string
+          description: string | null
+          hours: number
+          id: string
+          is_billable: boolean
+          user_id: string
+          work_order_id: string
+        }
+        Insert: {
+          billing_type?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          is_billable?: boolean
+          user_id: string
+          work_order_id: string
+        }
+        Update: {
+          billing_type?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          is_billable?: boolean
+          user_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_time_entries_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_orders"
             referencedColumns: ["id"]
           },
         ]
