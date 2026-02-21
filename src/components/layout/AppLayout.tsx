@@ -39,6 +39,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 
 interface NavItem {
@@ -286,14 +287,15 @@ export function AppLayout() {
             {/* Mobile: Hamburger menu */}
             {isMobile && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-9 w-9"
-                  onClick={() => setMobileMenuOpen(true)}
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-9 w-9"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
                 <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
                   <SheetHeader className="sr-only">
                     <SheetTitle>Navigation</SheetTitle>
