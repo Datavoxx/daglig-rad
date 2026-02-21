@@ -327,7 +327,7 @@ const Dashboard = () => {
           </div>
 
           {/* Quick action buttons with dropdown */}
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden md:flex flex-wrap gap-2">
             {userEmail === "mahad@datavoxx.se" && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowAIUsage(true)}>
                 <BarChart3 className="h-4 w-4" />
