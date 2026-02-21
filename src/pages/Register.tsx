@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import byggioLogo from "@/assets/byggio-logo.png";
@@ -19,12 +20,17 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [industry, setIndustry] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const validateForm = () => {
     try {
       nameSchema.parse(fullName);
+      if (!industry) {
+        setValidationError("Välj en bransch");
+        return false;
+      }
       emailSchema.parse(email);
       passwordSchema.parse(password);
       setValidationError(null);
@@ -51,6 +57,7 @@ export default function Register() {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          industry: industry,
         },
       },
     });
@@ -84,6 +91,7 @@ export default function Register() {
               email,
               full_name: fullName,
               user_id: data.user.id,
+              industry,
             },
           }).catch(console.error);
         }
@@ -121,6 +129,23 @@ export default function Register() {
                     className="pl-10"
                     required
                   />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Bransch</Label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+                  <Select value={industry} onValueChange={setIndustry}>
+                    <SelectTrigger className="pl-10">
+                      <SelectValue placeholder="Välj bransch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="malare">Målare</SelectItem>
+                      <SelectItem value="vvs">VVS</SelectItem>
+                      <SelectItem value="elektriker">Elektriker</SelectItem>
+                      <SelectItem value="bygg">Bygg</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
