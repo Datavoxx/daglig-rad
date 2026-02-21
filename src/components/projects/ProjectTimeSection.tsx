@@ -169,20 +169,17 @@ export default function ProjectTimeSection({ projectId, projectName, onRegisterT
               </div>
 
               {/* Mini week bars */}
-              <div className="flex gap-2 items-end h-10 md:h-12">
+              <div className="flex gap-2">
                 {weeklyData.map((week, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div 
-                      className="w-full bg-primary/20 rounded-sm relative overflow-hidden"
-                      style={{ height: `${Math.max(4, (week.hours / maxWeekHours) * 24)}px` }}
-                    >
+                  <div key={i} className="flex-1 flex flex-col items-center">
+                    <div className="w-full h-6 md:h-8 flex items-end">
                       <div 
-                        className="absolute inset-0 bg-primary rounded-sm"
-                        style={{ height: `${(week.hours / maxWeekHours) * 100}%` }}
+                        className="w-full bg-primary rounded-sm"
+                        style={{ height: `${Math.max(2, (week.hours / maxWeekHours) * 16)}px` }}
                       />
                     </div>
-                    <div className="text-xs text-muted-foreground">{week.label}</div>
-                    <div className="text-xs font-medium">{week.hours > 0 ? `${week.hours.toFixed(0)}h` : "-"}</div>
+                    <span className="text-[10px] md:text-xs text-muted-foreground mt-1">{week.label}</span>
+                    <span className="text-[10px] md:text-xs font-medium">{week.hours > 0 ? `${week.hours.toFixed(0)}h` : "-"}</span>
                   </div>
                 ))}
               </div>
