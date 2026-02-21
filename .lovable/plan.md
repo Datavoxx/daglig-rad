@@ -1,44 +1,23 @@
 
+## Dölj snabbknappar på mobilvy
 
-## Fix hamburgarmenyn: slide-in fran vanster istallet for "pop"
+### Vad ändras
+De snabbknapparna ("Ny offert", "Tidrapport", etc.) med dropdown-menyer som visas under "Här är din översikt för idag" ska döljas på mobil (under 768px) och bara visas på iPad/dator.
 
-### Problem
-Hamburgarmenyn poppar bara upp istallet for att glida in fran vanster. Orsaken ar att knappen inte ar inkapslad i `SheetTrigger`, sa Radix Dialog missar open-animationen.
+### Teknisk ändring
 
-### Losning
-Wrappa hamburgarknappen i `SheetTrigger` istallet for att anvanda en manuell `onClick` + `setMobileMenuOpen(true)`. Da kopplas oppningen korrekt till Radix-animationssystemet och slide-in-from-left-animationen spelar som den ska.
+**`src/pages/Dashboard.tsx`** (rad 330)
 
-### Teknisk andring
+Lägg till `hidden md:flex` på wrapper-diven:
 
-**`src/components/layout/AppLayout.tsx`** (rad ~288-296)
+```
+// Från:
+<div className="flex flex-wrap gap-2">
 
-Andra fran:
-```tsx
-<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-  <Button 
-    variant="ghost" 
-    size="icon" 
-    className="h-9 w-9"
-    onClick={() => setMobileMenuOpen(true)}
-  >
-    <Menu className="h-5 w-5" />
-  </Button>
+// Till:
+<div className="hidden md:flex flex-wrap gap-2">
 ```
 
-Till:
-```tsx
-<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-  <SheetTrigger asChild>
-    <Button 
-      variant="ghost" 
-      size="icon" 
-      className="h-9 w-9"
-    >
-      <Menu className="h-5 w-5" />
-    </Button>
-  </SheetTrigger>
-```
+`md:` motsvarar 768px, samma breakpoint som används för mobil/desktop i resten av appen. Knapparna döljs helt på telefon men syns på iPad och dator.
 
-Kontrollera aven att `SheetTrigger` ar importerad langst upp i filen (den importeras redan troligen via sheet-komponenten).
-
-En enda fil andras, en minimal andring.
+En rad, en fil.
