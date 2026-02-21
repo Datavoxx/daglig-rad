@@ -1,32 +1,37 @@
 
 
-## Fixa Tidsrapportering-staplar pa mobil
+## Snabbrutor pa mobil-dashboarden
 
-### Problem
-Den grona stapeln for v.8 ar oproportionerligt stor och tar for mycket plats. Layouten med fast hojd (`h-10`) racker inte for att rymma stapel + veckonummer + timmar, sa det ser trasigt ut.
+### Vad andras
+Pa mobilvyn (under 768px) ersatts den nuvarande "Byggio AI"-chattwidgeten med ett rutsystem med snabblankar. Desktop och iPad behaller nuvarande layout helt oforandrad.
 
-### Losning
+### Rutor som visas (mobil)
+| Ruta | Ikon | Lankar till |
+|------|------|-------------|
+| Byggio AI | Sparkles | /global-assistant |
+| Offert | Calculator | /estimates |
+| Projekt | FolderKanban | /projects |
+| Personalliggare | ClipboardCheck | /attendance |
+| Tidsrapport | Clock | /time-reporting |
+| Kunder | Users | /customers |
+| Kvitto | Receipt | /invoices (ny funktion, lankar tillfalligt till fakturor) |
 
-Andra layouten i `src/components/projects/ProjectTimeSection.tsx` sa att:
-
-1. **Separera staplar fran etiketter** -- flytta veckonummer och timmar utanfor stapelcontainern sa de inte tavlar om utrymme.
-2. **Begansa stapelhojden** till max 16px pa mobil (24px pa desktop) for en subtilare look.
-3. **Anvand en tydligare layout-struktur**:
-
-```text
-[==]  [  ]  [  ]  [====]    <-- staplar (fast container, t.ex. h-6)
-v.5   v.6   v.7   v.8       <-- veckonummer
- -     -     -    8h         <-- timmar
-```
+Rutorna visas i ett 2-kolumns grid med jamn storlek, med ikon och text i varje ruta. De far en subtil bakgrund och ar klickbara.
 
 ### Teknisk andring
 
-**`src/components/projects/ProjectTimeSection.tsx`** (rad 171-188):
+**`src/pages/Dashboard.tsx`**
 
-- Bryt ut stapelraden i en egen `div` med fast hojd (`h-6 md:h-8`) och `items-end`.
-- Placera veckolabel och timmar i en separat rad under staplarna.
-- Minska max barhojd till `16` pa mobil.
-- Ta bort `gap-1` inuti varje kolumn for att spara vertikalt utrymme.
+1. Importera `useIsMobile` fran `@/hooks/use-mobile`.
+2. Runt `<DashboardAssistantWidget />` (rad 364-365): wrappa i en villkorlig rendering:
+   - Om `isMobile`: rendera ett nytt `MobileQuickGrid`-rutsystem med de 7 rutorna ovan.
+   - Om inte mobil: rendera `<DashboardAssistantWidget />` som vanligt.
+3. Det nya gridet byggs inline i Dashboard-komponenten (inget nytt komponentfil behovs) med `grid grid-cols-2 gap-3` och varje ruta ar en klickbar `div` med ikon + text.
 
-Resultatet blir en kompaktare, renare sektion som inte overlappar pa sma skarmar.
+**Ingen andring pa desktop/iPad** -- allt forblir exakt som det ar pa skarmbredder over 768px.
+
+### Filpavekan
+| Fil | Andring |
+|-----|---------|
+| `src/pages/Dashboard.tsx` | Lagg till `useIsMobile`, visa rutsystem istallet for AI-widget pa mobil |
 
