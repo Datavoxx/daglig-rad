@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CustomerInvoiceDialog } from "@/components/invoices/CustomerInvoiceDialog";
+import type { InvoiceRow } from "@/components/invoices/InvoiceRowEditor";
 import { ArrowLeft, Phone, MapPin, Clock, Package, StickyNote, FileText, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -81,6 +83,9 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
   const [matForm, setMatForm] = useState({ article_name: "", quantity: "1", unit: "st", unit_price: "", category: "", is_billable: true });
   // Note form
   const [noteText, setNoteText] = useState("");
+  // Invoice dialog
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoiceRows, setInvoiceRows] = useState<InvoiceRow[]>([]);
 
   useEffect(() => {
     fetchAll();
@@ -377,11 +382,55 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
 
       {/* Create invoice button */}
       {status === "completed" && (
-        <Button className="w-full" size="lg" onClick={() => toast.info("Fakturaflöde kommer i nästa steg")}>
+        <Button className="w-full" size="lg" onClick={() => {
+          const rows: InvoiceRow[] = [];
+          // Add billable time entries
+          timeEntries.filter(e => e.is_billable).forEach(e => {
+            rows.push({
+              id: crypto.randomUUID(),
+              description: `${e.billing_type.charAt(0).toUpperCase() + e.billing_type.slice(1)}${e.description ? ` — ${e.description}` : ""} (${e.date})`,
+              quantity: Number(e.hours),
+              unit: "h",
+              unit_price: 0, // User sets hourly rate in invoice
+              vat_rate: 25,
+              subtotal: 0,
+            });
+          });
+          // Add billable materials
+          materials.filter(m => m.is_billable).forEach(m => {
+            const sub = Number(m.quantity) * Number(m.unit_price);
+            rows.push({
+              id: crypto.randomUUID(),
+              description: m.article_name,
+              quantity: Number(m.quantity),
+              unit: m.unit,
+              unit_price: Number(m.unit_price),
+              vat_rate: 25,
+              subtotal: sub,
+            });
+          });
+          if (rows.length === 0) {
+            rows.push({ id: crypto.randomUUID(), description: "", quantity: 1, unit: "st", unit_price: 0, vat_rate: 25, subtotal: 0 });
+          }
+          setInvoiceRows(rows);
+          setInvoiceOpen(true);
+        }}>
           <FileText className="h-4 w-4 mr-2" />
           Skapa faktura
         </Button>
       )}
+
+      <CustomerInvoiceDialog
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+        initialProjectId={projectId}
+        initialRows={invoiceRows}
+        onSaved={async (invoiceId) => {
+          await supabase.from("project_work_orders").update({ status: "invoiced", invoice_id: invoiceId }).eq("id", workOrder.id);
+          setStatus("invoiced");
+          onRefresh();
+        }}
+      />
     </div>
   );
 }

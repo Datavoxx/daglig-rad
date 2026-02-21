@@ -31,9 +31,12 @@ interface CustomerInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invoice?: any | null;
+  initialProjectId?: string;
+  initialRows?: InvoiceRow[];
+  onSaved?: (invoiceId: string) => void;
 }
 
-export function CustomerInvoiceDialog({ open, onOpenChange, invoice }: CustomerInvoiceDialogProps) {
+export function CustomerInvoiceDialog({ open, onOpenChange, invoice, initialProjectId, initialRows, onSaved }: CustomerInvoiceDialogProps) {
   const queryClient = useQueryClient();
   const isEditing = !!invoice;
 
@@ -123,13 +126,15 @@ export function CustomerInvoiceDialog({ open, onOpenChange, invoice }: CustomerI
         setNotes(invoice.notes || "");
         setRows(invoice.rows || []);
       } else {
-        setProjectId("");
+        setProjectId(initialProjectId || "");
         setCustomerId("");
         setInvoiceDate(format(new Date(), "yyyy-MM-dd"));
         setDueDate(format(addDays(new Date(), 30), "yyyy-MM-dd"));
         setPaymentTerms("30 dagar netto");
         setNotes("");
-        setRows([{ id: crypto.randomUUID(), description: "", quantity: 1, unit: "st", unit_price: 0, vat_rate: 25, subtotal: 0 }]);
+        setRows(initialRows && initialRows.length > 0 
+          ? initialRows 
+          : [{ id: crypto.randomUUID(), description: "", quantity: 1, unit: "st", unit_price: 0, vat_rate: 25, subtotal: 0 }]);
         setImportFromEstimate(false);
         setImportAta(false);
       }
@@ -218,16 +223,21 @@ export function CustomerInvoiceDialog({ open, onOpenChange, invoice }: CustomerI
           .update(invoiceData)
           .eq("id", invoice.id);
         if (error) throw error;
+        return invoice.id as string;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("customer_invoices")
-          .insert(invoiceData);
+          .insert(invoiceData)
+          .select("id")
+          .single();
         if (error) throw error;
+        return data.id as string;
       }
     },
-    onSuccess: (_, status) => {
+    onSuccess: (invoiceId, status) => {
       queryClient.invalidateQueries({ queryKey: ["customer-invoices"] });
       toast.success(status === "sent" ? "Faktura sparad och markerad som skickad" : "Faktura sparad");
+      onSaved?.(invoiceId);
       onOpenChange(false);
     },
     onError: (error) => {
