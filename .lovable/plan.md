@@ -1,42 +1,32 @@
 
-## Fixa mobilvy for projektvisning
+
+## Fixa Tidsrapportering-staplar pa mobil
 
 ### Problem
-1. **Flikarna ("tabs") ar avklippta** -- bara Oversikt, ATA, Arbetsorder och halva "File" syns. Planering och Dagbok ar helt osynliga och gar inte att na.
-2. **Fliktexten "Filer"** -- ska vara kortare pa mobil eller sa ska alla flikar fa plats.
-3. **Tidsrapportering-sektionen** langst ner ser dalig ut pa mobil -- den grona stapeln ar for stor och overlappar.
+Den grona stapeln for v.8 ar oproportionerligt stor och tar for mycket plats. Layouten med fast hojd (`h-10`) racker inte for att rymma stapel + veckonummer + timmar, sa det ser trasigt ut.
 
 ### Losning
 
-#### 1. Kompaktare flikar pa mobil (`src/pages/ProjectView.tsx`)
-- **Ta bort texten och visa bara ikoner pa mobil** (under `md`-breakpoint), behall ikon + text pa desktop.
-- Anvand `<span className="hidden md:inline">` runt varje flik-text.
-- Detta gor att alla 6 flikar far plats pa en rad utan att behova scrolla.
-- Ta bort `<Tooltip>`-wrappern pa mobil (den gor ingenting pa touch) -- behall den pa desktop.
+Andra layouten i `src/components/projects/ProjectTimeSection.tsx` sa att:
 
-Fore:
+1. **Separera staplar fran etiketter** -- flytta veckonummer och timmar utanfor stapelcontainern sa de inte tavlar om utrymme.
+2. **Begansa stapelhojden** till max 16px pa mobil (24px pa desktop) for en subtilare look.
+3. **Anvand en tydligare layout-struktur**:
+
 ```text
-[88 Oversikt] [ATA] [Arbetsorder] [File...
+[==]  [  ]  [  ]  [====]    <-- staplar (fast container, t.ex. h-6)
+v.5   v.6   v.7   v.8       <-- veckonummer
+ -     -     -    8h         <-- timmar
 ```
 
-Efter:
-```text
-[88] [Pen] [Clip] [Folder] [Cal] [Book]   (mobil, bara ikoner)
-[88 Oversikt] [ATA] [Arbetsorder] ...      (desktop, ikon+text)
-```
+### Teknisk andring
 
-#### 2. Tidsrapportering-sektionen (`src/components/projects/ProjectTimeSection.tsx`)
-- Gor veckostaplarna mindre pa mobil: minska `h-12` till `h-10` och max stapelhodjd fran 32px till 24px.
-- Gor statistik-raden mer kompakt: minska gap fran `gap-4` till `gap-2` pa mobil.
-- "Visa kalender"-knappen: visa som ikon-knapp pa mobil, text pa desktop.
+**`src/components/projects/ProjectTimeSection.tsx`** (rad 171-188):
 
-#### 3. Forbattrad scrollning pa flikraden
-- Lagg till `flex-nowrap` explicit och sakerstall att `overflow-x-auto` fungerar korrekt pa TabsList.
-- Lagg till en subtil fade/gradient pa hoger sida som visuell ledtrad att det finns fler flikar (om ikon-losningen inte racker).
+- Bryt ut stapelraden i en egen `div` med fast hojd (`h-6 md:h-8`) och `items-end`.
+- Placera veckolabel och timmar i en separat rad under staplarna.
+- Minska max barhojd till `16` pa mobil.
+- Ta bort `gap-1` inuti varje kolumn for att spara vertikalt utrymme.
 
-### Filandringar
+Resultatet blir en kompaktare, renare sektion som inte overlappar pa sma skarmar.
 
-| Fil | Andring |
-|-----|---------|
-| `src/pages/ProjectView.tsx` | Gomma fliktexter pa mobil (`hidden md:inline`), visa bara ikoner, ta bort Tooltip-wrapper pa mobil |
-| `src/components/projects/ProjectTimeSection.tsx` | Kompaktare layout pa mobil: mindre staplar, tightare stats, kompakt kalenderknapp |
