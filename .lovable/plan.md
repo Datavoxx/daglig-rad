@@ -1,27 +1,44 @@
 
-## Fixa dialog-bredd pa mobil (kvitto-dialoger)
+
+## Fix hamburgarmenyn: slide-in fran vanster istallet for "pop"
 
 ### Problem
-Bade "Nytt kvitto"-dialogen och kvittodetaljdialogen stracker sig fran kant till kant pa mobilen -- ingen marginal, inga rundade horn. Det ser klumpigt ut och okar risken for felklick.
+Hamburgarmenyn poppar bara upp istallet for att glida in fran vanster. Orsaken ar att knappen inte ar inkapslad i `SheetTrigger`, sa Radix Dialog missar open-animationen.
 
 ### Losning
-Lagg till horisontell marginal och rundade horn pa mobil i den globala `DialogContent`-komponenten (`src/components/ui/dialog.tsx`).
+Wrappa hamburgarknappen i `SheetTrigger` istallet for att anvanda en manuell `onClick` + `setMobileMenuOpen(true)`. Da kopplas oppningen korrekt till Radix-animationssystemet och slide-in-from-left-animationen spelar som den ska.
 
 ### Teknisk andring
 
-**`src/components/ui/dialog.tsx`** (rad 39)
+**`src/components/layout/AppLayout.tsx`** (rad ~288-296)
 
 Andra fran:
-```
-w-full max-w-lg ... sm:rounded-lg
+```tsx
+<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+  <Button 
+    variant="ghost" 
+    size="icon" 
+    className="h-9 w-9"
+    onClick={() => setMobileMenuOpen(true)}
+  >
+    <Menu className="h-5 w-5" />
+  </Button>
 ```
 
 Till:
-```
-w-[calc(100%-2rem)] max-w-lg ... rounded-lg
+```tsx
+<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+  <SheetTrigger asChild>
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      className="h-9 w-9"
+    >
+      <Menu className="h-5 w-5" />
+    </Button>
+  </SheetTrigger>
 ```
 
-- `w-[calc(100%-2rem)]` ger 1rem (16px) marginal pa vardera sida, sa dialogen aldrig gar anda ut till kanterna.
-- `rounded-lg` appliceras alltid (inte bara pa `sm:`) sa att rundade horn syns aven pa mobil.
+Kontrollera aven att `SheetTrigger` ar importerad langst upp i filen (den importeras redan troligen via sheet-komponenten).
 
-Detta paverkar alla dialoger i appen men ar en forbattring overallt -- inte bara for kvitto.
+En enda fil andras, en minimal andring.
