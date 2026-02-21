@@ -1778,6 +1778,80 @@ export type Database = {
           },
         ]
       }
+      receipts: {
+        Row: {
+          ai_extracted: boolean | null
+          created_at: string
+          id: string
+          image_storage_path: string | null
+          items: Json | null
+          org_number: string | null
+          original_file_name: string | null
+          payment_method: string | null
+          project_id: string | null
+          receipt_date: string | null
+          receipt_number: string | null
+          status: string
+          store_name: string | null
+          total_ex_vat: number | null
+          total_inc_vat: number | null
+          total_vat: number | null
+          updated_at: string
+          user_id: string
+          vat_breakdown: Json | null
+        }
+        Insert: {
+          ai_extracted?: boolean | null
+          created_at?: string
+          id?: string
+          image_storage_path?: string | null
+          items?: Json | null
+          org_number?: string | null
+          original_file_name?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          receipt_date?: string | null
+          receipt_number?: string | null
+          status?: string
+          store_name?: string | null
+          total_ex_vat?: number | null
+          total_inc_vat?: number | null
+          total_vat?: number | null
+          updated_at?: string
+          user_id: string
+          vat_breakdown?: Json | null
+        }
+        Update: {
+          ai_extracted?: boolean | null
+          created_at?: string
+          id?: string
+          image_storage_path?: string | null
+          items?: Json | null
+          org_number?: string | null
+          original_file_name?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          receipt_date?: string | null
+          receipt_number?: string | null
+          status?: string
+          store_name?: string | null
+          total_ex_vat?: number | null
+          total_inc_vat?: number | null
+          total_vat?: number | null
+          updated_at?: string
+          user_id?: string
+          vat_breakdown?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_pdfs: {
         Row: {
           created_at: string | null
