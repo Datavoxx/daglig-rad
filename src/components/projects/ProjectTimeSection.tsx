@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subWeeks, startOfWeek, endOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
-import { Clock, Plus, ChevronDown, ChevronUp, Users, FileText } from "lucide-react";
+import { Clock, Plus, ChevronDown, ChevronUp, Users, FileText, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,8 @@ export default function ProjectTimeSection({ projectId, projectName, onRegisterT
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm">
-                    Visa kalender
+                    <CalendarDays className="h-4 w-4 md:mr-1" />
+                    <span className="hidden md:inline">Visa kalender</span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="sm:max-w-2xl overflow-y-auto">
@@ -149,7 +150,7 @@ export default function ProjectTimeSection({ projectId, projectName, onRegisterT
           ) : (
             <div className="space-y-4">
               {/* Quick stats */}
-              <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex flex-wrap gap-2 md:gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{stats.totalHours.toFixed(1)}h</span>
@@ -168,12 +169,12 @@ export default function ProjectTimeSection({ projectId, projectName, onRegisterT
               </div>
 
               {/* Mini week bars */}
-              <div className="flex gap-2 items-end h-12">
+              <div className="flex gap-2 items-end h-10 md:h-12">
                 {weeklyData.map((week, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div 
                       className="w-full bg-primary/20 rounded-sm relative overflow-hidden"
-                      style={{ height: `${Math.max(4, (week.hours / maxWeekHours) * 32)}px` }}
+                      style={{ height: `${Math.max(4, (week.hours / maxWeekHours) * 24)}px` }}
                     >
                       <div 
                         className="absolute inset-0 bg-primary rounded-sm"
