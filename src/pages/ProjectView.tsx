@@ -320,7 +320,7 @@ export default function ProjectView() {
 
         <TabsContent value="workorders" className="mt-6">
           {isServiceIndustry ? (
-            <ServiceWorkOrderList projectId={project.id} projectName={project.name} />
+            <ServiceWorkOrderList projectId={project.id} projectName={project.name} clientName={project.client_name} address={project.address} estimateId={project.estimate_id} />
           ) : (
             <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
           )}
