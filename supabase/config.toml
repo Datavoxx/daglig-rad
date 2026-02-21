@@ -60,5 +60,8 @@ verify_jwt = false
 [functions.global-assistant]
 verify_jwt = false
 
+[functions.extract-receipt]
+verify_jwt = false
+
 [functions.extract-form-data]
 verify_jwt = false

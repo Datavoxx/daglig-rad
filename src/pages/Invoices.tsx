@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Receipt, Truck, BookOpen, Phone, Bell } from "lucide-react";
+import { FileText, Receipt, Truck, BookOpen, Phone, Bell, Camera } from "lucide-react";
 import { CustomerInvoiceList } from "@/components/invoices/CustomerInvoiceList";
 import { VendorInvoiceList } from "@/components/invoices/VendorInvoiceList";
+import { ReceiptList } from "@/components/invoices/ReceiptList";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -87,7 +88,7 @@ export default function Invoices() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="customer" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Kundfakturor
@@ -95,6 +96,10 @@ export default function Invoices() {
           <TabsTrigger value="vendor" className="flex items-center gap-2">
             <Truck className="h-4 w-4" />
             Leverantörsfakturor
+          </TabsTrigger>
+          <TabsTrigger value="receipts" className="flex items-center gap-2">
+            <Camera className="h-4 w-4" />
+            Kvitto
           </TabsTrigger>
           <TabsTrigger value="accounting" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
@@ -108,6 +113,10 @@ export default function Invoices() {
 
         <TabsContent value="vendor" className="space-y-4">
           <VendorInvoiceList />
+        </TabsContent>
+
+        <TabsContent value="receipts" className="space-y-4">
+          <ReceiptList />
         </TabsContent>
 
         <TabsContent value="accounting" className="space-y-6">
