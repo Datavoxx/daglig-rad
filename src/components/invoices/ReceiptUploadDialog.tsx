@@ -302,18 +302,20 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
 
             {/* Project selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Koppla till projekt (valfritt)</Label>
+              <Label className="text-sm font-medium">Koppla till projekt</Label>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Välj projekt" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Inget projekt</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {projectId === "none" && (
+                <p className="text-xs text-muted-foreground">Välj ett projekt för att spara kvittot</p>
+              )}
             </div>
 
             {/* Actions */}
@@ -321,7 +323,7 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
               <Button variant="outline" onClick={handleClose} className="flex-1">
                 Avbryt
               </Button>
-              <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+              <Button onClick={handleSave} disabled={isSaving || projectId === "none"} className="flex-1">
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
                 Spara kvitto
               </Button>
