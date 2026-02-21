@@ -1,60 +1,77 @@
 
-## Lägg till kategori-väljare för kvitton (Material / Lunch)
+
+## Lägg till branschval vid registrering
 
 ### Vad ändras
-Efter att AI har extraherat ett kvitto visas en ny "Kategori"-väljare bredvid projekt-väljaren. Användaren väljer mellan **Material** och **Lunch**. Kategorin sparas i databasen och visas i kvittolistan.
+Vid registrering visas ett nytt fält "Bransch" med fyra alternativ: **Målare**, **VVS**, **Elektriker**, **Bygg**. Användaren måste välja ett innan de kan registrera sig. Valet sparas i databasen för analys av vilken målgrupp som registrerar sig mest.
 
 ### Steg
 
-1. **Databasmigrering** -- Lägg till kolumn `category` (text, nullable, default null) i tabellen `receipts`.
+1. **Databasmigrering** -- Lägg till kolumn `industry` (text, nullable) i tabellen `profiles`.
 
-2. **`src/components/invoices/ReceiptUploadDialog.tsx`**
-   - Lägg till state `category` (default `""`)
-   - Lägg till en `Select`-komponent under projekt-väljaren med label "Kategori" och två alternativ: "Material" och "Lunch"
-   - Skicka `category` vid insert till `receipts`-tabellen
-   - Nollställ `category` i `handleClose`
+2. **`src/pages/Register.tsx`**
+   - Lägg till state `industry` och en `Select`-komponent med de fyra alternativen
+   - Validering: kräv att en bransch väljs innan registrering
+   - Skicka `industry` som user_metadata vid signup
+   - Uppdatera `profiles`-tabellen efter registrering med vald bransch
 
-3. **`src/components/invoices/ReceiptList.tsx`**
-   - Visa kategori-badge på varje kvittokort (t.ex. "Material" eller "Lunch")
-   - Eventuellt lägga till kategori som filteralternativ
+3. **`handle_new_user`-triggerfunktionen** -- Uppdatera den befintliga triggern så att `industry` sparas från `raw_user_meta_data` till `profiles`.
 
-4. **`src/components/invoices/ReceiptDetailDialog.tsx`**
-   - Visa kategorin i detaljvyn
+4. **`notify-new-account`** -- Skicka med `industry` i webhook-anropet så att ni kan se bransch i notifieringen.
 
 ### Tekniska detaljer
 
 **SQL-migrering:**
 ```sql
-ALTER TABLE receipts ADD COLUMN category text;
+ALTER TABLE public.profiles ADD COLUMN industry text;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+    INSERT INTO public.profiles (id, email, full_name, industry)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+        NEW.raw_user_meta_data->>'industry'
+    );
+    -- ... resten av rollsättning oförändrad
+END;
+$$;
 ```
 
-**ReceiptUploadDialog -- ny state + UI (efter projekt-väljaren, rad ~334):**
+**Register.tsx -- ny state + UI:**
 ```tsx
-const [category, setCategory] = useState<string>("");
+const [industry, setIndustry] = useState<string>("");
 
-// I JSX, efter projekt-selector:
-<div className="space-y-2">
-  <Label className="text-sm font-medium">Kategori</Label>
-  <Select value={category} onValueChange={setCategory}>
-    <SelectTrigger>
-      <SelectValue placeholder="Välj kategori" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="material">Material</SelectItem>
-      <SelectItem value="lunch">Lunch</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
+// Validering: kräv branschval
+if (!industry) {
+  setValidationError("Välj en bransch");
+  return false;
+}
+
+// Skicka med i signup metadata:
+data: {
+  full_name: fullName,
+  industry: industry,
+}
+
+// UI (Select-komponent före lösenord):
+<Select value={industry} onValueChange={setIndustry}>
+  <SelectItem value="malare">Målare</SelectItem>
+  <SelectItem value="vvs">VVS</SelectItem>
+  <SelectItem value="elektriker">Elektriker</SelectItem>
+  <SelectItem value="bygg">Bygg</SelectItem>
+</Select>
 ```
 
-**Insert-anropet utökas med:**
+**notify-new-account -- utöka body:**
 ```tsx
-category: category || null,
+body: { email, full_name: fullName, user_id: data.user.id, industry }
 ```
 
-**handleClose nollställer:**
-```tsx
-setCategory("");
-```
-
-Tre filer ändras + en databasmigrering.
+Fyra ändringar: en migrering, Register.tsx, triggerfunktion, notify-webhook.
