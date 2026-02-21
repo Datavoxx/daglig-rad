@@ -1,37 +1,60 @@
 
-## Lägg till Byggio-logga centrerat i mobilens topbar
+## Lägg till kategori-väljare för kvitton (Material / Lunch)
 
 ### Vad ändras
-En klickbar Byggio-logga placeras centrerat i mobilens topbar (header). Den fungerar som hem-knapp och navigerar till standardrouten. Loggan visas bara på mobil (md och uppåt har redan sidebar-loggan).
+Efter att AI har extraherat ett kvitto visas en ny "Kategori"-väljare bredvid projekt-väljaren. Användaren väljer mellan **Material** och **Lunch**. Kategorin sparas i databasen och visas i kvittolistan.
 
-### Teknisk ändring
+### Steg
 
-**`src/components/layout/AppLayout.tsx`**
+1. **Databasmigrering** -- Lägg till kolumn `category` (text, nullable, default null) i tabellen `receipts`.
 
-I headern (rad ~285) ändras layouten så att den har tre sektioner: vänster (hamburgare), mitten (logga), höger (klocka/notiser/profil). Loggan visas bara på mobil med `md:hidden`.
+2. **`src/components/invoices/ReceiptUploadDialog.tsx`**
+   - Lägg till state `category` (default `""`)
+   - Lägg till en `Select`-komponent under projekt-väljaren med label "Kategori" och två alternativ: "Material" och "Lunch"
+   - Skicka `category` vid insert till `receipts`-tabellen
+   - Nollställ `category` i `handleClose`
 
-```
-<header className="flex h-14 items-center justify-between ...">
-  {/* Vänster: hamburgare */}
-  <div className="flex items-center gap-3">
-    {isMobile && ( <Sheet>...</Sheet> )}
-    {/* Desktop: Search (oförändrad) */}
-  </div>
+3. **`src/components/invoices/ReceiptList.tsx`**
+   - Visa kategori-badge på varje kvittokort (t.ex. "Material" eller "Lunch")
+   - Eventuellt lägga till kategori som filteralternativ
 
-  {/* NYTT: Centrerad logga - bara mobil */}
-  <button
-    onClick={() => navigate(getDefaultRoute())}
-    className="absolute left-1/2 -translate-x-1/2 md:hidden"
-    aria-label="Gå till hem"
-  >
-    <img src={byggioLogo} alt="Byggio" className="h-8 w-auto" />
-  </button>
+4. **`src/components/invoices/ReceiptDetailDialog.tsx`**
+   - Visa kategorin i detaljvyn
 
-  {/* Höger: klocka, notiser, profil (oförändrad) */}
-  <div className="flex items-center gap-1.5">...</div>
-</header>
+### Tekniska detaljer
+
+**SQL-migrering:**
+```sql
+ALTER TABLE receipts ADD COLUMN category text;
 ```
 
-Headern får `relative` tillagt i className så att `absolute left-1/2 -translate-x-1/2` centrerar loggan korrekt. `byggioLogo` importeras redan i filen.
+**ReceiptUploadDialog -- ny state + UI (efter projekt-väljaren, rad ~334):**
+```tsx
+const [category, setCategory] = useState<string>("");
 
-En fil, en liten tillägg.
+// I JSX, efter projekt-selector:
+<div className="space-y-2">
+  <Label className="text-sm font-medium">Kategori</Label>
+  <Select value={category} onValueChange={setCategory}>
+    <SelectTrigger>
+      <SelectValue placeholder="Välj kategori" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="material">Material</SelectItem>
+      <SelectItem value="lunch">Lunch</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+```
+
+**Insert-anropet utökas med:**
+```tsx
+category: category || null,
+```
+
+**handleClose nollställer:**
+```tsx
+setCategory("");
+```
+
+Tre filer ändras + en databasmigrering.
