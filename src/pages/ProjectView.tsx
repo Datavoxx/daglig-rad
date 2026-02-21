@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen, FileDown, Loader2 } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useUserIndustry } from "@/hooks/useUserIndustry";
 import { generateProjectPdf } from "@/lib/generateProjectPdf";
 import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
 import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
 import ProjectDiaryTab from "@/components/projects/ProjectDiaryTab";
+import ServiceWorkOrderList from "@/components/projects/ServiceWorkOrderList";
 
 interface Project {
   id: string;
@@ -43,6 +45,7 @@ export default function ProjectView() {
   const [generatingOverview, setGeneratingOverview] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const { loading: permissionsLoading } = useUserPermissions();
+  const { isServiceIndustry } = useUserIndustry();
 
   const handleOverviewPdf = async () => {
     if (!project) return;
@@ -316,7 +319,11 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="workorders" className="mt-6">
-          <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
+          {isServiceIndustry ? (
+            <ServiceWorkOrderList projectId={project.id} projectName={project.name} />
+          ) : (
+            <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
+          )}
         </TabsContent>
 
         <TabsContent value="files" className="mt-6">
