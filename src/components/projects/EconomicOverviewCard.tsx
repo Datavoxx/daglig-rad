@@ -45,12 +45,13 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
   const [vendorInvoices, setVendorInvoices] = useState<VendorInvoice[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryWithBilling[]>([]);
   const [atas, setAtas] = useState<ProjectAta[]>([]);
+  const [receipts, setReceipts] = useState<{ id: string; total_inc_vat: number }[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       
-      const [vendorRes, timeRes, ataRes] = await Promise.all([
+      const [vendorRes, timeRes, ataRes, receiptRes] = await Promise.all([
         supabase
           .from("vendor_invoices")
           .select("id, total_inc_vat")
@@ -63,11 +64,16 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
           .from("project_ata")
           .select("id, subtotal, status")
           .eq("project_id", projectId),
+        supabase
+          .from("receipts" as any)
+          .select("id, total_inc_vat")
+          .eq("project_id", projectId),
       ]);
 
       if (vendorRes.data) setVendorInvoices(vendorRes.data);
       if (timeRes.data) setTimeEntries(timeRes.data as TimeEntryWithBilling[]);
       if (ataRes.data) setAtas(ataRes.data);
+      if (receiptRes.data) setReceipts(receiptRes.data as any);
       
       setLoading(false);
     };
@@ -92,7 +98,8 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
     return sum + (entry.hours * rate);
   }, 0);
   
-  const totalExpenses = vendorTotal + laborCost;
+  const receiptsTotal = receipts.reduce((sum, r) => sum + ((r as any).total_inc_vat || 0), 0);
+  const totalExpenses = vendorTotal + laborCost + receiptsTotal;
 
   // ÄTA - only approved ones
   const approvedAtas = atas.filter(a => a.status === "approved");
@@ -234,6 +241,15 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
               </div>
               <span>{formatCurrency(laborCost)}</span>
             </div>
+            {receipts.length > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Receipt className="h-3.5 w-3.5" />
+                  <span>Kvitton ({receipts.length} st)</span>
+                </div>
+                <span>{formatCurrency(receiptsTotal)}</span>
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
 

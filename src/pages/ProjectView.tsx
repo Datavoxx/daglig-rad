@@ -57,6 +57,7 @@ export default function ProjectView() {
         { data: workOrders },
         { data: planData },
         { data: projectFiles },
+        { data: receiptData },
       ] = await Promise.all([
         supabase.from("daily_reports").select("*").eq("project_id", project.id).order("report_date", { ascending: false }),
         supabase.from("time_entries").select("hours, user_id").eq("project_id", project.id),
@@ -68,6 +69,7 @@ export default function ProjectView() {
         supabase.from("project_work_orders").select("*").eq("project_id", project.id).order("created_at", { ascending: false }),
         supabase.from("project_plans").select("*").eq("project_id", project.id).maybeSingle(),
         supabase.from("project_files").select("*").eq("project_id", project.id),
+        supabase.from("receipts" as any).select("id, store_name, receipt_date, total_inc_vat, total_vat, status").eq("project_id", project.id),
       ]);
 
       // Calculate KPI data
@@ -76,7 +78,8 @@ export default function ProjectView() {
       const reportCount = (reports || []).length;
       const ataCount = (ataItems || []).length;
       const ataTotal = (ataItems || []).reduce((sum, a) => sum + (Number(a.subtotal) || 0), 0);
-      const expensesTotal = (vendorInvoices || []).reduce((sum, v) => sum + (Number(v.total_inc_vat) || 0), 0);
+      const receiptsTotal = (receiptData || []).reduce((sum: number, r: any) => sum + (Number(r.total_inc_vat) || 0), 0);
+      const expensesTotal = (vendorInvoices || []).reduce((sum, v) => sum + (Number(v.total_inc_vat) || 0), 0) + receiptsTotal;
       const quoteValue = Number(estimate?.total_incl_vat) || 0;
       const marginPercent = quoteValue > 0 ? ((quoteValue - expensesTotal) / quoteValue) * 100 : 0;
 
@@ -120,6 +123,7 @@ export default function ProjectView() {
         { data: projectFiles },
         { data: vendorInvoices },
         { data: companySettings },
+        { data: summaryReceipts },
       ] = await Promise.all([
         supabase.from("project_estimates").select("*").eq("project_id", project.id).maybeSingle(),
         supabase.from("project_ata").select("*").eq("project_id", project.id).order("sort_order"),
@@ -129,6 +133,7 @@ export default function ProjectView() {
         supabase.from("project_files").select("*").eq("project_id", project.id),
         supabase.from("vendor_invoices").select("*").eq("project_id", project.id),
         supabase.from("company_settings").select("*").limit(1).maybeSingle(),
+        supabase.from("receipts" as any).select("id, store_name, receipt_date, total_inc_vat, total_vat, status").eq("project_id", project.id),
       ]);
 
       let estimateItems: any[] = [];
@@ -157,6 +162,7 @@ export default function ProjectView() {
         workOrders: (workOrders || []) as any,
         projectFiles: (projectFiles || []) as any,
         vendorInvoices: (vendorInvoices || []) as any,
+        receipts: (summaryReceipts || []) as any,
         companySettings: companySettings as any,
       });
       toast.success("Summerings-PDF skapad");

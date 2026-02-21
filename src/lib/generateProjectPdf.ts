@@ -308,7 +308,7 @@ function renderKpiDashboardPage(doc: jsPDF, data: ProjectReport) {
     { title: "Dagrapporter", value: `${kpi.reportCount}`, sub: "rapporter", colors: KPI_COLORS.blue },
     { title: "Marginal", value: hasQuote ? `${kpi.marginPercent.toFixed(0)}%` : "\u2014", sub: hasQuote ? "av projektvarde" : "Ingen offert kopplad", colors: hasQuote ? marginColor : KPI_COLORS.amber },
     { title: "ATA-arbeten", value: `${kpi.ataCount}`, sub: formatCurrency(kpi.ataTotal), colors: KPI_COLORS.amber },
-    { title: "Utgifter", value: formatCurrency(kpi.expensesTotal), sub: "leverantorsfakturor", colors: KPI_COLORS.red },
+    { title: "Utgifter", value: formatCurrency(kpi.expensesTotal), sub: "leverantor + kvitton", colors: KPI_COLORS.red },
   ];
 
   for (let i = 0; i < kpiItems.length; i++) {

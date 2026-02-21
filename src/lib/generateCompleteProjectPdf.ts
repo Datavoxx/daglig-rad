@@ -127,6 +127,15 @@ interface CompanySettings {
   logo_url: string | null;
 }
 
+interface ReceiptItem {
+  id: string;
+  store_name: string | null;
+  receipt_date: string | null;
+  total_inc_vat: number;
+  total_vat: number;
+  status: string;
+}
+
 interface CompleteProjectPdfOptions {
   project: Project;
   estimate: Estimate | null;
@@ -138,6 +147,7 @@ interface CompleteProjectPdfOptions {
   workOrders?: WorkOrder[];
   projectFiles?: ProjectFile[];
   vendorInvoices?: VendorInvoice[];
+  receipts?: ReceiptItem[];
   companySettings: CompanySettings | null;
 }
 
@@ -192,7 +202,7 @@ function isImageFile(fileName: string): boolean {
 }
 
 export async function generateCompleteProjectPdf(options: CompleteProjectPdfOptions) {
-  const { project, estimate, estimateItems, ataItems, plan, diaryReports, timeEntries = [], workOrders = [], projectFiles = [], vendorInvoices = [], companySettings } = options;
+  const { project, estimate, estimateItems, ataItems, plan, diaryReports, timeEntries = [], workOrders = [], projectFiles = [], vendorInvoices = [], receipts = [], companySettings } = options;
 
   const doc = new jsPDF();
   let yPos = 20;
@@ -784,6 +794,38 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
     yPos += 15;
   }
 
+  // === RECEIPTS ===
+  if (receipts.length > 0) {
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Kvitton", 14, yPos);
+    yPos += 10;
+
+    const receiptData = receipts.map((r) => [
+      r.store_name || "Okand butik",
+      formatDate(r.receipt_date),
+      formatCurrency(r.total_inc_vat),
+      r.status === "reviewed" ? "Granskad" : "Ny",
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Butik", "Datum", "Belopp", "Status"]],
+      body: receiptData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60] },
+    });
+
+    const receiptsTotal = receipts.reduce((sum, r) => sum + r.total_inc_vat, 0);
+    yPos = (doc as any).lastAutoTable.finalY + 5;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total kvitton: ${formatCurrency(receiptsTotal)}`, 14, yPos);
+    yPos += 15;
+  }
+
   // === ECONOMIC SUMMARY ===
   doc.addPage();
   yPos = 20;
@@ -797,8 +839,9 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
   const estimateTotal = estimate?.total_incl_vat || 0;
   const grandTotal = estimateTotal + ataTotal;
   const vendorTotal = vendorInvoices.reduce((sum, inv) => sum + inv.total_inc_vat, 0);
+  const receiptsTotal = receipts.reduce((sum, r) => sum + r.total_inc_vat, 0);
   const laborCost = timeEntries.reduce((sum, e) => sum + (e.hours * (e.billing_rate || 0)), 0);
-  const totalCosts = vendorTotal + laborCost;
+  const totalCosts = vendorTotal + laborCost + receiptsTotal;
 
   const economyData: [string, string][] = [
     ["Offertbelopp (inkl. moms)", formatCurrency(estimateTotal)],
@@ -806,6 +849,7 @@ export async function generateCompleteProjectPdf(options: CompleteProjectPdfOpti
     ["Slutsumma intakter", formatCurrency(grandTotal)],
     ["", ""],
     ["Leverantorskostnader", formatCurrency(vendorTotal)],
+    ["Kvitton", formatCurrency(receiptsTotal)],
     ["Arbetskostnad (timmar x rate)", formatCurrency(laborCost)],
     ["Totala kostnader", formatCurrency(totalCosts)],
     ["", ""],

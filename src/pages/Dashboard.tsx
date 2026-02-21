@@ -373,7 +373,7 @@ const Dashboard = () => {
             { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
             { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
             { title: "Kunder", icon: Users, href: "/customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true" },
           ].map((item) => (
             <button
               key={item.title}

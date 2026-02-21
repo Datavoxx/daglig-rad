@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -54,13 +54,24 @@ const statusConfig: Record<ReceiptStatus, { label: string; variant: "secondary" 
   reviewed: { label: "Granskat", variant: "default" },
 };
 
-export function ReceiptList() {
+interface ReceiptListProps {
+  autoOpen?: boolean;
+}
+
+export function ReceiptList({ autoOpen }: ReceiptListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<ReceiptRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Auto-open upload dialog if navigated with auto param
+  useEffect(() => {
+    if (autoOpen) {
+      setUploadOpen(true);
+    }
+  }, [autoOpen]);
 
   const { data: receipts = [], isLoading } = useQuery({
     queryKey: ["receipts"],

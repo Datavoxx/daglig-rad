@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Receipt, Truck, BookOpen, Phone, Bell, Camera } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CustomerInvoiceList } from "@/components/invoices/CustomerInvoiceList";
 import { VendorInvoiceList } from "@/components/invoices/VendorInvoiceList";
 import { ReceiptList } from "@/components/invoices/ReceiptList";
@@ -15,11 +17,21 @@ import fortnoxLogo from "@/assets/fortnox-logo.png";
 import vismaLogo from "@/assets/visma-logo.png";
 
 export default function Invoices() {
-  const [activeTab, setActiveTab] = useState("customer");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "customer");
+  const [autoOpenReceipt, setAutoOpenReceipt] = useState(() => searchParams.get("auto") === "true");
   const [selectedProgram, setSelectedProgram] = useState<string>("fortnox");
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  // Clear URL params after reading them
+  useEffect(() => {
+    if (searchParams.has("tab") || searchParams.has("auto")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   const handleSubmitInterest = async () => {
     if (!phone.trim()) {
@@ -88,22 +100,22 @@ export default function Invoices() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-          <TabsTrigger value="customer" className="flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
-            Kundfakturor
+        <TabsList className="flex w-full max-w-2xl overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="customer" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+            <Receipt className="h-4 w-4 shrink-0" />
+            {!isMobile && "Kundfakturor"}
           </TabsTrigger>
-          <TabsTrigger value="vendor" className="flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            Leverantörsfakturor
+          <TabsTrigger value="vendor" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+            <Truck className="h-4 w-4 shrink-0" />
+            {!isMobile && "Leverantörsfakturor"}
           </TabsTrigger>
-          <TabsTrigger value="receipts" className="flex items-center gap-2">
-            <Camera className="h-4 w-4" />
-            Kvitto
+          <TabsTrigger value="receipts" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+            <Camera className="h-4 w-4 shrink-0" />
+            {!isMobile && "Kvitto"}
           </TabsTrigger>
-          <TabsTrigger value="accounting" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Bokföring
+          <TabsTrigger value="accounting" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+            <BookOpen className="h-4 w-4 shrink-0" />
+            {!isMobile && "Bokföring"}
           </TabsTrigger>
         </TabsList>
 
@@ -116,7 +128,7 @@ export default function Invoices() {
         </TabsContent>
 
         <TabsContent value="receipts" className="space-y-4">
-          <ReceiptList />
+          <ReceiptList autoOpen={autoOpenReceipt} />
         </TabsContent>
 
         <TabsContent value="accounting" className="space-y-6">

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -41,6 +41,8 @@ interface Props {
 }
 
 export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
+  // Auto-trigger camera when dialog opens
+  const autoTriggered = useRef(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedReceipt | null>(null);
@@ -49,6 +51,19 @@ export function ReceiptUploadDialog({ open, onOpenChange }: Props) {
   const [projectId, setProjectId] = useState<string>("none");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (open && !autoTriggered.current && !extracted && !isExtracting) {
+      autoTriggered.current = true;
+      // Small delay to let dialog render
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 300);
+    }
+    if (!open) {
+      autoTriggered.current = false;
+    }
+  }, [open, extracted, isExtracting]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects-list"],
