@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CustomerInvoiceDialog } from "@/components/invoices/CustomerInvoiceDialog";
 import type { InvoiceRow } from "@/components/invoices/InvoiceRowEditor";
-import { ArrowLeft, Phone, MapPin, Clock, Package, StickyNote, FileText, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, Clock, Package, StickyNote, FileText, Plus, Trash2, ChevronDown, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -55,6 +55,14 @@ interface Note {
   created_at: string;
 }
 
+interface Article {
+  id: string;
+  name: string;
+  unit: string | null;
+  default_price: number | null;
+  customer_price: number | null;
+}
+
 interface Props {
   workOrder: WorkOrder;
   projectId: string;
@@ -76,9 +84,13 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
   const [materials, setMaterials] = useState<Material[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [status, setStatus] = useState(workOrder.status);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [hourlyRate, setHourlyRate] = useState(500);
+  const [markupPercent, setMarkupPercent] = useState(10);
 
   // Time form
   const [timeForm, setTimeForm] = useState({ hours: "", date: format(new Date(), "yyyy-MM-dd"), billing_type: "service", description: "", is_billable: true });
+  const [showTimeOptions, setShowTimeOptions] = useState(false);
   // Material form
   const [matForm, setMatForm] = useState({ article_name: "", quantity: "1", unit: "st", unit_price: "", category: "", is_billable: true });
   // Note form
@@ -89,6 +101,7 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
 
   useEffect(() => {
     fetchAll();
+    fetchArticlesAndPricing();
   }, [workOrder.id]);
 
   const fetchAll = async () => {
@@ -100,6 +113,47 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
     setTimeEntries((t || []) as TimeEntry[]);
     setMaterials((m || []) as Material[]);
     setNotes((n || []) as Note[]);
+  };
+
+  const fetchArticlesAndPricing = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const [{ data: arts }, { data: pricing }] = await Promise.all([
+      supabase.from("articles").select("id, name, unit, default_price, customer_price").eq("user_id", user.id).eq("is_active", true).order("sort_order").limit(10),
+      supabase.from("user_pricing_settings").select("hourly_rate_general, material_markup_percent").eq("user_id", user.id).maybeSingle(),
+    ]);
+    setArticles((arts || []) as Article[]);
+    if (pricing) {
+      setHourlyRate(Number(pricing.hourly_rate_general) || 500);
+      setMarkupPercent(Number(pricing.material_markup_percent) || 10);
+    }
+  };
+
+  const getCustomerPrice = (article: Article) => {
+    if (article.customer_price != null) return Number(article.customer_price);
+    if (article.default_price != null) return Math.round(Number(article.default_price) * (1 + markupPercent / 100));
+    return 0;
+  };
+
+  const addFavoriteMaterial = async (article: Article) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const price = getCustomerPrice(article);
+    const { error } = await supabase.from("work_order_materials").insert({
+      work_order_id: workOrder.id,
+      user_id: user.id,
+      article_name: article.name,
+      quantity: 1,
+      unit: article.unit || "st",
+      unit_price: price,
+      is_billable: true,
+      sort_order: materials.length,
+    });
+    if (error) { toast.error("Kunde inte lägga till"); return; }
+    toast.success(`${article.name} tillagt`);
+    fetchAll();
   };
 
   const updateStatus = async (newStatus: string) => {
@@ -176,10 +230,10 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
     fetchAll();
   };
 
-  const totalHours = timeEntries.reduce((s, e) => s + Number(e.hours), 0);
   const billableHours = timeEntries.filter(e => e.is_billable).reduce((s, e) => s + Number(e.hours), 0);
-  const totalMaterialCost = materials.reduce((s, m) => s + Number(m.quantity) * Number(m.unit_price), 0);
   const billableMaterialCost = materials.filter(m => m.is_billable).reduce((s, m) => s + Number(m.quantity) * Number(m.unit_price), 0);
+  const timeCost = Math.round(billableHours * hourlyRate);
+  const totalCost = timeCost + billableMaterialCost;
 
   return (
     <div className="space-y-4">
@@ -237,54 +291,89 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
         </CardContent>
       </Card>
 
-      {/* Summary bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total tid</p><p className="text-lg font-semibold">{totalHours}h</p></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Debiterbar tid</p><p className="text-lg font-semibold">{billableHours}h</p></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Material</p><p className="text-lg font-semibold">{totalMaterialCost.toLocaleString("sv-SE")} kr</p></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Debiterbart mat.</p><p className="text-lg font-semibold">{billableMaterialCost.toLocaleString("sv-SE")} kr</p></CardContent></Card>
+      {/* Money summary - 3 cards */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card>
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-muted-foreground">Tid</p>
+            <p className="text-lg font-bold">{timeCost.toLocaleString("sv-SE")} kr</p>
+            <p className="text-xs text-muted-foreground">{billableHours}h × {hourlyRate} kr</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-muted-foreground">Material</p>
+            <p className="text-lg font-bold">{billableMaterialCost.toLocaleString("sv-SE")} kr</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-3 text-center">
+            <p className="text-xs font-medium text-primary">TOTALT</p>
+            <p className="text-xl font-black text-primary">{totalCost.toLocaleString("sv-SE")} kr</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Accordion sections */}
       <Accordion type="multiple" defaultValue={["time", "material"]} className="space-y-2">
-        {/* TIME */}
+        {/* TIME - simplified */}
         <AccordionItem value="time" className="border rounded-lg px-4">
           <AccordionTrigger className="py-3">
             <span className="flex items-center gap-2"><Clock className="h-4 w-4" />Tid ({timeEntries.length})</span>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Timmar *</Label>
-                <Input type="number" step="0.5" placeholder="0" value={timeForm.hours} onChange={e => setTimeForm({ ...timeForm, hours: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Datum</Label>
-                <Input type="date" value={timeForm.date} onChange={e => setTimeForm({ ...timeForm, date: e.target.value })} />
-              </div>
+            {/* Quick add row */}
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                step="0.5"
+                placeholder="Timmar"
+                value={timeForm.hours}
+                onChange={e => setTimeForm({ ...timeForm, hours: e.target.value })}
+                className="flex-1 text-lg h-11"
+                onKeyDown={e => e.key === "Enter" && addTime()}
+              />
+              <Button onClick={addTime} className="h-11 px-4">
+                <Plus className="h-4 w-4 mr-1" />Lägg tid
+              </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Typ</Label>
-                <Select value={timeForm.billing_type} onValueChange={v => setTimeForm({ ...timeForm, billing_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="service">Service</SelectItem>
-                    <SelectItem value="installation">Installation</SelectItem>
-                    <SelectItem value="jour">Jour</SelectItem>
-                    <SelectItem value="resa">Resa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end pb-1">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={timeForm.is_billable} onCheckedChange={c => setTimeForm({ ...timeForm, is_billable: !!c })} />
-                  Debiterbar
-                </label>
-              </div>
-            </div>
-            <Input placeholder="Anteckning (valfritt)" value={timeForm.description} onChange={e => setTimeForm({ ...timeForm, description: e.target.value })} />
-            <Button size="sm" onClick={addTime} className="w-full"><Plus className="h-4 w-4 mr-1" />Lägg tid</Button>
+
+            {/* Expandable options */}
+            <Collapsible open={showTimeOptions} onOpenChange={setShowTimeOptions}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground w-full">
+                  <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${showTimeOptions ? "rotate-180" : ""}`} />
+                  Fler val
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Datum</Label>
+                    <Input type="date" value={timeForm.date} onChange={e => setTimeForm({ ...timeForm, date: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Typ</Label>
+                    <Select value={timeForm.billing_type} onValueChange={v => setTimeForm({ ...timeForm, billing_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="service">Service</SelectItem>
+                        <SelectItem value="installation">Installation</SelectItem>
+                        <SelectItem value="jour">Jour</SelectItem>
+                        <SelectItem value="resa">Resa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={timeForm.is_billable} onCheckedChange={c => setTimeForm({ ...timeForm, is_billable: !!c })} />
+                    Debiterbar
+                  </label>
+                </div>
+                <Input placeholder="Anteckning (valfritt)" value={timeForm.description} onChange={e => setTimeForm({ ...timeForm, description: e.target.value })} />
+              </CollapsibleContent>
+            </Collapsible>
 
             {timeEntries.length > 0 && (
               <div className="space-y-1 mt-2">
@@ -304,12 +393,34 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
           </AccordionContent>
         </AccordionItem>
 
-        {/* MATERIAL */}
+        {/* MATERIAL with favorites */}
         <AccordionItem value="material" className="border rounded-lg px-4">
           <AccordionTrigger className="py-3">
             <span className="flex items-center gap-2"><Package className="h-4 w-4" />Material ({materials.length})</span>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-3">
+            {/* Favorite chips */}
+            {articles.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1"><Zap className="h-3 w-3" />Snabbval</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {articles.map(a => (
+                    <Button
+                      key={a.id}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 rounded-full"
+                      onClick={() => addFavoriteMaterial(a)}
+                    >
+                      <Plus className="h-3 w-3 mr-0.5" />{a.name}
+                      <span className="text-muted-foreground ml-1">{getCustomerPrice(a)} kr</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manual form */}
             <div className="space-y-1">
               <Label className="text-xs">Artikel *</Label>
               <Input placeholder="T.ex. Kabel 3G2.5" value={matForm.article_name} onChange={e => setMatForm({ ...matForm, article_name: e.target.value })} />
@@ -384,19 +495,17 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
       {status === "completed" && (
         <Button className="w-full" size="lg" onClick={() => {
           const rows: InvoiceRow[] = [];
-          // Add billable time entries
           timeEntries.filter(e => e.is_billable).forEach(e => {
             rows.push({
               id: crypto.randomUUID(),
               description: `${e.billing_type.charAt(0).toUpperCase() + e.billing_type.slice(1)}${e.description ? ` — ${e.description}` : ""} (${e.date})`,
               quantity: Number(e.hours),
               unit: "h",
-              unit_price: 0, // User sets hourly rate in invoice
+              unit_price: hourlyRate,
               vat_rate: 25,
-              subtotal: 0,
+              subtotal: Number(e.hours) * hourlyRate,
             });
           });
-          // Add billable materials
           materials.filter(m => m.is_billable).forEach(m => {
             const sub = Number(m.quantity) * Number(m.unit_price);
             rows.push({

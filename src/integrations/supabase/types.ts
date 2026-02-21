@@ -131,6 +131,7 @@ export type Database = {
         Row: {
           article_category: string | null
           created_at: string | null
+          customer_price: number | null
           default_price: number | null
           description: string | null
           id: string
@@ -144,6 +145,7 @@ export type Database = {
         Insert: {
           article_category?: string | null
           created_at?: string | null
+          customer_price?: number | null
           default_price?: number | null
           description?: string | null
           id?: string
@@ -157,6 +159,7 @@ export type Database = {
         Update: {
           article_category?: string | null
           created_at?: string | null
+          customer_price?: number | null
           default_price?: number | null
           description?: string | null
           id?: string
