@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Briefcase, Search, Phone, Clock, Package, FileText, MapPin, Building2, ChevronRight, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, Briefcase, Search, Phone, Clock, Package, FileText, MapPin, Building2, ChevronRight, MoreHorizontal, Trash2, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +25,6 @@ interface Job {
   address: string | null;
   status: string | null;
   created_at: string;
-  // Aggregated data
   hasTime: boolean;
   hasMaterial: boolean;
   isInvoiced: boolean;
@@ -46,6 +46,7 @@ const getStatusLabel = (status: string | null) => {
   switch (status) {
     case "in_progress": return "Pågående";
     case "pending": return "Planerad";
+    case "planned": return "Planerad";
     case "waiting": return "Väntar";
     case "completed": return "Klar";
     case "invoiced": return "Fakturerad";
@@ -56,7 +57,7 @@ const getStatusLabel = (status: string | null) => {
 const getStatusColor = (status: string | null) => {
   switch (status) {
     case "in_progress": return "bg-blue-500/10 text-blue-700 dark:text-blue-400";
-    case "pending": return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+    case "pending": case "planned": return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
     case "waiting": return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
     case "completed": return "bg-green-500/10 text-green-700 dark:text-green-400";
     case "invoiced": return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
@@ -81,34 +82,27 @@ export function JobsList() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Fetch projects
     const { data: projects } = await supabase
       .from("projects")
       .select("id, name, client_name, address, status, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (!projects) {
-      setLoading(false);
-      return;
-    }
+    if (!projects) { setLoading(false); return; }
 
     const projectIds = projects.map(p => p.id);
 
-    // Fetch work orders for these projects
     const { data: workOrders } = await supabase
       .from("project_work_orders")
       .select("id, project_id, status, customer_phone, invoice_id")
       .in("project_id", projectIds.length > 0 ? projectIds : ["__none__"]);
 
-    // Fetch time entries count per work order
     const woIds = (workOrders || []).map(w => w.id);
     const { data: timeEntries } = await supabase
       .from("work_order_time_entries")
       .select("work_order_id")
       .in("work_order_id", woIds.length > 0 ? woIds : ["__none__"]);
 
-    // Fetch materials count per work order
     const { data: materials } = await supabase
       .from("work_order_materials")
       .select("work_order_id")
@@ -147,6 +141,17 @@ export function JobsList() {
       toast({ title: "Jobb borttaget" });
       fetchJobs();
     }
+  };
+
+  const handleStatusChange = async (job: Job, newStatus: string) => {
+    // Update work order status
+    if (job.workOrderId) {
+      await supabase.from("project_work_orders").update({ status: newStatus }).eq("id", job.workOrderId);
+    }
+    // Update project status
+    await supabase.from("projects").update({ status: newStatus === "planned" ? "pending" : newStatus }).eq("id", job.id);
+    toast({ title: `Jobb markerat som ${getStatusLabel(newStatus)}` });
+    fetchJobs();
   };
 
   const filteredJobs = jobs.filter(job => {
@@ -229,8 +234,10 @@ export function JobsList() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {filteredJobs.map((job, index) => {
+          {filteredJobs.map((job) => {
             const effectiveStatus = job.workOrderStatus || job.status;
+            const canStart = effectiveStatus === "pending" || effectiveStatus === "planned";
+            const canComplete = effectiveStatus === "in_progress";
             return (
               <Card
                 key={job.id}
@@ -281,6 +288,29 @@ export function JobsList() {
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                      {/* Quick status actions */}
+                      {canStart && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600"
+                          title="Starta jobb"
+                          onClick={() => handleStatusChange(job, "in_progress")}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canComplete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600"
+                          title="Markera klar"
+                          onClick={() => handleStatusChange(job, "completed")}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       {/* Quick call */}
                       {job.customerPhone && (
                         <Button
@@ -307,6 +337,25 @@ export function JobsList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="z-50 bg-background border shadow-lg">
+                          {canStart && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job, "in_progress")}>
+                              <Play className="mr-2 h-4 w-4" />
+                              Starta jobb
+                            </DropdownMenuItem>
+                          )}
+                          {canComplete && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job, "completed")}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Markera klar
+                            </DropdownMenuItem>
+                          )}
+                          {effectiveStatus === "completed" && (
+                            <DropdownMenuItem onClick={() => navigate(`/projects/${job.id}`)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Skapa faktura
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => handleDelete(job)}

@@ -14,6 +14,7 @@ import type { InvoiceRow } from "@/components/invoices/InvoiceRowEditor";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
 import ProjectAtaTab from "@/components/projects/ProjectAtaTab";
 import JobActionBar from "./JobActionBar";
+import JobReceiptScanner from "./JobReceiptScanner";
 import {
   ArrowLeft, Phone, MapPin, Clock, Package, StickyNote, FileText,
   Plus, Trash2, ChevronDown, Zap, Camera, Image, Wrench,
@@ -103,6 +104,7 @@ export default function JobDetailView({ project }: Props) {
   const [status, setStatus] = useState("planned");
   const [articles, setArticles] = useState<Article[]>([]);
   const [hourlyRate, setHourlyRate] = useState(500);
+  const [extraWorkTotal, setExtraWorkTotal] = useState(0);
 
   // Time form
   const [timeForm, setTimeForm] = useState({ hours: "", date: format(new Date(), "yyyy-MM-dd"), billing_type: "service", description: "", is_billable: true });
@@ -114,19 +116,22 @@ export default function JobDetailView({ project }: Props) {
   // Invoice dialog
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoiceRows, setInvoiceRows] = useState<InvoiceRow[]>([]);
+  // Accordion open state
+  const [openSections, setOpenSections] = useState<string[]>(["time", "material"]);
 
   // Section refs for action bar scrolling
   const timeRef = useRef<HTMLDivElement>(null);
   const materialRef = useRef<HTMLDivElement>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const filesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchOrCreateWorkOrder();
     fetchArticlesAndPricing();
+    fetchExtraWorkTotal();
   }, [project.id]);
 
   const fetchOrCreateWorkOrder = async () => {
-    // Try to find existing service work order
     const { data: orders } = await supabase
       .from("project_work_orders")
       .select("*")
@@ -140,7 +145,6 @@ export default function JobDetailView({ project }: Props) {
       setStatus(wo.status);
       fetchWorkOrderData(wo.id);
     } else {
-      // Auto-create a work order for this job
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
@@ -189,6 +193,16 @@ export default function JobDetailView({ project }: Props) {
     if (pricing) setHourlyRate(Number(pricing.hourly_rate_general) || 500);
   };
 
+  const fetchExtraWorkTotal = async () => {
+    const { data } = await supabase
+      .from("project_ata")
+      .select("subtotal, status")
+      .eq("project_id", project.id)
+      .eq("status", "approved");
+    const total = (data || []).reduce((s, a) => s + (Number(a.subtotal) || 0), 0);
+    setExtraWorkTotal(total);
+  };
+
   const getCustomerPrice = (article: Article) => {
     if (article.customer_price != null) return Number(article.customer_price);
     if (article.default_price != null) return Number(article.default_price);
@@ -220,6 +234,8 @@ export default function JobDetailView({ project }: Props) {
     const { error } = await supabase.from("project_work_orders").update({ status: newStatus }).eq("id", workOrder.id);
     if (error) { toast.error("Kunde inte uppdatera status"); return; }
     setStatus(newStatus);
+    // Also update project status
+    await supabase.from("projects").update({ status: newStatus === "planned" ? "pending" : newStatus }).eq("id", project.id);
     toast.success(`Status ändrad till ${statusFlow.find(s => s.value === newStatus)?.label}`);
   };
 
@@ -318,11 +334,18 @@ export default function JobDetailView({ project }: Props) {
     setInvoiceOpen(true);
   };
 
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>, sectionKey: string) => {
+    if (!openSections.includes(sectionKey)) {
+      setOpenSections(prev => [...prev, sectionKey]);
+    }
+    setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
+
   // Calculations
   const billableHours = timeEntries.filter(e => e.is_billable).reduce((s, e) => s + Number(e.hours), 0);
   const billableMaterialCost = materials.filter(m => m.is_billable).reduce((s, m) => s + Number(m.quantity) * Number(m.unit_price), 0);
   const timeCost = Math.round(billableHours * hourlyRate);
-  const totalCost = timeCost + billableMaterialCost;
+  const totalCost = timeCost + billableMaterialCost + extraWorkTotal;
 
   if (loading) {
     return (
@@ -388,30 +411,48 @@ export default function JobDetailView({ project }: Props) {
       </div>
 
       {/* Money summary */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Tid</p>
-            <p className="text-lg font-bold">{timeCost.toLocaleString("sv-SE")} kr</p>
-            <p className="text-xs text-muted-foreground">{billableHours}h × {hourlyRate} kr</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tid</p>
+            <p className="text-lg font-bold tabular-nums">{timeCost.toLocaleString("sv-SE")} kr</p>
+            <p className="text-[10px] text-muted-foreground">{billableHours}h × {hourlyRate} kr</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Material</p>
-            <p className="text-lg font-bold">{billableMaterialCost.toLocaleString("sv-SE")} kr</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Material</p>
+            <p className="text-lg font-bold tabular-nums">{billableMaterialCost.toLocaleString("sv-SE")} kr</p>
           </CardContent>
         </Card>
+        {extraWorkTotal > 0 && (
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Extraarbete</p>
+              <p className="text-lg font-bold tabular-nums">{extraWorkTotal.toLocaleString("sv-SE")} kr</p>
+            </CardContent>
+          </Card>
+        )}
         <Card className="border-primary/50 bg-primary/5">
           <CardContent className="p-3 text-center">
-            <p className="text-xs font-medium text-primary">TOTALT</p>
-            <p className="text-xl font-black text-primary">{totalCost.toLocaleString("sv-SE")} kr</p>
+            <p className="text-[10px] font-medium text-primary uppercase tracking-wide">TOTALT</p>
+            <p className="text-xl font-black text-primary tabular-nums">{totalCost.toLocaleString("sv-SE")} kr</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Desktop sticky action bar */}
+      <JobActionBar
+        onAddTime={() => scrollToSection(timeRef, "time")}
+        onAddMaterial={() => scrollToSection(materialRef, "material")}
+        onScanReceipt={() => scrollToSection(receiptRef, "receipt")}
+        onAddImage={() => scrollToSection(filesRef, "files")}
+        onCreateInvoice={openInvoice}
+        showInvoice={status === "completed"}
+      />
+
       {/* Accordion sections */}
-      <Accordion type="multiple" defaultValue={["time", "material"]} className="space-y-2">
+      <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-2">
         {/* TIME */}
         <div ref={timeRef}>
           <AccordionItem value="time" className="border rounded-lg px-4">
@@ -561,6 +602,26 @@ export default function JobDetailView({ project }: Props) {
           </AccordionItem>
         </div>
 
+        {/* RECEIPT SCANNER */}
+        <div ref={receiptRef}>
+          <AccordionItem value="receipt" className="border rounded-lg px-4">
+            <AccordionTrigger className="py-3">
+              <span className="flex items-center gap-2"><Camera className="h-4 w-4" />Scanna kvitto</span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              {workOrder && (
+                <JobReceiptScanner
+                  workOrderId={workOrder.id}
+                  projectId={project.id}
+                  onMaterialsAdded={() => {
+                    if (workOrder) fetchWorkOrderData(workOrder.id);
+                  }}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </div>
+
         {/* NOTES */}
         <AccordionItem value="notes" className="border rounded-lg px-4">
           <AccordionTrigger className="py-3">
@@ -592,7 +653,7 @@ export default function JobDetailView({ project }: Props) {
           </AccordionItem>
         </div>
 
-        {/* EXTRA WORK (ÄTA) */}
+        {/* EXTRA WORK */}
         <AccordionItem value="extra" className="border rounded-lg px-4">
           <AccordionTrigger className="py-3">
             <span className="flex items-center gap-2"><Wrench className="h-4 w-4" />Extraarbete</span>
@@ -605,6 +666,7 @@ export default function JobDetailView({ project }: Props) {
               projectAddress={project.address || undefined}
               projectPostalCode={project.postal_code || undefined}
               projectCity={project.city || undefined}
+              serviceMode
             />
           </AccordionContent>
         </AccordionItem>
@@ -617,15 +679,6 @@ export default function JobDetailView({ project }: Props) {
           Skapa faktura
         </Button>
       )}
-
-      {/* Sticky action bar (mobile) */}
-      <JobActionBar
-        onAddTime={() => timeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        onAddMaterial={() => materialRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        onAddImage={() => filesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        onCreateInvoice={openInvoice}
-        showInvoice={status === "completed"}
-      />
 
       {workOrder && (
         <CustomerInvoiceDialog
