@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Mail, Phone, Save, Loader2, Camera, FileText } from "lucide-react";
+import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -180,11 +181,7 @@ export default function Profile() {
     : profile?.email?.charAt(0).toUpperCase() || "U";
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ByggioLoader />;
   }
 
   return (

@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Plus, Calendar, FileText, Loader2 } from "lucide-react";
+import { BookOpen, Plus, Calendar, FileText } from "lucide-react";
+import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { format, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { InlineDiaryCreator } from "@/components/projects/InlineDiaryCreator";
@@ -174,9 +175,7 @@ export default function DailyReports() {
           </CardHeader>
           <CardContent>
             {loadingReports ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
+              <ByggioLoader />
             ) : reports.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
