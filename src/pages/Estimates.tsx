@@ -158,7 +158,7 @@ export default function Estimates() {
 
   if (estimatesLoading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="page-transition p-6 max-w-6xl mx-auto">
         <EstimateSkeleton />
       </div>
     );
@@ -244,7 +244,7 @@ export default function Estimates() {
   // Show wizard - wizard handles its own back/cancel
   if (showWizard) {
     return (
-      <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
         <EstimateWizard
           onComplete={handleWizardComplete}
           onCancel={() => setShowWizard(false)}
@@ -259,7 +259,7 @@ export default function Estimates() {
 
   if (manualStarted && manualData) {
     return (
-      <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto">
         <EstimateBuilder
           manualData={manualData}
           estimateId={selectedEstimateId}
@@ -272,7 +272,7 @@ export default function Estimates() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6">
+    <div className="page-transition p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

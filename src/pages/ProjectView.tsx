@@ -207,7 +207,7 @@ export default function ProjectView() {
 
   if (loading || permissionsLoading) {
     return (
-      <div className="space-y-6">
+      <div className="page-transition space-y-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-10" />
           <div className="space-y-2">
@@ -231,7 +231,7 @@ export default function ProjectView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
         <Button

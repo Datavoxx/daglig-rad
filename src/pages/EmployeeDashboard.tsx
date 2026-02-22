@@ -140,7 +140,7 @@ export default function EmployeeDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="page-transition space-y-6">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-6 w-48" />
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
@@ -154,7 +154,7 @@ export default function EmployeeDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Greeting header */}
       <div>
         <h1 className="page-title">Hej, {firstName}! 👋</h1>

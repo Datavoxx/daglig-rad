@@ -287,7 +287,7 @@ export default function InspectionNew() {
 
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="page-transition max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")} className="shrink-0">
           <ArrowLeft className="h-4 w-4" />

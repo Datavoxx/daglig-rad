@@ -220,7 +220,7 @@ export default function TimeReporting() {
   const linkedEmployees = employees.filter((e: any) => e.linked_user_id);
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tidsrapportering</h1>

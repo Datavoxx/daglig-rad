@@ -201,7 +201,7 @@ export default function PayrollExport() {
   const isLocked = period?.status === "locked" || period?.status === "exported";
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <FileSpreadsheet className="h-6 w-6" />

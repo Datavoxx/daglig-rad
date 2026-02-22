@@ -84,7 +84,7 @@ export default function Invoices() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-background to-primary/10 border p-6 md:p-8">
         <div className="flex items-center gap-4">
