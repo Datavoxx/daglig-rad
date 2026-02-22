@@ -123,7 +123,7 @@ export default function Inspections() {
   const isInitialLoading = inspectionsLoading && !inspections;
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Egenkontroller</h1>

@@ -665,7 +665,7 @@ export default function GlobalAssistant() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div className="page-transition relative flex h-full flex-col overflow-hidden">
       {/* History Sidebar */}
       <ChatHistorySidebar
         open={historyOpen}

@@ -286,7 +286,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title">Inställningar</h1>

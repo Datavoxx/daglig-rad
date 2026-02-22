@@ -95,7 +95,7 @@ export default function DailyReports() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="page-transition space-y-6">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-32" />
         <Skeleton className="h-64 w-full" />
@@ -104,7 +104,7 @@ export default function DailyReports() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title flex items-center gap-2">

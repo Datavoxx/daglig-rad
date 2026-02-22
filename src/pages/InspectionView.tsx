@@ -166,7 +166,7 @@ export default function InspectionView() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="page-transition space-y-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-[400px] w-full" />
       </div>
@@ -185,7 +185,7 @@ export default function InspectionView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/inspections")} className="shrink-0">

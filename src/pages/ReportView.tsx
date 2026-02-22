@@ -165,7 +165,7 @@ export default function ReportView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">

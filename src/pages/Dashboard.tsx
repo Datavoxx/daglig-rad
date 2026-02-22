@@ -306,7 +306,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Hero Section - Compact */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-5 md:p-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />

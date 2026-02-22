@@ -89,7 +89,7 @@ export default function ServiceHomeDashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-4 p-1">
+      <div className="page-transition space-y-4 p-1">
         <Skeleton className="h-16 w-full" />
         <div className="grid grid-cols-4 gap-2">
           {[1,2,3,4].map(i => <Skeleton key={i} className="h-16" />)}
@@ -101,7 +101,7 @@ export default function ServiceHomeDashboard() {
   }
 
   return (
-    <div className="space-y-5 pb-24 md:pb-6">
+    <div className="page-transition space-y-5 pb-24 md:pb-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
