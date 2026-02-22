@@ -1,150 +1,146 @@
 
-## Iteration 2: El/VVS-laget -- Jobbcentrerat UI
 
-### Nuvarande problem
-1. **ProjectView visar byggtabbar** for service-anvandare (Oversikt, ATA, Arbetsorder, Filer, Planering, Dagbok) -- detta skapar "projektkansla"
-2. **Kvittoscanner saknas i jobbet** -- finns bara under Fakturor
-3. **Ingen sticky action bar** -- vanligaste actions kravs scroll for att hitta
-4. **Pengasummering ar dold** i arbetsorder-tabben, inte synlig direkt
-5. **Sprak ar inte konsekvent** -- "ATA", "Dagbok", "Filer" i service-laget
+## El/VVS Iteration: Operativ Jobbskarm + Ny Hemskarm
+
+### Oversikt
+
+Tva stora leverabler:
+1. **ProjectView ombyggs** till operativ jobbskarm for el/VVS (anvander befintliga `JobDetailView` som redan finns)
+2. **Ny Hem-sida** for el/VVS-anvandare med dagliga jobb, snabbactions och "klara att fakturera"
+
+Befintliga komponenter som redan ar klara och kan ateranvandas:
+- `JobDetailView.tsx` -- redan byggd med pengasummering, tid, material, kvittoscanner, anteckningar, bilder, extraarbete
+- `JobActionBar.tsx` -- sticky action bar (mobil bottom, desktop top)
+- `JobReceiptScanner.tsx` -- integrerad kvittoscanner
+- `JobsList.tsx` -- jobblista med snabbactions
+- `CreateJobDialog.tsx` -- skapa nytt jobb
 
 ---
 
-### Sprint 1: Jobbdetalj som nav (KRITISKT)
+### Sprint 1: Aktivera JobDetailView + Hemskarm (KRITISKT)
 
-**1.1 Ny komponent: `src/components/jobs/JobDetailView.tsx`**
+**1.1 Modifiera `ProjectView.tsx`**
 
-Nar service-anvandare navigerar till `/projects/:id` ska de se en sammanslagen jobbvy -- INTE tabbar.
+Nar `isServiceIndustry === true`, rendera `JobDetailView` istallet for tab-layouten. (Detta var borttaget i senaste andringen -- nu laggs det tillbaka.)
 
-Struktur (uppifraan och ner):
+Andringar:
+- Aterinfor `if (isServiceIndustry) return <JobDetailView project={project} />`
+- Bygg-anvandare far befintlig tab-vy (ingen andring)
+
+**1.2 Skapa ny `ServiceHomeDashboard.tsx`** (`src/pages/ServiceHomeDashboard.tsx`)
+
+Ny hemskarm for el/VVS med foljande sektioner:
 
 ```text
-[Header: Jobbnr, Titel, Kund, Adress (klickbar), Telefon (klickbar), Status-steg]
-[Pengasummering: Tid kr | Material kr | TOTALT kr -- alltid synligt]
-[Accordion-sektioner:]
-  1. Tid (ateranvander logik fran ServiceWorkOrderView)
-  2. Material (favoriter + manuell)
-  3. Kvittoscanner (NY -- integrerad)
-  4. Anteckningar
-  5. Bilder & dokument (ateranvander ProjectFilesTab)
-  6. Extraarbete (ateranvander ProjectAtaTab med omdopt sprak)
-[Skapa faktura-knapp (stor, tydlig, nar status = Klar)]
++----------------------------------+
+| Hej, [Namn]!        [datum]      |
+| Mina jobb idag                   |
++----------------------------------+
+| [KPI-strip: 4 kompakta kort]    |
+| Pagaende | Planerade | Klara ej  |
+| nu       | idag     | fakturerade|
++----------------------------------+
+| SNABBATGARDER                    |
+| [Nytt jobb] [Lagg tid] [Kvitto] |
+| [Material] [Faktura]            |
++----------------------------------+
+| MINA JOBB NU (karusell/lista)   |
+| [Jobb 1: Kund, adress, status]  |
+| [Jobb 2: ...]                   |
+| [Jobb 3: ...]                   |
++----------------------------------+
+| KLARA ATT FAKTURERA             |
+| [Jobb X -- Skapa faktura]       |
+| [Jobb Y -- Skapa faktura]       |
++----------------------------------+
+| SENASTE AKTIVITET               |
+| - Tid registrerad 14:30         |
+| - Material tillagt 13:15        |
++----------------------------------+
 ```
 
 Datakallor:
-- Hamtar projekt fran `projects`
-- Hamtar (eller skapar) work order fran `project_work_orders`
-- Tid/material/notes fran befintliga tabeller
-- Ateranvander all logik fran `ServiceWorkOrderView.tsx`
+- `projects` med status-filter
+- `project_work_orders` for status
+- `work_order_time_entries` for senaste aktivitet
+- `work_order_materials` for senaste aktivitet
+- `user_pricing_settings` for timpris
 
-**1.2 Modifiera `ProjectView.tsx`**
+Sektioner:
+1. **Header**: Halsning + datum
+2. **KPI-strip**: 4 kompakta kort (Pagaende, Planerade, Klara ej fakturerade, Timmar denna vecka)
+3. **Snabbatgarder**: Knappar for Nytt jobb, Lagg tid, Lagg material, Scanna kvitto, Skapa faktura
+4. **Mina jobb nu**: Horisontell karusell (embla-carousel) med aktiva jobbkort, varje kort visar kund/adress/status med snabbactions
+5. **Klara att fakturera**: Lista med jobb dar status=completed + faktura ej skapad, med "Skapa faktura"-knapp
+6. **Senaste aktivitet**: Senaste 5 handelser (tid, material, kvitton)
 
-Lagg till branch-check hogst upp:
-- Om `isServiceIndustry` -- rendera `JobDetailView` istallet for tab-layouten
-- Bygg-anvandare far befintlig tab-vy (ingen andring)
+**1.3 Modifiera routing och navigation**
 
-**1.3 Sticky action bar**
+Andringar i `App.tsx`:
+- Lagg till route for `/service-home` som renderar `ServiceHomeDashboard`
+- Behall `/dashboard` for bygg-anvandare
 
-Ny komponent: `src/components/jobs/JobActionBar.tsx`
+Andringar i `AppLayout.tsx` (nav-items for service):
+- Lagg till "Hem" som forsta nav-item for service, pekar pa `/service-home`
 
-Desktop: sticky top-bar under header
-Mobil: sticky bottom-bar (ovanfor BottomNav)
+Andringar i `BottomNav.tsx`:
+- Lagg till "Hem" i `serviceNavItems` som forsta item, pekar pa `/service-home`
 
-Knappar:
-- Lagg tid (scrollar till tid-sektion)
-- Lagg material (scrollar till material-sektion)
-- Scanna kvitto (oppnar kvitto-flode)
-- Skapa faktura (oppnar fakturadialog)
+**1.4 Sprakandring i ProjectView**
 
----
-
-### Sprint 2: Kvittoscanner i jobbet
-
-**2.1 Ny komponent: `src/components/jobs/JobReceiptScanner.tsx`**
-
-Integreras som sektion i JobDetailView.
-
-Flode:
-1. Knapp "Scanna kvitto" oppnar kamera (mobil) eller filvalje
-2. Bild skickas till befintlig `extract-receipt` edge function
-3. Modal visar tolkade rader (artikel, antal, pris)
-4. Anvandaren justerar/godkanner
-5. Rader laggs direkt i `work_order_materials` pa jobbet
-6. Kvittobild sparas i `project-files` bucket
-
-Ateranvander logik fran `ReceiptUploadDialog.tsx` men anpassad:
-- Inget projekt-val (redan i jobbet)
-- Rader gar till material-tabellen, inte separat kvittotabell
-
-**2.2 Forbattra materialflode**
-
-I JobDetailView:
-- Visa fler favoriter (hoja limit fran 10 till 20)
-- Lagg till "Senast anvanda" (fran work_order_materials pa detta jobb)
-- Snabbare UI: inga onodiga falt synliga -- expanderbara val
+Nar service, visa "Jobb" istallet for "Projekt" i header-texten (back-knapp gar till /projects som redan visar "Jobb").
 
 ---
 
-### Sprint 3: Sprak, schema och polish
+### Sprint 2: Forbattra Jobbdetalj + Jobblista
 
-**3.1 Sprakandring (mikrocopy)**
+**2.1 Forbattra JobDetailView**
 
-Alla platser dar `isServiceIndustry` ar true:
+Smarre forbattringar:
+- Lagg till "Fakturastatus" i pengasummeringen (ej fakturerad / fakturautkast / fakturerad)
+- Visa faktura-knappen aven nar status ar "in_progress" (inte bara "completed"), men med texten "Skapa faktura" vs "Visa faktura"
+- Forbattra "Fler val" i tidsektionen -- visa senaste anvanda typ
 
-| Nu | Nytt |
-|---|---|
-| Projekt | Jobb |
-| ATA | Extraarbete |
-| Dagbok | Anteckningar |
-| Filer | Bilder & dokument |
-| Oversikt | Jobbkort |
-| Planering | Schema |
+**2.2 Forbattra JobsList snabbactions**
 
-Specifika filer att andra:
-- `ProjectView.tsx` (header-text)
-- `ProjectAtaTab.tsx` (rubrik + labels)
-- `ProjectFilesTab.tsx` (rubrik)
-- `AppLayout.tsx` (redan klart)
-- `BottomNav.tsx` (redan klart)
-
-**3.2 Jobblista snabbactions (utveckla)**
-
-Lagg till fler snabbactions pa jobbkort i `JobsList.tsx`:
-- "Starta jobb" (status Planerad -> Pagaende)
-- "Markera Klar" (status -> Klar)
-- "Lagg tid" (inline quick-add)
-- "Skapa faktura" (om Klar)
-
-**3.3 Enkelt schema**
-
-Ny vy som visar jobb grupperade per dag (Idag/Imorgon/Vecka).
-Enkel listvy -- inte Gantt.
+Lagg till pa jobbkorten:
+- Visa timmar + materialkostnad inline pa kortet (kompakt)
+- "Snabb tid"-ikon som oppnar inline tidsinput
 
 ---
 
-### Komponentlista
+### Teknisk implementationsplan
 
-| Komponent | Status |
-|-----------|--------|
-| `JobDetailView.tsx` | NY -- sammanslagen jobbvy |
-| `JobActionBar.tsx` | NY -- sticky action bar |
-| `JobReceiptScanner.tsx` | NY -- kvitto i jobb |
-| `JobsList.tsx` | EXISTS -- forbattras med fler snabbactions |
-| `CreateJobDialog.tsx` | EXISTS -- behalls |
-| `ServiceWorkOrderView.tsx` | EXISTS -- logik ateranvands i JobDetailView |
-| `ProjectView.tsx` | EXISTS -- branch-check tillaggs |
-| `ProjectAtaTab.tsx` | EXISTS -- sprak-props tillaggs |
-| `ProjectFilesTab.tsx` | EXISTS -- sprak-props tillaggs |
+**Filer som SKAPAS:**
+| Fil | Beskrivning |
+|-----|-------------|
+| `src/pages/ServiceHomeDashboard.tsx` | Ny hemskarm for el/VVS |
+
+**Filer som MODIFIERAS:**
+| Fil | Andring |
+|-----|---------|
+| `src/pages/ProjectView.tsx` | Aterinfor `isServiceIndustry` branch-check for JobDetailView |
+| `src/App.tsx` | Lagg till route `/service-home` |
+| `src/components/layout/AppLayout.tsx` | Lagg till "Hem" nav-item for service |
+| `src/components/layout/BottomNav.tsx` | Lagg till "Hem" i serviceNavItems |
+
+**Filer som INTE ANDRAS:**
+| Fil | Anledning |
+|-----|-----------|
+| `JobDetailView.tsx` | Redan klar -- fungerar som operativ jobbskarm |
+| `JobActionBar.tsx` | Redan klar -- sticky actions |
+| `JobReceiptScanner.tsx` | Redan klar -- kvitto i jobb |
+| `JobsList.tsx` | Redan klar med snabbactions |
+| `CreateJobDialog.tsx` | Redan klar |
 
 ### Ingen databasandring kravs
 
-Alla tabeller finns redan:
-- `projects`, `project_work_orders`, `work_order_time_entries`, `work_order_materials`, `work_order_notes`, `project_files`, `project_ata`
+Alla tabeller finns redan. Hemskarmens data hamtas fran befintliga tabeller.
 
 ### Implementeringsordning
 
-1. **Forst**: `JobDetailView` + `ProjectView` branch-check (tar bort projektkanslan)
-2. **Sedan**: `JobActionBar` (sticky actions)
-3. **Sedan**: `JobReceiptScanner` (kvitto i jobb)
-4. **Sedan**: Sprakandring + jobblista-forbattringar
-5. **Sist**: Schema-vy
+1. Aterinfor branch-check i `ProjectView.tsx` (1 rad)
+2. Skapa `ServiceHomeDashboard.tsx` (ny fil)
+3. Uppdatera routing i `App.tsx`
+4. Uppdatera navigation i `AppLayout.tsx` och `BottomNav.tsx`
+
