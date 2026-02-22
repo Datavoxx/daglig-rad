@@ -21,7 +21,7 @@ import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
 import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
 import ProjectDiaryTab from "@/components/projects/ProjectDiaryTab";
-import ServiceWorkOrderList from "@/components/projects/ServiceWorkOrderList";
+import JobDetailView from "@/components/jobs/JobDetailView";
 
 interface Project {
   id: string;
@@ -225,6 +225,11 @@ export default function ProjectView() {
     return null;
   }
 
+  // Service industry users get the consolidated job view
+  if (isServiceIndustry) {
+    return <JobDetailView project={project} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -319,11 +324,7 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="workorders" className="mt-6">
-          {isServiceIndustry ? (
-            <ServiceWorkOrderList projectId={project.id} projectName={project.name} clientName={project.client_name} address={project.address} estimateId={project.estimate_id} />
-          ) : (
-            <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
-          )}
+          <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
         </TabsContent>
 
         <TabsContent value="files" className="mt-6">
