@@ -6,8 +6,10 @@ import byggioLogo from "@/assets/byggio-logo.png";
 
 interface PlanPhase {
   name: string;
-  start_week: number;
-  duration_weeks: number;
+  start_week?: number;
+  duration_weeks?: number;
+  start_day?: number;
+  duration_days?: number;
   color: string;
   parallel_with?: string | null;
   description?: string | null;
