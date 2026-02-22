@@ -16,6 +16,8 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   Sparkles,
+  Briefcase,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,7 @@ import byggioLogo from "@/assets/byggio-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserIndustry } from "@/hooks/useUserIndustry";
 
 import {
   Tooltip,
@@ -50,10 +53,9 @@ interface NavItem {
   moduleKey: string;
 }
 
-// Build nav items dynamically based on user role
-const getNavItems = (isEmployee: boolean): NavItem[] => {
+// Build nav items dynamically based on user role and industry
+const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[] => {
   if (isEmployee) {
-    // Employee navigation - includes "Hem" pointing to employee dashboard
     return [
       { label: "Hem", href: "/employee-dashboard", icon: Home, moduleKey: "daily-reports" },
       { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
@@ -61,8 +63,20 @@ const getNavItems = (isEmployee: boolean): NavItem[] => {
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
     ];
   }
+
+  if (isServiceIndustry) {
+    return [
+      { label: "Jobb", href: "/projects", icon: Briefcase, moduleKey: "projects" },
+      { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
+      { label: "Offerter", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+      { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
+      { label: "Kvitton", href: "/invoices?tab=receipts", icon: Receipt, moduleKey: "invoices" },
+      { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+      { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
+    ];
+  }
   
-  // Admin/owner navigation
+  // Admin/owner navigation (bygg)
   return [
     { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
     { label: "Byggio AI", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
@@ -89,6 +103,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee } = useUserPermissions();
   const isMobile = useIsMobile();
+  const { isServiceIndustry } = useUserIndustry();
 
 
   const handleLogoutClick = () => {
@@ -145,8 +160,8 @@ export function AppLayout() {
     fetchProfile();
   }, []);
 
-  // Build nav items dynamically based on user role and filter by permissions
-  const navItems = getNavItems(isEmployee);
+  // Build nav items dynamically based on user role/industry and filter by permissions
+  const navItems = getNavItems(isEmployee, isServiceIndustry);
   const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
 
   const renderNavButton = (item: NavItem, isActive: boolean) => (
@@ -386,7 +401,7 @@ export function AppLayout() {
             <div className="relative hidden w-64 md:block lg:w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
-                placeholder="Sök projekt, rapporter..."
+                placeholder={isServiceIndustry ? "Sök jobb, kunder..." : "Sök projekt, rapporter..."}
                 className="h-9 pl-9 border-transparent bg-muted/40 focus-visible:bg-card"
               />
             </div>
