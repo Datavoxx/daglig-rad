@@ -330,6 +330,7 @@ export type Database = {
           momsregnr: string | null
           org_number: string | null
           organization_name: string | null
+          payroll_provider: string | null
           phone: string | null
           postal_code: string | null
           updated_at: string | null
@@ -351,6 +352,7 @@ export type Database = {
           momsregnr?: string | null
           org_number?: string | null
           organization_name?: string | null
+          payroll_provider?: string | null
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           momsregnr?: string | null
           org_number?: string | null
           organization_name?: string | null
+          payroll_provider?: string | null
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
@@ -651,6 +654,7 @@ export type Database = {
           email: string | null
           employee_role: string
           employment_number: string | null
+          fortnox_employee_id: string | null
           hourly_rate: number | null
           id: string
           invitation_status: string | null
@@ -668,6 +672,7 @@ export type Database = {
           email?: string | null
           employee_role?: string
           employment_number?: string | null
+          fortnox_employee_id?: string | null
           hourly_rate?: number | null
           id?: string
           invitation_status?: string | null
@@ -685,6 +690,7 @@ export type Database = {
           email?: string | null
           employee_role?: string
           employment_number?: string | null
+          fortnox_employee_id?: string | null
           hourly_rate?: number | null
           id?: string
           invitation_status?: string | null
@@ -1140,11 +1146,13 @@ export type Database = {
           created_at: string | null
           employee_count: number | null
           entry_count: number | null
+          export_format: string | null
           exported_at: string | null
           file_name: string | null
           id: string
           pdf_url: string | null
           period_id: string | null
+          provider: string | null
           total_hours: number | null
           user_id: string
         }
@@ -1152,11 +1160,13 @@ export type Database = {
           created_at?: string | null
           employee_count?: number | null
           entry_count?: number | null
+          export_format?: string | null
           exported_at?: string | null
           file_name?: string | null
           id?: string
           pdf_url?: string | null
           period_id?: string | null
+          provider?: string | null
           total_hours?: number | null
           user_id: string
         }
@@ -1164,11 +1174,13 @@ export type Database = {
           created_at?: string | null
           employee_count?: number | null
           entry_count?: number | null
+          export_format?: string | null
           exported_at?: string | null
           file_name?: string | null
           id?: string
           pdf_url?: string | null
           period_id?: string | null
+          provider?: string | null
           total_hours?: number | null
           user_id?: string
         }
@@ -1915,6 +1927,8 @@ export type Database = {
         Row: {
           abbreviation: string
           created_at: string | null
+          fortnox_salary_type: string | null
+          fortnox_wage_code: string | null
           id: string
           is_active: boolean | null
           markup_percent: number | null
@@ -1929,6 +1943,8 @@ export type Database = {
         Insert: {
           abbreviation: string
           created_at?: string | null
+          fortnox_salary_type?: string | null
+          fortnox_wage_code?: string | null
           id?: string
           is_active?: boolean | null
           markup_percent?: number | null
@@ -1943,6 +1959,8 @@ export type Database = {
         Update: {
           abbreviation?: string
           created_at?: string | null
+          fortnox_salary_type?: string | null
+          fortnox_wage_code?: string | null
           id?: string
           is_active?: boolean | null
           markup_percent?: number | null

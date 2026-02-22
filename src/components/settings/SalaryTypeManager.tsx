@@ -39,6 +39,8 @@ interface SalaryType {
   updated_at: string;
   visma_wage_code: string | null;
   visma_salary_type: string | null;
+  fortnox_wage_code: string | null;
+  fortnox_salary_type: string | null;
   time_type: string | null;
 }
 
@@ -63,6 +65,8 @@ export function SalaryTypeManager() {
     sort_order: "",
     visma_wage_code: "",
     visma_salary_type: "",
+    fortnox_wage_code: "",
+    fortnox_salary_type: "",
     time_type: "WORK",
   });
 
@@ -98,6 +102,8 @@ export function SalaryTypeManager() {
             sort_order: salaryType.sort_order,
             visma_wage_code: (salaryType as any).visma_wage_code || null,
             visma_salary_type: (salaryType as any).visma_salary_type || null,
+            fortnox_wage_code: (salaryType as any).fortnox_wage_code || null,
+            fortnox_salary_type: (salaryType as any).fortnox_salary_type || null,
             time_type: (salaryType as any).time_type || "WORK",
           })
           .eq("id", currentSalaryType.id);
@@ -111,6 +117,8 @@ export function SalaryTypeManager() {
           sort_order: salaryType.sort_order,
           visma_wage_code: (salaryType as any).visma_wage_code || null,
           visma_salary_type: (salaryType as any).visma_salary_type || null,
+          fortnox_wage_code: (salaryType as any).fortnox_wage_code || null,
+          fortnox_salary_type: (salaryType as any).fortnox_salary_type || null,
           time_type: (salaryType as any).time_type || "WORK",
         });
         if (error) throw error;
@@ -167,6 +175,8 @@ export function SalaryTypeManager() {
       sort_order: "",
       visma_wage_code: "",
       visma_salary_type: "",
+      fortnox_wage_code: "",
+      fortnox_salary_type: "",
       time_type: "WORK",
     });
   };
@@ -190,6 +200,8 @@ export function SalaryTypeManager() {
       sort_order: salaryType.sort_order?.toString() || "",
       visma_wage_code: salaryType.visma_wage_code || "",
       visma_salary_type: salaryType.visma_salary_type || "",
+      fortnox_wage_code: salaryType.fortnox_wage_code || "",
+      fortnox_salary_type: salaryType.fortnox_salary_type || "",
       time_type: salaryType.time_type || "WORK",
     });
     setDialogOpen(true);
@@ -223,6 +235,8 @@ export function SalaryTypeManager() {
       sort_order: formData.sort_order ? parseInt(formData.sort_order) : 0,
       visma_wage_code: formData.visma_wage_code.trim(),
       visma_salary_type: formData.visma_salary_type.trim(),
+      fortnox_wage_code: formData.fortnox_wage_code.trim(),
+      fortnox_salary_type: formData.fortnox_salary_type.trim(),
       time_type: formData.time_type,
     } as any);
   };
@@ -411,7 +425,7 @@ export function SalaryTypeManager() {
 
             {/* Visma-fält */}
             <div className="pt-4 border-t space-y-4">
-              <p className="text-xs text-muted-foreground">Visma Lön-mappning (för löneexport)</p>
+              <p className="text-xs text-muted-foreground font-medium">Visma Lön-mappning</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="visma_wage_code">Visma tidkod</Label>
@@ -432,6 +446,35 @@ export function SalaryTypeManager() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Fortnox-fält */}
+            <div className="pt-4 border-t space-y-4">
+              <p className="text-xs text-muted-foreground font-medium">Fortnox Lön-mappning</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fortnox_wage_code">Fortnox tidkod</Label>
+                  <Input
+                    id="fortnox_wage_code"
+                    value={formData.fortnox_wage_code}
+                    onChange={(e) => setFormData({ ...formData, fortnox_wage_code: e.target.value })}
+                    placeholder="TIM"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fortnox_salary_type">Fortnox löneart</Label>
+                  <Input
+                    id="fortnox_salary_type"
+                    value={formData.fortnox_salary_type}
+                    onChange={(e) => setFormData({ ...formData, fortnox_salary_type: e.target.value })}
+                    placeholder="1010"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tidtyp */}
+            <div className="pt-4 border-t space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="time_type">Tidtyp</Label>
                 <select
