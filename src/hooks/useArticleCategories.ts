@@ -58,7 +58,7 @@ export function useArticleCategories() {
 
       const { data: seeded, error: seedErr } = await supabase
         .from("article_categories")
-        .insert(seeds)
+        .upsert(seeds, { onConflict: 'user_id,name', ignoreDuplicates: true })
         .select();
 
       if (seedErr) {
