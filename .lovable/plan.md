@@ -1,29 +1,34 @@
 
 
-## Byt alla sidladdnings-spinners till ByggioLoader
+## Ta bort alla loading-tecken
 
-### Problem
-Flera sidor använder fortfarande `Loader2`-spinnern (den snurrande cirkeln) för sidladdning istället för Byggio-loggan med puls-animation. Det är detta du ser på `/customers`.
+### Vad som andras
 
-### Vad som ändras
+Alla synliga laddningsindikatorer (bade Byggio-loggan och Loader2-spinners) som visas vid sidladdning tas bort. Istallet visas ingenting (tomt) medan sidan laddar. Knappar med inline-spinners (t.ex. "Sparar...") behalls -- de ar inte sidladdningar utan feedback pa knapptryck.
 
-Alla **sidladdningar** (stora centrerade spinners) byts till `ByggioLoader`. Knappar och inline-spinners (t.ex. "Sparar...", "Transkriberar...") behålls som `Loader2`.
+### Filer som andras
 
-Filer som uppdateras:
+**Sidladdningar som byts till tomma/null:**
 
-| Fil | Typ av laddning | Ändring |
-|-----|-----------------|---------|
-| `src/pages/Customers.tsx` (rad 141-145) | Sidladdning | Byt till ByggioLoader |
-| `src/pages/AttendanceScan.tsx` (rad 153-157) | Helskärm | Byt till ByggioLoader |
-| `src/pages/Profile.tsx` (rad 183-187) | Sidladdning | Byt till ByggioLoader |
-| `src/pages/InspectionNew.tsx` (rad 631-633) | Sidladdning | Byt till ByggioLoader |
-| `src/pages/DailyReports.tsx` (rad 176-179) | Sektionsladdning | Byt till ByggioLoader |
+| Fil | Rad | Nuvarande | Andring |
+|-----|-----|-----------|---------|
+| `src/components/auth/ProtectedRoute.tsx` | 82 | `<ByggioLoader />` | `return null;` |
+| `src/components/auth/ProtectedModuleRoute.tsx` | 26 | `<ByggioLoader />` | `return null;` |
+| `src/pages/Customers.tsx` | 141 | `<ByggioLoader />` | `return null;` |
+| `src/pages/Profile.tsx` | 184 | `<ByggioLoader />` | `return null;` |
+| `src/pages/AttendanceScan.tsx` | 154 | `<ByggioLoader />` | `return null;` |
+| `src/pages/Settings.tsx` | 285-289 | Loader2 spinner | `return null;` |
+| `src/pages/DailyReports.tsx` | 178 | `<ByggioLoader />` (i rapportlista) | Tomt/null |
+| `src/pages/InspectionNew.tsx` | 634 | `<ByggioLoader />` (skapande-steg) | Ta bort, behall bara texten |
+| `src/pages/Attendance.tsx` | 167-170 | Loader2 spinner (sektionsladdning) | Tomt |
+| `src/components/estimates/ArticleCategorySection.tsx` | 74-78 | Loader2 i card | Tomt |
 
-Knappar som "Sparar...", "Transkriberar...", "Raderar..." etc. behålls som `Loader2` -- de är inline-spinners, inte sidladdningar.
+**Filer som behalls som de ar** (inline knappar med "Sparar...", "Transkriberar..." etc.):
+- Alla knappar med Loader2 i Profile, Settings, Planning, PayrollExport, ProjectView, ReportView, InspectionView, Inspections -- dessa ar feedback pa knapptryck, inte sidladdningar.
 
 ### Tekniskt
 
-- Importera `ByggioLoader` från `@/components/shared/ByggioLoader`
-- Ersätt `<div className="flex items-center justify-center ..."><Loader2 .../></div>` med `<ByggioLoader />`
-- Ta bort oanvända `Loader2`-importer där det var enda användningen
+- Ersatt `<ByggioLoader />` och Loader2-wrappers med `return null` eller tom div
+- Ta bort oanvanda ByggioLoader-importer
+- Komponenten `ByggioLoader.tsx` kan tas bort helt om den inte langre anvands nagonsstans
 
