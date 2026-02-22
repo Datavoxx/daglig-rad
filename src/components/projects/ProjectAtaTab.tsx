@@ -82,6 +82,7 @@ interface ProjectAtaTabProps {
   projectAddress?: string;
   projectPostalCode?: string;
   projectCity?: string;
+  serviceMode?: boolean;
 }
 
 const articleCategories = [
@@ -111,7 +112,8 @@ export default function ProjectAtaTab({
   clientName,
   projectAddress,
   projectPostalCode,
-  projectCity 
+  projectCity,
+  serviceMode = false,
 }: ProjectAtaTabProps) {
   const [atas, setAtas] = useState<Ata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -456,9 +458,9 @@ export default function ProjectAtaTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Ändrings- och tilläggsarbeten</h3>
+          <h3 className="text-lg font-medium">{serviceMode ? "Extraarbete" : "Ändrings- och tilläggsarbeten"}</h3>
           <p className="text-sm text-muted-foreground">
-            Hantera ÄTA för projektet – strukturerat som offertposter
+            {serviceMode ? "Lägg till extraarbete för jobbet" : "Hantera ÄTA för projektet – strukturerat som offertposter"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -476,7 +478,7 @@ export default function ProjectAtaTab({
             <DialogTrigger asChild>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Ny ÄTA
+                {serviceMode ? "Nytt extraarbete" : "Ny ÄTA"}
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
