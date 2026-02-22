@@ -10,7 +10,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus, Undo2 } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus, Undo2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
@@ -84,6 +84,25 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const isManualMode = !project && !!manualData;
 
   const estimate = useEstimate(project?.id || null, isManualMode ? manualData : undefined, estimateId);
+
+  // The effective estimate ID for checking linked project
+  const effectiveEstimateId = estimateId || savedEstimateId;
+
+  // Check if a project has been created from this estimate
+  const { data: linkedProject } = useQuery({
+    queryKey: ["estimate-linked-project", effectiveEstimateId],
+    queryFn: async () => {
+      if (!effectiveEstimateId) return null;
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("estimate_id", effectiveEstimateId)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!effectiveEstimateId,
+  });
   
   // Auto-save new manual estimates immediately
   useEffect(() => {
@@ -390,25 +409,37 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 <Save className="h-4 w-4" />
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  if (estimate.state.status === "draft") {
-                    await handleSaveAsCompleted();
-                  } else {
-                    const id = await estimate.saveAsync();
-                    setSavedEstimateId(id);
-                    setShowProjectRecommendation(true);
-                  }
-                } catch {}
-              }}
-              className="h-8 gap-1"
-            >
-              <FolderPlus className="h-4 w-4" />
-              Starta projekt
-            </Button>
+            {linkedProject ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${linkedProject.id}`)}
+                className="h-8 gap-1"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Gå till projekt
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    if (estimate.state.status === "draft") {
+                      await handleSaveAsCompleted();
+                    } else {
+                      const id = await estimate.saveAsync();
+                      setSavedEstimateId(id);
+                      setShowProjectRecommendation(true);
+                    }
+                  } catch {}
+                }}
+                className="h-8 gap-1"
+              >
+                <FolderPlus className="h-4 w-4" />
+                Starta projekt
+              </Button>
+            )}
             {estimate.state.status === "completed" && (
               <Button
                 variant="ghost"

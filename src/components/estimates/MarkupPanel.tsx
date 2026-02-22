@@ -18,7 +18,7 @@ export function MarkupPanel({ items, onItemsChange }: MarkupPanelProps) {
       items.map((item) => ({
         ...item,
         markup_enabled: enabled,
-        markup_percent: enabled ? (item.markup_percent || 10) : item.markup_percent,
+        markup_percent: item.markup_percent,
       }))
     );
   };
@@ -27,7 +27,7 @@ export function MarkupPanel({ items, onItemsChange }: MarkupPanelProps) {
     onItemsChange(
       items.map((item) =>
         item.id === id
-          ? { ...item, markup_enabled: checked, markup_percent: checked && !item.markup_percent ? 10 : item.markup_percent }
+          ? { ...item, markup_enabled: checked }
           : item
       )
     );

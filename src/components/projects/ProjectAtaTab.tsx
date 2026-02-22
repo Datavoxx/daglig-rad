@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import {
   Lightbulb,
   Pencil,
   X,
+  Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +56,7 @@ import { cn } from "@/lib/utils";
 import { generateAtaPdf } from "@/lib/generateAtaPdf";
 import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { AI_AGENTS } from "@/config/aiAgents";
+import { useArticleCategories } from "@/hooks/useArticleCategories";
 
 interface Ata {
   id: string;
@@ -85,18 +87,7 @@ interface ProjectAtaTabProps {
   serviceMode?: boolean;
 }
 
-const articleCategories = [
-  "Arbete",
-  "Bygg",
-  "Deponi",
-  "El",
-  "Maskin",
-  "Material",
-  "Målning",
-  "Plattsättning",
-  "VVS",
-  "Övrigt",
-];
+// Removed hardcoded articleCategories - using dynamic from useArticleCategories hook
 
 const unitOptions = ["tim", "st", "m", "m²", "m³", "lpm", "kg", "klump"];
 
@@ -118,6 +109,10 @@ export default function ProjectAtaTab({
   const [atas, setAtas] = useState<Ata[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showArticlePicker, setShowArticlePicker] = useState(false);
+  const [libraryArticles, setLibraryArticles] = useState<any[]>([]);
+  const { categoryNames } = useArticleCategories();
+  
   interface AtaRow {
     id: string;
     article: string;
@@ -130,7 +125,7 @@ export default function ProjectAtaTab({
 
   const createEmptyRow = (): AtaRow => ({
     id: crypto.randomUUID(),
-    article: "Arbete",
+    article: categoryNames[0] || "Arbete",
     unit: "tim",
     description: "",
     quantity: "1",
@@ -147,6 +142,33 @@ export default function ProjectAtaTab({
   const [exportingPdf, setExportingPdf] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const { toast } = useToast();
+
+  // Fetch articles for library picker
+  const fetchLibraryArticles = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("articles")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (data) setLibraryArticles(data);
+  }, []);
+
+  const handleSelectArticle = (article: any) => {
+    const newRow: AtaRow = {
+      id: crypto.randomUUID(),
+      article: article.article_category || "Material",
+      unit: article.unit || "st",
+      description: article.name,
+      quantity: "1",
+      unit_price: article.default_price?.toString() || "",
+      rot_eligible: false,
+    };
+    setFormRows((prev) => [...prev, newRow]);
+    setShowArticlePicker(false);
+  };
 
   const updateRow = (id: string, field: keyof AtaRow, value: any) => {
     setFormRows((prev) =>
@@ -510,7 +532,41 @@ export default function ProjectAtaTab({
                     <Lightbulb className="h-3.5 w-3.5" />
                     {showExample ? "Dölj exempel" : "Visa exempel"}
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs text-muted-foreground"
+                    onClick={() => { fetchLibraryArticles(); setShowArticlePicker(!showArticlePicker); }}
+                  >
+                    <Package className="h-3.5 w-3.5" />
+                    Från bibliotek
+                  </Button>
                 </div>
+                {/* Article library picker */}
+                {showArticlePicker && (
+                  <div className="border rounded-lg p-3 bg-muted/20 space-y-2 mb-2">
+                    <p className="text-xs font-medium text-muted-foreground">Välj artikel att lägga till:</p>
+                    {libraryArticles.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Inga artiklar i biblioteket</p>
+                    ) : (
+                      <div className="max-h-[160px] overflow-y-auto space-y-1">
+                        {libraryArticles.map((article) => (
+                          <div
+                            key={article.id}
+                            onClick={() => handleSelectArticle(article)}
+                            className="flex items-center justify-between p-2 rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{article.name}</p>
+                              <p className="text-xs text-muted-foreground">{article.article_category} • {article.unit}</p>
+                            </div>
+                            <span className="text-sm tabular-nums shrink-0 ml-2">{article.default_price} kr</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div
                   className="grid transition-[grid-template-rows] duration-300 ease-in-out"
                   style={{ gridTemplateRows: showExample ? "1fr" : "0fr" }}
@@ -581,7 +637,7 @@ export default function ProjectAtaTab({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {articleCategories.map((cat) => (
+                          {categoryNames.map((cat) => (
                             <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                           ))}
                         </SelectContent>
@@ -774,7 +830,7 @@ export default function ProjectAtaTab({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {articleCategories.map((cat) => (
+                          {categoryNames.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
