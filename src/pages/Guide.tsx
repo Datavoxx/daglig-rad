@@ -26,8 +26,13 @@ import {
   ArrowRight,
   HelpCircle,
   ChevronRight,
-  PiggyBank,
-  TrendingUp,
+  Clock,
+  ClipboardCheck,
+  Landmark,
+  QrCode,
+  Receipt,
+  MessageSquare,
+  Search,
 } from "lucide-react";
 import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { toast } from "sonner";
@@ -140,7 +145,7 @@ export default function Guide() {
         </div>
 
         <Accordion type="single" collapsible className="w-full space-y-2">
-          {/* Projects - Complete workflow hub */}
+          {/* Projects */}
           <AccordionItem value="projects" className="border rounded-lg px-4">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3">
@@ -255,6 +260,233 @@ export default function Guide() {
             </AccordionContent>
           </AccordionItem>
 
+          {/* Time Reporting */}
+          <AccordionItem value="time-reporting" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Tidsrapportering</p>
+                  <p className="text-sm text-muted-foreground font-normal">
+                    Rapportera arbetstid per projekt och anställd
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Rapportera arbetstid per projekt och anställd. Månads- och veckovyer, attestering och periodhantering.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <CalendarDays className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Kalendervyer</p>
+                      <p className="text-xs text-muted-foreground">Månads- och veckoöversikt</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Clock className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Tidsregistrering per projekt</p>
+                      <p className="text-xs text-muted-foreground">Koppla tid till rätt projekt</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Attestering</p>
+                      <p className="text-xs text-muted-foreground">Godkänn tidposter</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileDown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Periodlåsning</p>
+                      <p className="text-xs text-muted-foreground">Lås avslutade perioder</p>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/time-reporting")} className="gap-2">
+                  Gå till tidsrapportering <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Daily Reports */}
+          <AccordionItem value="daily-reports" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Dagrapporter</p>
+                  <p className="text-sm text-muted-foreground font-normal">
+                    Dokumentera arbetsdagen med röstinspelning
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Dokumentera arbetsdagen med röstinspelning. AI strukturerar rapporten automatiskt med arbetsmoment, personal och avvikelser.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Mic className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Röstinspelning från fältet</p>
+                      <p className="text-xs text-muted-foreground">Spela in direkt på byggplatsen</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">AI-strukturerad dokumentation</p>
+                      <p className="text-xs text-muted-foreground">Automatisk kategorisering</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FolderKanban className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Koppla till projekt</p>
+                      <p className="text-xs text-muted-foreground">Samla rapporter per projekt</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileDown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Exportera som PDF</p>
+                      <p className="text-xs text-muted-foreground">Professionell dokumentation</p>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/daily-reports")} className="gap-2">
+                  Gå till dagrapporter <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Attendance */}
+          <AccordionItem value="attendance" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ClipboardCheck className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Personalliggare / Närvaro</p>
+                  <p className="text-sm text-muted-foreground font-normal">
+                    Digital personalliggare med QR-kodincheckning
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Digital personalliggare med QR-kodincheckning. Se vilka som är på plats i realtid.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <QrCode className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">QR-kodscanning</p>
+                      <p className="text-xs text-muted-foreground">Snabb in- och utcheckning</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Users className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Realtidsöversikt</p>
+                      <p className="text-xs text-muted-foreground">Se aktiva på plats just nu</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <CalendarDays className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Närvarohistorik</p>
+                      <p className="text-xs text-muted-foreground">Fullständig logg</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Skatteverks-kompatibel</p>
+                      <p className="text-xs text-muted-foreground">Uppfyller lagkrav</p>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/attendance")} className="gap-2">
+                  Gå till personalliggare <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Invoices */}
+          <AccordionItem value="invoices" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Landmark className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Fakturor</p>
+                  <p className="text-sm text-muted-foreground font-normal">
+                    Kund- och leverantörsfakturor
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Hantera kund- och leverantörsfakturor. Skapa fakturor, scanna kvitton och exportera.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileText className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Kundfakturor</p>
+                      <p className="text-xs text-muted-foreground">Skapa och skicka fakturor</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Landmark className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Leverantörsfakturor</p>
+                      <p className="text-xs text-muted-foreground">Registrera inkommande fakturor</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Receipt className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Kvittoscanning</p>
+                      <p className="text-xs text-muted-foreground">Fotografera och spara kvitton</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <FileDown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">PDF-export</p>
+                      <p className="text-xs text-muted-foreground">Professionella faktura-PDF:er</p>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/invoices")} className="gap-2">
+                  Gå till fakturor <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Customers */}
           <AccordionItem value="customers" className="border rounded-lg px-4">
@@ -290,17 +522,17 @@ export default function Guide() {
             </AccordionContent>
           </AccordionItem>
 
-          {/* Economy */}
-          <AccordionItem value="economy" className="border rounded-lg px-4">
+          {/* AI Assistant */}
+          <AccordionItem value="ai-assistant" className="border rounded-lg px-4">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <PiggyBank className="h-5 w-5 text-primary" />
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">Ekonomi & Uppföljning</p>
+                  <p className="font-medium">AI-assistenten (Byggio AI)</p>
                   <p className="text-sm text-muted-foreground font-normal">
-                    Följ projektets ekonomi i realtid
+                    Skapa och hantera med röst eller text
                   </p>
                 </div>
               </div>
@@ -308,35 +540,40 @@ export default function Guide() {
             <AccordionContent className="pt-4 pb-6">
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Få en helhetsbild av din verksamhets ekonomi. Se projektöversikter, jämför offererat mot fakturerat och håll koll på ÄTA-belopp.
+                  Fråga Byggio AI vad som helst. Skapa projekt, offerter, tidrapporter och mer med röst eller text.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <Mic className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="font-medium text-sm">Projektöversikt</p>
-                      <p className="text-xs text-muted-foreground">
-                        Se alla projekt och deras ekonomiska status
-                      </p>
+                      <p className="font-medium text-sm">Röststyrning</p>
+                      <p className="text-xs text-muted-foreground">Prata med AI:n</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                    <FileText className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <MessageSquare className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="font-medium text-sm">ÄTA-summering</p>
-                      <p className="text-xs text-muted-foreground">
-                        Total översikt över alla ändringsarbeten
-                      </p>
+                      <p className="font-medium text-sm">Skapa poster via chat</p>
+                      <p className="text-xs text-muted-foreground">Projekt, offerter, kunder m.m.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Search className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Sök och analysera data</p>
+                      <p className="text-xs text-muted-foreground">Hitta information snabbt</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Intelligent hjälp</p>
+                      <p className="text-xs text-muted-foreground">Kontextmedveten assistans</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>Kommande:</strong> Integrationer med Fortnox och Visma för automatisk synkronisering av fakturor och bokföring.
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => navigate("/economy")} className="gap-2">
-                  Gå till ekonomi <ArrowRight className="h-3 w-3" />
+                <Button variant="outline" size="sm" onClick={() => navigate("/global-assistant")} className="gap-2">
+                  Öppna AI-assistenten <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
             </AccordionContent>
