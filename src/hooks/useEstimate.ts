@@ -260,15 +260,16 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     const subtotal = laborCost + materialCost + subcontractorCost + addonsCost;
     
     // Per-item markup calculation
+    const hasAnyMarkupEnabled = state.items.some(item => item.markup_enabled);
+
     const markupFromItems = state.items.reduce((sum, item) => {
       if (item.markup_enabled && item.markup_percent > 0) {
         return sum + ((item.subtotal || 0) * (item.markup_percent / 100));
       }
       return sum;
     }, 0);
-    
-    // Use per-item markup if any items have it, otherwise fall back to global
-    const markup = markupFromItems > 0 ? markupFromItems : subtotal * (state.markupPercent / 100);
+
+    const markup = hasAnyMarkupEnabled ? markupFromItems : 0;
     const totalExclVat = subtotal + markup;
     const vat = totalExclVat * 0.25;
     const totalInclVat = totalExclVat + vat;
