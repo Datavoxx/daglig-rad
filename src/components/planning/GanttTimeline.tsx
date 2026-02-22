@@ -7,23 +7,43 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { addWeeks, addDays, format } from "date-fns";
+import { addDays, format } from "date-fns";
 import { sv } from "date-fns/locale";
 
 export interface PlanPhase {
   name: string;
-  start_week: number;
-  duration_weeks: number;
+  start_day: number;
+  duration_days: number;
   color: string;
   parallel_with?: string | null;
   description?: string;
+  // Legacy fields for backward compatibility
+  start_week?: number;
+  duration_weeks?: number;
+}
+
+// Convert legacy week-based phase to day-based
+export function normalizePhaseToDays(phase: any): PlanPhase {
+  if (phase.start_day !== undefined && phase.duration_days !== undefined) {
+    return phase as PlanPhase;
+  }
+  // Legacy conversion: week -> days (5 working days per week)
+  const startWeek = phase.start_week || 1;
+  const durationWeeks = phase.duration_weeks || 1;
+  return {
+    ...phase,
+    start_day: (startWeek - 1) * 5 + 1,
+    duration_days: durationWeeks * 5,
+  };
 }
 
 interface GanttTimelineProps {
   phases: PlanPhase[];
-  totalWeeks: number;
+  totalDays: number;
   startDate?: Date;
   className?: string;
+  // Legacy prop
+  totalWeeks?: number;
 }
 
 const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
@@ -37,30 +57,34 @@ const colorClasses: Record<string, { bg: string; text: string; border: string }>
   orange: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" },
 };
 
-// Calculate end date (Friday after X weeks from start)
-const getEndDate = (start: Date, weeks: number): Date => {
-  const lastWeekStart = addWeeks(start, weeks - 1);
-  return addDays(lastWeekStart, 4); // Monday + 4 = Friday
-};
-
-// Get date range string for a specific week
-const getWeekDateRange = (start: Date, weekNumber: number): string => {
-  const weekStart = addWeeks(start, weekNumber - 1);
-  const weekEnd = addDays(weekStart, 4); // Friday
-  return `${format(weekStart, "d", { locale: sv })}-${format(weekEnd, "d MMM", { locale: sv })}`;
-};
-
-export function GanttTimeline({ phases, totalWeeks, startDate, className }: GanttTimelineProps) {
+export function GanttTimeline({ phases: rawPhases, totalDays: rawTotalDays, totalWeeks, startDate, className }: GanttTimelineProps) {
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
-  
+
+  // Normalize phases to day-based
+  const phases = useMemo(() => rawPhases.map(normalizePhaseToDays), [rawPhases]);
+
+  // Calculate totalDays from legacy totalWeeks if needed
+  const totalDays = rawTotalDays || (totalWeeks ? totalWeeks * 5 : 
+    Math.max(...phases.map(p => p.start_day + p.duration_days - 1), 1));
+
+  // Group days into weeks for header display
+  const totalWeeksDisplay = Math.ceil(totalDays / 5);
   const weeks = useMemo(() => 
-    Array.from({ length: totalWeeks }, (_, i) => i + 1), 
-    [totalWeeks]
+    Array.from({ length: totalWeeksDisplay }, (_, i) => i + 1), 
+    [totalWeeksDisplay]
   );
 
-  const columnWidth = 100 / totalWeeks;
-  
-  const endDate = startDate ? getEndDate(startDate, totalWeeks) : undefined;
+  const columnWidth = 100 / totalWeeksDisplay;
+
+  // Get week date range
+  const getWeekDateRange = (weekNumber: number): string => {
+    if (!startDate) return "";
+    const weekStart = addDays(startDate, (weekNumber - 1) * 5);
+    const weekEnd = addDays(weekStart, 4);
+    return `${format(weekStart, "d", { locale: sv })}-${format(weekEnd, "d MMM", { locale: sv })}`;
+  };
+
+  const endDate = startDate ? addDays(startDate, totalDays - 1) : undefined;
 
   return (
     <TooltipProvider>
@@ -81,7 +105,7 @@ export function GanttTimeline({ phases, totalWeeks, startDate, className }: Gant
                   </div>
                   {startDate && (
                     <div className="text-[10px] text-muted-foreground/70">
-                      {getWeekDateRange(startDate, week)}
+                      {getWeekDateRange(week)}
                     </div>
                   )}
                 </div>
@@ -93,8 +117,8 @@ export function GanttTimeline({ phases, totalWeeks, startDate, className }: Gant
           <div className="space-y-3">
             {phases.map((phase, index) => {
               const colors = colorClasses[phase.color] || colorClasses.slate;
-              const leftOffset = ((phase.start_week - 1) / totalWeeks) * 100;
-              const width = (phase.duration_weeks / totalWeeks) * 100;
+              const leftOffset = ((phase.start_day - 1) / totalDays) * 100;
+              const width = (phase.duration_days / totalDays) * 100;
 
               return (
                 <div
@@ -124,7 +148,7 @@ export function GanttTimeline({ phases, totalWeeks, startDate, className }: Gant
 
                   {/* Timeline bar container */}
                   <div className="flex-1 relative h-8">
-                    {/* Grid lines */}
+                    {/* Grid lines (per week) */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {weeks.map((week) => (
                         <div
@@ -158,7 +182,7 @@ export function GanttTimeline({ phases, totalWeeks, startDate, className }: Gant
               {phases.length} moment • Klicka på en fas för detaljer
             </span>
             <span className="text-sm font-medium">
-              Total: ca {totalWeeks} veckor
+              Total: ca {totalDays} dagar
               {startDate && endDate && (
                 <span className="text-muted-foreground font-normal">
                   {" "}• {format(startDate, "d MMM", { locale: sv })} → {format(endDate, "d MMM yyyy", { locale: sv })}

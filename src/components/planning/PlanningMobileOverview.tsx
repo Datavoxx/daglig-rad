@@ -1,13 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, addWeeks, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import type { PlanPhase } from "./GanttTimeline";
+import { normalizePhaseToDays } from "./GanttTimeline";
 
 interface PlanningMobileOverviewProps {
   phases: PlanPhase[];
-  totalWeeks: number;
+  totalDays: number;
   startDate?: Date;
+  // Legacy
+  totalWeeks?: number;
 }
 
 const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
@@ -22,13 +25,16 @@ const colorClasses: Record<string, { bg: string; text: string; border: string }>
 };
 
 // Get date range for a phase
-const getPhaseWeekDates = (startDate: Date, startWeek: number, durationWeeks: number): string => {
-  const phaseStart = addWeeks(startDate, startWeek - 1);
-  const phaseEnd = addDays(addWeeks(phaseStart, durationWeeks - 1), 4); // Friday
+const getPhaseDates = (startDate: Date, startDay: number, durationDays: number): string => {
+  const phaseStart = addDays(startDate, startDay - 1);
+  const phaseEnd = addDays(phaseStart, durationDays - 1);
   return `${format(phaseStart, "d MMM", { locale: sv })} – ${format(phaseEnd, "d MMM", { locale: sv })}`;
 };
 
-export function PlanningMobileOverview({ phases, totalWeeks, startDate }: PlanningMobileOverviewProps) {
+export function PlanningMobileOverview({ phases: rawPhases, totalDays: rawTotalDays, totalWeeks, startDate }: PlanningMobileOverviewProps) {
+  const phases = rawPhases.map(normalizePhaseToDays);
+  const totalDays = rawTotalDays || (totalWeeks ? totalWeeks * 5 : 0);
+
   return (
     <div className="space-y-3">
       {phases.map((phase, index) => {
@@ -52,17 +58,17 @@ export function PlanningMobileOverview({ phases, totalWeeks, startDate }: Planni
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <Badge variant="secondary" className={`${colors.bg} ${colors.text} text-xs`}>
-                    V{phase.start_week}–V{phase.start_week + phase.duration_weeks - 1}
+                    Dag {phase.start_day}–{phase.start_day + phase.duration_days - 1}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {phase.duration_weeks} {phase.duration_weeks === 1 ? 'vecka' : 'veckor'}
+                    {phase.duration_days} {phase.duration_days === 1 ? 'dag' : 'dagar'}
                   </span>
                 </div>
               </div>
               
               {startDate && (
                 <div className="mt-2 text-xs text-muted-foreground">
-                  📅 {getPhaseWeekDates(startDate, phase.start_week, phase.duration_weeks)}
+                  📅 {getPhaseDates(startDate, phase.start_day, phase.duration_days)}
                 </div>
               )}
               
@@ -81,7 +87,7 @@ export function PlanningMobileOverview({ phases, totalWeeks, startDate }: Planni
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{phases.length} moment</span>
           {" • "}
-          <span className="font-medium text-foreground">ca {totalWeeks} veckor</span>
+          <span className="font-medium text-foreground">ca {totalDays} dagar</span>
         </p>
       </div>
     </div>

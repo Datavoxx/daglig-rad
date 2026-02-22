@@ -2,32 +2,23 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Mic, MicOff, Loader2, Download, Pencil, Trash2, Sparkles } from "lucide-react";
+import { CalendarDays, Loader2, Download, Pencil, Trash2, Sparkles } from "lucide-react";
 import { AI_AGENTS } from "@/config/aiAgents";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { GanttTimeline } from "@/components/planning/GanttTimeline";
+import { GanttTimeline, normalizePhaseToDays } from "@/components/planning/GanttTimeline";
 import { PlanningMobileOverview } from "@/components/planning/PlanningMobileOverview";
 import { PlanEditor } from "@/components/planning/PlanEditor";
 import { generatePlanningPdf } from "@/lib/generatePlanningPdf";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Json } from "@/integrations/supabase/types";
-import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
-
-interface PlanPhase {
-  name: string;
-  start_week: number;
-  duration_weeks: number;
-  color: string;
-  parallel?: number;
-  description?: string;
-}
+import type { PlanPhase } from "@/components/planning/GanttTimeline";
 
 interface ProjectPlan {
   id: string;
   phases: PlanPhase[];
-  total_weeks: number;
+  total_days: number;
   start_date: string | null;
   notes: string | null;
 }
@@ -35,6 +26,8 @@ interface ProjectPlan {
 interface ProjectPlanningTabProps {
   projectId: string;
   projectName: string;
+  projectStartDate?: string | null;
+  projectEndDate?: string | null;
 }
 
 type ViewState = "empty" | "input" | "generating" | "review" | "view";
@@ -43,71 +36,46 @@ function parsePhasesFromJson(json: Json): PlanPhase[] {
   if (!Array.isArray(json)) return [];
   return json.map((item) => {
     if (typeof item === "object" && item !== null && !Array.isArray(item)) {
+      const phase = normalizePhaseToDays(item);
       return {
-        name: String(item.name || ""),
-        start_week: Number(item.start_week || 1),
-        duration_weeks: Number(item.duration_weeks || 1),
-        color: String(item.color || "slate"),
-        parallel: item.parallel ? Number(item.parallel) : undefined,
-        description: item.description ? String(item.description) : undefined,
+        name: String(phase.name || ""),
+        start_day: Number(phase.start_day || 1),
+        duration_days: Number(phase.duration_days || 1),
+        color: String(phase.color || "slate"),
+        description: phase.description ? String(phase.description) : undefined,
       };
     }
-    return { name: "", start_week: 1, duration_weeks: 1, color: "slate" };
+    return { name: "", start_day: 1, duration_days: 1, color: "slate" };
   });
 }
 
 function phasesToJson(phases: PlanPhase[]): Json {
   return phases.map((phase) => ({
     name: phase.name,
-    start_week: phase.start_week,
-    duration_weeks: phase.duration_weeks,
+    start_day: phase.start_day,
+    duration_days: phase.duration_days,
     color: phase.color,
-    ...(phase.parallel !== undefined && { parallel: phase.parallel }),
     ...(phase.description !== undefined && { description: phase.description }),
   })) as Json;
 }
 
-export default function ProjectPlanningTab({ projectId, projectName }: ProjectPlanningTabProps) {
+export default function ProjectPlanningTab({ projectId, projectName, projectStartDate, projectEndDate }: ProjectPlanningTabProps) {
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
   const [transcript, setTranscript] = useState("");
   const [generatedPhases, setGeneratedPhases] = useState<PlanPhase[]>([]);
-  const [generatedTotalWeeks, setGeneratedTotalWeeks] = useState(0);
+  const [generatedTotalDays, setGeneratedTotalDays] = useState(0);
   const [generatedConfidence, setGeneratedConfidence] = useState(0);
   const [generatedSummary, setGeneratedSummary] = useState("");
-  const [startDate, setStartDate] = useState<Date>(getNextMonday(new Date()));
+  const [startDate, setStartDate] = useState<Date>(
+    projectStartDate ? new Date(projectStartDate) : new Date()
+  );
   const { toast } = useToast();
   const isMobile = useIsMobile();
-
-  const {
-    isRecording,
-    isTranscribing,
-    interimTranscript,
-    startRecording,
-    stopRecording,
-    isSupported,
-    isIOSDevice,
-  } = useVoiceRecorder({
-    agentName: "Byggio AI",
-    onTranscriptUpdate: (newTranscript) => {
-      setTranscript(newTranscript);
-    },
-    onTranscriptComplete: (completedTranscript) => {
-      setTranscript(completedTranscript);
-    },
-  });
 
   useEffect(() => {
     fetchPlan();
   }, [projectId]);
-
-  function getNextMonday(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = day === 0 ? 1 : 8 - day;
-    d.setDate(d.getDate() + diff);
-    return d;
-  }
 
   const fetchPlan = async () => {
     const { data, error } = await supabase
@@ -122,10 +90,13 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     }
 
     if (data) {
+      const phases = parsePhasesFromJson(data.phases);
+      const totalDays = (data as any).total_days || (data.total_weeks ? data.total_weeks * 5 : 
+        Math.max(...phases.map(p => p.start_day + p.duration_days - 1), 0));
       setPlan({
         id: data.id,
-        phases: parsePhasesFromJson(data.phases),
-        total_weeks: data.total_weeks || 0,
+        phases,
+        total_days: totalDays,
         start_date: data.start_date,
         notes: data.notes,
       });
@@ -138,11 +109,6 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     }
   };
 
-  // Construct displayed transcript
-  const displayedTranscript = isIOSDevice 
-    ? transcript 
-    : transcript + (interimTranscript ? (transcript ? " " : "") + interimTranscript : "");
-
   const handleGeneratePlan = async () => {
     if (!transcript.trim()) {
       toast({ title: "Beskriv projektet först", variant: "destructive" });
@@ -153,13 +119,25 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-plan", {
-        body: { transcript },
+        body: { 
+          transcript,
+          project_name: projectName,
+          start_date: projectStartDate || startDate.toISOString().split("T")[0],
+          end_date: projectEndDate || undefined,
+        },
       });
 
       if (error) throw error;
 
-      setGeneratedPhases(data.phases || []);
-      setGeneratedTotalWeeks(data.total_weeks || 0);
+      if (data.needs_more_info) {
+        toast({ title: "Beskrivningen är för vag", description: data.example, variant: "destructive" });
+        setViewState("input");
+        return;
+      }
+
+      const phases = (data.phases || []).map(normalizePhaseToDays);
+      setGeneratedPhases(phases);
+      setGeneratedTotalDays(data.total_days || data.total_weeks * 5 || 0);
       setGeneratedConfidence(data.confidence || 0);
       setGeneratedSummary(data.summary || "");
       setViewState("review");
@@ -171,12 +149,11 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
 
   const handlePhasesChange = (phases: PlanPhase[]) => {
     setGeneratedPhases(phases);
-    // Recalculate total weeks
     const maxEnd = phases.reduce((max, phase) => {
-      const end = phase.start_week + phase.duration_weeks - 1;
+      const end = (phase.start_day || 1) + (phase.duration_days || 1) - 1;
       return Math.max(max, end);
     }, 0);
-    setGeneratedTotalWeeks(maxEnd);
+    setGeneratedTotalDays(maxEnd);
   };
 
   const handleSavePlan = async () => {
@@ -190,7 +167,8 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
       project_id: projectId,
       user_id: user.id,
       phases: phasesToJson(generatedPhases),
-      total_weeks: generatedTotalWeeks,
+      total_days: generatedTotalDays,
+      total_weeks: Math.ceil(generatedTotalDays / 5),
       start_date: startDate.toISOString().split("T")[0],
       original_transcript: transcript,
     };
@@ -242,7 +220,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
       await generatePlanningPdf({
         projectName,
         phases: plan.phases,
-        totalWeeks: plan.total_weeks,
+        totalWeeks: Math.ceil(plan.total_days / 5),
         summary: plan.notes || "",
         startDate,
       });
@@ -252,6 +230,8 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     }
   };
 
+  const endDate = projectEndDate ? new Date(projectEndDate) : undefined;
+
   // Empty state
   if (viewState === "empty") {
     return (
@@ -259,7 +239,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
         <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="font-medium">Ingen planering ännu</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          Beskriv projektet med röst eller text för att skapa en projektplan
+          Beskriv projektet med text för att skapa en projektplan
         </p>
         <Button className="mt-4" onClick={() => setViewState("input")}>
           Skapa planering
@@ -277,75 +257,17 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
           <Button variant="ghost" onClick={() => setViewState("empty")}>Avbryt</Button>
         </div>
         
-        {/* Bo AI prompt */}
-        <div 
-          className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
-          onClick={isRecording ? stopRecording : startRecording}
-        >
-        <img 
-          src={AI_AGENTS.planning.avatar}
-          alt="Byggio AI"
-          className="w-16 h-16 md:w-32 md:h-32 object-contain drop-shadow-lg"
-        />
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-primary">
-            <Mic className="h-5 w-5" />
-            <Sparkles className="h-4 w-4" />
-            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
-          </div>
-            <span className="text-sm text-muted-foreground">
-              Beskriv planen med rösten{isIOSDevice && " (transkribering efter inspelning)"}
-            </span>
-            {isRecording && (
-              <span className="text-xs text-destructive animate-pulse">● Spelar in...</span>
-            )}
-            {isTranscribing && (
-              <span className="text-xs text-primary animate-pulse">Transkriberar...</span>
-            )}
-          </div>
-        </div>
-
         <div className="relative">
           <Textarea
-            placeholder="Beskriv projektets faser, t.ex. 'Rivning 2 veckor, sedan stomme och grundarbete 4 veckor...'"
-            value={displayedTranscript}
-            onChange={(e) => {
-              setTranscript(e.target.value);
-            }}
+            placeholder="Beskriv projektets faser, t.ex. 'Rivning 3 dagar, sedan stomme och grundarbete 10 dagar...'"
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
             rows={6}
-            disabled={isRecording || isTranscribing}
-            className={isRecording || isTranscribing ? "pr-24" : ""}
           />
-          {(isRecording || isTranscribing) && (
-            <div className="absolute bottom-3 right-3 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium animate-pulse">
-              {isTranscribing ? "Transkriberar..." : "Lyssnar..."}
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant={isRecording ? "destructive" : "outline"}
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isTranscribing || !isSupported}
-          >
-            {isTranscribing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Transkriberar...
-              </>
-            ) : isRecording ? (
-              <>
-                <MicOff className="mr-2 h-4 w-4" />
-                Stoppa
-              </>
-            ) : (
-              <>
-                <Mic className="mr-2 h-4 w-4" />
-                Spela in
-              </>
-            )}
-          </Button>
-          <Button onClick={handleGeneratePlan} disabled={!transcript.trim() || isRecording || isTranscribing}>
+          <Button onClick={handleGeneratePlan} disabled={!transcript.trim()}>
+            <Sparkles className="mr-2 h-4 w-4" />
             Generera plan
           </Button>
         </div>
@@ -368,10 +290,11 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
     return (
       <PlanEditor
         phases={generatedPhases}
-        totalWeeks={generatedTotalWeeks}
+        totalDays={generatedTotalDays}
         confidence={generatedConfidence}
         summary={generatedSummary}
         startDate={startDate}
+        endDate={endDate}
         onStartDateChange={setStartDate}
         onPhasesChange={handlePhasesChange}
         onApprove={handleSavePlan}
@@ -396,7 +319,7 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
               size="sm"
               onClick={() => {
                 setGeneratedPhases(plan.phases);
-                setGeneratedTotalWeeks(plan.total_weeks);
+                setGeneratedTotalDays(plan.total_days);
                 setGeneratedConfidence(100);
                 setGeneratedSummary(plan.notes || "");
                 setViewState("review");
@@ -431,13 +354,13 @@ export default function ProjectPlanningTab({ projectId, projectName }: ProjectPl
         {isMobile ? (
           <PlanningMobileOverview
             phases={plan.phases}
-            totalWeeks={plan.total_weeks}
+            totalDays={plan.total_days}
             startDate={startDate}
           />
         ) : (
           <GanttTimeline
             phases={plan.phases}
-            totalWeeks={plan.total_weeks}
+            totalDays={plan.total_days}
             startDate={startDate}
           />
         )}

@@ -5,29 +5,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon, Mic } from "lucide-react";
+import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanPhase } from "./GanttTimeline";
-import { format, addWeeks, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AI_AGENTS } from "@/config/aiAgents";
 
 interface PlanEditorProps {
   phases: PlanPhase[];
-  totalWeeks: number;
+  totalDays: number;
   confidence: number;
   summary: string;
   startDate?: Date;
+  endDate?: Date;
   onStartDateChange?: (date: Date | undefined) => void;
   onPhasesChange: (phases: PlanPhase[]) => void;
   onApprove: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  // Legacy
+  totalWeeks?: number;
 }
 
 const COLORS = [
@@ -52,18 +51,14 @@ const colorClasses: Record<string, string> = {
   orange: "bg-orange-100",
 };
 
-// Calculate end date (Friday after X weeks from start)
-const getEndDate = (start: Date, weeks: number): Date => {
-  const lastWeekStart = addWeeks(start, weeks - 1);
-  return addDays(lastWeekStart, 4); // Monday + 4 = Friday
-};
-
 export function PlanEditor({
   phases,
+  totalDays: rawTotalDays,
   totalWeeks,
   confidence,
   summary,
   startDate,
+  endDate,
   onStartDateChange,
   onPhasesChange,
   onApprove,
@@ -71,7 +66,7 @@ export function PlanEditor({
   isLoading,
 }: PlanEditorProps) {
   const [editingPhases, setEditingPhases] = useState<PlanPhase[]>(phases);
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  const totalDays = rawTotalDays || (totalWeeks ? totalWeeks * 5 : 0);
 
   const handlePhaseChange = (index: number, field: keyof PlanPhase, value: string | number) => {
     const updated = [...editingPhases];
@@ -82,11 +77,11 @@ export function PlanEditor({
 
   const handleAddPhase = () => {
     const lastPhase = editingPhases[editingPhases.length - 1];
-    const newStartWeek = lastPhase ? lastPhase.start_week + lastPhase.duration_weeks : 1;
+    const newStartDay = lastPhase ? (lastPhase.start_day || 1) + (lastPhase.duration_days || 1) : 1;
     const newPhase: PlanPhase = {
       name: "Ny fas",
-      start_week: newStartWeek,
-      duration_weeks: 1,
+      start_day: newStartDay,
+      duration_days: 1,
       color: COLORS[editingPhases.length % COLORS.length].value,
     };
     const updated = [...editingPhases, newPhase];
@@ -100,35 +95,9 @@ export function PlanEditor({
     onPhasesChange(updated);
   };
 
-  const handleVoiceEdit = async (transcript: string) => {
-    setIsApplyingVoice(true);
-    try {
-      const { data: updatedData, error } = await supabase.functions.invoke("apply-voice-edits", {
-        body: {
-          transcript,
-          currentData: { phases: editingPhases, totalWeeks, startDate },
-          documentType: "planning",
-        },
-      });
-
-      if (error) throw error;
-
-      if (updatedData?.phases) {
-        setEditingPhases(updatedData.phases);
-        onPhasesChange(updatedData.phases);
-        toast.success("Ändringar applicerade");
-      }
-    } catch (error: any) {
-      console.error("Voice edit error:", error);
-      toast.error("Kunde inte applicera ändringar");
-    } finally {
-      setIsApplyingVoice(false);
-    }
-  };
-
   const confidenceColor = confidence >= 0.8 ? "text-emerald-600" : confidence >= 0.5 ? "text-amber-600" : "text-rose-600";
   
-  const endDate = startDate ? getEndDate(startDate, totalWeeks) : undefined;
+  const computedEndDate = startDate && totalDays ? addDays(startDate, totalDays - 1) : endDate;
 
   return (
     <div className="space-y-6">
@@ -152,14 +121,14 @@ export function PlanEditor({
           <div className="mt-4 pt-4 border-t">
             <p className="text-sm">
               <span className="font-medium">Uppskattad total tid:</span>{" "}
-              <span className="text-muted-foreground">ca {totalWeeks} veckor</span>
+              <span className="text-muted-foreground">ca {totalDays} dagar</span>
             </p>
           </div>
           
           {/* Date picker section */}
           <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-sm">Projektstart (måndag)</Label>
+              <Label className="text-sm">Projektstart</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -179,17 +148,7 @@ export function PlanEditor({
                     selected={startDate}
                     onSelect={(date) => {
                       if (date && onStartDateChange) {
-                        // Always set to Monday of the selected week
-                        const day = date.getDay();
-                        const diff = day === 0 ? 1 : day === 1 ? 0 : 8 - day;
-                        const monday = new Date(date);
-                        monday.setDate(date.getDate() + (day === 1 ? 0 : diff - (day > 1 ? day - 1 : 0)));
-                        // Simpler: just get the Monday of the week
-                        const mondayOfWeek = new Date(date);
-                        const dayOfWeek = date.getDay();
-                        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                        mondayOfWeek.setDate(date.getDate() + daysToMonday);
-                        onStartDateChange(mondayOfWeek);
+                        onStartDateChange(date);
                       }
                     }}
                     initialFocus
@@ -199,9 +158,9 @@ export function PlanEditor({
               </Popover>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Beräknat slutdatum (fredag)</Label>
+              <Label className="text-sm">Beräknat slutdatum</Label>
               <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center text-sm">
-                {endDate ? format(endDate, "d MMM yyyy", { locale: sv }) : "—"}
+                {computedEndDate ? format(computedEndDate, "d MMM yyyy", { locale: sv }) : "—"}
               </div>
             </div>
           </div>
@@ -243,22 +202,22 @@ export function PlanEditor({
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Start</Label>
+                    <Label className="text-xs text-muted-foreground">Start (dag)</Label>
                     <Input
                       type="number"
                       min={1}
-                      value={phase.start_week}
-                      onChange={(e) => handlePhaseChange(index, "start_week", parseInt(e.target.value) || 1)}
+                      value={phase.start_day || 1}
+                      onChange={(e) => handlePhaseChange(index, "start_day", parseInt(e.target.value) || 1)}
                       className="h-9 text-center"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Längd</Label>
+                    <Label className="text-xs text-muted-foreground">Längd (dagar)</Label>
                     <Input
                       type="number"
                       min={1}
-                      value={phase.duration_weeks}
-                      onChange={(e) => handlePhaseChange(index, "duration_weeks", parseInt(e.target.value) || 1)}
+                      value={phase.duration_days || 1}
+                      onChange={(e) => handlePhaseChange(index, "duration_days", parseInt(e.target.value) || 1)}
                       className="h-9 text-center"
                     />
                   </div>
@@ -301,14 +260,14 @@ export function PlanEditor({
                   placeholder="Momentnamn"
                 />
 
-                {/* Start week */}
+                {/* Start day */}
                 <div className="flex items-center gap-1.5">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Start</Label>
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Dag</Label>
                   <Input
                     type="number"
                     min={1}
-                    value={phase.start_week}
-                    onChange={(e) => handlePhaseChange(index, "start_week", parseInt(e.target.value) || 1)}
+                    value={phase.start_day || 1}
+                    onChange={(e) => handlePhaseChange(index, "start_day", parseInt(e.target.value) || 1)}
                     className="w-16 h-8 text-center"
                   />
                 </div>
@@ -319,11 +278,11 @@ export function PlanEditor({
                   <Input
                     type="number"
                     min={1}
-                    value={phase.duration_weeks}
-                    onChange={(e) => handlePhaseChange(index, "duration_weeks", parseInt(e.target.value) || 1)}
+                    value={phase.duration_days || 1}
+                    onChange={(e) => handlePhaseChange(index, "duration_days", parseInt(e.target.value) || 1)}
                     className="w-16 h-8 text-center"
                   />
-                  <span className="text-xs text-muted-foreground">v</span>
+                  <span className="text-xs text-muted-foreground">d</span>
                 </div>
 
                 {/* Color */}
@@ -362,28 +321,6 @@ export function PlanEditor({
         ))}
       </div>
 
-      {/* Voice prompt with Byggio AI avatar */}
-      <div 
-        className="flex items-center gap-4 p-4 bg-primary/5 border border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
-        onClick={() => {
-          const voiceButton = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
-          if (voiceButton) voiceButton.click();
-        }}
-      >
-        <img 
-          src={AI_AGENTS.planning.avatar}
-          alt="Byggio AI"
-          className="w-32 h-32 object-contain drop-shadow-lg"
-        />
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-primary">
-            <Mic className="h-5 w-5" />
-            <span className="font-medium">Låt Byggio AI hjälpa dig</span>
-          </div>
-          <span className="text-sm text-muted-foreground">Beskriv ändringar med rösten</span>
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-4">
         <Button variant="outline" onClick={onCancel} disabled={isLoading}>
@@ -393,13 +330,6 @@ export function PlanEditor({
           {isLoading ? "Sparar..." : "Godkänn planering"}
         </Button>
       </div>
-
-      <VoiceInputOverlay
-        onTranscriptComplete={handleVoiceEdit}
-        isProcessing={isApplyingVoice}
-        agentName="Byggio AI"
-        agentAvatar={AI_AGENTS.planning.avatar}
-      />
     </div>
   );
 }

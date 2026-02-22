@@ -5,10 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, AlertTriangle, CheckCircle2, X, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AI_AGENTS } from "@/config/aiAgents";
 
 interface EstimateSummaryProps {
   scope: string;
@@ -33,7 +29,6 @@ export function EstimateSummary({
 }: EstimateSummaryProps) {
   const [newAssumption, setNewAssumption] = useState("");
   const [newUncertainty, setNewUncertainty] = useState("");
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
 
   const addAssumption = () => {
     if (newAssumption.trim()) {
@@ -55,35 +50,6 @@ export function EstimateSummary({
 
   const removeUncertainty = (index: number) => {
     onUncertaintiesChange(uncertainties.filter((_, i) => i !== index));
-  };
-
-  const handleVoiceEdit = async (transcript: string) => {
-    if (!transcript.trim()) return;
-
-    try {
-      setIsApplyingVoice(true);
-      const { data, error } = await supabase.functions.invoke("apply-summary-voice-edits", {
-        body: {
-          transcript,
-          currentData: { scope, assumptions, uncertainties },
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.scope !== undefined) onScopeChange(data.scope);
-      if (data.assumptions) onAssumptionsChange(data.assumptions);
-      if (data.uncertainties) onUncertaintiesChange(data.uncertainties);
-
-      toast.success("Ändring genomförd", {
-        description: data.changes_made || "Sammanfattningen uppdaterades",
-      });
-    } catch (error) {
-      console.error("Voice edit failed:", error);
-      toast.error("Kunde inte tillämpa ändringen");
-    } finally {
-      setIsApplyingVoice(false);
-    }
   };
 
   return (
@@ -193,15 +159,6 @@ export function EstimateSummary({
           </Button>
         </div>
       </CardContent>
-
-      {/* Voice input overlay */}
-      <VoiceInputOverlay
-        onTranscriptComplete={handleVoiceEdit}
-        isProcessing={isApplyingVoice}
-        agentName="Byggio AI"
-        agentAvatar={AI_AGENTS.estimate.avatar}
-        className="absolute bottom-4 right-4"
-      />
     </Card>
   );
 }
