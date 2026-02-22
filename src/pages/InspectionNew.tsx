@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, ClipboardCheck, Building2, FileText, Mic, MicOff, Loader2, AlertCircle, Sparkles, Check, X, Minus } from "lucide-react";
-import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 type Step = "project" | "template" | "input" | "preview" | "creating";
@@ -631,7 +630,6 @@ export default function InspectionNew() {
       {step === "creating" && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <ByggioLoader />
             <h3 className="text-lg font-semibold">Skapar egenkontroll...</h3>
             <p className="text-muted-foreground">Vänligen vänta</p>
           </CardContent>

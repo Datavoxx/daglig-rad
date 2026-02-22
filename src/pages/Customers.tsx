@@ -17,7 +17,7 @@ import {
   Building2,
   User,
 } from "lucide-react";
-import { ByggioLoader } from "@/components/shared/ByggioLoader";
+
 import { toast } from "sonner";
 
 interface Customer {
@@ -138,7 +138,7 @@ export default function Customers() {
   );
 
   if (loading) {
-    return <ByggioLoader />;
+    return null;
   }
 
   return (
