@@ -97,6 +97,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
 export function AppLayout() {
   const [userInitial, setUserInitial] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSessionFeedback, setShowSessionFeedback] = useState(false);
@@ -141,6 +142,7 @@ export function AppLayout() {
     const fetchProfile = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
+        setUserEmail(userData.user.email || null);
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, avatar_url")
@@ -164,7 +166,10 @@ export function AppLayout() {
 
   // Build nav items dynamically based on user role/industry and filter by permissions
   const navItems = getNavItems(isEmployee, isServiceIndustry);
-  const visibleNavItems = navItems.filter(item => hasAccess(item.moduleKey));
+  const visibleNavItems = navItems.filter(item => {
+    if (item.moduleKey === "payroll-export" && userEmail?.toLowerCase() !== "mahad@datavox.se") return false;
+    return hasAccess(item.moduleKey);
+  });
 
   const renderNavButton = (item: NavItem, isActive: boolean) => (
     <button

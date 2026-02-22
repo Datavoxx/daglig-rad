@@ -227,7 +227,7 @@ export default function TimeReporting() {
           <p className="text-muted-foreground">Rapportera arbetade timmar per projekt</p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {isAdmin && user?.email?.toLowerCase() === "mahad@datavox.se" && (
             <Button variant="outline" asChild>
               <Link to="/payroll-export">
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
