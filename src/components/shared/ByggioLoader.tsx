@@ -9,9 +9,6 @@ export function ByggioLoader() {
           alt="Byggio"
           className="h-16 w-auto animate-byggio-pulse"
         />
-        <p className="text-sm text-muted-foreground animate-fade-in">
-          Laddar...
-        </p>
       </div>
     </div>
   );
