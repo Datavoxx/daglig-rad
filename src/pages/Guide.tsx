@@ -51,7 +51,7 @@ export default function Guide() {
   };
 
   return (
-    <div className="page-transition max-w-4xl mx-auto space-y-10">
+    <div className="max-w-4xl mx-auto space-y-10">
       {/* Hero Header */}
       <div className="text-center space-y-4 pb-6 border-b">
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 mb-2">
