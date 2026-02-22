@@ -1,52 +1,62 @@
 
 
-## Ta bort dubbla animationer fran sidor inuti AppLayout
+## Lagg till `page-transition` pa alla sidors interna innehall
 
-### Analys
+### Bakgrund
+Offertsidan hade tidigare `page-transition`-klassen pa sina interna `div`-element, vilket skapade en dubbel animation (en fran `RouteTransition` + en fran sidans egen div). Det gav den smidiga "nerifranifrån och upp"-kanslan. Den togs bort i en tidigare andring. Nu vill vi lagga tillbaka den pa **alla** sidor for att ge en konsekvent, smidig upplevelse overallt.
 
-`RouteTransition` wrappar ALLA sidor inuti `AppLayout` och lagger pa `page-transition`. Sidor **utanfor** AppLayout (Auth, Register, NotFound, AttendanceScan) har ingen RouteTransition -- dar ar sidans egen klass den enda animationen, sa de ska behallas.
+### Vad andras
+Varje sidas yttersta `<div>` (inklusive loading/skeleton-states) far klassen `page-transition` tillagd. Detta ger den extra `translateY(4px) + scale(0.98) + fade`-effekten ovanpa den globala `RouteTransition`.
 
-### Resultat av genomgang
+### Filer som andras
 
-**Sidor med DUBBEL animation (inuti AppLayout + egen klass) -- BEHOVER FIXAS:**
+**Sidor inuti AppLayout (skyddade sidor):**
 
-| Fil | Rad(er) | Klass | Problem |
-|-----|---------|-------|---------|
-| `src/pages/Estimates.tsx` | 161, 247, 262, 275 | `page-transition` | Dubbel `page-transition` |
-| `src/pages/Planning.tsx` | 298, 307 | `page-transition` | Dubbel `page-transition` |
-| `src/pages/Guide.tsx` | 54 | `page-transition` | Dubbel `page-transition` |
-| `src/pages/Dashboard.tsx` | 309 | `animate-in` | Annan animation an alla andra sidor |
+| Fil | Antal return-block som andras |
+|-----|------|
+| `src/pages/Dashboard.tsx` | 1 |
+| `src/pages/Settings.tsx` | 1 |
+| `src/pages/Profile.tsx` | 1 |
+| `src/pages/Projects.tsx` | 1 |
+| `src/pages/ProjectView.tsx` | 2 (loading + main) |
+| `src/pages/Estimates.tsx` | 4 (loading, wizard, builder, main) |
+| `src/pages/Customers.tsx` | 1 |
+| `src/pages/Invoices.tsx` | 1 |
+| `src/pages/Inspections.tsx` | 1 |
+| `src/pages/InspectionNew.tsx` | 1 |
+| `src/pages/InspectionView.tsx` | 2 (loading + main) |
+| `src/pages/Planning.tsx` | 2 (loading + main) |
+| `src/pages/Guide.tsx` | 1 |
+| `src/pages/TimeReporting.tsx` | 1 |
+| `src/pages/Attendance.tsx` | 1 |
+| `src/pages/DailyReports.tsx` | 2 (loading + main) |
+| `src/pages/PayrollExport.tsx` | 1 |
+| `src/pages/ReportView.tsx` | 1 |
+| `src/pages/GlobalAssistant.tsx` | 1 |
+| `src/pages/EmployeeDashboard.tsx` | 2 (loading + main) |
+| `src/pages/ServiceHomeDashboard.tsx` | 2 (loading + main) |
 
-**Sidor UTANFOR AppLayout (ingen RouteTransition) -- BEHALLS SOM DE AR:**
+**Totalt: 21 filer, ~30 andringar**
 
-| Fil | Klass | Varfor behalles |
-|-----|-------|-----------------|
-| `src/pages/Auth.tsx` | `page-transition` | Inte inuti RouteTransition, enda kalllan |
-| `src/pages/Register.tsx` | `page-transition` | Inte inuti RouteTransition |
-| `src/pages/NotFound.tsx` | `page-transition` | Inte inuti RouteTransition |
+### Teknisk detalj
 
-**Sidor utan egen animation (korrekt beteende) -- INGEN ANDRING:**
-Customers, Settings, Invoices, TimeReporting, Attendance, DailyReports, PayrollExport, Projects, ProjectView, Profile, GlobalAssistant, ServiceHomeDashboard, EmployeeDashboard, Inspections, InspectionNew, InspectionView, ReportView
+Andringsmonstret ar enkelt och identiskt overallt. Exempel:
 
-### Andringar
+```text
+Fore:  <div className="space-y-6">
+Efter: <div className="page-transition space-y-6">
+```
 
-1. **`src/pages/Estimates.tsx`** -- Ta bort `page-transition` fran 4 stallen:
-   - Rad 161: `"page-transition p-6 max-w-6xl mx-auto"` -> `"p-6 max-w-6xl mx-auto"`
-   - Rad 247: `"page-transition p-4 md:p-6 max-w-6xl mx-auto"` -> `"p-4 md:p-6 max-w-6xl mx-auto"`
-   - Rad 262: `"page-transition p-4 md:p-6 max-w-6xl mx-auto"` -> `"p-4 md:p-6 max-w-6xl mx-auto"`
-   - Rad 275: `"page-transition p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6"` -> `"p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6"`
+For sidor som returnerar `null` vid loading (Settings, Customers) andras bara huvudreturen. For sidor med skeleton-loading (Estimates, Planning, DailyReports, etc.) laggs klassen till pa bade loading- och huvuddiven.
 
-2. **`src/pages/Planning.tsx`** -- Ta bort `page-transition` fran 2 stallen:
-   - Rad 298: `"page-transition p-6 max-w-5xl mx-auto"` -> `"p-6 max-w-5xl mx-auto"`
-   - Rad 307: `"page-transition p-6 max-w-5xl mx-auto space-y-6"` -> `"p-6 max-w-5xl mx-auto space-y-6"`
+GlobalAssistant andras fran:
+```text
+<div className="relative flex h-full flex-col overflow-hidden">
+```
+till:
+```text
+<div className="page-transition relative flex h-full flex-col overflow-hidden">
+```
 
-3. **`src/pages/Guide.tsx`** -- Ta bort `page-transition` fran 1 stalle:
-   - Rad 54: `"page-transition max-w-4xl mx-auto space-y-10"` -> `"max-w-4xl mx-auto space-y-10"`
+Inga nya filer, inga nya beroenden, ingen CSS-andring behovs.
 
-4. **`src/pages/Dashboard.tsx`** -- Ta bort `animate-in` fran 1 stalle:
-   - Rad 309: `"space-y-6 animate-in"` -> `"space-y-6"`
-
-**OBS:** `animate-fade-in` pa rad 467 och 532 i Dashboard.tsx ar **item-animationer** (per rad i en lista), inte sidladdningsanimationer. De behalls.
-
-### Resultat
-Alla sidor inuti AppLayout far exakt samma animation via `RouteTransition` -- en enda `page-transition`. Ingen dubbel eller avvikande animation langre.
