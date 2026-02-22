@@ -193,7 +193,7 @@ function ProjectsClassicView() {
         return;
       }
 
-      const { error } = await supabase.from("projects").insert({
+      const { data: newProject, error } = await supabase.from("projects").insert({
         name: selectedEstimate.manual_project_name || selectedEstimate.offer_number || "Nytt projekt",
         client_name: selectedEstimate.manual_client_name || null,
         address: selectedEstimate.manual_address || null,
@@ -203,14 +203,13 @@ function ProjectsClassicView() {
         longitude: selectedEstimate.manual_longitude || null,
         estimate_id: selectedEstimateId,
         user_id: user.id,
-      });
+      }).select("id").single();
 
       if (error) {
         toast({ title: "Kunde inte skapa projekt", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Projekt skapat från offert" });
-        fetchData();
         closeDialog();
+        navigate(`/projects/${newProject.id}?onboarding=true`);
       }
     }
 

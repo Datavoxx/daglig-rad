@@ -50,6 +50,7 @@ import {
   X,
   Package,
 } from "lucide-react";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -435,6 +436,11 @@ export default function ProjectAtaTab({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <VoicePromptButton
+            variant="compact"
+            agentName="Byggio AI"
+            onTranscriptComplete={async () => {}}
+          />
           {atas.length > 0 && (
             <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
               {exportingPdf ? (

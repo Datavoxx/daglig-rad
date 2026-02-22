@@ -30,6 +30,7 @@ import {
   Sparkles,
   Loader2,
 } from "lucide-react";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { generateInspectionPdf } from "@/lib/generateInspectionPdf";
@@ -218,7 +219,12 @@ export default function InspectionView() {
         </div>
       </div>
 
-
+      {/* Voice AI helper */}
+      <VoicePromptButton
+        variant="compact"
+        agentName="Byggio AI"
+        onTranscriptComplete={async () => {}}
+      />
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">

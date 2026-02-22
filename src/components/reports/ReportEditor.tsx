@@ -15,6 +15,7 @@ import {
   X,
   FileWarning,
 } from "lucide-react";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -320,6 +321,21 @@ export function ReportEditor({
           </Button>
         </div>
       </div>
+
+      {/* Voice AI helper */}
+      <VoicePromptButton
+        variant="compact"
+        agentName="Byggio AI"
+        onTranscriptComplete={async (transcript) => {
+          try {
+            const { data: result, error } = await supabase.functions.invoke("apply-voice-edits", {
+              body: { transcript, report: data },
+            });
+            if (error) throw error;
+            if (result) setData(result);
+          } catch {}
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Crew section */}
