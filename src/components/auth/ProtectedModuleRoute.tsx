@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { Loader2 } from "lucide-react";
+import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
@@ -23,11 +23,7 @@ export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteP
   }, [loading, canAccess]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ByggioLoader />;
   }
 
   if (!canAccess) {
