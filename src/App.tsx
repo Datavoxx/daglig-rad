@@ -39,6 +39,7 @@ import PayrollExport from "@/pages/PayrollExport";
 import FeatureDetail from "@/pages/features/FeatureDetail";
 import AgentDetail from "@/pages/ai/AgentDetail";
 import GlobalAssistant from "@/pages/GlobalAssistant";
+import ServiceHomeDashboard from "@/pages/ServiceHomeDashboard";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => {
               {/* Protected routes with layout */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<ProtectedModuleRoute module="dashboard"><Dashboard /></ProtectedModuleRoute>} />
+                <Route path="/service-home" element={<ProtectedModuleRoute module="dashboard"><ServiceHomeDashboard /></ProtectedModuleRoute>} />
                 <Route path="/employee-dashboard" element={<ProtectedModuleRoute module="daily-reports"><EmployeeDashboard /></ProtectedModuleRoute>} />
                 <Route path="/projects" element={<ProtectedModuleRoute module="projects"><Projects /></ProtectedModuleRoute>} />
                 <Route path="/projects/:id" element={<ProtectedModuleRoute module="projects"><ProjectView /></ProtectedModuleRoute>} />
