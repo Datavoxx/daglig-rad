@@ -5,9 +5,12 @@ import {
   Calculator,
   Users,
   Clock,
+  Briefcase,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useUserIndustry } from "@/hooks/useUserIndustry";
 
 interface NavItem {
   label: string;
@@ -16,7 +19,7 @@ interface NavItem {
   moduleKey: string;
 }
 
-const navItems: NavItem[] = [
+const byggNavItems: NavItem[] = [
   { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
   { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
   { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
@@ -24,12 +27,21 @@ const navItems: NavItem[] = [
   { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
 ];
 
+const serviceNavItems: NavItem[] = [
+  { label: "Jobb", href: "/projects", icon: Briefcase, moduleKey: "projects" },
+  { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
+  { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
+  { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+];
+
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess } = useUserPermissions();
+  const { isServiceIndustry } = useUserIndustry();
 
-  // Filter to only show accessible items, max 5 in bottom nav
+  const navItems = isServiceIndustry ? serviceNavItems : byggNavItems;
   const visibleItems = navItems.filter(item => hasAccess(item.moduleKey)).slice(0, 5);
 
   return (

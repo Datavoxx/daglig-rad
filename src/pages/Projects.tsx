@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Plus, FolderKanban, MapPin, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProjectPipeline from "@/components/projects/ProjectPipeline";
+import { useUserIndustry } from "@/hooks/useUserIndustry";
+import { JobsList } from "@/components/jobs/JobsList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +59,17 @@ interface Estimate {
 }
 
 export default function Projects() {
+  const { isServiceIndustry } = useUserIndustry();
+
+  // Service industry users get the job-centric view
+  if (isServiceIndustry) {
+    return <JobsList />;
+  }
+
+  return <ProjectsClassicView />;
+}
+
+function ProjectsClassicView() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
