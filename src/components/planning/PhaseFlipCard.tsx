@@ -12,10 +12,12 @@ interface PhaseFlipCardProps {
 
 export function PhaseFlipCard({ phase, style, colorClasses, isFlipped, onFlip }: PhaseFlipCardProps) {
 
-  const endWeek = phase.start_week + phase.duration_weeks - 1;
-  const weekRange = phase.duration_weeks === 1 
-    ? `V${phase.start_week}` 
-    : `V${phase.start_week} → V${endWeek}`;
+  const durationDays = phase.duration_days || (phase.duration_weeks ? phase.duration_weeks * 5 : 1);
+  const startDay = phase.start_day || ((phase.start_week || 1) - 1) * 5 + 1;
+  const endDay = startDay + durationDays - 1;
+  const dayRange = durationDays === 1 
+    ? `Dag ${startDay}` 
+    : `Dag ${startDay} → ${endDay}`;
 
   return (
     <div
@@ -48,7 +50,7 @@ export function PhaseFlipCard({ phase, style, colorClasses, isFlipped, onFlip }:
           style={{ backfaceVisibility: "hidden" }}
         >
           <span className={cn("text-xs font-medium truncate px-2", colorClasses.text)}>
-            {phase.duration_weeks}v
+            {durationDays}d
           </span>
         </div>
 
@@ -89,9 +91,9 @@ export function PhaseFlipCard({ phase, style, colorClasses, isFlipped, onFlip }:
             {phase.name}
           </h4>
 
-          {/* Week range */}
+          {/* Day range */}
           <div className={cn("text-xs font-medium opacity-80", colorClasses.text)}>
-            {weekRange} ({phase.duration_weeks} {phase.duration_weeks === 1 ? "vecka" : "veckor"})
+            {dayRange} ({durationDays} {durationDays === 1 ? "dag" : "dagar"})
           </div>
 
           {/* Description */}

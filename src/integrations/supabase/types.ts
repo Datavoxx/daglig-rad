@@ -1554,6 +1554,7 @@ export type Database = {
           phases: Json
           project_id: string
           start_date: string | null
+          total_days: number | null
           total_weeks: number | null
           updated_at: string | null
           user_id: string | null
@@ -1566,6 +1567,7 @@ export type Database = {
           phases?: Json
           project_id: string
           start_date?: string | null
+          total_days?: number | null
           total_weeks?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -1578,6 +1580,7 @@ export type Database = {
           phases?: Json
           project_id?: string
           start_date?: string | null
+          total_days?: number | null
           total_weeks?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -1756,6 +1759,7 @@ export type Database = {
           city: string | null
           client_name: string | null
           created_at: string | null
+          end_date: string | null
           estimate_id: string | null
           id: string
           latitude: number | null
@@ -1773,6 +1777,7 @@ export type Database = {
           city?: string | null
           client_name?: string | null
           created_at?: string | null
+          end_date?: string | null
           estimate_id?: string | null
           id?: string
           latitude?: number | null
@@ -1790,6 +1795,7 @@ export type Database = {
           city?: string | null
           client_name?: string | null
           created_at?: string | null
+          end_date?: string | null
           estimate_id?: string | null
           id?: string
           latitude?: number | null
