@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
 import ProjectTimeSection from "@/components/projects/ProjectTimeSection";
 import { EconomicOverviewCard } from "@/components/projects/EconomicOverviewCard";
 import KpiCard from "@/components/dashboard/KpiCard";
-import ProjectPhaseIndicator from "@/components/projects/ProjectPhaseIndicator";
+import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
 
 interface Project {
   id: string;
@@ -454,8 +455,36 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
         </Card>
       </div>
 
-      {/* Phase Indicator */}
-      <ProjectPhaseIndicator projectStatus={project.status} plan={dashboardData.plan} />
+      {/* Planning / Gantt Section */}
+      {dashboardData.plan && dashboardData.plan.phases && (dashboardData.plan.phases as PlanPhase[]).length > 0 ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Planering</CardTitle>
+              <Badge variant="secondary">{project.status === "planning" ? "Planering" : project.status === "active" ? "Pågående" : project.status === "closing" ? "Slutskede" : project.status === "completed" ? "Avslutat" : project.status}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <GanttTimeline
+              phases={dashboardData.plan.phases as PlanPhase[]}
+              totalWeeks={dashboardData.plan.total_weeks || 8}
+              startDate={dashboardData.plan.start_date ? new Date(dashboardData.plan.start_date) : undefined}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground mb-3">Ingen planering skapad ännu</p>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/projects/${project.id}?tab=planning`)}
+            >
+              Skapa planering
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Time Reporting Section */}
       <ProjectTimeSection projectId={project.id} projectName={project.name} />

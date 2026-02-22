@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,8 +18,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package } from "lucide-react";
+import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package, Tags } from "lucide-react";
 import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
+import { ArticleLibrarySection } from "@/components/estimates/ArticleLibrarySection";
+import { ArticleCategorySection } from "@/components/estimates/ArticleCategorySection";
 import { EstimateSkeleton } from "@/components/skeletons/EstimateSkeleton";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { EstimateWizard } from "@/components/estimates/EstimateWizard";
@@ -55,6 +58,8 @@ export default function Estimates() {
   
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [showArticleLibrary, setShowArticleLibrary] = useState(false);
+  const [showArticleCategories, setShowArticleCategories] = useState(false);
   
   // Initialize state based on URL parameters to prevent flicker
   const [selectedEstimateId, setSelectedEstimateId] = useState<string | null>(
@@ -284,10 +289,18 @@ export default function Estimates() {
           <Button
             variant="outline"
             size={isMobile ? "sm" : "default"}
-            onClick={() => navigate("/settings?tab=articles")}
+            onClick={() => setShowArticleLibrary(true)}
           >
             <Package className="h-4 w-4 mr-1" />
             {isMobile ? "Artiklar" : "Artikelbibliotek"}
+          </Button>
+          <Button
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            onClick={() => setShowArticleCategories(true)}
+          >
+            <Tags className="h-4 w-4 mr-1" />
+            {isMobile ? "Kategorier" : "Artikelkategorier"}
           </Button>
           <Button onClick={() => setShowWizard(true)} size={isMobile ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-1" />
@@ -471,6 +484,26 @@ export default function Estimates() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Article Library Dialog */}
+      <Dialog open={showArticleLibrary} onOpenChange={setShowArticleLibrary}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Artikelbibliotek</DialogTitle>
+          </DialogHeader>
+          <ArticleLibrarySection onAddArticles={() => {}} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Categories Dialog */}
+      <Dialog open={showArticleCategories} onOpenChange={setShowArticleCategories}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Artikelkategorier</DialogTitle>
+          </DialogHeader>
+          <ArticleCategorySection />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
