@@ -457,14 +457,15 @@ export default function Planning() {
       {viewState === "review" && generatedPlan && (
         <PlanEditor
           phases={generatedPlan.phases}
+          totalDays={generatedPlan.total_weeks * 5}
           totalWeeks={generatedPlan.total_weeks}
           confidence={generatedPlan.confidence}
           summary={generatedPlan.summary}
           startDate={startDate}
           onStartDateChange={setStartDate}
           onPhasesChange={(phases) => {
-            const maxEnd = Math.max(...phases.map((p) => p.start_week + p.duration_weeks - 1));
-            setGeneratedPlan({ ...generatedPlan, phases, total_weeks: maxEnd });
+            const maxEnd = Math.max(...phases.map((p) => (p.start_day || ((p.start_week || 1) - 1) * 5 + 1) + (p.duration_days || (p.duration_weeks || 1) * 5) - 1));
+            setGeneratedPlan({ ...generatedPlan, phases, total_weeks: Math.ceil(maxEnd / 5) });
           }}
           onApprove={handleApprove}
           onCancel={() => setViewState("input")}
@@ -547,6 +548,7 @@ export default function Planning() {
                 <TabsContent value="list" className="mt-0">
                   <PlanningMobileOverview
                     phases={generatedPlan.phases}
+                    totalDays={generatedPlan.total_weeks * 5}
                     totalWeeks={generatedPlan.total_weeks}
                     startDate={startDate}
                   />
@@ -555,8 +557,9 @@ export default function Planning() {
                   <div className="text-xs text-muted-foreground text-center mb-2">
                     ← Dra åt sidan för att se hela tidslinjen →
                   </div>
-                  <GanttTimeline
+                   <GanttTimeline
                     phases={generatedPlan.phases}
+                    totalDays={generatedPlan.total_weeks * 5}
                     totalWeeks={generatedPlan.total_weeks}
                     startDate={startDate}
                   />
@@ -565,6 +568,7 @@ export default function Planning() {
             ) : (
               <GanttTimeline
                 phases={generatedPlan.phases}
+                totalDays={generatedPlan.total_weeks * 5}
                 totalWeeks={generatedPlan.total_weeks}
                 startDate={startDate}
               />

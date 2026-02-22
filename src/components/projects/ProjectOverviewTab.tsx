@@ -467,6 +467,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
           <CardContent>
             <GanttTimeline
               phases={dashboardData.plan.phases as PlanPhase[]}
+              totalDays={(dashboardData.plan as any).total_days || (dashboardData.plan.total_weeks ? dashboardData.plan.total_weeks * 5 : 40)}
               totalWeeks={dashboardData.plan.total_weeks || 8}
               startDate={dashboardData.plan.start_date ? new Date(dashboardData.plan.start_date) : undefined}
             />
