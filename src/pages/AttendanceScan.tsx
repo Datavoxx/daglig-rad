@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, LogOut, Loader2, CheckCircle2, XCircle, Building2, User } from "lucide-react";
+import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { toast } from "sonner";
 import byggioLogo from "@/assets/byggio-logo.png";
 
@@ -150,11 +151,7 @@ export default function AttendanceScan() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ByggioLoader />;
   }
 
   // Invalid token

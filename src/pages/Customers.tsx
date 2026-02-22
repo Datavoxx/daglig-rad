@@ -16,8 +16,8 @@ import {
   Mail,
   Building2,
   User,
-  Loader2,
 } from "lucide-react";
+import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { toast } from "sonner";
 
 interface Customer {
@@ -138,11 +138,7 @@ export default function Customers() {
   );
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ByggioLoader />;
   }
 
   return (
