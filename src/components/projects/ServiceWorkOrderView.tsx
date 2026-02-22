@@ -86,7 +86,7 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
   const [status, setStatus] = useState(workOrder.status);
   const [articles, setArticles] = useState<Article[]>([]);
   const [hourlyRate, setHourlyRate] = useState(500);
-  const [markupPercent, setMarkupPercent] = useState(10);
+  
 
   // Time form
   const [timeForm, setTimeForm] = useState({ hours: "", date: format(new Date(), "yyyy-MM-dd"), billing_type: "service", description: "", is_billable: true });
@@ -121,18 +121,17 @@ export default function ServiceWorkOrderView({ workOrder, projectId, projectName
 
     const [{ data: arts }, { data: pricing }] = await Promise.all([
       supabase.from("articles").select("id, name, unit, default_price, customer_price").eq("user_id", user.id).eq("is_active", true).order("sort_order").limit(10),
-      supabase.from("user_pricing_settings").select("hourly_rate_general, material_markup_percent").eq("user_id", user.id).maybeSingle(),
+      supabase.from("user_pricing_settings").select("hourly_rate_general").eq("user_id", user.id).maybeSingle(),
     ]);
     setArticles((arts || []) as Article[]);
     if (pricing) {
       setHourlyRate(Number(pricing.hourly_rate_general) || 500);
-      setMarkupPercent(Number(pricing.material_markup_percent) || 10);
     }
   };
 
   const getCustomerPrice = (article: Article) => {
     if (article.customer_price != null) return Number(article.customer_price);
-    if (article.default_price != null) return Math.round(Number(article.default_price) * (1 + markupPercent / 100));
+    if (article.default_price != null) return Number(article.default_price);
     return 0;
   };
 
