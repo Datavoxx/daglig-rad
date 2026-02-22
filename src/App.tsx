@@ -29,6 +29,7 @@ import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
 import Invoices from "@/pages/Invoices";
+import Accounting from "@/pages/Accounting";
 import AcceptInvitation from "@/pages/AcceptInvitation";
 import TimeReporting from "@/pages/TimeReporting";
 import Attendance from "@/pages/Attendance";
@@ -82,6 +83,7 @@ const App = () => {
                 <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
                 <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
                 <Route path="/invoices" element={<ProtectedModuleRoute module="invoices"><Invoices /></ProtectedModuleRoute>} />
+                <Route path="/accounting" element={<ProtectedModuleRoute module="invoices"><Accounting /></ProtectedModuleRoute>} />
                 <Route path="/time-reporting" element={<ProtectedModuleRoute module="time-reporting"><TimeReporting /></ProtectedModuleRoute>} />
                 <Route path="/attendance" element={<ProtectedModuleRoute module="attendance"><Attendance /></ProtectedModuleRoute>} />
                 <Route path="/daily-reports" element={<ProtectedModuleRoute module="daily-reports"><DailyReports /></ProtectedModuleRoute>} />

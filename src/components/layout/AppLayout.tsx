@@ -5,7 +5,6 @@ import {
   FolderKanban,
   Settings,
   Search,
-  Bell,
   Calculator,
   Users,
   BookOpen,
@@ -74,6 +73,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
       { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
       { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
+      { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },
     ];
   }
   
@@ -90,6 +90,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
     { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
     { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
     { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
+    { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },
   ];
 };
 
@@ -422,9 +423,6 @@ export function AppLayout() {
             <span className="text-sm font-medium text-muted-foreground tabular-nums hidden sm:block">
               {formatTime(currentTime)}
             </span>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
-              <Bell className="h-[18px] w-[18px]" />
-            </Button>
             {/* Mobile: Logout in topbar */}
             {isMobile && (
               <Button
