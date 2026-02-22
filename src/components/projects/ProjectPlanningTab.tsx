@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarDays, Loader2, Download, Pencil, Trash2, Sparkles } from "lucide-react";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { AI_AGENTS } from "@/config/aiAgents";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -266,6 +267,13 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
           />
         </div>
         <div className="flex items-center gap-3">
+          <VoicePromptButton
+            variant="compact"
+            agentName="Byggio AI"
+            onTranscriptComplete={async (text) => {
+              setTranscript(text);
+            }}
+          />
           <Button onClick={handleGeneratePlan} disabled={!transcript.trim()}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generera plan

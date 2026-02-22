@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ClipboardList, MoreHorizontal, Pencil, Trash2, Download, CalendarIcon } from "lucide-react";
+import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -224,7 +225,13 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
           <h3 className="text-lg font-medium">Arbetsorder</h3>
           <p className="text-sm text-muted-foreground">Hantera och skriv ut arbetsorder</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => open ? setDialogOpen(true) : closeDialog()}>
+        <div className="flex items-center gap-2">
+          <VoicePromptButton
+            variant="compact"
+            agentName="Byggio AI"
+            onTranscriptComplete={async () => {}}
+          />
+          <Dialog open={dialogOpen} onOpenChange={(open) => open ? setDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -319,6 +326,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (

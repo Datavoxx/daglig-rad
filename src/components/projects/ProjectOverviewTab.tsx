@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { generateCompleteProjectPdf } from "@/lib/generateCompleteProjectPdf";
 import ProjectTimeSection from "@/components/projects/ProjectTimeSection";
+import { ProjectOnboardingDialog } from "@/components/projects/ProjectOnboardingDialog";
 import { EconomicOverviewCard } from "@/components/projects/EconomicOverviewCard";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { GanttTimeline, type PlanPhase } from "@/components/planning/GanttTimeline";
@@ -40,6 +41,7 @@ interface Project {
   city: string | null;
   estimate_id: string | null;
   start_date: string | null;
+  end_date: string | null;
   budget: number | null;
   status: string | null;
   created_at: string;
@@ -56,9 +58,11 @@ interface Estimate {
 interface ProjectOverviewTabProps {
   project: Project;
   onUpdate: () => void;
+  isOnboarding?: boolean;
+  onClearOnboarding?: () => void;
 }
 
-export default function ProjectOverviewTab({ project, onUpdate }: ProjectOverviewTabProps) {
+export default function ProjectOverviewTab({ project, onUpdate, isOnboarding, onClearOnboarding }: ProjectOverviewTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [linkedEstimate, setLinkedEstimate] = useState<Estimate | null>(null);
@@ -67,6 +71,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
   const [formData, setFormData] = useState({
     estimate_id: project.estimate_id || "",
     start_date: project.start_date ? parseISO(project.start_date) : undefined as Date | undefined,
+    end_date: project.end_date ? parseISO(project.end_date) : undefined as Date | undefined,
     budget: project.budget?.toString() || "",
     status: project.status || "planning",
   });
@@ -188,6 +193,7 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
       .update({
         estimate_id: formData.estimate_id && formData.estimate_id !== "none" ? formData.estimate_id : null,
         start_date: formData.start_date ? format(formData.start_date, "yyyy-MM-dd") : null,
+        end_date: formData.end_date ? format(formData.end_date, "yyyy-MM-dd") : null,
         budget: formData.budget ? parseFloat(formData.budget) : null,
         status: formData.status,
       })
@@ -388,6 +394,30 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
                     </PopoverContent>
                   </Popover>
                 </div>
+                {/* End Date - edit */}
+                <div className="space-y-2">
+                  <Label>Slutdatum</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full justify-start text-left font-normal", !formData.end_date && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.end_date ? format(formData.end_date, "PPP", { locale: sv }) : "Välj datum"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.end_date}
+                        onSelect={(date) => setFormData({ ...formData, end_date: date })}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 {/* Budget - edit */}
                 <div className="space-y-2">
                   <Label>Budget</Label>
@@ -441,6 +471,14 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
                   <span className="text-sm text-muted-foreground w-28 shrink-0">Startdatum</span>
                   <span className="text-sm font-medium">
                     {project.start_date ? format(parseISO(project.start_date), "d MMM yyyy", { locale: sv }) : "–"}
+                  </span>
+                </div>
+                {/* End Date row */}
+                <div className="flex items-center gap-3 py-3">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground w-28 shrink-0">Slutdatum</span>
+                  <span className="text-sm font-medium">
+                    {project.end_date ? format(parseISO(project.end_date), "d MMM yyyy", { locale: sv }) : "–"}
                   </span>
                 </div>
                 {/* Budget row */}
@@ -528,6 +566,18 @@ export default function ProjectOverviewTab({ project, onUpdate }: ProjectOvervie
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Onboarding Dialog */}
+      <ProjectOnboardingDialog
+        open={!!isOnboarding}
+        onOpenChange={(open) => {
+          if (!open) onClearOnboarding?.();
+        }}
+        projectId={project.id}
+        estimateTotal={linkedEstimate?.total_incl_vat}
+        onComplete={onUpdate}
+        onNavigatePlanning={() => navigate(`/projects/${project.id}?tab=planning`)}
+      />
     </>
   );
 }

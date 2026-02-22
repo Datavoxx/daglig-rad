@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +32,7 @@ interface Project {
   city: string | null;
   estimate_id: string | null;
   start_date: string | null;
+  end_date: string | null;
   budget: number | null;
   status: string | null;
   created_at: string;
@@ -40,6 +41,8 @@ interface Project {
 export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isOnboarding = searchParams.get("onboarding") === "true";
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingOverview, setGeneratingOverview] = useState(false);
@@ -309,7 +312,15 @@ export default function ProjectView() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <ProjectOverviewTab project={project} onUpdate={fetchProject} />
+          <ProjectOverviewTab 
+            project={project} 
+            onUpdate={fetchProject} 
+            isOnboarding={isOnboarding}
+            onClearOnboarding={() => {
+              searchParams.delete("onboarding");
+              setSearchParams(searchParams, { replace: true });
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="ata" className="mt-6">
@@ -332,7 +343,7 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="planning" className="mt-6">
-          <ProjectPlanningTab projectId={project.id} projectName={project.name} />
+          <ProjectPlanningTab projectId={project.id} projectName={project.name} projectStartDate={project.start_date} projectEndDate={project.end_date} />
         </TabsContent>
 
         <TabsContent value="diary" className="mt-6">
