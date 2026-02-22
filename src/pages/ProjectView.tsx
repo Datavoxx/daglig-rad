@@ -225,7 +225,10 @@ export default function ProjectView() {
     return null;
   }
 
-  // Service industry users can access JobDetailView via work order tab
+  // Service industry users get the consolidated job view
+  if (isServiceIndustry) {
+    return <JobDetailView project={project} />;
+  }
 
   return (
     <div className="space-y-6">

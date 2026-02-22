@@ -66,11 +66,12 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
 
   if (isServiceIndustry) {
     return [
+      { label: "Hem", href: "/service-home", icon: Home, moduleKey: "dashboard" },
       { label: "Jobb", href: "/projects", icon: Briefcase, moduleKey: "projects" },
-      { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
       { label: "Offerter", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
       { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
       { label: "Kvitton", href: "/invoices?tab=receipts", icon: Receipt, moduleKey: "invoices" },
+      { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
       { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
     ];

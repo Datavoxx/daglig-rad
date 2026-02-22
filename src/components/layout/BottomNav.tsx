@@ -28,11 +28,11 @@ const byggNavItems: NavItem[] = [
 ];
 
 const serviceNavItems: NavItem[] = [
+  { label: "Hem", href: "/service-home", icon: Home, moduleKey: "dashboard" },
   { label: "Jobb", href: "/projects", icon: Briefcase, moduleKey: "projects" },
-  { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
+  { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
   { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
-  { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
 ];
 
 export function BottomNav() {
