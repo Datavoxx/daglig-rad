@@ -1,62 +1,43 @@
 
+## Separera Bokforing fran Fakturor och ta bort ringklockan
 
-## Lagg till `page-transition` pa alla sidors interna innehall
+### Oversikt
+Tva andringar:
+1. Flytta "Bokforing"-fliken fran Fakturor-sidan till en helt egen sida med egen navigeringslank, placerad direkt under "Guide" i sidomenyn
+2. Ta bort ringklockan (Bell-ikonen) fran headern, bade desktop och mobil
 
-### Bakgrund
-Offertsidan hade tidigare `page-transition`-klassen pa sina interna `div`-element, vilket skapade en dubbel animation (en fran `RouteTransition` + en fran sidans egen div). Det gav den smidiga "nerifranifrån och upp"-kanslan. Den togs bort i en tidigare andring. Nu vill vi lagga tillbaka den pa **alla** sidor for att ge en konsekvent, smidig upplevelse overallt.
+### Detaljerade andringar
 
-### Vad andras
-Varje sidas yttersta `<div>` (inklusive loading/skeleton-states) far klassen `page-transition` tillagd. Detta ger den extra `translateY(4px) + scale(0.98) + fade`-effekten ovanpa den globala `RouteTransition`.
+#### 1. Skapa ny sida: `src/pages/Accounting.tsx`
+- Ny sida som innehaller allt innehall fran "Bokforing"-fliken i `Invoices.tsx` (integrationskort for Fortnox/Visma, intresseanmalan-formularet)
+- Samma hero-sektion som andra sidor, med `BookOpen`-ikon och titeln "Bokforing"
+- Klassen `page-transition` laggs till for konsekvent animation
+
+#### 2. Rensa `src/pages/Invoices.tsx`
+- Ta bort "Bokforing"-tabben fran TabsList och dess TabsContent
+- Ta bort importer som bara anvandes for bokforingssektionen (`RadioGroup`, `RadioGroupItem`, `Phone`, `Bell` (om oanvand), `BookOpen`, Fortnox/Visma-logotyper, relaterad state)
+- Behall kundfakturor, leverantorsfakturor och kvitto-tabbar
+
+#### 3. Uppdatera navigeringen i `src/components/layout/AppLayout.tsx`
+- Lagg till "Bokforing" som ny nav-item med `BookOpen`-ikon direkt efter "Guide" i bygg-navigationslistan
+- moduleKey setts till "invoices" (samma behorighetsniva som fakturor)
+- Ta bort Bell-knappen fran headern (rad ~425-427)
+- Ta bort `Bell` fran lucide-react-importen
+
+#### 4. Uppdatera `src/App.tsx`
+- Importera nya `Accounting`-sidan
+- Lagg till route: `/accounting` med `ProtectedModuleRoute module="invoices"`
+
+#### 5. Uppdatera `src/components/layout/BottomNav.tsx`
+- Ingen andring behovs har, da bokforing inte var med i mobilnavigeringen fran borjan
 
 ### Filer som andras
+| Fil | Andring |
+|-----|---------|
+| `src/pages/Accounting.tsx` | **Ny fil** - bokforingsinnehall fran Invoices |
+| `src/pages/Invoices.tsx` | Ta bort bokforings-tabb och relaterad kod |
+| `src/components/layout/AppLayout.tsx` | Lagg till nav-item "Bokforing", ta bort Bell-knappen |
+| `src/App.tsx` | Lagg till route for `/accounting` |
 
-**Sidor inuti AppLayout (skyddade sidor):**
-
-| Fil | Antal return-block som andras |
-|-----|------|
-| `src/pages/Dashboard.tsx` | 1 |
-| `src/pages/Settings.tsx` | 1 |
-| `src/pages/Profile.tsx` | 1 |
-| `src/pages/Projects.tsx` | 1 |
-| `src/pages/ProjectView.tsx` | 2 (loading + main) |
-| `src/pages/Estimates.tsx` | 4 (loading, wizard, builder, main) |
-| `src/pages/Customers.tsx` | 1 |
-| `src/pages/Invoices.tsx` | 1 |
-| `src/pages/Inspections.tsx` | 1 |
-| `src/pages/InspectionNew.tsx` | 1 |
-| `src/pages/InspectionView.tsx` | 2 (loading + main) |
-| `src/pages/Planning.tsx` | 2 (loading + main) |
-| `src/pages/Guide.tsx` | 1 |
-| `src/pages/TimeReporting.tsx` | 1 |
-| `src/pages/Attendance.tsx` | 1 |
-| `src/pages/DailyReports.tsx` | 2 (loading + main) |
-| `src/pages/PayrollExport.tsx` | 1 |
-| `src/pages/ReportView.tsx` | 1 |
-| `src/pages/GlobalAssistant.tsx` | 1 |
-| `src/pages/EmployeeDashboard.tsx` | 2 (loading + main) |
-| `src/pages/ServiceHomeDashboard.tsx` | 2 (loading + main) |
-
-**Totalt: 21 filer, ~30 andringar**
-
-### Teknisk detalj
-
-Andringsmonstret ar enkelt och identiskt overallt. Exempel:
-
-```text
-Fore:  <div className="space-y-6">
-Efter: <div className="page-transition space-y-6">
-```
-
-For sidor som returnerar `null` vid loading (Settings, Customers) andras bara huvudreturen. For sidor med skeleton-loading (Estimates, Planning, DailyReports, etc.) laggs klassen till pa bade loading- och huvuddiven.
-
-GlobalAssistant andras fran:
-```text
-<div className="relative flex h-full flex-col overflow-hidden">
-```
-till:
-```text
-<div className="page-transition relative flex h-full flex-col overflow-hidden">
-```
-
-Inga nya filer, inga nya beroenden, ingen CSS-andring behovs.
-
+### Service-industri-navigering
+For service-industri-navigeringen laggs ocksa "Bokforing" till, placerad efter "Instellningar" eller pa lamplig plats.
