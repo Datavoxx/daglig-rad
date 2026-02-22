@@ -1,52 +1,53 @@
 
 
-## Ta bort mikrofon och auto-paslag
+## Fix: Påslag ska vara 0 när ingen markering är gjord
 
-### Sammanfattning
+### Problem
+Beräkningslogiken i `useEstimate.ts` (rad 271) har en fallback som använder `state.markupPercent` (globalt påslagsvärde) när inga enskilda artiklar har påslag aktiverat. Gamla offerter sparades med databasens default på 15%, så även om MarkupPanel-toggeln är AV visas fortfarande påslag.
 
-Tva andringar: (1) Ta bort alla VoiceInputOverlay och VoicePromptButton fran hela plattformen. (2) Ta bort det automatiska paslaget som laggs till nar man skapar en offert (databasens default ar 15%, ska vara 0%).
+### Lösning
+Ändra beräkningslogiken så att markup bara beräknas om:
+- Antingen minst en artikel har `markup_enabled = true` (per-artikel-påslag), ELLER
+- `state.markupPercent > 0` OCH det finns artiklar med `markup_enabled`
 
----
+Den enklaste och tydligaste fixen: Om inga artiklar har `markup_enabled`, ska markup alltid vara 0.
 
-### 1. Ta bort auto-paslag (rotorsaken)
+### Teknisk ändring
 
-**Problem:** Kolumnen `markup_percent` i tabellen `project_estimates` har ett databasdefaultvarde pa **15**. Det betyder att varje ny offert automatiskt far 15% paslag, aven om anvandaren inte har angett nagot.
+**`src/hooks/useEstimate.ts`** (rad 262-271):
 
-**Losning:**
-- Databasmigration: Andra default fran 15 till 0 pa `project_estimates.markup_percent`.
+Nuvarande kod:
+```typescript
+const markupFromItems = state.items.reduce((sum, item) => {
+  if (item.markup_enabled && item.markup_percent > 0) {
+    return sum + ((item.subtotal || 0) * (item.markup_percent / 100));
+  }
+  return sum;
+}, 0);
 
-| Fil / Resurs | Andring |
-|------|---------|
-| Migration (SQL) | `ALTER TABLE project_estimates ALTER COLUMN markup_percent SET DEFAULT 0;` |
+const markup = markupFromItems > 0 ? markupFromItems : subtotal * (state.markupPercent / 100);
+```
 
----
+Ny kod:
+```typescript
+const hasAnyMarkupEnabled = state.items.some(item => item.markup_enabled);
 
-### 2. Ta bort mikrofon-knappen fran hela plattformen
+const markupFromItems = state.items.reduce((sum, item) => {
+  if (item.markup_enabled && item.markup_percent > 0) {
+    return sum + ((item.subtotal || 0) * (item.markup_percent / 100));
+  }
+  return sum;
+}, 0);
 
-**Problem:** VoiceInputOverlay (flytande mikrofon-knapp) och VoicePromptButton finns kvar i fem filer trots att anvandaren vill att de ska tas bort.
+const markup = hasAnyMarkupEnabled ? markupFromItems : 0;
+```
 
-**Filer som andras:**
+Logiken: Om ingen artikel har `markup_enabled` (toggeln är av) -> påslag = 0. Om minst en artikel har `markup_enabled` -> summera deras individuella påslag.
 
-| Fil | Andring |
+Det globala `state.markupPercent`-fältet används inte längre som fallback, vilket matchar den nya designen där påslag styrs per artikel via MarkupPanel.
+
+### Fil som ändras
+
+| Fil | Ändring |
 |-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | Ta bort VoiceInputOverlay (rad 665-668 och 741-746), VoicePromptButton (rad 468-474), imports (rad 29-30, 32), isApplyingVoice state (rad 79), handleVoiceEdit funktion (rad 250-340) |
-| `src/components/reports/ReportEditor.tsx` | Ta bort VoiceInputOverlay (rad 663-668), import (rad 34-35, 37), isApplyingVoice state, handleVoiceEdit funktion |
-| `src/components/projects/ProjectAtaTab.tsx` | Ta bort VoicePromptButton (rad 515-520), import (rad 57-58), isVoiceProcessing state (rad 143), handleVoiceInput funktion (rad 188-235) |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Ta bort VoicePromptButton (rad 275-280), import (rad 20-21), isVoiceProcessing state (rad 54), handleVoiceInput funktion (rad 57-85) |
-| `src/pages/InspectionView.tsx` | Ta bort VoiceInputOverlay (rad 460-465), import (rad 36-37), isApplyingVoice state, handleVoiceEdit funktion |
-
-**OBS:** Sjalva komponentfilerna (`VoiceInputOverlay.tsx`, `VoicePromptButton.tsx`, `useVoiceRecorder.ts`) behalles -- bara anvandningarna tas bort.
-
----
-
-### Sammanfattning av alla andringar
-
-| Fil / Resurs | Forandring |
-|------|-----------|
-| Migration | Andra default pa `project_estimates.markup_percent` fran 15 till 0 |
-| `src/components/estimates/EstimateBuilder.tsx` | Ta bort VoiceInputOverlay, VoicePromptButton, relaterad state och logik |
-| `src/components/reports/ReportEditor.tsx` | Ta bort VoiceInputOverlay och relaterad logik |
-| `src/components/projects/ProjectAtaTab.tsx` | Ta bort VoicePromptButton och relaterad logik |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Ta bort VoicePromptButton och relaterad logik |
-| `src/pages/InspectionView.tsx` | Ta bort VoiceInputOverlay och relaterad logik |
-
+| `src/hooks/useEstimate.ts` | Rad 262-271: Ändra markup-beräkning till att kräva `markup_enabled` |
