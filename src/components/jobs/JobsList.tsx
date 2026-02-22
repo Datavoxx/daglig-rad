@@ -234,13 +234,10 @@ export function JobsList() {
             return (
               <Card
                 key={job.id}
-                className="group relative cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-150 overflow-hidden"
+                className="group cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-150 overflow-hidden"
+                onClick={() => navigate(`/projects/${job.id}`)}
               >
-                <div
-                  className="absolute inset-0 z-0 cursor-pointer"
-                  onClick={() => navigate(`/projects/${job.id}`)}
-                />
-                <CardContent className="relative z-10 p-4">
+                <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -283,7 +280,7 @@ export function JobsList() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0 pointer-events-auto z-20">
+                    <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                       {/* Quick call */}
                       {job.customerPhone && (
                         <Button
