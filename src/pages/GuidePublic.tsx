@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, CalendarDays, ClipboardCheck, Calculator, ArrowRight, Download } from "lucide-react";
+import { FileText, CalendarDays, Calculator, ArrowRight, Download, Clock, Landmark, Users } from "lucide-react";
 import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,14 +17,24 @@ const features = [
     description: "Skapa projektplaner med faser och milstolpar. Visualisera tidslinjen och dela med ditt team.",
   },
   {
-    icon: ClipboardCheck,
-    title: "Egenkontroller",
-    description: "Genomför standardiserade kontroller med färdiga mallar. Dokumentera och signera direkt i appen.",
-  },
-  {
     icon: Calculator,
     title: "Offerter",
     description: "Skapa detaljerade kostnadsofferter med arbete, material och underentreprenörer. Generera professionella offerter.",
+  },
+  {
+    icon: Clock,
+    title: "Tidsrapportering",
+    description: "Rapportera arbetstid per projekt. Månads- och veckovyer med attestering och periodhantering.",
+  },
+  {
+    icon: Landmark,
+    title: "Fakturor",
+    description: "Skapa kundfakturor och hantera leverantörsfakturor. Scanna kvitton direkt från mobilen.",
+  },
+  {
+    icon: Users,
+    title: "Kundhantering",
+    description: "Samla kontaktuppgifter, adresser och anteckningar. Koppla kunder till projekt automatiskt.",
   },
 ];
 

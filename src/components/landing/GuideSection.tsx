@@ -84,9 +84,9 @@ const GuideSection = () => {
   };
 
   const benefits = [
-    "Spara tid på dokumentation",
-    "Skapa professionella offerter",
-    "Hantera projekt från start till slut",
+    "Spara tid på dokumentation med AI och röst",
+    "Skapa professionella offerter och fakturor",
+    "Hantera projekt, tid och personal på ett ställe",
   ];
 
   return (
