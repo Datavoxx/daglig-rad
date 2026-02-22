@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { CompanyOnboardingWizard } from "@/components/onboarding/CompanyOnboardingWizard";
 
 export function ProtectedRoute({ children }: { children?: React.ReactNode }) {
@@ -79,7 +78,7 @@ export function ProtectedRoute({ children }: { children?: React.ReactNode }) {
   }, [isAuthenticated, userId]);
 
   if (isLoading) {
-    return <ByggioLoader />;
+    return null;
   }
 
   if (!isAuthenticated) {

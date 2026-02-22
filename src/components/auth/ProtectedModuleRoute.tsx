@@ -1,6 +1,5 @@
 import { Navigate } from "react-router-dom";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { ByggioLoader } from "@/components/shared/ByggioLoader";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
@@ -23,7 +22,7 @@ export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteP
   }, [loading, canAccess]);
 
   if (loading) {
-    return <ByggioLoader />;
+    return null;
   }
 
   if (!canAccess) {

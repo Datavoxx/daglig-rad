@@ -70,13 +70,7 @@ export function ArticleCategorySection() {
   };
 
   if (loading) {
-    return (
-      <Card className="border bg-card">
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (

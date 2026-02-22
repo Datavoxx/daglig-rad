@@ -165,9 +165,7 @@ function AttendanceAdminView() {
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <div className="py-8" />
             ) : isCheckedIn ? (
               <>
                 <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4">
