@@ -1,146 +1,28 @@
 
 
-## El/VVS Iteration: Operativ Jobbskarm + Ny Hemskarm
+## Byt loading-animation till Byggio-logga
 
-### Oversikt
+### Vad som gors
 
-Tva stora leverabler:
-1. **ProjectView ombyggs** till operativ jobbskarm for el/VVS (anvander befintliga `JobDetailView` som redan finns)
-2. **Ny Hem-sida** for el/VVS-anvandare med dagliga jobb, snabbactions och "klara att fakturera"
+Skapar en ny `ByggioLoader`-komponent med den uppladdade Byggio-loggan och en premium loading-animation (puls + fade + subtil scale), liknande stora appar som Slack, Notion och Figma.
 
-Befintliga komponenter som redan ar klara och kan ateranvandas:
-- `JobDetailView.tsx` -- redan byggd med pengasummering, tid, material, kvittoscanner, anteckningar, bilder, extraarbete
-- `JobActionBar.tsx` -- sticky action bar (mobil bottom, desktop top)
-- `JobReceiptScanner.tsx` -- integrerad kvittoscanner
-- `JobsList.tsx` -- jobblista med snabbactions
-- `CreateJobDialog.tsx` -- skapa nytt jobb
+### Scope
 
----
+Byter **helskarmsladdningar** (ProtectedRoute, ProtectedModuleRoute, och liknande sidladdningar) -- INTE knappar/inline-spinners som ska forbli sma Loader2-ikoner.
 
-### Sprint 1: Aktivera JobDetailView + Hemskarm (KRITISKT)
+### Tekniska steg
 
-**1.1 Modifiera `ProjectView.tsx`**
+1. **Kopiera loggan** till `src/assets/byggio-loader-logo.png`
 
-Nar `isServiceIndustry === true`, rendera `JobDetailView` istallet for tab-layouten. (Detta var borttaget i senaste andringen -- nu laggs det tillbaka.)
+2. **Skapa `src/components/shared/ByggioLoader.tsx`**
+   - Centrerad fullskarms-vy med Byggio-loggan
+   - Animation: loggan pulserar mjukt (scale 0.95-1.05 + opacity 0.6-1.0) med en subtil shimmer/glow-effekt
+   - Valfri liten "Laddar..."-text under loggan med fade-animation
 
-Andringar:
-- Aterinfor `if (isServiceIndustry) return <JobDetailView project={project} />`
-- Bygg-anvandare far befintlig tab-vy (ingen andring)
+3. **Uppdatera foljande filer** att anvanda `ByggioLoader` istallet for `Loader2` spinner:
+   - `src/components/auth/ProtectedRoute.tsx` (helskarm vid auth-check)
+   - `src/components/auth/ProtectedModuleRoute.tsx` (helskarm vid behorighets-check)
+   - Ovriga sidor med helskarmsladdning (t.ex. `ProjectView`, `Estimates`, `Dashboard` etc.) dar `Loader2` anvands i en centrerad fullskarmsvy
 
-**1.2 Skapa ny `ServiceHomeDashboard.tsx`** (`src/pages/ServiceHomeDashboard.tsx`)
-
-Ny hemskarm for el/VVS med foljande sektioner:
-
-```text
-+----------------------------------+
-| Hej, [Namn]!        [datum]      |
-| Mina jobb idag                   |
-+----------------------------------+
-| [KPI-strip: 4 kompakta kort]    |
-| Pagaende | Planerade | Klara ej  |
-| nu       | idag     | fakturerade|
-+----------------------------------+
-| SNABBATGARDER                    |
-| [Nytt jobb] [Lagg tid] [Kvitto] |
-| [Material] [Faktura]            |
-+----------------------------------+
-| MINA JOBB NU (karusell/lista)   |
-| [Jobb 1: Kund, adress, status]  |
-| [Jobb 2: ...]                   |
-| [Jobb 3: ...]                   |
-+----------------------------------+
-| KLARA ATT FAKTURERA             |
-| [Jobb X -- Skapa faktura]       |
-| [Jobb Y -- Skapa faktura]       |
-+----------------------------------+
-| SENASTE AKTIVITET               |
-| - Tid registrerad 14:30         |
-| - Material tillagt 13:15        |
-+----------------------------------+
-```
-
-Datakallor:
-- `projects` med status-filter
-- `project_work_orders` for status
-- `work_order_time_entries` for senaste aktivitet
-- `work_order_materials` for senaste aktivitet
-- `user_pricing_settings` for timpris
-
-Sektioner:
-1. **Header**: Halsning + datum
-2. **KPI-strip**: 4 kompakta kort (Pagaende, Planerade, Klara ej fakturerade, Timmar denna vecka)
-3. **Snabbatgarder**: Knappar for Nytt jobb, Lagg tid, Lagg material, Scanna kvitto, Skapa faktura
-4. **Mina jobb nu**: Horisontell karusell (embla-carousel) med aktiva jobbkort, varje kort visar kund/adress/status med snabbactions
-5. **Klara att fakturera**: Lista med jobb dar status=completed + faktura ej skapad, med "Skapa faktura"-knapp
-6. **Senaste aktivitet**: Senaste 5 handelser (tid, material, kvitton)
-
-**1.3 Modifiera routing och navigation**
-
-Andringar i `App.tsx`:
-- Lagg till route for `/service-home` som renderar `ServiceHomeDashboard`
-- Behall `/dashboard` for bygg-anvandare
-
-Andringar i `AppLayout.tsx` (nav-items for service):
-- Lagg till "Hem" som forsta nav-item for service, pekar pa `/service-home`
-
-Andringar i `BottomNav.tsx`:
-- Lagg till "Hem" i `serviceNavItems` som forsta item, pekar pa `/service-home`
-
-**1.4 Sprakandring i ProjectView**
-
-Nar service, visa "Jobb" istallet for "Projekt" i header-texten (back-knapp gar till /projects som redan visar "Jobb").
-
----
-
-### Sprint 2: Forbattra Jobbdetalj + Jobblista
-
-**2.1 Forbattra JobDetailView**
-
-Smarre forbattringar:
-- Lagg till "Fakturastatus" i pengasummeringen (ej fakturerad / fakturautkast / fakturerad)
-- Visa faktura-knappen aven nar status ar "in_progress" (inte bara "completed"), men med texten "Skapa faktura" vs "Visa faktura"
-- Forbattra "Fler val" i tidsektionen -- visa senaste anvanda typ
-
-**2.2 Forbattra JobsList snabbactions**
-
-Lagg till pa jobbkorten:
-- Visa timmar + materialkostnad inline pa kortet (kompakt)
-- "Snabb tid"-ikon som oppnar inline tidsinput
-
----
-
-### Teknisk implementationsplan
-
-**Filer som SKAPAS:**
-| Fil | Beskrivning |
-|-----|-------------|
-| `src/pages/ServiceHomeDashboard.tsx` | Ny hemskarm for el/VVS |
-
-**Filer som MODIFIERAS:**
-| Fil | Andring |
-|-----|---------|
-| `src/pages/ProjectView.tsx` | Aterinfor `isServiceIndustry` branch-check for JobDetailView |
-| `src/App.tsx` | Lagg till route `/service-home` |
-| `src/components/layout/AppLayout.tsx` | Lagg till "Hem" nav-item for service |
-| `src/components/layout/BottomNav.tsx` | Lagg till "Hem" i serviceNavItems |
-
-**Filer som INTE ANDRAS:**
-| Fil | Anledning |
-|-----|-----------|
-| `JobDetailView.tsx` | Redan klar -- fungerar som operativ jobbskarm |
-| `JobActionBar.tsx` | Redan klar -- sticky actions |
-| `JobReceiptScanner.tsx` | Redan klar -- kvitto i jobb |
-| `JobsList.tsx` | Redan klar med snabbactions |
-| `CreateJobDialog.tsx` | Redan klar |
-
-### Ingen databasandring kravs
-
-Alla tabeller finns redan. Hemskarmens data hamtas fran befintliga tabeller.
-
-### Implementeringsordning
-
-1. Aterinfor branch-check i `ProjectView.tsx` (1 rad)
-2. Skapa `ServiceHomeDashboard.tsx` (ny fil)
-3. Uppdatera routing i `App.tsx`
-4. Uppdatera navigation i `AppLayout.tsx` och `BottomNav.tsx`
+Knappar och inline-spinners (t.ex. "Sparar...") behalls som `Loader2`.
 
