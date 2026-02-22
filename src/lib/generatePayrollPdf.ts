@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { getCompanyLogoBase64 } from "./pdfUtils";
-import type { TimeEntryForExport, ValidationResult } from "./validatePayrollExport";
+import type { TimeEntryForExport, ValidationResult, PayrollProvider } from "./validatePayrollExport";
 
 interface PayrollPdfOptions {
   entries: TimeEntryForExport[];
@@ -12,10 +12,12 @@ interface PayrollPdfOptions {
   periodEnd: Date;
   exportId: string;
   companyName?: string;
+  provider?: PayrollProvider;
 }
 
 export async function generatePayrollPdf(options: PayrollPdfOptions): Promise<jsPDF> {
-  const { entries, validation, periodStart, periodEnd, exportId, companyName } = options;
+  const { entries, validation, periodStart, periodEnd, exportId, companyName, provider = "visma" } = options;
+  const providerLabel = provider === "fortnox" ? "Fortnox" : "Visma";
 
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -35,7 +37,7 @@ export async function generatePayrollPdf(options: PayrollPdfOptions): Promise<js
   // Title
   doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text("LÖNEUNDERLAG", pageWidth / 2, yPos, { align: "center" });
+  doc.text(`LÖNEUNDERLAG (${providerLabel})`, pageWidth / 2, yPos, { align: "center" });
   yPos += 10;
 
   // Subtitle with period
@@ -121,20 +123,25 @@ export async function generatePayrollPdf(options: PayrollPdfOptions): Promise<js
 
     const tableData = employeeEntries
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((entry) => [
-        format(new Date(entry.date), "yyyy-MM-dd"),
-        entry.salary_type?.visma_wage_code || "-",
-        entry.salary_type?.name || "-",
-        `${entry.hours.toFixed(1)}h`,
-        entry.description?.substring(0, 40) || "",
-      ]);
+      .map((entry) => {
+        const wageCode = provider === "fortnox"
+          ? entry.salary_type?.fortnox_wage_code || "-"
+          : entry.salary_type?.visma_wage_code || "-";
+        return [
+          format(new Date(entry.date), "yyyy-MM-dd"),
+          wageCode,
+          entry.salary_type?.name || "-",
+          `${entry.hours.toFixed(1)}h`,
+          entry.description?.substring(0, 40) || "",
+        ];
+      });
 
     // Add total row
     tableData.push(["", "", "Summa", `${empTotalHours.toFixed(1)}h`, ""]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Datum", "Tidkod", "Lönetyp", "Timmar", "Beskrivning"]],
+      head: [["Datum", `Tidkod (${providerLabel})`, "Lönetyp", "Timmar", "Beskrivning"]],
       body: tableData,
       theme: "striped",
       headStyles: { fillColor: [100, 116, 139], fontSize: 8 },

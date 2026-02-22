@@ -54,6 +54,7 @@ export default function Settings() {
     contact_phone: "",
     momsregnr: "",
     f_skatt: true,
+    payroll_provider: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
   const [hasCompanyChanges, setHasCompanyChanges] = useState(false);
@@ -129,6 +130,7 @@ export default function Settings() {
         contact_phone: (companyData as any).contact_phone || "",
         momsregnr: (companyData as any).momsregnr || "",
         f_skatt: (companyData as any).f_skatt ?? true,
+        payroll_provider: (companyData as any).payroll_provider || "",
       });
       setLogoUrl(companyData.logo_url || null);
     }
@@ -586,6 +588,35 @@ export default function Settings() {
                     </Label>
                   </div>
                 </div>
+              </div>
+              {/* Payroll provider */}
+              <Separator />
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Lönesystem
+                </Label>
+                <div className="space-y-2">
+                  {[
+                    { value: "visma", label: "Visma Lön 300/600" },
+                    { value: "fortnox", label: "Fortnox Lön" },
+                    { value: "both", label: "Båda" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payroll_provider"
+                        value={opt.value}
+                        checked={companyForm.payroll_provider === opt.value}
+                        onChange={(e) => setCompanyForm(prev => ({ ...prev, payroll_provider: e.target.value }))}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Välj lönesystem för att visa rätt exportalternativ
+                </p>
               </div>
             </CardContent>
             <CardFooter>

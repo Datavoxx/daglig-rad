@@ -132,8 +132,8 @@ export function downloadTluFile(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function generateTluFilename(periodStart: Date, periodEnd: Date): string {
-  const startStr = periodStart.toISOString().split("T")[0].replace(/-/g, "");
-  const endStr = periodEnd.toISOString().split("T")[0].replace(/-/g, "");
-  return `loneexport_${startStr}_${endStr}.tlu`;
+export function generateTluFilename(periodStart: Date, _periodEnd: Date, orgNumber?: string): string {
+  const yearMonth = periodStart.toISOString().split("T")[0].substring(0, 7);
+  const org = orgNumber?.replace(/-/g, "") || "ORGNR";
+  return `BYGGIO_VISMA_${yearMonth}_${org}.tlu`;
 }

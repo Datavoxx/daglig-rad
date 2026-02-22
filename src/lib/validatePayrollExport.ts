@@ -19,6 +19,8 @@ export interface ValidationResult {
   };
 }
 
+export type PayrollProvider = "visma" | "fortnox";
+
 export interface TimeEntryForExport {
   id: string;
   user_id: string;
@@ -32,6 +34,7 @@ export interface TimeEntryForExport {
     name: string;
     employment_number: string | null;
     personal_number: string | null;
+    fortnox_employee_id: string | null;
   };
   salary_type?: {
     id: string;
@@ -39,6 +42,8 @@ export interface TimeEntryForExport {
     abbreviation: string;
     visma_wage_code: string | null;
     visma_salary_type: string | null;
+    fortnox_wage_code: string | null;
+    fortnox_salary_type: string | null;
     time_type: string | null;
   };
 }
@@ -46,7 +51,8 @@ export interface TimeEntryForExport {
 export async function validatePayrollExport(
   periodStart: Date,
   periodEnd: Date,
-  periodStatus: string
+  periodStatus: string,
+  provider: PayrollProvider = "visma"
 ): Promise<{ result: ValidationResult; entries: TimeEntryForExport[] }> {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
@@ -123,7 +129,7 @@ export async function validatePayrollExport(
   const uniqueUserIds = [...new Set(entries.map((e) => e.user_id))];
   const { data: employees } = await supabase
     .from("employees")
-    .select("id, name, employment_number, personal_number, linked_user_id")
+    .select("id, name, employment_number, personal_number, linked_user_id, fortnox_employee_id")
     .eq("user_id", userData.user.id);
 
   const employeeByUserId = new Map<string, any>();
@@ -143,7 +149,7 @@ export async function validatePayrollExport(
   // 4. Fetch salary types
   const { data: salaryTypes } = await supabase
     .from("salary_types")
-    .select("id, name, abbreviation, visma_wage_code, visma_salary_type, time_type")
+    .select("id, name, abbreviation, visma_wage_code, visma_salary_type, fortnox_wage_code, fortnox_salary_type, time_type")
     .eq("user_id", userData.user.id);
 
   const salaryTypeById = new Map<string, any>();
@@ -192,10 +198,9 @@ export async function validatePayrollExport(
     const employee = employeeByUserId.get(entry.user_id);
 
     if (isOwner) {
-      // Owner needs to be set up with Visma ID - this is a warning for now
       warnings.push({
         type: "warning",
-        message: "Ägarkonto saknar Visma-identifiering - lägg till anställningsnummer i inställningar",
+        message: "Ägarkonto saknar identifiering - lägg till anställningsnummer i inställningar",
         entryId: entry.id,
       });
       enrichedEntry.employee = {
@@ -203,6 +208,7 @@ export async function validatePayrollExport(
         name: ownerProfile.data?.full_name || "Ägare",
         employment_number: null,
         personal_number: null,
+        fortnox_employee_id: null,
       };
     } else if (employee) {
       if (!employee.employment_number && !employee.personal_number) {
@@ -212,11 +218,19 @@ export async function validatePayrollExport(
           entryId: entry.id,
         });
       }
+      if (provider === "fortnox" && !employee.fortnox_employee_id && !employee.employment_number) {
+        errors.push({
+          type: "error",
+          message: `Anställd "${employee.name}" saknar Fortnox-anställningsnummer`,
+          entryId: entry.id,
+        });
+      }
       enrichedEntry.employee = {
         id: employee.id,
         name: employee.name,
         employment_number: employee.employment_number,
         personal_number: employee.personal_number,
+        fortnox_employee_id: employee.fortnox_employee_id || null,
       };
     } else {
       errors.push({
@@ -242,10 +256,12 @@ export async function validatePayrollExport(
           entryId: entry.id,
         });
       } else {
-        if (!salaryType.visma_wage_code) {
+        const wageCodeField = provider === "fortnox" ? "fortnox_wage_code" : "visma_wage_code";
+        const providerLabel = provider === "fortnox" ? "Fortnox" : "Visma";
+        if (!salaryType[wageCodeField]) {
           errors.push({
             type: "error",
-            message: `Lönetyp "${salaryType.name}" saknar Visma-tidkod`,
+            message: `Lönetyp "${salaryType.name}" saknar ${providerLabel}-tidkod`,
             entryId: entry.id,
           });
         }
