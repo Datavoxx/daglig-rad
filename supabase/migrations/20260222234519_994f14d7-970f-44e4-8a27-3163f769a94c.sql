@@ -1,0 +1,1 @@
+ALTER TABLE project_estimates ALTER COLUMN markup_percent SET DEFAULT 0;

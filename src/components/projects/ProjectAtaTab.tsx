@@ -54,8 +54,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { generateAtaPdf } from "@/lib/generateAtaPdf";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
-import { AI_AGENTS } from "@/config/aiAgents";
 import { useArticleCategories } from "@/hooks/useArticleCategories";
 
 interface Ata {
@@ -140,7 +138,7 @@ export default function ProjectAtaTab({
   const [editingAta, setEditingAta] = useState<Ata | null>(null);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+  
   const { toast } = useToast();
 
   // Fetch articles for library picker
@@ -185,55 +183,6 @@ export default function ProjectAtaTab({
     setFormRows((prev) => prev.filter((row) => row.id !== id));
   };
 
-  const handleVoiceInput = async (transcript: string) => {
-    setIsVoiceProcessing(true);
-    try {
-      const firstRow = formRows[0];
-      const formData = {
-        article: firstRow.article,
-        description: firstRow.description,
-        reason: formReason,
-        unit: firstRow.unit,
-        quantity: firstRow.quantity,
-        unit_price: firstRow.unit_price,
-        rot_eligible: firstRow.rot_eligible,
-        status: formStatus,
-      };
-      const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
-        body: {
-          transcript,
-          currentData: formData,
-          documentType: "ata",
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setFormRows((prev) => {
-        const updated = [...prev];
-        updated[0] = {
-          ...updated[0],
-          article: data.article || updated[0].article,
-          description: data.description || updated[0].description,
-          unit: data.unit || updated[0].unit,
-          quantity: data.quantity?.toString() || updated[0].quantity,
-          unit_price: data.unit_price?.toString() || updated[0].unit_price,
-          rot_eligible: data.rot_eligible ?? updated[0].rot_eligible,
-        };
-        return updated;
-      });
-      if (data.reason) setFormReason(data.reason);
-      if (data.status) setFormStatus(data.status);
-
-      toast({ title: "Fält ifyllda från röstinspelning" });
-    } catch (error) {
-      console.error("Voice input error:", error);
-      toast({ title: "Kunde inte tolka röstinspelning", variant: "destructive" });
-    } finally {
-      setIsVoiceProcessing(false);
-    }
-  };
 
   useEffect(() => {
     fetchAtas();
@@ -511,13 +460,6 @@ export default function ProjectAtaTab({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              {/* Voice input prompt */}
-              <VoicePromptButton
-                onTranscriptComplete={handleVoiceInput}
-                isProcessing={isVoiceProcessing}
-                agentName="Byggio AI"
-                variant="compact"
-              />
 
               {/* Dynamic rows */}
               <div className="space-y-3">

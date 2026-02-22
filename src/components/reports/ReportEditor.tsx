@@ -31,10 +31,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
-import { AI_AGENTS } from "@/config/aiAgents";
-
-// Note: VoiceInputOverlay will need to be updated to use Byggio AI branding
 
 interface Deviation {
   type: string;
@@ -110,7 +106,7 @@ export function ReportEditor({
 }: ReportEditorProps) {
   const [data, setData] = useState<ReportData>(report);
   const [saving, setSaving] = useState(false);
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
   const { toast } = useToast();
 
   const updateCrew = (field: keyof ReportData["crew"], value: any) => {
@@ -285,34 +281,6 @@ export function ReportEditor({
 
   const confidencePercent = Math.round((data.confidence?.overall || 0) * 100);
 
-  const handleVoiceEdit = async (transcript: string) => {
-    setIsApplyingVoice(true);
-    try {
-      const { data: updatedData, error } = await supabase.functions.invoke("apply-voice-edits", {
-        body: {
-          transcript,
-          currentData: data,
-          documentType: "report",
-        },
-      });
-
-      if (error) throw error;
-
-      if (updatedData) {
-        setData(updatedData);
-        toast({ title: "Ändringar applicerade", description: "Rapporten har uppdaterats" });
-      }
-    } catch (error: any) {
-      console.error("Voice edit error:", error);
-      toast({
-        title: "Kunde inte applicera ändringar",
-        description: error.message || "Försök igen",
-        variant: "destructive",
-      });
-    } finally {
-      setIsApplyingVoice(false);
-    }
-  };
 
   return (
     <div className="animate-in space-y-6">
@@ -660,12 +628,6 @@ export function ReportEditor({
         </Card>
       </div>
 
-      <VoiceInputOverlay
-        onTranscriptComplete={handleVoiceEdit}
-        isProcessing={isApplyingVoice}
-        agentName="Ulla AI"
-        agentAvatar={AI_AGENTS.diary.avatar}
-      />
     </div>
   );
 }
