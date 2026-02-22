@@ -26,10 +26,7 @@ import { QuoteLivePreview } from "./QuoteLivePreview";
 import { QuotePreviewSheet } from "./QuotePreviewSheet";
 import { ArticleLibrarySection } from "./ArticleLibrarySection";
 import { ArticleCategorySection } from "./ArticleCategorySection";
-import { VoiceInputOverlay } from "@/components/shared/VoiceInputOverlay";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
 import { generateQuotePdf } from "@/lib/generateQuotePdf";
-import { AI_AGENTS } from "@/config/aiAgents";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,7 +73,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showProjectRecommendation, setShowProjectRecommendation] = useState(false);
   const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
   const hasAutoSaved = useRef(false);
   const hasAutoDownloaded = useRef(false);
 
@@ -247,64 +244,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     onDelete?.();
   };
 
-  // Handle voice input for full estimate editing
-  const handleVoiceEdit = async (transcript: string) => {
-    setIsApplyingVoice(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("apply-full-estimate-voice", {
-        body: {
-          transcript,
-          currentData: {
-            introductionText: estimate.state.introductionText,
-            scope: estimate.state.scope,
-            assumptions: estimate.state.assumptions,
-            items: estimate.state.items,
-            addons: estimate.state.addons,
-            rotEnabled: estimate.state.rotEnabled,
-            rotPercent: estimate.state.rotPercent,
-            closingText: estimate.state.closingText,
-            markupPercent: estimate.state.markupPercent,
-          },
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      // Apply all updates from AI response
-      if (data.introductionText !== undefined) {
-        estimate.updateIntroduction(data.introductionText);
-      }
-      if (data.scope !== undefined) {
-        estimate.updateScope(data.scope);
-      }
-      if (data.assumptions !== undefined) {
-        estimate.updateAssumptions(data.assumptions);
-      }
-      if (data.items !== undefined) {
-        estimate.updateItems(data.items);
-      }
-      if (data.addons !== undefined) {
-        estimate.updateAddons(data.addons);
-      }
-      if (data.rotEnabled !== undefined) {
-        estimate.updateRot(data.rotEnabled, data.rotPercent);
-      }
-      if (data.closingText !== undefined) {
-        estimate.updateClosing(data.closingText);
-      }
-      if (data.markupPercent !== undefined) {
-        estimate.updateMarkup(data.markupPercent);
-      }
-
-      toast.success(data.changes_made || "Ändringar applicerade");
-    } catch (error) {
-      console.error("Voice edit error:", error);
-      toast.error(error instanceof Error ? error.message : "Kunde inte applicera röständringar");
-    } finally {
-      setIsApplyingVoice(false);
-    }
-  };
 
   // Editor content
   const editorContent = (
@@ -465,13 +404,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         )}
       </div>
 
-      {/* Voice control prompt - inline in header area */}
-      <VoicePromptButton
-        variant="compact"
-        agentName="Byggio AI"
-        onTranscriptComplete={handleVoiceEdit}
-        isProcessing={isApplyingVoice}
-      />
 
 
       {/* Scope / Project description */}
@@ -662,10 +594,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
         />
-        <VoiceInputOverlay
-          onTranscriptComplete={handleVoiceEdit}
-          isProcessing={isApplyingVoice}
-        />
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -737,12 +665,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}
-      />
-      <VoiceInputOverlay
-        onTranscriptComplete={handleVoiceEdit}
-        isProcessing={isApplyingVoice}
-        agentName="Saga AI"
-        agentAvatar={AI_AGENTS.estimate.avatar}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
