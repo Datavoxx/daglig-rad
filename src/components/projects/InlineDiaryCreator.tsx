@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ReportEditor } from "@/components/reports/ReportEditor";
 import { AtaFollowUpDialog } from "./AtaFollowUpDialog";
-import { AI_AGENTS } from "@/config/aiAgents";
+
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface AtaItem {
@@ -292,16 +292,12 @@ export function InlineDiaryCreator({
               )}
             </Button>
             {!isRecording && !isTranscribing && isSupported && (
-              <div className="flex items-center gap-4 p-4 mt-2 bg-primary/5 border border-dashed border-primary/30 rounded-lg">
-                <img 
-                  src={AI_AGENTS.diary.avatar} 
-                  alt="Byggio AI" 
-                  className="w-32 h-32 object-contain drop-shadow-lg"
-                />
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-primary">Låt Byggio AI hjälpa dig</span>
+              <div className="flex items-center gap-3 p-3 mt-2 border border-dashed border-border rounded-lg">
+                <Mic className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Spara tid genom att prata</span>
                   <span className="text-xs text-muted-foreground">
-                    Spara 70% av din tid genom att prata
+                    Spela in vad som hände idag
                     {isIOSDevice && " (transkribering efter inspelning)"}
                   </span>
                 </div>

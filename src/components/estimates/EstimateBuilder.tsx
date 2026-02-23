@@ -11,7 +11,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus, Undo2, ExternalLink } from "lucide-react";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
+
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
@@ -74,7 +74,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showProjectRecommendation, setShowProjectRecommendation] = useState(false);
   const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
   
   const hasAutoSaved = useRef(false);
   const hasAutoDownloaded = useRef(false);
@@ -406,29 +406,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         )}
       </div>
 
-      {/* Voice AI helper */}
-      <VoicePromptButton
-        variant="compact"
-        agentName="Byggio AI"
-        isProcessing={isApplyingVoice}
-        onTranscriptComplete={async (transcript) => {
-          setIsApplyingVoice(true);
-          try {
-            const { data, error } = await supabase.functions.invoke("apply-estimate-voice-edits", {
-              body: { transcript, items: estimate.state.items, scope: estimate.state.scope, assumptions: estimate.state.assumptions },
-            });
-            if (error) throw error;
-            if (data?.items) estimate.updateItems(data.items);
-            if (data?.scope) estimate.updateScope(data.scope);
-            if (data?.assumptions) estimate.updateAssumptions(data.assumptions);
-            toast.success("Röständringar tillämpade");
-          } catch (err: any) {
-            toast.error("Kunde inte tillämpa röständringar");
-          } finally {
-            setIsApplyingVoice(false);
-          }
-        }}
-      />
 
 
 
