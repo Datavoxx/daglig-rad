@@ -1,40 +1,34 @@
 
-## Fixar: PDF-nedladdning, UI-rensning, tab-navigering och budget i ekonomioversikt
 
-### Problem 1: PDF-nedladdning kraschar
-**Orsak:** `generatePlanningPdf.ts` refererar till `phase.start_week` och `phase.duration_weeks` (rad 254-255, 274, 316, 322), men datan lagras nu som `start_day`/`duration_days`. Vardet ar `undefined`, vilket ger NaN-felberakningar och krasch.
+## Fixar: Auto-start planering och forhandsgransknings-synk
 
-**Fix:** Uppdatera `generatePlanningPdf.ts` sa att den konverterar dagbaserade faser till veckobaserade for PDF-rendering, eller accepterar bade format.
+### Problem 1: Planering - "Skapa planering" kraver extra klick
+Nar anvandaren valjer "Skapa planering" fran onboarding-dialogen eller fran oversiktens knapp, navigeras de till `?tab=planning` men ser empty-state med ytterligare en "Skapa planering"-knapp. Anvandaren vill ga direkt till PlanEditor.
 
-### Problem 2: "100% sakerhet" och "Tolkad planering" i PlanEditor
-**Orsak:** PlanEditor visar fortfarande `confidence`-badge (rad 116-118) och rubriken "Tolkad planering" (rad 109) - rester fran AI-genereringen.
+**Losning:** Lagg till en URL-parameter `?tab=planning&autoStart=true`. Nar `ProjectPlanningTab` ser `autoStart=true` OCH det inte finns nagon befintlig plan, hoppa direkt till "review"-laget med en default-fas (samma logik som knappen).
 
-**Fix i `src/components/planning/PlanEditor.tsx`:**
-- Andra rubriken "Tolkad planering" till "Planering" (rad 109)
-- Ta bort hela confidence-sektionen (badge + varningsikon, rad 112-119)
-- Ta bort `confidence`-prop fran interfacet
+| Fil | Andring |
+|-----|---------|
+| `src/components/projects/ProjectPlanningTab.tsx` | Lagg till prop `autoStart?: boolean`. I `fetchPlan`, om ingen plan finns och `autoStart` ar sant, satt direkt `generatedPhases` och `viewState="review"` istallet for `"empty"`. |
+| `src/pages/ProjectView.tsx` | Las `autoStart` fran searchParams och skicka till `ProjectPlanningTab`. |
+| `src/components/projects/ProjectOnboardingDialog.tsx` | Andra `onNavigatePlanning` sa att den navigerar till `?tab=planning&autoStart=true`. |
+| `src/components/projects/ProjectOverviewTab.tsx` | Andra "Skapa planering"-knappen (rad 520) sa att den navigerar till `?tab=planning&autoStart=true`. |
 
-### Problem 3: "Skapa planering"-knappen navigerar inte till planerings-fliken
-**Orsak:** Bade onboarding-dialogen och oversiktens "Skapa planering"-knapp navigerar till `?tab=planning`, men `ProjectView.tsx` anvander `defaultValue="overview"` i Tabs-komponenten och laser aldrig `tab`-parametern fran URL:en.
+### Problem 2: Forhandsgranskning (QuotePreviewSheet) reflekterar inte `show_only_total`
+`QuoteLivePreview` hanterar `show_only_total` korrekt (visar streck istallet for antal/enhet/a-pris). Men `QuotePreviewSheet` (popup-versionen) ignorerar detta falt helt - den visar alltid alla varden.
 
-**Fix i `src/pages/ProjectView.tsx`:**
-- Las `tab`-parametern fran searchParams
-- Anvand den som `defaultValue` (eller kontrollerad `value`) i Tabs-komponenten
-- Uppdatera URL:en nar anvandaren byter flik
+**Losning:** Uppdatera `QuotePreviewSheet` sa att den hanterar `show_only_total` exakt som `QuoteLivePreview`.
 
-### Problem 4: "Offertbelopp" ska heta "Budget" i ekonomioversikten
-**Fix i `src/components/projects/EconomicOverviewCard.tsx`:**
-- Andra prop fran `quoteTotal` till `budget` (eller acceptera bada)
-- Andra texten "Offertbelopp" (rad 210) till "Budget"
-- Uppdatera `ProjectOverviewTab.tsx` sa att den skickar `project.budget` istallet for `linkedEstimate?.total_incl_vat`
+| Fil | Andring |
+|-----|---------|
+| `src/components/estimates/QuotePreviewSheet.tsx` | (1) Lagg till `show_only_total?: boolean` och `description?: string` i `EstimateItem`-interfacet (rad 32-42). (2) I tabellraderna (rad 253-268), lagg till samma villkorliga rendering som i `QuoteLivePreview`: om `item.show_only_total` ar sant, visa streck for antal/enhet/a-pris, annars visa vardena. (3) Visa `item.description || item.moment` som beskrivning. |
 
 ### Teknisk sammanfattning
 
 | Fil | Andring |
 |------|-----------|
-| `src/lib/generatePlanningPdf.ts` | Konvertera `start_day`/`duration_days` till veckobaserat for Gantt-ritning, eller hantera bade vecko- och dagformat. Uppdatera PlanPhase-interface och alla referenser till `start_week`/`duration_weeks`. |
-| `src/components/planning/PlanEditor.tsx` | (1) Andra "Tolkad planering" till "Planering". (2) Ta bort confidence-badge och prop. |
-| `src/pages/ProjectView.tsx` | Las `tab`-param fran URL och anvand som aktivt tab-varde. Uppdatera URL vid flikbyte. |
-| `src/components/projects/EconomicOverviewCard.tsx` | Andra prop-namn och label fran "Offertbelopp" till "Budget". Anvand budget-vardet i berakningar istallet for quoteTotal. |
-| `src/components/projects/ProjectOverviewTab.tsx` | Skicka `project.budget` till EconomicOverviewCard istallet for `linkedEstimate?.total_incl_vat`. |
-| `src/components/projects/ProjectPlanningTab.tsx` | Ta bort `confidence={1}` och `summary=""` fran PlanEditor-anropet (efter att propen tagits bort). |
+| `src/components/projects/ProjectPlanningTab.tsx` | Ny prop `autoStart`. Auto-ga till "review" med default-fas om ingen plan finns och `autoStart` ar sant. |
+| `src/pages/ProjectView.tsx` | Las `autoStart` fran URL och skicka till `ProjectPlanningTab`. |
+| `src/components/projects/ProjectOnboardingDialog.tsx` | Navigera med `&autoStart=true`. |
+| `src/components/projects/ProjectOverviewTab.tsx` | Navigera med `&autoStart=true`. |
+| `src/components/estimates/QuotePreviewSheet.tsx` | Hantera `show_only_total` i tabellrader, visa streck nar dolt. |
