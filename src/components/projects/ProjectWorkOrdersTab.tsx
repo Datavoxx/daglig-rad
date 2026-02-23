@@ -49,6 +49,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
     due_date: undefined as Date | undefined,
     status: "pending",
   });
+  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
   const [saving, setSaving] = useState(false);
   
   const { toast } = useToast();
@@ -226,11 +227,6 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
           <p className="text-sm text-muted-foreground">Hantera och skriv ut arbetsorder</p>
         </div>
         <div className="flex items-center gap-2">
-          <VoicePromptButton
-            variant="compact"
-            agentName="Byggio AI"
-            onTranscriptComplete={async () => {}}
-          />
           <Dialog open={dialogOpen} onOpenChange={(open) => open ? setDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild>
             <Button onClick={() => setDialogOpen(true)}>
@@ -245,6 +241,35 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
                 {editingOrder ? "Uppdatera arbetsordern" : "Skapa en ny arbetsorder för projektet"}
               </DialogDescription>
             </DialogHeader>
+            {!editingOrder && (
+              <VoicePromptButton
+                variant="compact"
+                agentName="Byggio AI"
+                isProcessing={isApplyingVoice}
+                onTranscriptComplete={async (transcript) => {
+                  setIsApplyingVoice(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
+                      body: { transcript, documentType: "work_order" },
+                    });
+                    if (error) throw error;
+                    if (data) {
+                      setFormData(prev => ({
+                        ...prev,
+                        title: data.title || prev.title,
+                        description: data.description || prev.description,
+                        assigned_to: data.assigned_to || prev.assigned_to,
+                      }));
+                      toast({ title: "Röstdata applicerad" });
+                    }
+                  } catch (err) {
+                    toast({ title: "Kunde inte tolka röstkommandot", variant: "destructive" });
+                  } finally {
+                    setIsApplyingVoice(false);
+                  }
+                }}
+              />
+            )}
             <div className="grid gap-4 py-4">
               
               <div className="space-y-2">

@@ -54,9 +54,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { transcript, items } = await req.json() as {
+    const { transcript, items, scope: currentScope, assumptions: currentAssumptions } = await req.json() as {
       transcript: string;
       items: EstimateItem[];
+      scope?: string;
+      assumptions?: string[];
     };
 
     if (!transcript?.trim()) {
@@ -71,17 +73,19 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const systemPrompt = `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt. Du hjälper till att uppdatera offertposter baserat på röstkommandon.
+    const systemPrompt = `Du heter Saga och är en expert på offerter och kalkyler för byggprojekt. Du hjälper till att uppdatera offertposter, projektbeskrivning och tidsplan baserat på röstkommandon.
 
 Du får:
 1. En transkription av ett röstkommando
 2. Nuvarande kalkylposter (items)
+3. Nuvarande projektbeskrivning (scope)
+4. Nuvarande tidsplan (assumptions)
 
 Din uppgift:
 - Tolka vad användaren vill ändra
-- Returnera uppdaterade items
+- Returnera uppdaterade items, scope och assumptions
 
-Möjliga ändringar:
+Möjliga ändringar på items:
 - Ändra mängd/antal för en post
 - Ändra á-pris för en post
 - Ändra timmar för en post
@@ -89,12 +93,11 @@ Möjliga ändringar:
 - Ta bort en post
 - Ändra osäkerhetsnivå (low/medium/high)
 
-Exempel på kommandon:
-- "Ändra golvläggning till 15 kvadrat"
-- "Lägg till 5 timmar på rivning"
-- "Ta bort posten med kakel"
-- "Höj osäkerheten på el till hög"
-- "Lägg till en ny post för målning 20 kvadrat med á-pris 350"
+Möjliga ändringar på scope (projektbeskrivning):
+- Skapa eller uppdatera projektbeskrivningen baserat på vad användaren säger
+
+Möjliga ändringar på assumptions (tidsplan):
+- Skapa eller uppdatera tidsplanen, varje punkt som en sträng i arrayen
 
 Beräkna subtotal automatiskt:
 - För arbete (labor): subtotal = hours * unit_price
@@ -104,10 +107,13 @@ Beräkna subtotal automatiskt:
 Returnera ENDAST giltig JSON med denna struktur:
 {
   "items": [/* uppdaterade items med samma struktur som input */],
+  "scope": "projektbeskrivning eller null om ingen ändring",
+  "assumptions": ["Vecka 1: ...", "Vecka 2: ..."] eller null om ingen ändring,
   "changes_made": "kort beskrivning av vad du ändrade"
 }
 
-Behåll alla items som inte ändras. Generera nya UUID för nya poster med crypto.randomUUID() format.`;
+Behåll alla items som inte ändras. Generera nya UUID för nya poster med crypto.randomUUID() format.
+Om användaren inte nämner scope eller assumptions, returnera null för dessa fält.`;
 
     const itemsSummary = items.map((item, i) => 
       `${i + 1}. ${item.moment} (${item.type}): ${item.quantity ?? '-'} ${item.unit}, ${item.hours ?? '-'} tim, ${item.unit_price} kr/enh, summa ${item.subtotal} kr`
@@ -118,12 +124,16 @@ Behåll alla items som inte ändras. Generera nya UUID för nya poster med crypt
 Nuvarande kalkylposter:
 ${itemsSummary}
 
-Tolka kommandot och returnera uppdaterade items.
+Nuvarande projektbeskrivning (scope): ${currentScope || "(ingen)"}
+
+Nuvarande tidsplan (assumptions): ${currentAssumptions?.length ? currentAssumptions.join(", ") : "(ingen)"}
+
+Tolka kommandot och returnera uppdaterade items, scope och assumptions.
 
 VIKTIGT: Returnera alla items (även de som inte ändras) med komplett struktur.`;
 
     const _aiStartTime = Date.now();
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
