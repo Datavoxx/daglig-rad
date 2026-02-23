@@ -1,75 +1,40 @@
 
+## Fixar: PDF-nedladdning, UI-rensning, tab-navigering och budget i ekonomioversikt
 
-## Ta bort VoicePromptButton overallt (utom dagbok) och fixa manuell planering
+### Problem 1: PDF-nedladdning kraschar
+**Orsak:** `generatePlanningPdf.ts` refererar till `phase.start_week` och `phase.duration_weeks` (rad 254-255, 274, 316, 322), men datan lagras nu som `start_day`/`duration_days`. Vardet ar `undefined`, vilket ger NaN-felberakningar och krasch.
 
-### Del 1: Ta bort VoicePromptButton fran 5 filer
+**Fix:** Uppdatera `generatePlanningPdf.ts` sa att den konverterar dagbaserade faser till veckobaserade for PDF-rendering, eller accepterar bade format.
 
-Ta bort importen, state-variabeln `isApplyingVoice`, och VoicePromptButton-komponenten fran:
+### Problem 2: "100% sakerhet" och "Tolkad planering" i PlanEditor
+**Orsak:** PlanEditor visar fortfarande `confidence`-badge (rad 116-118) och rubriken "Tolkad planering" (rad 109) - rester fran AI-genereringen.
 
-| Fil | Vad som tas bort |
-|-----|-----------------|
-| `src/components/estimates/EstimateBuilder.tsx` | Import (rad 14), state `isApplyingVoice`, VoicePromptButton-blocket (rad 409-431) |
-| `src/components/reports/ReportEditor.tsx` | Import (rad 18), VoicePromptButton-blocket (rad 325-338) |
-| `src/components/projects/ProjectAtaTab.tsx` | Import (rad 53), state `isApplyingVoice`, VoicePromptButton inne i dialogen (rad 464-497) |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Import (rad 13), state `isApplyingVoice`, VoicePromptButton inne i dialogen (rad 244-270) |
-| `src/pages/InspectionView.tsx` | Import (rad 33), VoicePromptButton-blocket (rad 222-227) |
+**Fix i `src/components/planning/PlanEditor.tsx`:**
+- Andra rubriken "Tolkad planering" till "Planering" (rad 109)
+- Ta bort hela confidence-sektionen (badge + varningsikon, rad 112-119)
+- Ta bort `confidence`-prop fran interfacet
 
-### Del 2: Andra dagbokens rostknapp till svartvit stil
+### Problem 3: "Skapa planering"-knappen navigerar inte till planerings-fliken
+**Orsak:** Bade onboarding-dialogen och oversiktens "Skapa planering"-knapp navigerar till `?tab=planning`, men `ProjectView.tsx` anvander `defaultValue="overview"` i Tabs-komponenten och laser aldrig `tab`-parametern fran URL:en.
 
-I `src/components/projects/InlineDiaryCreator.tsx` (rad 294-309):
-- Ta bort importen av `AI_AGENTS` (rad 25)
-- Ersatt den stora sektionen med Byggio AI-logga och fargad bakgrund med en enkel, svartvit text:
+**Fix i `src/pages/ProjectView.tsx`:**
+- Las `tab`-parametern fran searchParams
+- Anvand den som `defaultValue` (eller kontrollerad `value`) i Tabs-komponenten
+- Uppdatera URL:en nar anvandaren byter flik
 
-Fran:
-```
-<div className="flex items-center gap-4 p-4 mt-2 bg-primary/5 border border-dashed border-primary/30 rounded-lg">
-  <img src={AI_AGENTS.diary.avatar} ... className="w-32 h-32 ..." />
-  <div>
-    <span className="text-sm font-medium text-primary">Lat Byggio AI hjalpa dig</span>
-    ...
-  </div>
-</div>
-```
-
-Till:
-```
-<div className="flex items-center gap-3 p-3 mt-2 border border-dashed border-border rounded-lg">
-  <Mic className="h-5 w-5 text-muted-foreground" />
-  <div>
-    <span className="text-sm font-medium">Lat Byggio AI hjalpa dig</span>
-    <span className="text-xs text-muted-foreground block">Spara tid genom att prata</span>
-  </div>
-</div>
-```
-
-### Del 3: Manuell planering (ta bort AI-generering)
-
-I `src/components/projects/ProjectPlanningTab.tsx`:
-
-1. **Ta bort**: Import av `VoicePromptButton`, `AI_AGENTS`, `Sparkles`-ikonen
-2. **Ta bort**: `handleGeneratePlan`-funktionen (rad 113-149), `transcript`-state, `generatedConfidence`, `generatedSummary`
-3. **Ta bort**: ViewState `"input"` och `"generating"` - de behovs inte langre
-4. **Andra `ViewState`** fran `"empty" | "input" | "generating" | "review" | "view"` till `"empty" | "review" | "view"`
-5. **Andra empty-state** (rad 237-249): Knappen "Skapa planering" gar direkt till `"review"` med en default-fas:
-   ```
-   onClick={() => {
-     setGeneratedPhases([{ name: "Ny fas", start_day: 1, duration_days: 5, color: "blue" }]);
-     setGeneratedTotalDays(5);
-     setViewState("review");
-   }}
-   ```
-6. **Andra PlanEditor `onCancel`** (rad 309): Fran `setViewState("input")` till `setViewState("empty")`
-7. **Andra PlanEditor-anropet**: Skicka `confidence={1}` och `summary=""` (eller ta bort confidence/summary fran PlanEditor om oonskat - men enklast att bara skicka neutrala varden)
+### Problem 4: "Offertbelopp" ska heta "Budget" i ekonomioversikten
+**Fix i `src/components/projects/EconomicOverviewCard.tsx`:**
+- Andra prop fran `quoteTotal` till `budget` (eller acceptera bada)
+- Andra texten "Offertbelopp" (rad 210) till "Budget"
+- Uppdatera `ProjectOverviewTab.tsx` sa att den skickar `project.budget` istallet for `linkedEstimate?.total_incl_vat`
 
 ### Teknisk sammanfattning
 
 | Fil | Andring |
 |------|-----------|
-| `src/components/estimates/EstimateBuilder.tsx` | Ta bort VoicePromptButton + state + import |
-| `src/components/reports/ReportEditor.tsx` | Ta bort VoicePromptButton + import |
-| `src/components/projects/ProjectAtaTab.tsx` | Ta bort VoicePromptButton + state + import |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Ta bort VoicePromptButton + state + import |
-| `src/pages/InspectionView.tsx` | Ta bort VoicePromptButton + import |
-| `src/components/projects/InlineDiaryCreator.tsx` | Andra Byggio AI-sektionen till svartvit minimalistisk stil, ta bort AI_AGENTS-import |
-| `src/components/projects/ProjectPlanningTab.tsx` | Ta bort AI-generering, VoicePromptButton, input/generating-states. "Skapa planering" gar direkt till PlanEditor med en default-fas. |
-
+| `src/lib/generatePlanningPdf.ts` | Konvertera `start_day`/`duration_days` till veckobaserat for Gantt-ritning, eller hantera bade vecko- och dagformat. Uppdatera PlanPhase-interface och alla referenser till `start_week`/`duration_weeks`. |
+| `src/components/planning/PlanEditor.tsx` | (1) Andra "Tolkad planering" till "Planering". (2) Ta bort confidence-badge och prop. |
+| `src/pages/ProjectView.tsx` | Las `tab`-param fran URL och anvand som aktivt tab-varde. Uppdatera URL vid flikbyte. |
+| `src/components/projects/EconomicOverviewCard.tsx` | Andra prop-namn och label fran "Offertbelopp" till "Budget". Anvand budget-vardet i berakningar istallet for quoteTotal. |
+| `src/components/projects/ProjectOverviewTab.tsx` | Skicka `project.budget` till EconomicOverviewCard istallet for `linkedEstimate?.total_incl_vat`. |
+| `src/components/projects/ProjectPlanningTab.tsx` | Ta bort `confidence={1}` och `summary=""` fran PlanEditor-anropet (efter att propen tagits bort). |
