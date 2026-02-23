@@ -250,9 +250,11 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     const truncatedName = phase.name.length > 20 ? phase.name.substring(0, 18) + "..." : phase.name;
     doc.text(truncatedName, margin, rowY + rowHeight / 2 + 1);
     
-    // Calculate bar position
-    const barX = ganttLeft + (phase.start_week - 1) * weekWidth + 1;
-    const barWidth = phase.duration_weeks * weekWidth - 2;
+    // Calculate bar position - support both day and week formats
+    const startWeek = phase.start_week ?? Math.ceil((phase.start_day || 1) / 5);
+    const durationWeeks = phase.duration_weeks ?? Math.max(1, Math.ceil((phase.duration_days || 1) / 5));
+    const barX = ganttLeft + (startWeek - 1) * weekWidth + 1;
+    const barWidth = durationWeeks * weekWidth - 2;
     const barY = rowY + 1;
     const barHeight = rowHeight - 3;
     
@@ -271,7 +273,7 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     if (barWidth > 12) {
       doc.setFontSize(7);
       doc.setTextColor(...PDF_COLORS.DARK);
-      const durationText = `${phase.duration_weeks}v`;
+      const durationText = `${durationWeeks}v`;
       doc.text(durationText, barX + barWidth / 2, barY + barHeight / 2 + 1.5, { align: "center" });
     }
     
@@ -323,7 +325,9 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...PDF_COLORS.MUTED);
-    const weekInfo = `V${phase.start_week} • ${phase.duration_weeks === 1 ? "1 vecka" : `${phase.duration_weeks} veckor`}`;
+    const detailStartWeek = phase.start_week ?? Math.ceil((phase.start_day || 1) / 5);
+    const detailDurationWeeks = phase.duration_weeks ?? Math.max(1, Math.ceil((phase.duration_days || 1) / 5));
+    const weekInfo = `V${detailStartWeek} • ${detailDurationWeeks === 1 ? "1 vecka" : `${detailDurationWeeks} veckor`}`;
     doc.text(weekInfo, pageWidth - margin, yPos + 3, { align: "right" });
     
     yPos += 8;

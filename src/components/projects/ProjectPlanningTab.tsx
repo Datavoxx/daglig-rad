@@ -216,8 +216,6 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
       <PlanEditor
         phases={generatedPhases}
         totalDays={generatedTotalDays}
-        confidence={1}
-        summary=""
         startDate={startDate}
         endDate={endDate}
         onStartDateChange={setStartDate}
