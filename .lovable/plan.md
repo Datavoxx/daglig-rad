@@ -1,83 +1,71 @@
 
+## Fix: Offert-inspelning, ATA, Arbetsorder och Planering
 
-## Projektstart-flode och aterlagg "Lat Byggio AI hjalpa dig"-knappen
+### Problem 1: API-fel vid offertinspelning (404)
+Edge-funktionen `apply-estimate-voice-edits` anropar fel URL: `https://api.lovable.dev/v1/chat/completions` som ger 404. Ska vara `https://ai.gateway.lovable.dev/v1/chat/completions`.
+
+### Problem 2: "Lat Byggio AI hjalpa dig" sitter pa fel plats
+- **ATA**: Knappen sitter utanfor dialogen, bredvid rubriken. Ska vara **inne i** "Ny ATA"-dialogen, hogst upp.
+- **Arbetsorder**: Samma problem - knappen sitter utanfor dialogen. Ska vara **inne i** "Ny arbetsorder"-dialogen, hogst upp.
+- Bada har tomma handlers (`onTranscriptComplete={async () => {}}`) som inte gor nagot.
+
+### Problem 3: Offertinspelning saknar projektbeskrivning och tidsplan
+Nar man spelar in en offert ska AI:n aven fylla i projektbeskrivning (scope) och tidsplan (assumptions). Edge-funktionen `apply-estimate-voice-edits` hanterar bara items, inte scope/assumptions.
+
+---
+
+### Losning
+
+#### 1. Fixa API-URL i apply-estimate-voice-edits
+
+| Fil | Andring |
+|-----|---------|
+| `supabase/functions/apply-estimate-voice-edits/index.ts` | Andra rad 126: `https://api.lovable.dev/v1/chat/completions` till `https://ai.gateway.lovable.dev/v1/chat/completions`. Uppdatera systemprompten och user-prompten sa att den aven hanterar scope (projektbeskrivning) och assumptions (tidsplan). Lagg till dessa falt i JSON-svaret. |
+
+Prompten utvidgas sa att AI:n kan:
+- Uppdatera/skapa scope (projektbeskrivning)
+- Uppdatera/skapa assumptions (tidsplan, array av strang)
+- Uppdatera items som innan
+
+Svarsformatet blir:
+```text
+{
+  "items": [...],
+  "scope": "projektbeskrivning...",
+  "assumptions": ["Vecka 1: ...", "Vecka 2: ..."],
+  "changes_made": "..."
+}
+```
+
+#### 2. Uppdatera EstimateBuilder-handleren
+
+| Fil | Andring |
+|-----|---------|
+| `src/components/estimates/EstimateBuilder.tsx` | I handleren (rad 414-429): Skicka med `scope` och `assumptions` i body. Hantera `data.scope` och `data.assumptions` i svaret och uppdatera estimate-state. |
+
+#### 3. Flytta VoicePromptButton in i ATA-dialogen med riktig handler
+
+| Fil | Andring |
+|-----|---------|
+| `src/components/projects/ProjectAtaTab.tsx` | (1) Ta bort VoicePromptButton fran rad 439-443 (utanfor dialogen). (2) Lagg till den inne i DialogContent, efter DialogHeader, med en handler som anropar `apply-voice-edits` med `documentType: "ata"` och fyller i formularet (description, reason, unit_price, quantity etc.) baserat pa AI-svaret. |
+
+#### 4. Flytta VoicePromptButton in i arbetsorder-dialogen med riktig handler
+
+| Fil | Andring |
+|-----|---------|
+| `src/components/projects/ProjectWorkOrdersTab.tsx` | (1) Ta bort VoicePromptButton fran rad 229-233 (utanfor dialogen). (2) Lagg till den inne i DialogContent, efter DialogHeader, med en handler som anropar `apply-voice-edits` med `documentType: "work_order"` och fyller i formularet (title, description, assigned_to) baserat pa AI-svaret. |
+
+#### 5. Planering - ingen kodandring behovs
+
+Planeringsfunktionen fungerar korrekt. Den kraver en tillrackligt detaljerad beskrivning for att generera en plan (den svarar `needs_more_info` om beskrivningen ar for vag, t.ex. "forsta veckan ska vi byta fasad" ar inte tillrackligt). VoicePromptButton ar redan korrekt placerad i input-vyn och satter transkriptet i textfaltet.
+
+---
 
 ### Sammanfattning
 
-Tva huvudandringar:
-1. **Nytt projektstart-flode**: Nar man klickar "Skapa projekt" navigeras man direkt in i projektet, dar en onboarding-wizard (dialog-steg) guider anvandaren genom start/slutdatum, budget (med mojlighet att koppla till offertbelopp), och slutligen en uppmaning att skapa planering.
-2. **Aterlagg "Lat Byggio AI hjalpa dig"-knappen**: Den kompakta VoicePromptButton (variant="compact") som togs bort av misstag ska laggas tillbaka i EstimateBuilder, ReportEditor, ProjectAtaTab, ProjectWorkOrdersTab, InspectionView och ProjectPlanningTab.
-
----
-
-### Del 1: Nytt projektstart-flode
-
-**Nuvarande flode:** Man valjer offert i en dialog, klickar "Skapa projekt", far en toast och stannar pa projektsidan.
-
-**Nytt flode:**
-1. Klicka "Skapa projekt" -> projektet skapas i databasen -> navigera direkt till `/projects/{id}`
-2. Inne pa projektet visas en onboarding-dialog (steg-for-steg):
-   - **Steg 1: Start- och slutdatum** - Tva datumvaljare. Startdatum och slutdatum (nytt i vyn, kolumnen `end_date` finns redan i databasen).
-   - **Steg 2: Budget** - Inmatningsfalt for budget. En knapp "Koppla till offertbelopp" som fyller i offertens `total_incl_vat` automatiskt. Man kan aven skriva in en egen budget.
-   - Klicka "Klar" -> spara allt till databasen.
-3. Efter "Klar" visas en liten banner/prompt: "Dags att skapa en planering for ditt projekt" med en knapp som navigerar till planerings-fliken, samt en X-knapp for att stanga.
-
-**Filer som andras:**
-
 | Fil | Andring |
-|-----|---------|
-| `src/pages/Projects.tsx` | I `handleSubmit`, efter att projektet skapats, navigera till `/projects/{nyttProjektId}?onboarding=true` istallet for att bara visa toast. |
-| `src/components/projects/ProjectOverviewTab.tsx` | (1) Lagg till `end_date` i formData, handleSave och vyn. (2) Skapa en ny `ProjectOnboardingDialog`-komponent som visas nar URL har `?onboarding=true`. Dialogen har 2 steg (datum + budget) och en slutprompt for planering. |
-| `src/pages/ProjectView.tsx` | Skicka `onboarding`-query-param vidare till `ProjectOverviewTab`. |
-
-**Databasandring:** Ingen - `end_date` kolumnen finns redan.
-
----
-
-### Del 2: Visa slutdatum i projektinformation
-
-**Filer som andras:**
-
-| Fil | Andring |
-|-----|---------|
-| `src/components/projects/ProjectOverviewTab.tsx` | Lagg till `end_date` i: (1) Project-interface, (2) formData state, (3) handleSave, (4) redigerings-UI (ny datumvaljare), (5) visnings-UI (ny rad under startdatum). |
-
----
-
-### Del 3: Aterlagg "Lat Byggio AI hjalpa dig"-knappen
-
-**Vad ska aterlaggas:** Den kompakta `VoicePromptButton` med `variant="compact"` och `agentName="Byggio AI"`. Det ar den lilla knappen med texten "Lat Byggio AI hjalpa dig" - INTE den stora mikrofonsymbolen/overlayet.
-
-**Filer som andras:**
-
-| Fil | Andring |
-|-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | Lagg till VoicePromptButton (compact) ovanfor offerttabellen. Import + state (`isApplyingVoice`) + handler (`handleVoiceEdit` som anropar `apply-estimate-voice-edits`). |
-| `src/components/reports/ReportEditor.tsx` | Lagg till VoicePromptButton (compact). Import + state + handler (anropar `apply-voice-edits`). |
-| `src/components/projects/ProjectAtaTab.tsx` | Lagg till VoicePromptButton (compact). Import + state + handler. |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Lagg till VoicePromptButton (compact). Import + state + handler. |
-| `src/pages/InspectionView.tsx` | Lagg till VoicePromptButton (compact). Import + state + handler. |
-| `src/components/projects/ProjectPlanningTab.tsx` | Lagg till VoicePromptButton (compact) i input-staten bredvid textarean. |
-
-Varje fil far tillbaka:
-- `import { VoicePromptButton } from "@/components/shared/VoicePromptButton";`
-- En `isVoiceProcessing` / `isApplyingVoice` state
-- En handler-funktion som skickar transkriptet till ratt edge function
-- Knappen renderas med `variant="compact"` och `agentName="Byggio AI"`
-
----
-
-### Sammanfattning av alla andringar
-
-| Fil / Resurs | Andring |
 |------|-----------|
-| `src/pages/Projects.tsx` | Navigera till projektet direkt efter skapande |
-| `src/pages/ProjectView.tsx` | Skicka onboarding-param till ProjectOverviewTab |
-| `src/components/projects/ProjectOverviewTab.tsx` | Ny onboarding-dialog (datum + budget + planering-prompt), end_date i form och vy |
-| `src/components/estimates/EstimateBuilder.tsx` | Aterlagg VoicePromptButton (compact) |
-| `src/components/reports/ReportEditor.tsx` | Aterlagg VoicePromptButton (compact) |
-| `src/components/projects/ProjectAtaTab.tsx` | Aterlagg VoicePromptButton (compact) |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Aterlagg VoicePromptButton (compact) |
-| `src/pages/InspectionView.tsx` | Aterlagg VoicePromptButton (compact) |
-| `src/components/projects/ProjectPlanningTab.tsx` | Aterlagg VoicePromptButton (compact) |
-
+| `supabase/functions/apply-estimate-voice-edits/index.ts` | Fixa API-URL (404-felet), utvidga prompt for scope + assumptions |
+| `src/components/estimates/EstimateBuilder.tsx` | Skicka scope/assumptions, hantera dem i svaret |
+| `src/components/projects/ProjectAtaTab.tsx` | Flytta VoicePromptButton in i "Ny ATA"-dialogen, lagg till riktig handler |
+| `src/components/projects/ProjectWorkOrdersTab.tsx` | Flytta VoicePromptButton in i "Ny arbetsorder"-dialogen, lagg till riktig handler |
