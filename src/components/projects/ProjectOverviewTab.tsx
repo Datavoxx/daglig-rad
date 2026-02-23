@@ -517,7 +517,7 @@ export default function ProjectOverviewTab({ project, onUpdate, isOnboarding, on
             <p className="text-muted-foreground mb-3">Ingen planering skapad ännu</p>
             <Button
               variant="outline"
-              onClick={() => navigate(`/projects/${project.id}?tab=planning`)}
+              onClick={() => navigate(`/projects/${project.id}?tab=planning&autoStart=true`)}
             >
               Skapa planering
             </Button>
@@ -576,7 +576,7 @@ export default function ProjectOverviewTab({ project, onUpdate, isOnboarding, on
         projectId={project.id}
         estimateTotal={linkedEstimate?.total_incl_vat}
         onComplete={onUpdate}
-        onNavigatePlanning={() => navigate(`/projects/${project.id}?tab=planning`)}
+        onNavigatePlanning={() => navigate(`/projects/${project.id}?tab=planning&autoStart=true`)}
       />
     </>
   );

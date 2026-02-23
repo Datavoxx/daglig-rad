@@ -32,6 +32,7 @@ interface CompanyInfo {
 interface EstimateItem {
   id: string;
   moment: string;
+  description?: string;
   type: "labor" | "material" | "subcontractor";
   quantity: number;
   unit: string;
@@ -39,6 +40,7 @@ interface EstimateItem {
   unit_price: number;
   subtotal: number;
   rot_eligible?: boolean;
+  show_only_total?: boolean;
 }
 
 interface QuotePreviewSheetProps {
@@ -252,15 +254,15 @@ export function QuotePreviewSheet({
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id} className="border-b border-gray-200">
-                      <td className="py-2 text-gray-800">{item.moment}</td>
+                      <td className="py-2 text-gray-800">{item.description || item.moment}</td>
                       <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity}
+                        {item.show_only_total ? "–" : (item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity)}
                       </td>
                       <td className="py-2 text-right text-gray-600">
-                        {item.type === "labor" ? "tim" : item.unit}
+                        {item.show_only_total ? "–" : (item.type === "labor" ? "tim" : item.unit)}
                       </td>
                       <td className="py-2 text-right text-gray-600">
-                        {formatCurrency(item.unit_price)}
+                        {item.show_only_total ? "–" : formatCurrency(item.unit_price)}
                       </td>
                       <td className="py-2 text-right font-medium text-black">
                         {formatCurrency(item.subtotal)}

@@ -26,6 +26,7 @@ interface ProjectPlanningTabProps {
   projectName: string;
   projectStartDate?: string | null;
   projectEndDate?: string | null;
+  autoStart?: boolean;
 }
 
 type ViewState = "empty" | "review" | "view";
@@ -57,7 +58,7 @@ function phasesToJson(phases: PlanPhase[]): Json {
   })) as Json;
 }
 
-export default function ProjectPlanningTab({ projectId, projectName, projectStartDate, projectEndDate }: ProjectPlanningTabProps) {
+export default function ProjectPlanningTab({ projectId, projectName, projectStartDate, projectEndDate, autoStart }: ProjectPlanningTabProps) {
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
   const [generatedPhases, setGeneratedPhases] = useState<PlanPhase[]>([]);
@@ -99,6 +100,10 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
         setStartDate(new Date(data.start_date));
       }
       setViewState("view");
+    } else if (autoStart) {
+      setGeneratedPhases([{ name: "Ny fas", start_day: 1, duration_days: 5, color: "blue" }]);
+      setGeneratedTotalDays(5);
+      setViewState("review");
     } else {
       setViewState("empty");
     }
