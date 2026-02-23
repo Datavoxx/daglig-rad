@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Loader2, Download, Pencil, Trash2, Sparkles } from "lucide-react";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
-import { AI_AGENTS } from "@/config/aiAgents";
+import { CalendarDays, Loader2, Download, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -31,7 +28,7 @@ interface ProjectPlanningTabProps {
   projectEndDate?: string | null;
 }
 
-type ViewState = "empty" | "input" | "generating" | "review" | "view";
+type ViewState = "empty" | "review" | "view";
 
 function parsePhasesFromJson(json: Json): PlanPhase[] {
   if (!Array.isArray(json)) return [];
@@ -63,11 +60,8 @@ function phasesToJson(phases: PlanPhase[]): Json {
 export default function ProjectPlanningTab({ projectId, projectName, projectStartDate, projectEndDate }: ProjectPlanningTabProps) {
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
-  const [transcript, setTranscript] = useState("");
   const [generatedPhases, setGeneratedPhases] = useState<PlanPhase[]>([]);
   const [generatedTotalDays, setGeneratedTotalDays] = useState(0);
-  const [generatedConfidence, setGeneratedConfidence] = useState(0);
-  const [generatedSummary, setGeneratedSummary] = useState("");
   const [startDate, setStartDate] = useState<Date>(
     projectStartDate ? new Date(projectStartDate) : new Date()
   );
@@ -110,43 +104,7 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
     }
   };
 
-  const handleGeneratePlan = async () => {
-    if (!transcript.trim()) {
-      toast({ title: "Beskriv projektet först", variant: "destructive" });
-      return;
-    }
 
-    setViewState("generating");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-plan", {
-        body: { 
-          transcript,
-          project_name: projectName,
-          start_date: projectStartDate || startDate.toISOString().split("T")[0],
-          end_date: projectEndDate || undefined,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.needs_more_info) {
-        toast({ title: "Beskrivningen är för vag", description: data.example, variant: "destructive" });
-        setViewState("input");
-        return;
-      }
-
-      const phases = (data.phases || []).map(normalizePhaseToDays);
-      setGeneratedPhases(phases);
-      setGeneratedTotalDays(data.total_days || data.total_weeks * 5 || 0);
-      setGeneratedConfidence(data.confidence || 0);
-      setGeneratedSummary(data.summary || "");
-      setViewState("review");
-    } catch (error: any) {
-      toast({ title: "Kunde inte generera plan", description: error.message, variant: "destructive" });
-      setViewState("input");
-    }
-  };
 
   const handlePhasesChange = (phases: PlanPhase[]) => {
     setGeneratedPhases(phases);
@@ -171,7 +129,7 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
       total_days: generatedTotalDays,
       total_weeks: Math.ceil(generatedTotalDays / 5),
       start_date: startDate.toISOString().split("T")[0],
-      original_transcript: transcript,
+      original_transcript: null,
     };
 
     if (plan?.id) {
@@ -209,7 +167,6 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
 
     toast({ title: "Plan borttagen" });
     setPlan(null);
-    setTranscript("");
     setGeneratedPhases([]);
     setViewState("empty");
   };
@@ -240,55 +197,15 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
         <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="font-medium">Ingen planering ännu</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          Beskriv projektet med text för att skapa en projektplan
+          Skapa en planering med faser för projektet
         </p>
-        <Button className="mt-4" onClick={() => setViewState("input")}>
+        <Button className="mt-4" onClick={() => {
+          setGeneratedPhases([{ name: "Ny fas", start_day: 1, duration_days: 5, color: "blue" }]);
+          setGeneratedTotalDays(5);
+          setViewState("review");
+        }}>
           Skapa planering
         </Button>
-      </Card>
-    );
-  }
-
-  // Input state
-  if (viewState === "input") {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Beskriv projektet</h3>
-          <Button variant="ghost" onClick={() => setViewState("empty")}>Avbryt</Button>
-        </div>
-        
-        <div className="relative">
-          <Textarea
-            placeholder="Beskriv projektets faser, t.ex. 'Rivning 3 dagar, sedan stomme och grundarbete 10 dagar...'"
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            rows={6}
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <VoicePromptButton
-            variant="compact"
-            agentName="Byggio AI"
-            onTranscriptComplete={async (text) => {
-              setTranscript(text);
-            }}
-          />
-          <Button onClick={handleGeneratePlan} disabled={!transcript.trim()}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generera plan
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Generating state
-  if (viewState === "generating") {
-    return (
-      <Card className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-sm text-muted-foreground">Genererar projektplan...</p>
       </Card>
     );
   }
@@ -299,14 +216,14 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
       <PlanEditor
         phases={generatedPhases}
         totalDays={generatedTotalDays}
-        confidence={generatedConfidence}
-        summary={generatedSummary}
+        confidence={1}
+        summary=""
         startDate={startDate}
         endDate={endDate}
         onStartDateChange={setStartDate}
         onPhasesChange={handlePhasesChange}
         onApprove={handleSavePlan}
-        onCancel={() => setViewState("input")}
+        onCancel={() => setViewState("empty")}
       />
     );
   }
@@ -328,8 +245,6 @@ export default function ProjectPlanningTab({ projectId, projectName, projectStar
               onClick={() => {
                 setGeneratedPhases(plan.phases);
                 setGeneratedTotalDays(plan.total_days);
-                setGeneratedConfidence(100);
-                setGeneratedSummary(plan.notes || "");
                 setViewState("review");
               }}
             >

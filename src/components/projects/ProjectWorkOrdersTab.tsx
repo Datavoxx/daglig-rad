@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ClipboardList, MoreHorizontal, Pencil, Trash2, Download, CalendarIcon } from "lucide-react";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +49,7 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
     due_date: undefined as Date | undefined,
     status: "pending",
   });
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
   const [saving, setSaving] = useState(false);
   
   const { toast } = useToast();
@@ -241,35 +241,6 @@ export default function ProjectWorkOrdersTab({ projectId, projectName, estimateI
                 {editingOrder ? "Uppdatera arbetsordern" : "Skapa en ny arbetsorder för projektet"}
               </DialogDescription>
             </DialogHeader>
-            {!editingOrder && (
-              <VoicePromptButton
-                variant="compact"
-                agentName="Byggio AI"
-                isProcessing={isApplyingVoice}
-                onTranscriptComplete={async (transcript) => {
-                  setIsApplyingVoice(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
-                      body: { transcript, documentType: "work_order" },
-                    });
-                    if (error) throw error;
-                    if (data) {
-                      setFormData(prev => ({
-                        ...prev,
-                        title: data.title || prev.title,
-                        description: data.description || prev.description,
-                        assigned_to: data.assigned_to || prev.assigned_to,
-                      }));
-                      toast({ title: "Röstdata applicerad" });
-                    }
-                  } catch (err) {
-                    toast({ title: "Kunde inte tolka röstkommandot", variant: "destructive" });
-                  } finally {
-                    setIsApplyingVoice(false);
-                  }
-                }}
-              />
-            )}
             <div className="grid gap-4 py-4">
               
               <div className="space-y-2">

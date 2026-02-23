@@ -50,7 +50,7 @@ import {
   X,
   Package,
 } from "lucide-react";
-import { VoicePromptButton } from "@/components/shared/VoicePromptButton";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -139,7 +139,7 @@ export default function ProjectAtaTab({
   const [editingAta, setEditingAta] = useState<Ata | null>(null);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [isApplyingVoice, setIsApplyingVoice] = useState(false);
+  
   
   const { toast } = useToast();
 
@@ -461,40 +461,6 @@ export default function ProjectAtaTab({
                 {editingAta ? "Uppdatera ändrings- och tilläggsarbetet" : "Lägg till ett eller flera ändrings- och tilläggsarbeten"}
               </DialogDescription>
             </DialogHeader>
-            {!editingAta && (
-              <VoicePromptButton
-                variant="compact"
-                agentName="Byggio AI"
-                isProcessing={isApplyingVoice}
-                onTranscriptComplete={async (transcript) => {
-                  setIsApplyingVoice(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke("apply-voice-edits", {
-                      body: { transcript, documentType: "ata" },
-                    });
-                    if (error) throw error;
-                    if (data) {
-                      if (data.description) {
-                        setFormRows(prev => {
-                          const updated = [...prev];
-                          updated[0] = { ...updated[0], description: data.description };
-                          if (data.unit_price) updated[0] = { ...updated[0], unit_price: String(data.unit_price) };
-                          if (data.quantity) updated[0] = { ...updated[0], quantity: String(data.quantity) };
-                          if (data.unit) updated[0] = { ...updated[0], unit: data.unit };
-                          return updated;
-                        });
-                      }
-                      if (data.reason) setFormReason(data.reason);
-                      toast({ title: "Röstdata applicerad" });
-                    }
-                  } catch (err) {
-                    toast({ title: "Kunde inte tolka röstkommandot", variant: "destructive" });
-                  } finally {
-                    setIsApplyingVoice(false);
-                  }
-                }}
-              />
-            )}
             <div className="grid gap-4 py-4">
 
               {/* Dynamic rows */}
