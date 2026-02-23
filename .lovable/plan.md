@@ -1,71 +1,75 @@
 
-## Fix: Offert-inspelning, ATA, Arbetsorder och Planering
 
-### Problem 1: API-fel vid offertinspelning (404)
-Edge-funktionen `apply-estimate-voice-edits` anropar fel URL: `https://api.lovable.dev/v1/chat/completions` som ger 404. Ska vara `https://ai.gateway.lovable.dev/v1/chat/completions`.
+## Ta bort VoicePromptButton overallt (utom dagbok) och fixa manuell planering
 
-### Problem 2: "Lat Byggio AI hjalpa dig" sitter pa fel plats
-- **ATA**: Knappen sitter utanfor dialogen, bredvid rubriken. Ska vara **inne i** "Ny ATA"-dialogen, hogst upp.
-- **Arbetsorder**: Samma problem - knappen sitter utanfor dialogen. Ska vara **inne i** "Ny arbetsorder"-dialogen, hogst upp.
-- Bada har tomma handlers (`onTranscriptComplete={async () => {}}`) som inte gor nagot.
+### Del 1: Ta bort VoicePromptButton fran 5 filer
 
-### Problem 3: Offertinspelning saknar projektbeskrivning och tidsplan
-Nar man spelar in en offert ska AI:n aven fylla i projektbeskrivning (scope) och tidsplan (assumptions). Edge-funktionen `apply-estimate-voice-edits` hanterar bara items, inte scope/assumptions.
+Ta bort importen, state-variabeln `isApplyingVoice`, och VoicePromptButton-komponenten fran:
 
----
+| Fil | Vad som tas bort |
+|-----|-----------------|
+| `src/components/estimates/EstimateBuilder.tsx` | Import (rad 14), state `isApplyingVoice`, VoicePromptButton-blocket (rad 409-431) |
+| `src/components/reports/ReportEditor.tsx` | Import (rad 18), VoicePromptButton-blocket (rad 325-338) |
+| `src/components/projects/ProjectAtaTab.tsx` | Import (rad 53), state `isApplyingVoice`, VoicePromptButton inne i dialogen (rad 464-497) |
+| `src/components/projects/ProjectWorkOrdersTab.tsx` | Import (rad 13), state `isApplyingVoice`, VoicePromptButton inne i dialogen (rad 244-270) |
+| `src/pages/InspectionView.tsx` | Import (rad 33), VoicePromptButton-blocket (rad 222-227) |
 
-### Losning
+### Del 2: Andra dagbokens rostknapp till svartvit stil
 
-#### 1. Fixa API-URL i apply-estimate-voice-edits
+I `src/components/projects/InlineDiaryCreator.tsx` (rad 294-309):
+- Ta bort importen av `AI_AGENTS` (rad 25)
+- Ersatt den stora sektionen med Byggio AI-logga och fargad bakgrund med en enkel, svartvit text:
 
-| Fil | Andring |
-|-----|---------|
-| `supabase/functions/apply-estimate-voice-edits/index.ts` | Andra rad 126: `https://api.lovable.dev/v1/chat/completions` till `https://ai.gateway.lovable.dev/v1/chat/completions`. Uppdatera systemprompten och user-prompten sa att den aven hanterar scope (projektbeskrivning) och assumptions (tidsplan). Lagg till dessa falt i JSON-svaret. |
-
-Prompten utvidgas sa att AI:n kan:
-- Uppdatera/skapa scope (projektbeskrivning)
-- Uppdatera/skapa assumptions (tidsplan, array av strang)
-- Uppdatera items som innan
-
-Svarsformatet blir:
-```text
-{
-  "items": [...],
-  "scope": "projektbeskrivning...",
-  "assumptions": ["Vecka 1: ...", "Vecka 2: ..."],
-  "changes_made": "..."
-}
+Fran:
+```
+<div className="flex items-center gap-4 p-4 mt-2 bg-primary/5 border border-dashed border-primary/30 rounded-lg">
+  <img src={AI_AGENTS.diary.avatar} ... className="w-32 h-32 ..." />
+  <div>
+    <span className="text-sm font-medium text-primary">Lat Byggio AI hjalpa dig</span>
+    ...
+  </div>
+</div>
 ```
 
-#### 2. Uppdatera EstimateBuilder-handleren
+Till:
+```
+<div className="flex items-center gap-3 p-3 mt-2 border border-dashed border-border rounded-lg">
+  <Mic className="h-5 w-5 text-muted-foreground" />
+  <div>
+    <span className="text-sm font-medium">Lat Byggio AI hjalpa dig</span>
+    <span className="text-xs text-muted-foreground block">Spara tid genom att prata</span>
+  </div>
+</div>
+```
 
-| Fil | Andring |
-|-----|---------|
-| `src/components/estimates/EstimateBuilder.tsx` | I handleren (rad 414-429): Skicka med `scope` och `assumptions` i body. Hantera `data.scope` och `data.assumptions` i svaret och uppdatera estimate-state. |
+### Del 3: Manuell planering (ta bort AI-generering)
 
-#### 3. Flytta VoicePromptButton in i ATA-dialogen med riktig handler
+I `src/components/projects/ProjectPlanningTab.tsx`:
 
-| Fil | Andring |
-|-----|---------|
-| `src/components/projects/ProjectAtaTab.tsx` | (1) Ta bort VoicePromptButton fran rad 439-443 (utanfor dialogen). (2) Lagg till den inne i DialogContent, efter DialogHeader, med en handler som anropar `apply-voice-edits` med `documentType: "ata"` och fyller i formularet (description, reason, unit_price, quantity etc.) baserat pa AI-svaret. |
+1. **Ta bort**: Import av `VoicePromptButton`, `AI_AGENTS`, `Sparkles`-ikonen
+2. **Ta bort**: `handleGeneratePlan`-funktionen (rad 113-149), `transcript`-state, `generatedConfidence`, `generatedSummary`
+3. **Ta bort**: ViewState `"input"` och `"generating"` - de behovs inte langre
+4. **Andra `ViewState`** fran `"empty" | "input" | "generating" | "review" | "view"` till `"empty" | "review" | "view"`
+5. **Andra empty-state** (rad 237-249): Knappen "Skapa planering" gar direkt till `"review"` med en default-fas:
+   ```
+   onClick={() => {
+     setGeneratedPhases([{ name: "Ny fas", start_day: 1, duration_days: 5, color: "blue" }]);
+     setGeneratedTotalDays(5);
+     setViewState("review");
+   }}
+   ```
+6. **Andra PlanEditor `onCancel`** (rad 309): Fran `setViewState("input")` till `setViewState("empty")`
+7. **Andra PlanEditor-anropet**: Skicka `confidence={1}` och `summary=""` (eller ta bort confidence/summary fran PlanEditor om oonskat - men enklast att bara skicka neutrala varden)
 
-#### 4. Flytta VoicePromptButton in i arbetsorder-dialogen med riktig handler
-
-| Fil | Andring |
-|-----|---------|
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | (1) Ta bort VoicePromptButton fran rad 229-233 (utanfor dialogen). (2) Lagg till den inne i DialogContent, efter DialogHeader, med en handler som anropar `apply-voice-edits` med `documentType: "work_order"` och fyller i formularet (title, description, assigned_to) baserat pa AI-svaret. |
-
-#### 5. Planering - ingen kodandring behovs
-
-Planeringsfunktionen fungerar korrekt. Den kraver en tillrackligt detaljerad beskrivning for att generera en plan (den svarar `needs_more_info` om beskrivningen ar for vag, t.ex. "forsta veckan ska vi byta fasad" ar inte tillrackligt). VoicePromptButton ar redan korrekt placerad i input-vyn och satter transkriptet i textfaltet.
-
----
-
-### Sammanfattning
+### Teknisk sammanfattning
 
 | Fil | Andring |
 |------|-----------|
-| `supabase/functions/apply-estimate-voice-edits/index.ts` | Fixa API-URL (404-felet), utvidga prompt for scope + assumptions |
-| `src/components/estimates/EstimateBuilder.tsx` | Skicka scope/assumptions, hantera dem i svaret |
-| `src/components/projects/ProjectAtaTab.tsx` | Flytta VoicePromptButton in i "Ny ATA"-dialogen, lagg till riktig handler |
-| `src/components/projects/ProjectWorkOrdersTab.tsx` | Flytta VoicePromptButton in i "Ny arbetsorder"-dialogen, lagg till riktig handler |
+| `src/components/estimates/EstimateBuilder.tsx` | Ta bort VoicePromptButton + state + import |
+| `src/components/reports/ReportEditor.tsx` | Ta bort VoicePromptButton + import |
+| `src/components/projects/ProjectAtaTab.tsx` | Ta bort VoicePromptButton + state + import |
+| `src/components/projects/ProjectWorkOrdersTab.tsx` | Ta bort VoicePromptButton + state + import |
+| `src/pages/InspectionView.tsx` | Ta bort VoicePromptButton + import |
+| `src/components/projects/InlineDiaryCreator.tsx` | Andra Byggio AI-sektionen till svartvit minimalistisk stil, ta bort AI_AGENTS-import |
+| `src/components/projects/ProjectPlanningTab.tsx` | Ta bort AI-generering, VoicePromptButton, input/generating-states. "Skapa planering" gar direkt till PlanEditor med en default-fas. |
+
