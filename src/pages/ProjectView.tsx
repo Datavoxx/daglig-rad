@@ -283,7 +283,7 @@ export default function ProjectView() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={searchParams.get("tab") || "overview"} onValueChange={(val) => { searchParams.set("tab", val); setSearchParams(searchParams, { replace: true }); }} className="w-full">
         <TabsList className="w-full justify-start flex-nowrap overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
           <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
             <LayoutDashboard className="h-4 w-4" />

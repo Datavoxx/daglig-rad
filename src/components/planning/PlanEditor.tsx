@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, AlertCircle, CalendarIcon } from "lucide-react";
+import { Plus, Trash2, GripVertical, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanPhase } from "./GanttTimeline";
 import { format, addDays } from "date-fns";
@@ -16,8 +15,8 @@ import { Calendar } from "@/components/ui/calendar";
 interface PlanEditorProps {
   phases: PlanPhase[];
   totalDays: number;
-  confidence: number;
-  summary: string;
+  confidence?: number;
+  summary?: string;
   startDate?: Date;
   endDate?: Date;
   onStartDateChange?: (date: Date | undefined) => void;
@@ -95,7 +94,7 @@ export function PlanEditor({
     onPhasesChange(updated);
   };
 
-  const confidenceColor = confidence >= 0.8 ? "text-emerald-600" : confidence >= 0.5 ? "text-amber-600" : "text-rose-600";
+  
   
   const computedEndDate = startDate && totalDays ? addDays(startDate, totalDays - 1) : endDate;
 
@@ -106,16 +105,7 @@ export function PlanEditor({
         <CardContent className="pt-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-semibold mb-2">Tolkad planering</h3>
-              <p className="text-sm text-muted-foreground">{summary}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {confidence < 0.7 && (
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-              )}
-              <Badge variant="secondary" className={cn("font-mono", confidenceColor)}>
-                {Math.round(confidence * 100)}% säkerhet
-              </Badge>
+              <h3 className="font-semibold mb-2">Planering</h3>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t">

@@ -9,7 +9,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface EconomicOverviewCardProps {
   projectId: string;
-  quoteTotal: number | null;
+  quoteTotal?: number | null;
+  budget?: number | null;
 }
 
 interface TimeEntryWithBilling {
@@ -37,7 +38,8 @@ const DONUT_COLORS = {
   ata: "hsl(45, 93%, 47%)",        // amber
 };
 
-export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverviewCardProps) {
+export function EconomicOverviewCard({ projectId, quoteTotal, budget }: EconomicOverviewCardProps) {
+  const effectiveBudget = budget ?? quoteTotal ?? null;
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [ataOpen, setAtaOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
   const approvedAtaTotal = approvedAtas.reduce((sum, a) => sum + (a.subtotal || 0), 0);
 
   // Calculate margin and percentage
-  const totalProjectValue = (quoteTotal || 0) + approvedAtaTotal;
+  const totalProjectValue = (effectiveBudget || 0) + approvedAtaTotal;
   const margin = totalProjectValue - totalExpenses;
   const usedPercent = totalProjectValue > 0 
     ? Math.min(100, Math.max(0, (totalExpenses / totalProjectValue) * 100))
@@ -207,8 +209,8 @@ export function EconomicOverviewCard({ projectId, quoteTotal }: EconomicOverview
 
         {/* Quote amount */}
         <div className="flex justify-between items-center py-2 border-b">
-          <span className="text-sm text-muted-foreground">Offertbelopp</span>
-          <span className="font-medium">{formatCurrency(quoteTotal)}</span>
+          <span className="text-sm text-muted-foreground">Budget</span>
+          <span className="font-medium">{formatCurrency(effectiveBudget)}</span>
         </div>
 
         {/* Expenses - Collapsible */}

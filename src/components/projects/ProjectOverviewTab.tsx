@@ -324,7 +324,7 @@ export default function ProjectOverviewTab({ project, onUpdate, isOnboarding, on
 
       {/* Economic Overview + Project Info side by side */}
       <div className="grid gap-6 md:grid-cols-2">
-        <EconomicOverviewCard projectId={project.id} quoteTotal={linkedEstimate?.total_incl_vat || null} />
+        <EconomicOverviewCard projectId={project.id} budget={project.budget} quoteTotal={linkedEstimate?.total_incl_vat || null} />
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
