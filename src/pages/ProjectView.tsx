@@ -343,7 +343,7 @@ export default function ProjectView() {
         </TabsContent>
 
         <TabsContent value="planning" className="mt-6">
-          <ProjectPlanningTab projectId={project.id} projectName={project.name} projectStartDate={project.start_date} projectEndDate={project.end_date} />
+          <ProjectPlanningTab projectId={project.id} projectName={project.name} projectStartDate={project.start_date} projectEndDate={project.end_date} autoStart={searchParams.get("autoStart") === "true"} />
         </TabsContent>
 
         <TabsContent value="diary" className="mt-6">
