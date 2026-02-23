@@ -415,11 +415,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           setIsApplyingVoice(true);
           try {
             const { data, error } = await supabase.functions.invoke("apply-estimate-voice-edits", {
-              body: { transcript, items: estimate.state.items, scope: estimate.state.scope },
+              body: { transcript, items: estimate.state.items, scope: estimate.state.scope, assumptions: estimate.state.assumptions },
             });
             if (error) throw error;
             if (data?.items) estimate.updateItems(data.items);
             if (data?.scope) estimate.updateScope(data.scope);
+            if (data?.assumptions) estimate.updateAssumptions(data.assumptions);
             toast.success("Röständringar tillämpade");
           } catch (err: any) {
             toast.error("Kunde inte tillämpa röständringar");
