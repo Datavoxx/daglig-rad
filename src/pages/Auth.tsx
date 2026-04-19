@@ -349,11 +349,8 @@ export default function Auth() {
                   </Button>
                 </form>
 
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  Har du inget konto?{" "}
-                  <Link to="/register" className="text-primary hover:underline font-medium">
-                    Registrera dig
-                  </Link>
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Konton skapas endast via inbjudan. Kontakta din administratör om du behöver tillgång.
                 </p>
 
                 <div className="mt-6 pt-4 border-t border-border/50">

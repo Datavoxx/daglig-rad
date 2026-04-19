@@ -27,7 +27,7 @@ import Customers from "@/pages/Customers";
 import Guide from "@/pages/Guide";
 import GuidePublic from "@/pages/GuidePublic";
 import NotFound from "@/pages/NotFound";
-import Register from "@/pages/Register";
+
 import Invoices from "@/pages/Invoices";
 import Accounting from "@/pages/Accounting";
 import AcceptInvitation from "@/pages/AcceptInvitation";
@@ -54,7 +54,7 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/register" element={<Navigate to="/auth" replace />} />
               <Route path="/guide-public" element={<GuidePublic />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
               <Route path="/terms" element={<Terms />} />

@@ -92,7 +92,7 @@ const AIAgentsSection = () => {
                 </div>
 
                 <Button size="lg" asChild>
-                  <Link to="/register">
+                  <Link to="/auth">
                     Kom igång gratis
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

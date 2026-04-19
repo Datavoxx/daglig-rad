@@ -1,5 +1,4 @@
-import { ArrowRight, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,18 +18,11 @@ export default function BookingSuccess({ preferredLabel, onClose }: Props) {
       <p className="text-muted-foreground">Vi ringer dig {preferredLabel}.</p>
 
       <div className="w-full mt-6 pt-6 border-t border-border/60">
-        <p className="text-sm text-muted-foreground mb-3">Har du ett konto?</p>
         <p className="text-sm text-muted-foreground mb-5">
-          Registrera dig innan samtalet för att förbereda din Byggio-upplevelse.
+          Vi hör av oss så snart som möjligt. Konton till Byggio skapas via inbjudan efter samtalet.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild className="gap-2">
-            <Link to="/register">
-              Registrera konto
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Button>
+        <div className="flex justify-center">
           <Button variant="outline" onClick={onClose}>
             Stäng
           </Button>
