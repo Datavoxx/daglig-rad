@@ -297,11 +297,9 @@ export function SalaryTypeManager() {
           ) : (
             <div className="border rounded-lg overflow-hidden">
               {/* Header row */}
-              <div className="grid grid-cols-[1fr_100px_100px_80px_80px_110px] gap-2 p-3 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
+              <div className="grid grid-cols-[1fr_120px_80px_110px] gap-2 p-3 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
                 <div>Namn</div>
                 <div>Förkortning</div>
-                <div className="text-right">Påslag</div>
-                <div className="text-center">Sortering</div>
                 <div className="text-center">Status</div>
                 <div></div>
               </div>
@@ -310,7 +308,7 @@ export function SalaryTypeManager() {
                 {salaryTypes.map((salaryType) => (
                   <div
                     key={salaryType.id}
-                    className={`grid grid-cols-[1fr_100px_100px_80px_80px_110px] gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
+                    className={`grid grid-cols-[1fr_120px_80px_110px] gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
                       !salaryType.is_active ? "opacity-50" : ""
                     }`}
                   >
@@ -322,12 +320,6 @@ export function SalaryTypeManager() {
                       <Badge variant="secondary" className="font-mono text-xs">
                         {salaryType.abbreviation}
                       </Badge>
-                    </div>
-                    <div className="text-right text-sm">
-                      {salaryType.markup_percent ?? 0}%
-                    </div>
-                    <div className="text-center text-sm text-muted-foreground">
-                      {salaryType.sort_order}
                     </div>
                     <div className="text-center">
                       <Button

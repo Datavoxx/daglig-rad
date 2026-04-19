@@ -184,6 +184,9 @@ export default function PayrollExport() {
       downloadTluFile(blob, filename);
     }
 
+    // Small delay to avoid browser blocking the second download
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     // Download PDF
     await downloadPayrollPdf({
       entries,
