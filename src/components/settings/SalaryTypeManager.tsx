@@ -227,17 +227,25 @@ export function SalaryTypeManager() {
       toast.error("Förkortning krävs");
       return;
     }
+    if (!formData.visma_salary_type.trim()) {
+      toast.error("Visma löneart krävs för löneexport");
+      return;
+    }
+
+    const nextSortOrder = currentSalaryType
+      ? currentSalaryType.sort_order
+      : (salaryTypes.length > 0 ? Math.max(...salaryTypes.map(st => st.sort_order)) + 1 : 1);
 
     saveMutation.mutate({
       name: formData.name.trim(),
       abbreviation: formData.abbreviation.trim().toUpperCase(),
-      markup_percent: formData.markup_percent ? parseFloat(formData.markup_percent) : 0,
-      sort_order: formData.sort_order ? parseInt(formData.sort_order) : 0,
-      visma_wage_code: formData.visma_wage_code.trim(),
+      markup_percent: 0,
+      sort_order: nextSortOrder,
+      visma_wage_code: formData.abbreviation.trim().toUpperCase(),
       visma_salary_type: formData.visma_salary_type.trim(),
-      fortnox_wage_code: formData.fortnox_wage_code.trim(),
-      fortnox_salary_type: formData.fortnox_salary_type.trim(),
-      time_type: formData.time_type,
+      fortnox_wage_code: "",
+      fortnox_salary_type: "",
+      time_type: "WORK",
     } as any);
   };
 
