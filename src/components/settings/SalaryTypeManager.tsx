@@ -391,7 +391,7 @@ export function SalaryTypeManager() {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Snickare"
+                  placeholder="Timlön"
                 />
               </div>
               <div className="space-y-2">
@@ -400,7 +400,7 @@ export function SalaryTypeManager() {
                   id="abbreviation"
                   value={formData.abbreviation}
                   onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.toUpperCase() })}
-                  placeholder="SNI"
+                  placeholder="TIM"
                   maxLength={10}
                 />
               </div>
