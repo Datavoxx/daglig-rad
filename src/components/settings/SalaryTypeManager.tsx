@@ -400,7 +400,7 @@ export function SalaryTypeManager() {
                   id="abbreviation"
                   value={formData.abbreviation}
                   onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.toUpperCase() })}
-                  placeholder="SNI"
+                  placeholder="TIM"
                   maxLength={10}
                 />
               </div>
