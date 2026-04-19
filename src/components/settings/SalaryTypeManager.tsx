@@ -398,71 +398,18 @@ export function SalaryTypeManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="markup_percent">Påslag (%)</Label>
-                <Input
-                  id="markup_percent"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.markup_percent}
-                  onChange={(e) => setFormData({ ...formData, markup_percent: e.target.value })}
-                  placeholder="35"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sort_order">Sorteringsordning</Label>
-                <Input
-                  id="sort_order"
-                  type="number"
-                  value={formData.sort_order}
-                  onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
-                  placeholder="1"
-                />
-              </div>
-            </div>
-
-            {/* Visma-fält */}
-            <div className="pt-4 border-t space-y-4">
-              <p className="text-xs text-muted-foreground font-medium">Visma Lön-mappning</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="visma_wage_code">Visma tidkod</Label>
-                  <Input
-                    id="visma_wage_code"
-                    value={formData.visma_wage_code}
-                    onChange={(e) => setFormData({ ...formData, visma_wage_code: e.target.value })}
-                    placeholder="TIM"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="visma_salary_type">Visma löneart</Label>
-                  <Input
-                    id="visma_salary_type"
-                    value={formData.visma_salary_type}
-                    onChange={(e) => setFormData({ ...formData, visma_salary_type: e.target.value })}
-                    placeholder="1010"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Tidtyp */}
-            <div className="pt-4 border-t space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="time_type">Tidtyp</Label>
-                <select
-                  id="time_type"
-                  value={formData.time_type}
-                  onChange={(e) => setFormData({ ...formData, time_type: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {TIME_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Visma löneart - obligatorisk för export */}
+            <div className="space-y-2">
+              <Label htmlFor="visma_salary_type">Visma löneart *</Label>
+              <Input
+                id="visma_salary_type"
+                value={formData.visma_salary_type}
+                onChange={(e) => setFormData({ ...formData, visma_salary_type: e.target.value })}
+                placeholder="1010"
+              />
+              <p className="text-xs text-muted-foreground">
+                Löneartsnummer från Visma (t.ex. 1010 Månadslön, 1310 Timlön, 1410 Övertid 50%).
+              </p>
             </div>
           </div>
 
