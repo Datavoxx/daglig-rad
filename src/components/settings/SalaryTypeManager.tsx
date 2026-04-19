@@ -297,7 +297,7 @@ export function SalaryTypeManager() {
           ) : (
             <div className="border rounded-lg overflow-hidden">
               {/* Header row */}
-              <div className="grid grid-cols-[1fr_100px_100px_80px_80px_80px] gap-2 p-3 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
+              <div className="grid grid-cols-[1fr_100px_100px_80px_80px_110px] gap-2 p-3 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
                 <div>Namn</div>
                 <div>Förkortning</div>
                 <div className="text-right">Påslag</div>
@@ -310,7 +310,7 @@ export function SalaryTypeManager() {
                 {salaryTypes.map((salaryType) => (
                   <div
                     key={salaryType.id}
-                    className={`grid grid-cols-[1fr_100px_100px_80px_80px_80px] gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
+                    className={`grid grid-cols-[1fr_100px_100px_80px_80px_110px] gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
                       !salaryType.is_active ? "opacity-50" : ""
                     }`}
                   >
