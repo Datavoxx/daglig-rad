@@ -55,7 +55,7 @@ const LandingNavbar = () => {
               <Link to="/auth">Logga in</Link>
             </Button>
             <Button asChild>
-              <Link to="/register">Kom igång gratis</Link>
+              <Link to="/auth">Kom igång gratis</Link>
             </Button>
           </div>
 
@@ -87,7 +87,7 @@ const LandingNavbar = () => {
                   <Link to="/auth">Logga in</Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link to="/register">Kom igång gratis</Link>
+                  <Link to="/auth">Kom igång gratis</Link>
                 </Button>
               </div>
             </div>

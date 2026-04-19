@@ -391,7 +391,7 @@ const FeatureDetail = () => {
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button size="lg" asChild>
-                    <Link to="/register">Kom igång gratis</Link>
+                    <Link to="/auth">Kom igång gratis</Link>
                   </Button>
                   <Button size="lg" variant="outline" asChild>
                     <Link to="/#how-it-works">Se hur det fungerar</Link>
@@ -454,7 +454,7 @@ const FeatureDetail = () => {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button size="lg" asChild>
-                <Link to="/register">
+                <Link to="/auth">
                   Kom igång gratis
                   <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                 </Link>

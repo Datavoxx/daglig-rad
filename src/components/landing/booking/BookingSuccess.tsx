@@ -26,7 +26,7 @@ export default function BookingSuccess({ preferredLabel, onClose }: Props) {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild className="gap-2">
-            <Link to="/register">
+            <Link to="/auth">
               Registrera konto
               <ArrowRight className="w-4 h-4" />
             </Link>

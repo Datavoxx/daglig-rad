@@ -75,7 +75,7 @@ const HeroSection = () => {
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <Button size="lg" className="text-base px-8 h-12 shadow-lg shadow-primary/25" asChild>
-            <Link to="/register">
+            <Link to="/auth">
               Kom igång gratis
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
