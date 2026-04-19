@@ -167,7 +167,7 @@ export function AppLayout() {
   // Build nav items dynamically based on user role/industry and filter by permissions
   const navItems = getNavItems(isEmployee, isServiceIndustry);
   const visibleNavItems = navItems.filter(item => {
-    if (item.moduleKey === "payroll-export" && userEmail?.toLowerCase() !== "mahad@datavox.se") return false;
+    if (item.moduleKey === "payroll-export" && userEmail?.toLowerCase() !== "mahad@datavoxx.se") return false;
     return hasAccess(item.moduleKey);
   });
 
