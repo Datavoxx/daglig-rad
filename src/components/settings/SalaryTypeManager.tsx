@@ -448,31 +448,6 @@ export function SalaryTypeManager() {
               </div>
             </div>
 
-            {/* Fortnox-fält */}
-            <div className="pt-4 border-t space-y-4">
-              <p className="text-xs text-muted-foreground font-medium">Fortnox Lön-mappning</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fortnox_wage_code">Fortnox tidkod</Label>
-                  <Input
-                    id="fortnox_wage_code"
-                    value={formData.fortnox_wage_code}
-                    onChange={(e) => setFormData({ ...formData, fortnox_wage_code: e.target.value })}
-                    placeholder="TIM"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fortnox_salary_type">Fortnox löneart</Label>
-                  <Input
-                    id="fortnox_salary_type"
-                    value={formData.fortnox_salary_type}
-                    onChange={(e) => setFormData({ ...formData, fortnox_salary_type: e.target.value })}
-                    placeholder="1010"
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Tidtyp */}
             <div className="pt-4 border-t space-y-4">
               <div className="space-y-2">
