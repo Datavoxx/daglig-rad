@@ -23,7 +23,6 @@ const Landing = () => {
         <IntegrationsSection />
         <HowItWorksSection />
         <TimeComparisonSection />
-        <PricingSection />
         <GuideSection />
         <CTASection />
       </main>
