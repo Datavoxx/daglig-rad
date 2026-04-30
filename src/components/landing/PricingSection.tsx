@@ -57,8 +57,7 @@ const PricingSection = () => {
 
         {/* Container med blur och overlay */}
         <div className="relative max-w-3xl mx-auto">
-          {/* Suddiga priskort */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 blur-md select-none pointer-events-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {plans.map((plan) => (
               <Card key={plan.name} className="border-border/50">
                 <CardHeader className="text-center pb-4">
@@ -85,6 +84,7 @@ const PricingSection = () => {
               </Card>
             ))}
           </div>
+        </div>
 
           {/* Overlay med lås */}
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/30 rounded-xl">
