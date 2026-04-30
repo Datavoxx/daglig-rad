@@ -4,30 +4,35 @@ import { Button } from "@/components/ui/button";
 
 const plans = [
   {
-    name: "Gratis",
-    price: "0",
+    name: "Bygg Smart",
+    price: "1899",
     period: "kr/månad",
-    description: "Perfekt för att komma igång",
+    description: "För egenföretagare och mindre byggteam",
     features: [
-      "3 aktiva projekt",
-      "Röstinspelning",
-      "Dagrapporter",
-      "PDF-export"
+      "Upp till 5 aktiva projekt",
+      "AI-genererade offerter & ÄTA",
+      "Digital dagbok med röstinspelning",
+      "Tidrapportering & närvaro",
+      "Kundregister & fakturering",
+      "PDF-export med ert varumärke",
+      "E-postsupport"
     ],
-    cta: "Kom igång gratis"
+    cta: "Starta provperiod"
   },
   {
-    name: "Pro",
-    price: "???",
+    name: "Bygg Pro",
+    price: "3299",
     period: "kr/månad",
-    description: "För växande byggföretag",
+    description: "För växande byggföretag som vill skala upp",
     features: [
-      "Obegränsade projekt",
-      "AI-genererade offerter",
-      "Projektplanering",
-      "Kundregister",
-      "White-label dokument",
-      "Prioriterad support"
+      "Obegränsat antal projekt & användare",
+      "Avancerad projektplanering (Gantt)",
+      "Löneexport till Visma & Fortnox",
+      "Kvitto- & leverantörsfakturahantering",
+      "Byggio AI-assistent obegränsat",
+      "White-label på alla dokument",
+      "Egna offertmallar & artikelbibliotek",
+      "Prioriterad support & onboarding"
     ],
     cta: "Starta provperiod"
   }
