@@ -6,7 +6,7 @@ import IntegrationsSection from "@/components/landing/IntegrationsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FreeTrainingSection from "@/components/landing/FreeTrainingSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
-import PricingSection from "@/components/landing/PricingSection";
+
 import GuideSection from "@/components/landing/GuideSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
