@@ -57,8 +57,7 @@ const PricingSection = () => {
 
         {/* Container med blur och overlay */}
         <div className="relative max-w-3xl mx-auto">
-          {/* Suddiga priskort */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 blur-md select-none pointer-events-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {plans.map((plan) => (
               <Card key={plan.name} className="border-border/50">
                 <CardHeader className="text-center pb-4">
@@ -84,15 +83,6 @@ const PricingSection = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-
-          {/* Overlay med lås */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/30 rounded-xl">
-            <div className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-center border border-border/50 shadow-lg">
-              <Lock className="h-10 w-10 text-primary mx-auto mb-3" />
-              <p className="text-lg font-semibold text-foreground">Priser lanseras 2 mars</p>
-              <p className="text-sm text-muted-foreground mt-1">Registrera dig för att bli notifierad</p>
-            </div>
           </div>
         </div>
       </div>
