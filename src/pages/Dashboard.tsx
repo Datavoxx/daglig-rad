@@ -326,40 +326,15 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Quick action buttons with dropdown */}
-          <div className="hidden md:flex flex-wrap gap-2">
-            {userEmail === "mahad@datavoxx.se" && (
+          {/* Admin-only AI usage button */}
+          {userEmail === "mahad@datavoxx.se" && (
+            <div className="hidden md:flex">
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowAIUsage(true)}>
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">AI-användning</span>
+                AI-användning
               </Button>
-            )}
-            {quickActions.map((action) => (
-              <DropdownMenu key={action.title}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <action.icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{action.title}</span>
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(action.href)}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Gå direkt
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate("/global-assistant", { 
-                      state: { initialMessage: action.aiMessage } 
-                    })}
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Låt AI lösa
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
