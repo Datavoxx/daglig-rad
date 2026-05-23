@@ -200,7 +200,7 @@ export function AppLayout() {
   const logoutButton = (
     <button
       onClick={handleLogoutClick}
-      className="flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
+      className="flex w-full items-center justify-center rounded-md p-2.5 text-[13px] font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
     >
       <LogOut className="h-5 w-5 shrink-0" />
     </button>
