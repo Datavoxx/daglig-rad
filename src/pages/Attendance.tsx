@@ -148,7 +148,7 @@ function AttendanceAdminView() {
           <ClipboardCheck className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Personalliggare</h1>
+          <h1 className="page-title">Personalliggare</h1>
           <p className="text-sm text-muted-foreground">
             Elektronisk närvaro enligt svensk lag
           </p>

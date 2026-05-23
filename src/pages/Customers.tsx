@@ -146,7 +146,7 @@ export default function Customers() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Kunder</h1>
+          <h1 className="page-title">Kunder</h1>
           <p className="text-muted-foreground">
             Hantera dina kunduppgifter
           </p>

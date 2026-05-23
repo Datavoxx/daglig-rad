@@ -72,7 +72,7 @@ export default function Accounting() {
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Bokföring</h1>
+            <h1 className="page-title">Bokföring</h1>
             <p className="text-muted-foreground">Koppla ihop med ditt bokföringsprogram</p>
           </div>
         </div>

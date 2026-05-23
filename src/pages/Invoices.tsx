@@ -29,7 +29,7 @@ export default function Invoices() {
             <FileText className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Fakturor</h1>
+            <h1 className="page-title">Fakturor</h1>
             <p className="text-muted-foreground">Hantera kund- och leverantörsfakturor</p>
           </div>
         </div>

@@ -34,6 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface Project {
   id: string;
@@ -398,34 +399,31 @@ function ProjectsClassicView() {
           ))}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-            <FolderKanban className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <h3 className="mt-4 text-base font-medium">
-            {projects.length === 0 ? "Inga projekt ännu" : "Inga projekt hittades"}
-          </h3>
-          <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">
-            {projects.length === 0 
-              ? "Skapa en offert först, sedan kan du skapa ett projekt från den"
-              : "Prova att ändra din sökning"
-            }
-          </p>
-          {projects.length === 0 && (
-            <div className="flex gap-2 mt-6">
-              <Button variant="outline" onClick={() => navigate("/estimates")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Skapa offert
-              </Button>
-              {estimates.length > 0 && (
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Skapa projekt
+        <EmptyState
+          icon={<FolderKanban className="h-6 w-6" />}
+          title={projects.length === 0 ? "Inga projekt ännu — låt oss ändra på det" : "Inga projekt hittades"}
+          description={
+            projects.length === 0
+              ? "Skapa en offert först, sedan kan du bygga projektet från den."
+              : "Prova att ändra din sökning."
+          }
+          actions={
+            projects.length === 0 ? (
+              <>
+                <Button variant="outline" onClick={() => navigate("/estimates")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Skapa offert
                 </Button>
-              )}
-            </div>
-          )}
-        </Card>
+                {estimates.length > 0 && (
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Skapa projekt
+                  </Button>
+                )}
+              </>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProjects.map((project, index) => (
