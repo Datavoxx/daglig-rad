@@ -80,13 +80,16 @@ export default function Accounting() {
 
       {/* Integration cards */}
       <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        {/* Fortnox */}
-        <div className="group relative bg-card rounded-2xl border border-border/50 p-8 transition-all duration-300 hover:border-[#3B8230]/50 hover:shadow-lg hover:shadow-[#3B8230]/5">
-          <Badge variant="outline" className="absolute top-4 right-4 border-primary/30 text-primary">
+        {/* Fortnox — green brand tint */}
+        <div
+          className="group relative rounded-2xl border border-[#3B8230]/20 p-8 transition-all duration-300 hover:border-[#3B8230]/60 hover:shadow-lg hover:shadow-[#3B8230]/10"
+          style={{ background: "linear-gradient(155deg, rgba(59,130,48,0.06) 0%, hsl(var(--card)) 55%)" }}
+        >
+          <Badge variant="outline" className="absolute top-4 right-4 border-[#3B8230]/40 text-[#3B8230] bg-background/80">
             Kommande snart
           </Badge>
           <div className="h-16 mb-6 flex items-center">
-            <img src={fortnoxLogo} alt="Fortnox" className="h-10 object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+            <img src={fortnoxLogo} alt="Fortnox" className="h-10 object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Fortnox</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -108,13 +111,16 @@ export default function Accounting() {
           </ul>
         </div>
 
-        {/* Visma */}
-        <div className="group relative bg-card rounded-2xl border border-border/50 p-8 transition-all duration-300 hover:border-[#E31937]/50 hover:shadow-lg hover:shadow-[#E31937]/5">
-          <Badge variant="outline" className="absolute top-4 right-4 border-primary/30 text-primary">
+        {/* Visma — red brand tint, darker card variant for differentiation */}
+        <div
+          className="group relative rounded-2xl border border-[#E31937]/20 p-8 transition-all duration-300 hover:border-[#E31937]/60 hover:shadow-lg hover:shadow-[#E31937]/10"
+          style={{ background: "linear-gradient(155deg, rgba(227,25,55,0.05) 0%, hsl(var(--muted)) 100%)" }}
+        >
+          <Badge variant="outline" className="absolute top-4 right-4 border-[#E31937]/40 text-[#E31937] bg-background/80">
             Kommande snart
           </Badge>
           <div className="h-16 mb-6 flex items-center">
-            <img src={vismaLogo} alt="Visma" className="h-10 object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+            <img src={vismaLogo} alt="Visma" className="h-10 object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Visma</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">

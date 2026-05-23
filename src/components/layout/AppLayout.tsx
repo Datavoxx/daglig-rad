@@ -404,8 +404,19 @@ export function AppLayout() {
                 </SheetContent>
               </Sheet>
             )}
+            {/* Desktop: Contextual page title */}
+            {(() => {
+              const current = visibleNavItems.find(i => location.pathname.startsWith(i.href.split("?")[0]));
+              const title = current?.label ?? "";
+              return (
+                <div className="hidden md:flex items-center gap-2 min-w-0">
+                  {current && <current.icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+                  <span className="text-sm font-semibold text-foreground truncate">{title}</span>
+                </div>
+              );
+            })()}
             {/* Desktop: Search */}
-            <div className="relative hidden w-64 md:block lg:w-80">
+            <div className="relative hidden w-56 md:block lg:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
                 placeholder={isServiceIndustry ? "Sök jobb, kunder..." : "Sök projekt, rapporter..."}

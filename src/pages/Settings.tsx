@@ -296,15 +296,16 @@ export default function Settings() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="mallar" className="w-full">
-        <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
-          <TabsTrigger value="mallar" className="shrink-0">Mallar</TabsTrigger>
-          <TabsTrigger value="foretag" className="shrink-0">Företag</TabsTrigger>
-          <TabsTrigger value="anstallda" className="shrink-0">Anställda</TabsTrigger>
-          <TabsTrigger value="debiteringstyper" className="shrink-0">Deb.typer</TabsTrigger>
-          <TabsTrigger value="lonetyper" className="shrink-0">Lönetyper</TabsTrigger>
-          <TabsTrigger value="artiklar" className="shrink-0">Artiklar</TabsTrigger>
+      <Tabs defaultValue="mallar" orientation="vertical" className="w-full flex flex-col lg:flex-row lg:gap-8">
+        <TabsList className="mb-6 lg:mb-0 w-full lg:w-56 lg:shrink-0 lg:flex-col lg:h-auto lg:items-stretch lg:justify-start lg:bg-transparent lg:p-0 lg:gap-1 justify-start overflow-x-auto flex-nowrap">
+          <TabsTrigger value="mallar" className="shrink-0 lg:justify-start lg:w-full">Mallar</TabsTrigger>
+          <TabsTrigger value="foretag" className="shrink-0 lg:justify-start lg:w-full">Företag</TabsTrigger>
+          <TabsTrigger value="anstallda" className="shrink-0 lg:justify-start lg:w-full">Anställda</TabsTrigger>
+          <TabsTrigger value="debiteringstyper" className="shrink-0 lg:justify-start lg:w-full">Debiteringstyper</TabsTrigger>
+          <TabsTrigger value="lonetyper" className="shrink-0 lg:justify-start lg:w-full">Lönetyper</TabsTrigger>
+          <TabsTrigger value="artiklar" className="shrink-0 lg:justify-start lg:w-full">Artiklar</TabsTrigger>
         </TabsList>
+        <div className="flex-1 min-w-0">
 
         {/* Mallar tab */}
         <TabsContent value="mallar" className="space-y-6">
@@ -656,6 +657,7 @@ export default function Settings() {
         <TabsContent value="artiklar" className="space-y-6">
           <ArticleManager />
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
