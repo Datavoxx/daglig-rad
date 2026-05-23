@@ -657,6 +657,7 @@ export default function Settings() {
         <TabsContent value="artiklar" className="space-y-6">
           <ArticleManager />
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
