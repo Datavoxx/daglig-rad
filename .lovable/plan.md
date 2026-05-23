@@ -1,60 +1,91 @@
 
-Användaren vill ha djup research inför ett möte imorgon om:
-1. Lönetyper i Byggio (vad finns, hur fungerar det)
-2. Visma Lön 300 & Visma Lön 600 — hur de arbetar med lönearter, tidkoder, importfiler (TLU/SPCS)
-3. En jämförelse: speglar Byggios `salary_types`-modell verkligheten i Visma 300/600?
+# Visuell UI-audit (endast design, ingen funktionalitet)
 
-Detta är ren research — ingen kod ska skrivas. Jag behöver:
-- Läsa Byggios faktiska datamodell för `salary_types`, `time_entries`, TLU-genereringen
-- Webbsökning på Visma Lön 300/600: lönearter, tidkoder, TLU/SPCS Lön-importformat, kategorier (TIM, OT1, OT2, SJK, SEM, VAB, etc.)
-- Sammanställa allt i ett långt, strukturerat dokument
+Baserat på screenshots från live-appen efter inloggning. Bedömningen handlar uteslutande om: layout, hierarki, spacing, typografi, färg, konsistens, polish.
 
-Eftersom plan-läget är read-only kan jag inte göra webbsökningar nu. Jag presenterar planen så användaren kan godkänna och jag växlar till default-läge för att utföra research + sammanställa rapport.
+## Övergripande intryck
 
-## Plan: Djupdykning Lönetyper + Visma Lön 300/600
+Appen är **ren och funktionell**, men ser ut som en typisk Tailwind/shadcn-MVP — inte som en produkt i 2026. Tre problem dominerar visuellt på *varje* sida:
 
-### Mål
-Leverera ett detaljerat researchdokument inför mötet imorgon som täcker:
-1. **Byggios lönetypsmodell** — fältförklaringar, hur de används i tidrapportering & export
-2. **Visma Lön 300 & 600** — hur de hanterar lönearter, tidkoder, importer
-3. **Gap-analys** — speglar Byggios modell verkligheten? Vad saknas/överflödar?
+1. **Topp-baren är död yta** (~70px tom yta med bara sökruta + klocka i högra hörnet). Den drar ner hela appen.
+2. **Cards smälter in i bakgrunden** — vit `bg-card` på varm off-white bakgrund, utan border/skugga = kort försvinner.
+3. **Inkonsistent page-header-system** — varje sida har egen behandling (chip, emoji-hero, hero-kort, ren text). Inget gemensamt språk.
 
-### Steg
+Snitt: **5.8/10**. Realistiskt mål: **8.5–9/10** med en designsystem-pass + 3 systemkomponenter.
 
-**1. Kartlägg Byggios nuvarande modell (kodläsning)**
-- Läs `salary_types`-tabellens schema (kolumner, defaults, constraints)
-- Läs `SalaryTypeManager.tsx` för UI/fältförklaring
-- Läs `generateTluFile.ts` + `generatePaXmlFile.ts` för exakt hur fälten används i export
-- Läs `validatePayrollExport.ts` för valideringsregler
-- Läs `time_entries`-kopplingen (hur en tidpost binds till en lönetyp)
+---
 
-**2. Webbresearch: Visma Lön 300 & 600**
-Sök officiella källor + community för:
-- Skillnader Lön 300 vs Lön 600 (målgrupp, kapacitet, funktioner)
-- Lönearter: standardlistan i Visma (1010 Månadslön, 1310 Timlön, 1410 Övertid 50%, etc.)
-- Tidkoder vs Lönearter — hur de skiljer sig och hänger ihop
-- TLU-filformatet: officiell spec, fältkrav, vanliga fel
-- SPCS Lön-import som alternativ
-- Hur Visma kategoriserar tidtyper (WORK/OT1/OT2/SICK/VAC/VAB)
+## Per-sida (visuell rating)
 
-**3. Webbresearch: Fortnox Lön (kort)**
-- PAXml 2.0-spec
-- Fortnox standardlönearter
-- Skillnad mot Visma
+| Sida | Rating | Huvudsakliga visuella problem |
+|---|---|---|
+| Dashboard | 6/10 | Tre konkurrerande action-lager (4 dropdowns + AI-box + 11 chips). Stor emoji-hero krockar med chip "Dashboard". KPI-rad ligger under viken. |
+| Projects | 5/10 | Tom top-bar. Anonym empty state (grå ikon + text). Knappar svävar utan kontext. |
+| Estimates | 5/10 | Samma som Projects. Tab-pillerna är platta, aktiv tab knappt synlig. 4 knappar i header utan visuell gruppering. |
+| TimeReporting | 7/10 | Bästa rytmen — kalendern dominerar fint. Men "0.0 timmar" upprepas tre gånger på samma vy. KPI-korten under är överflödiga visuellt. |
+| Invoices | 6/10 | Tonad hero-chip är bra. Tabs platta. Stort tomt utrymme under empty state. |
+| Customers | 5/10 | Bar layout, ingen personlighet. |
+| Settings | 4/10 | Tabs nästan osynliga (grå-på-grå). Content-kort tomt och plottrigt. Inget sidebar/anchor-system trots många kategorier. |
+| Attendance | 6/10 | Trevlig 2-kolumns layout. Hero-chip OK. "Checka in"-knappen ser inaktiv ut (för ljus grön). |
+| Accounting | 6/10 | Två identiska kort med "Kommande snart"-badges = visuellt monotont. |
+| Guide | 7/10 | Bäst i klassen — varm, balanserad. Men hero tar hela viewport. |
+| Global Assistant | 7/10 | Lugn och centrerad — det funkar. Lite för mycket whitespace upptill. |
+| Profile | 6/10 | Rent formulär, men profilkortet till vänster är glest (bara namn + 1 stat). |
 
-**4. Sammanställ rapport** (levereras som långt chat-svar, eller som .md i `/mnt/documents/` om önskat)
+---
 
-Innehåll:
-- **Del A:** Byggios `salary_types` — varje fält förklarat (namn, förkortning, påslag, sortering, visma_wage_code, visma_salary_type, fortnox_wage_code, fortnox_salary_type, time_type) — vad de gör, var de används, vad som händer om de saknas
-- **Del B:** Visma Lön 300 vs 600 — målgrupp, prissättning, integrationskapacitet, vanliga lönearter med exempel
-- **Del C:** TLU-filens uppbyggnad — varje XML-fält, vad Visma förväntar sig
-- **Del D:** Standardiserade tidtyper i Sverige (kollektivavtal: Byggnads, Installatör, etc.) och hur de mappar mot lönearter
-- **Del E:** Gap-analys — täcker Byggios modell allt? Saknas t.ex. kostnadsställe, projektnummer, ackord, OB-tillägg, restidsersättning?
-- **Del F:** Rekommendationer inför mötet — frågor att ställa kunder, exempelmappningar för olika branscher (bygg, VVS, el)
+## Topp 5 "biggest wins" (systemiska — fixar 80% på en gång)
 
-### Leverans
-Långt, strukturerat svar i chatten + valfritt en `.md`-fil i `/mnt/documents/` som du kan ta med till mötet.
+### 1. Aktivera den döda topp-baren
+Just nu: 70px med sökruta vänster + klocka höger, allt annat tomt.
+Lös: kompakt **app-bar** med: vänster = sidotitel + breadcrumb, mitten = global sök (kontextuell), höger = avatar + ev. publicera/snabbkommando-knapp. Skapar ett tak som ger varje sida en stabil ram.
 
-### Frågor innan jag kör
-- Vill du ha det som chatt-svar, nedladdningsbar `.md`/`.pdf`, eller båda?
-- Ska jag fokusera på någon specifik bransch (bygg/VVS/el) i exemplen, eller täcka alla tre?
+### 2. Höj kort-ytan
+Lös: ge alla `Card` en mjuk border (`border-border/60`) + subtil `shadow-sm` + lite varmare card-bakgrund så de "lyfter" 4–6px från sidan visuellt. En enda CSS-ändring lyfter hela appen.
+
+### 3. Enhetlig PageHeader-komponent
+Ersätt 4 olika header-mönster med en komponent:
+- Titel (semantiskt h1, en enda storlek)
+- Subtitel (muted, en rad)
+- Höger-actions (max 1 primär + 1–2 ghost/icon)
+- Optional KPI-strip under (4 kompakta tal)
+
+Använd på *alla* sidor. Tar bort "olika app på varje route"-känslan.
+
+### 4. Förbättra Tabs (Settings, Invoices)
+Aktiv tab ska synas. Byt platt grå pill mot **underline-tabs** (linje under aktiv) ELLER segmented-control med tydlig solid background på aktiv. Lägg ikon vänster om varje tab-text för identifiering på 200ms.
+
+### 5. Empty states med karaktär
+Ersätt "grå ikon i cirkel + text + knapp" med:
+- Illustrerad eller mönstrad bakgrund (subtil grid/dot-pattern)
+- Större tomruta-rubrik med personlighet ("Inga kunder än — låt oss ändra på det")
+- 2 actions (primär + sekundär "Importera")
+- Mini-onboardingtips längst ner
+
+Appen har 6+ empty states som alla ser likadana ut → enorm vinst.
+
+---
+
+## Sekundära förbättringar (efter top 5)
+
+- **Dashboard:** ta bort dropdown-knapparna högst upp ELLER chip-griden under — inte båda.
+- **Sidebar:** logga är pytteliten + ocentrerad. Centrera + ge konsekvent padding. Logout-ikonen är *röd* — gör den neutral (muted-foreground) tills hover.
+- **Typografi:** låt rubriker skala konsekvent (h1: 24px, h2: 18px, h3: 15px). Just nu varierar h1 från 18px (Projekt) till 32px (God morgon).
+- **Färganvändning:** grön används överallt (aktiv sidebar, primary, AI, hover, chips). Reservera den för *en* funktion — primära CTAs. Aktiv sidebar kan vara en neutral pill med grön accent-linje.
+- **Spacing:** standardisera `space-y-6` mellan sektioner, `gap-4` i grids, `p-6` i kort. Just nu blandas `space-y-4`, `space-y-5`, `mb-2`, `mb-6` huller om buller.
+
+---
+
+## Leverans-uppdelning (om du vill köra)
+
+**Pass 1 (1 commit):** Systemfix — kortstil, tabs, sidebar-polish, färgreservation, typografi-skala. **Lyfter alla sidor ~1 poäng på en gång.**
+
+**Pass 2 (1 commit):** Ny `PageHeader`-komponent + applicera på alla 11 sidor + ny `EmptyState`-komponent.
+
+**Pass 3 (1 commit):** Topp-bar (kontextuell) + per-sida-finputs (Dashboard rensning, TimeReporting deduplication, Settings sidebar-nav, Accounting differentiering).
+
+Förväntat slutresultat: snitt 8.5/10, inga sidor under 8.
+
+---
+
+Säg **"kör pass 1"** så börjar jag med systemfixen.
