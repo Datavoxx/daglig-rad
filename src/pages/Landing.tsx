@@ -24,6 +24,8 @@ const Landing = () => {
         <IntegrationsSection />
         <HowItWorksSection />
         <TimeComparisonSection />
+        <TestimonialsSection />
+        <PricingSection />
         <GuideSection />
         <CTASection />
       </main>
