@@ -34,6 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface Project {
   id: string;
