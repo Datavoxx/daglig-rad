@@ -281,7 +281,7 @@ export default function Estimates() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Offert</h1>
+          <h1 className="page-title">Offert</h1>
           <p className="text-muted-foreground text-sm">Skapa och hantera offerter</p>
         </div>
         <div className="flex items-center gap-2">
