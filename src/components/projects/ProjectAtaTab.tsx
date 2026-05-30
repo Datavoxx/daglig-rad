@@ -429,16 +429,16 @@ export default function ProjectAtaTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-medium">{serviceMode ? "Extraarbete" : "Ändrings- och tilläggsarbeten"}</h3>
           <p className="text-sm text-muted-foreground">
             {serviceMode ? "Lägg till extraarbete för jobbet" : "Hantera ÄTA för projektet – strukturerat som offertposter"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {atas.length > 0 && (
-            <Button variant="outline" onClick={handleExportPdf} disabled={exportingPdf}>
+            <Button variant="outline" size="sm" className="sm:size-default" onClick={handleExportPdf} disabled={exportingPdf}>
               {exportingPdf ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -449,11 +449,12 @@ export default function ProjectAtaTab({
           )}
           <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
             <DialogTrigger asChild>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button size="sm" className="sm:size-default" onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 {serviceMode ? "Nytt extraarbete" : "Ny ÄTA"}
               </Button>
             </DialogTrigger>
+
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAta ? "Redigera ÄTA" : "Ny ÄTA"}</DialogTitle>
