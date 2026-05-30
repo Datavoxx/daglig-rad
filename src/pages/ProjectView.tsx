@@ -285,31 +285,32 @@ export default function ProjectView() {
       {/* Tabs */}
       <Tabs value={searchParams.get("tab") || "overview"} onValueChange={(val) => { searchParams.set("tab", val); setSearchParams(searchParams, { replace: true }); }} className="w-full">
         <TabsList className="w-full justify-start flex-nowrap overflow-x-auto scrollbar-hide bg-transparent border-b border-border rounded-none p-0">
-          <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="overview" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden md:inline">Översikt</span>
+            <span>Översikt</span>
           </TabsTrigger>
-          <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="ata" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <FileEdit className="h-4 w-4" />
-            <span className="hidden md:inline">ÄTA</span>
+            <span>ÄTA</span>
           </TabsTrigger>
-          <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="workorders" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <ClipboardList className="h-4 w-4" />
-            <span className="hidden md:inline">Arbetsorder</span>
+            <span>Arbetsorder</span>
           </TabsTrigger>
-          <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="files" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <FolderOpen className="h-4 w-4" />
-            <span className="hidden md:inline">Filer</span>
+            <span>Filer</span>
           </TabsTrigger>
-          <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="planning" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <CalendarDays className="h-4 w-4" />
-            <span className="hidden md:inline">Planering</span>
+            <span>Planering</span>
           </TabsTrigger>
-          <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3">
+          <TabsTrigger value="diary" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
             <BookOpen className="h-4 w-4" />
-            <span className="hidden md:inline">Dagbok</span>
+            <span>Dagbok</span>
           </TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="overview" className="mt-6">
           <ProjectOverviewTab 
