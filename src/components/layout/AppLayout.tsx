@@ -448,38 +448,51 @@ export function AppLayout() {
             <span className="text-sm font-medium text-muted-foreground tabular-nums hidden sm:block">
               {formatTime(currentTime)}
             </span>
-            {/* Mobile: Logout in topbar */}
+            {/* Mobile: Profile avatar with dropdown (Logout lives here, not exposed in topbar) */}
             {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-                onClick={handleLogoutClick}
-              >
-                <LogOut className="h-[18px] w-[18px]" />
-              </Button>
-            )}
-            {/* Mobile: Profile avatar in topbar */}
-            {isMobile && (
-              <button
-                onClick={() => navigate("/profile")}
-                className={cn(
-                  "flex items-center justify-center rounded-full p-0.5 transition-all duration-200",
-                  location.pathname === "/profile"
-                    ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
-                    : ""
-                )}
-              >
-                <Avatar className="h-8 w-8 border border-primary/20">
-                  {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} alt="Profil" />
-                  ) : (
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                      {userInitial}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center justify-center rounded-full p-0.5 transition-all duration-200",
+                      location.pathname === "/profile"
+                        ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                        : ""
+                    )}
+                    aria-label="Profilmeny"
+                  >
+                    <Avatar className="h-8 w-8 border border-primary/20">
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt="Profil" />
+                      ) : (
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                          {userInitial}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <Avatar className="h-5 w-5 mr-2">
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt="" />
+                      ) : (
+                        <AvatarFallback className="text-[10px]">{userInitial}</AvatarFallback>
+                      )}
+                    </Avatar>
+                    Min profil
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogoutClick}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logga ut
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </header>
@@ -489,13 +502,16 @@ export function AppLayout() {
           <div className={cn(
             location.pathname === "/global-assistant"
               ? "h-full"
-              : "mx-auto max-w-content px-3 py-4 md:px-6 md:py-8"
+              : "mx-auto max-w-content px-3 py-4 pb-24 md:px-6 md:py-8 md:pb-8"
           )}>
             <RouteTransition>
               <Outlet />
             </RouteTransition>
           </div>
         </main>
+        {/* Mobile bottom navigation */}
+        <BottomNav />
+
       </div>
       <SessionFeedbackPopup
         open={showSessionFeedback}
