@@ -284,7 +284,7 @@ export default function Estimates() {
           <h1 className="page-title">Offert</h1>
           <p className="text-muted-foreground text-sm">Skapa och hantera offerter</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <EstimateImportDialog onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["saved-estimates"] })} />
           <Button
             variant="outline"
