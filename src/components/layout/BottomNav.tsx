@@ -38,11 +38,35 @@ const serviceNavItems: NavItem[] = [
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasAccess } = useUserPermissions();
+  const { hasAccess, loading, isEmployee } = useUserPermissions();
   const { isServiceIndustry } = useUserIndustry();
 
+  // Employees get a stripped-down BottomNav of their core flows
+  if (isEmployee) {
+    const employeeItems: NavItem[] = [
+      { label: "Hem", href: "/employee-dashboard", icon: Home, moduleKey: "daily-reports" },
+      { label: "Dagbok", href: "/daily-reports", icon: Home, moduleKey: "daily-reports" },
+      { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+    ];
+    return renderNav(employeeItems, location, navigate);
+  }
+
   const navItems = isServiceIndustry ? serviceNavItems : byggNavItems;
-  const visibleItems = navItems.filter(item => hasAccess(item.moduleKey)).slice(0, 5);
+  // While permissions are loading, render full set so the nav doesn't disappear
+  const visibleItems = loading
+    ? navItems.slice(0, 5)
+    : navItems.filter(item => hasAccess(item.moduleKey)).slice(0, 5);
+
+  return renderNav(visibleItems, location, navigate);
+}
+
+function renderNav(
+  visibleItems: NavItem[],
+  location: ReturnType<typeof useLocation>,
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  if (visibleItems.length === 0) return null;
+
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm safe-bottom md:hidden">

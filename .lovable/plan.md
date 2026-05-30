@@ -1,91 +1,112 @@
+# 📱 Mobil-audit — Byggio @ 390×844
 
-# Visuell UI-audit (endast design, ingen funktionalitet)
-
-Baserat på screenshots från live-appen efter inloggning. Bedömningen handlar uteslutande om: layout, hierarki, spacing, typografi, färg, konsistens, polish.
-
-## Övergripande intryck
-
-Appen är **ren och funktionell**, men ser ut som en typisk Tailwind/shadcn-MVP — inte som en produkt i 2026. Tre problem dominerar visuellt på *varje* sida:
-
-1. **Topp-baren är död yta** (~70px tom yta med bara sökruta + klocka i högra hörnet). Den drar ner hela appen.
-2. **Cards smälter in i bakgrunden** — vit `bg-card` på varm off-white bakgrund, utan border/skugga = kort försvinner.
-3. **Inkonsistent page-header-system** — varje sida har egen behandling (chip, emoji-hero, hero-kort, ren text). Inget gemensamt språk.
-
-Snitt: **5.8/10**. Realistiskt mål: **8.5–9/10** med en designsystem-pass + 3 systemkomponenter.
+Auditen är gjord live i preview, iPhone-bredd, inloggad användare. Genomgångna vyer: `/dashboard`, `/projects`, `/projects/:id` (Översikt + ÄTA), `/estimates`, `/time-reporting`, `/invoices`, `/customers`.
 
 ---
 
-## Per-sida (visuell rating)
+## Övergripande betyg per område
 
-| Sida | Rating | Huvudsakliga visuella problem |
+| Område | Betyg | Kommentar |
 |---|---|---|
-| Dashboard | 6/10 | Tre konkurrerande action-lager (4 dropdowns + AI-box + 11 chips). Stor emoji-hero krockar med chip "Dashboard". KPI-rad ligger under viken. |
-| Projects | 5/10 | Tom top-bar. Anonym empty state (grå ikon + text). Knappar svävar utan kontext. |
-| Estimates | 5/10 | Samma som Projects. Tab-pillerna är platta, aktiv tab knappt synlig. 4 knappar i header utan visuell gruppering. |
-| TimeReporting | 7/10 | Bästa rytmen — kalendern dominerar fint. Men "0.0 timmar" upprepas tre gånger på samma vy. KPI-korten under är överflödiga visuellt. |
-| Invoices | 6/10 | Tonad hero-chip är bra. Tabs platta. Stort tomt utrymme under empty state. |
-| Customers | 5/10 | Bar layout, ingen personlighet. |
-| Settings | 4/10 | Tabs nästan osynliga (grå-på-grå). Content-kort tomt och plottrigt. Inget sidebar/anchor-system trots många kategorier. |
-| Attendance | 6/10 | Trevlig 2-kolumns layout. Hero-chip OK. "Checka in"-knappen ser inaktiv ut (för ljus grön). |
-| Accounting | 6/10 | Två identiska kort med "Kommande snart"-badges = visuellt monotont. |
-| Guide | 7/10 | Bäst i klassen — varm, balanserad. Men hero tar hela viewport. |
-| Global Assistant | 7/10 | Lugn och centrerad — det funkar. Lite för mycket whitespace upptill. |
-| Profile | 6/10 | Rent formulär, men profilkortet till vänster är glest (bara namn + 1 stat). |
+| Navigation (header + sidebar) | 6/10 | Logout-ikon för prominent. BottomNav syns inte. |
+| Dashboard | 8.5/10 | Quick-tiles funkar perfekt mobilt |
+| Projektlista | 9/10 | Pipeline + kort = bra |
+| Projektdetalj (tabs) | 5/10 | Ikon-only tabs utan labels |
+| ÄTA-tab | 4/10 | Tabell scrollar horisontellt, knappar klippta |
+| Offertlista | 8/10 | Toolbar (Importera/Artiklar/Kategorier) skrollar utanför kanten |
+| EstimateBuilder | 3/10 | I praktiken oanvändbar mobilt |
+| Tidrapportering | 7.5/10 | MobileDayList bra, men page-header trasig |
+| Fakturor | 5/10 | Ikon-only tabs utan text gör syftet okänt |
+| Kunder | 9/10 | Kort, sök, kategori-badge — rent |
+
+**Totalt: 6.5/10** — Listvyer är solida. Allt som har tabs, tabeller eller toolbars havererar.
 
 ---
 
-## Topp 5 "biggest wins" (systemiska — fixar 80% på en gång)
+## 🔴 Kritiska problem (måste fixas)
 
-### 1. Aktivera den döda topp-baren
-Just nu: 70px med sökruta vänster + klocka höger, allt annat tomt.
-Lös: kompakt **app-bar** med: vänster = sidotitel + breadcrumb, mitten = global sök (kontextuell), höger = avatar + ev. publicera/snabbkommando-knapp. Skapar ett tak som ger varje sida en stabil ram.
+### 1. BottomNav syns aldrig på mobil
+På samtliga sidor jag besökte (390×844) fanns ingen bottenmeny. `BottomNav.tsx` har korrekt `md:hidden` men `visibleItems = navItems.filter(hasAccess).slice(0,5)` — om `useUserPermissions` returnerar tom array initialt får man 0 items och rendrar tom `<nav>`. Detta gör att hela mobil-navigationen försvinner och användaren måste öppna hamburger-menyn varje gång.
 
-### 2. Höj kort-ytan
-Lös: ge alla `Card` en mjuk border (`border-border/60`) + subtil `shadow-sm` + lite varmare card-bakgrund så de "lyfter" 4–6px från sidan visuellt. En enda CSS-ändring lyfter hela appen.
+**Trolig orsak:** `hasAccess` returnerar `false` tills permissions hunnit ladda → tom array. Bör default:a till `true` medan loading, eller visa core-items utan permission-check.
 
-### 3. Enhetlig PageHeader-komponent
-Ersätt 4 olika header-mönster med en komponent:
-- Titel (semantiskt h1, en enda storlek)
-- Subtitel (muted, en rad)
-- Höger-actions (max 1 primär + 1–2 ghost/icon)
-- Optional KPI-strip under (4 kompakta tal)
+### 2. Tabs på mobil saknar text (Invoices + ProjectView)
+- `/invoices`: Tre ikoner (sedel/lastbil/kamera). Användaren kan inte gissa "lastbil = leverantörsfaktura".
+- `/projects/:id`: Sex ikoner i rad utan label.
 
-Använd på *alla* sidor. Tar bort "olika app på varje route"-känslan.
+Fix: Visa **förkortad** text under varje ikon, eller åtminstone första aktiva tabben.
 
-### 4. Förbättra Tabs (Settings, Invoices)
-Aktiv tab ska synas. Byt platt grå pill mot **underline-tabs** (linje under aktiv) ELLER segmented-control med tydlig solid background på aktiv. Lägg ikon vänster om varje tab-text för identifiering på 200ms.
+### 3. ÄTA-tabellen overflows + knappar klippta
+- Tabellen i ÄTA-tabben har horisontell scroll med 3 kolumner ("ÄTA-nr", "Artikel", "Beskrivning") — och fler dolda till höger.
+- Knappen "Ny ÄTA" är klippt vid höger kant.
+- "Exportera PDF" + "Ny ÄTA" + header-titel ligger i samma rad utan wrap.
 
-### 5. Empty states med karaktär
-Ersätt "grå ikon i cirkel + text + knapp" med:
-- Illustrerad eller mönstrad bakgrund (subtil grid/dot-pattern)
-- Större tomruta-rubrik med personlighet ("Inga kunder än — låt oss ändra på det")
-- 2 actions (primär + sekundär "Importera")
-- Mini-onboardingtips längst ner
+Fix: Mobil = kortvy per ÄTA (samma mönster som MobileDayList), inte tabell. Header-actions ska wrappa.
 
-Appen har 6+ empty states som alla ser likadana ut → enorm vinst.
+### 4. EstimateBuilder är fundamentalt desktop-only
+Inget specifikt mobilläge — användaren får pinch-zoom + horisontell scroll. För en byggchef i bilen är detta oanvändbart. Detta är samma punkt som tidigare audit, men kvarstår.
 
----
+### 5. Page-header staplas dåligt på TimeReporting + Estimates
+- `/time-reporting`: "Löneexport" + "Rapportera" (klippt → "Re...") ligger på samma rad som titeln. Knapp klippt.
+- `/estimates`: "Importera / Artiklar / Kategorier" skrollar horisontellt utanför viewport. Användaren ser inte att det finns mer.
 
-## Sekundära förbättringar (efter top 5)
-
-- **Dashboard:** ta bort dropdown-knapparna högst upp ELLER chip-griden under — inte båda.
-- **Sidebar:** logga är pytteliten + ocentrerad. Centrera + ge konsekvent padding. Logout-ikonen är *röd* — gör den neutral (muted-foreground) tills hover.
-- **Typografi:** låt rubriker skala konsekvent (h1: 24px, h2: 18px, h3: 15px). Just nu varierar h1 från 18px (Projekt) till 32px (God morgon).
-- **Färganvändning:** grön används överallt (aktiv sidebar, primary, AI, hover, chips). Reservera den för *en* funktion — primära CTAs. Aktiv sidebar kan vara en neutral pill med grön accent-linje.
-- **Spacing:** standardisera `space-y-6` mellan sektioner, `gap-4` i grids, `p-6` i kort. Just nu blandas `space-y-4`, `space-y-5`, `mb-2`, `mb-6` huller om buller.
+Fix: Action-knappar under titeln (stack) på `< md`, eller dropdown "•••" på mobil.
 
 ---
 
-## Leverans-uppdelning (om du vill köra)
+## 🟡 Medel-problem
 
-**Pass 1 (1 commit):** Systemfix — kortstil, tabs, sidebar-polish, färgreservation, typografi-skala. **Lyfter alla sidor ~1 poäng på en gång.**
+### 6. Header — Logout-ikon för prominent
+Röd logout-ikon mellan logo och avatar är **lättare att råka klicka** än hamburger-menyn. Den borde antingen ligga i avatar-dropdownen (standard mönster) eller åtminstone vara gråtonad tills man trycker på avataren.
 
-**Pass 2 (1 commit):** Ny `PageHeader`-komponent + applicera på alla 11 sidor + ny `EmptyState`-komponent.
+### 7. Hero-sektioner äter skärm
+`/invoices` har en stor "Fakturor / Hantera kund- och leverantörsfakturor"-hero (~130px) plus tabs (~50px) plus sök (~50px) plus filter (~50px) **innan** första rad. På 844px har man förbrukat ~280px (33%) på chrome. Krymp hero på mobil (eller släng den, titel räcker).
 
-**Pass 3 (1 commit):** Topp-bar (kontextuell) + per-sida-finputs (Dashboard rensning, TimeReporting deduplication, Settings sidebar-nav, Accounting differentiering).
+### 8. Toast/Sonner-placering
+Toast hamnar nere till höger som default. När BottomNav återkommer (efter fix #1) kan toast krocka. Verifiera `safe-bottom` + 80px offset.
 
-Förväntat slutresultat: snitt 8.5/10, inga sidor under 8.
+### 9. Inga gestures
+- Ingen pull-to-refresh på listor (projekt, fakturor, kunder, tid).
+- Inga swipe-to-delete på rader.
+- Inga swipe-mellan-tabs.
+
+Inte kritiskt men förväntat av "app-känsla".
+
+### 10. Globala Assistant-knappen
+Floating chat-bubble (om aktiv) ligger nere till höger och krockar med BottomNav + JobActionBar — tre lager på samma 80px-band.
 
 ---
 
-Säg **"kör pass 1"** så börjar jag med systemfixen.
+## 🟢 Mindre justeringar
+
+- Avatar-cirkeln i header har bara initial "I" (ingen tap-feedback).
+- `/projects` projektkort: "Gullmarsplan, Johann..." trunkeras med ellipsis men inget tooltip — på mobil = osynlig info.
+- KPI-kort på dashboard ("Personal på plats — 0 just nu") med opacity 0.5 är otillgänglig (kontrast under WCAG AA).
+- Hamburger-menyn (Sheet) öppnas snabbt men har ingen safe-area-padding upptill på iOS notch.
+
+---
+
+## 📋 Rekommenderad åtgärdslista (prioriterad)
+
+| # | Åtgärd | Effort | Impact |
+|---|---|---|---|
+| 1 | Fixa BottomNav-rendering vid permissions-load | S | 🔴 Kritisk |
+| 2 | Lägg labels under tabs-ikoner mobilt (Invoices + ProjectView) | S | 🔴 Hög |
+| 3 | ÄTA mobilvy: kort istället för tabell + wrappa header-actions | M | 🔴 Hög |
+| 4 | Stack page-headers (titel + actions) på mobil | S | 🟡 Medium |
+| 5 | Krymp Hero-sektioner till 64px på mobil | S | 🟡 Medium |
+| 6 | Flytta Logout till avatar-dropdown | S | 🟡 Medium |
+| 7 | EstimateBuilder kortvy mobilt (en rad i taget) | L | 🔴 Hög |
+| 8 | Pull-to-refresh på listor | M | 🟢 Låg |
+| 9 | Verifiera Toast/Assistant z-index vs BottomNav | S | 🟢 Låg |
+| 10 | Fixa opacity-0.5 kontrast på KPI-kort | XS | 🟢 Låg |
+
+---
+
+## Slutsats
+
+**Fältdelen** (tid, dagbok, kvitto, jobb, kundlista) är mobiloptimerad. **Kontorsdelen** (offert, ÄTA, fakturor med dolda tabs) är fortfarande desktop-tänkt.
+
+Den enskilt största "felet" just nu är att **BottomNav inte syns** — det gör att en mobil-användare måste öppna hamburger-menyn för varje navigation, vilket dödar app-känslan. Det är en S-fix och bör göras först.
+
+**Vill du att jag bygger fix #1–#6 i ordning?** Det skulle lyfta plattformen från 6.5 → 8.5 utan att röra EstimateBuilder.

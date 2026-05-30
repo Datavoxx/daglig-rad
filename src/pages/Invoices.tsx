@@ -21,16 +21,16 @@ export default function Invoices() {
   }, []);
 
   return (
-    <div className="page-transition space-y-6">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-background to-primary/10 border p-6 md:p-8">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-            <FileText className="h-7 w-7 text-primary" />
+    <div className="page-transition space-y-4 md:space-y-6">
+      {/* Hero Section — compact on mobile */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-background to-primary/10 border p-4 md:p-8">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex h-10 w-10 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl bg-primary/10">
+            <FileText className="h-5 w-5 md:h-7 md:w-7 text-primary" />
           </div>
           <div>
             <h1 className="page-title">Fakturor</h1>
-            <p className="text-muted-foreground">Hantera kund- och leverantörsfakturor</p>
+            <p className="text-xs md:text-base text-muted-foreground">Hantera kund- och leverantörsfakturor</p>
           </div>
         </div>
       </section>
@@ -38,19 +38,20 @@ export default function Invoices() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="flex w-full max-w-2xl overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="customer" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+          <TabsTrigger value="customer" className="flex items-center gap-1.5 whitespace-nowrap flex-1 min-w-0 text-xs md:text-sm">
             <Receipt className="h-4 w-4 shrink-0" />
-            {!isMobile && "Kundfakturor"}
+            <span>{isMobile ? "Kund" : "Kundfakturor"}</span>
           </TabsTrigger>
-          <TabsTrigger value="vendor" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+          <TabsTrigger value="vendor" className="flex items-center gap-1.5 whitespace-nowrap flex-1 min-w-0 text-xs md:text-sm">
             <Truck className="h-4 w-4 shrink-0" />
-            {!isMobile && "Leverantörsfakturor"}
+            <span>{isMobile ? "Lev." : "Leverantörsfakturor"}</span>
           </TabsTrigger>
-          <TabsTrigger value="receipts" className="flex items-center gap-2 whitespace-nowrap flex-1 min-w-0">
+          <TabsTrigger value="receipts" className="flex items-center gap-1.5 whitespace-nowrap flex-1 min-w-0 text-xs md:text-sm">
             <Camera className="h-4 w-4 shrink-0" />
-            {!isMobile && "Kvitto"}
+            <span>Kvitto</span>
           </TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="customer" className="space-y-4">
           <CustomerInvoiceList />

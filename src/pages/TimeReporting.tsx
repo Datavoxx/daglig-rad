@@ -221,12 +221,13 @@ export default function TimeReporting() {
 
   return (
     <div className="page-transition space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Tidsrapportering</h1>
           <p className="text-muted-foreground">Rapportera arbetade timmar per projekt</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+
           {isAdmin && user?.email?.toLowerCase() === "mahad@datavoxx.se" && (
             <Button variant="outline" asChild>
               <Link to="/payroll-export">
