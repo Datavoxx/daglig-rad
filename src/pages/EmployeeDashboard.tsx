@@ -1,51 +1,46 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Calculator, Clock, ArrowRight, TrendingUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, Calculator, Clock, ChevronRight } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
 
-  // Hämta användarens namn
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["my-profile"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      
+
       const { data } = await supabase
         .from("profiles")
         .select("full_name")
         .eq("id", user.id)
         .single();
-      
+
       return data;
     },
   });
 
-  // Hämta veckans rapporter (endast egna - RLS)
   const { data: weeklyReportsCount, isLoading: reportsLoading } = useQuery({
     queryKey: ["my-weekly-reports"],
     queryFn: async () => {
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-      
+
       const { count } = await supabase
         .from("daily_reports")
         .select("*", { count: "exact", head: true })
         .gte("report_date", format(weekStart, "yyyy-MM-dd"))
         .lte("report_date", format(weekEnd, "yyyy-MM-dd"));
-      
+
       return count || 0;
     },
   });
 
-  // Hämta antal offerter användaren kan se (RLS)
   const { data: estimatesCount, isLoading: estimatesLoading } = useQuery({
     queryKey: ["my-estimates-count"],
     queryFn: async () => {
@@ -57,78 +52,75 @@ export default function EmployeeDashboard() {
     },
   });
 
-  // Hämta veckans timmar (endast egna - RLS)
   const { data: weeklyHours, isLoading: hoursLoading } = useQuery({
     queryKey: ["my-weekly-hours"],
     queryFn: async () => {
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-      
+
       const { data } = await supabase
         .from("time_entries")
         .select("hours")
         .gte("date", format(weekStart, "yyyy-MM-dd"))
         .lte("date", format(weekEnd, "yyyy-MM-dd"));
-      
+
       return data?.reduce((sum, entry) => sum + Number(entry.hours), 0) || 0;
     },
   });
 
-  const isLoading = profileLoading || reportsLoading || estimatesLoading || hoursLoading;
+  const { data: recentEntries, isLoading: recentLoading } = useQuery({
+    queryKey: ["my-recent-time-entries"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("time_entries")
+        .select("id, date, hours, description")
+        .order("date", { ascending: false })
+        .limit(5);
+
+      return data || [];
+    },
+  });
+
+  const isLoading =
+    profileLoading || reportsLoading || estimatesLoading || hoursLoading || recentLoading;
 
   const firstName = profile?.full_name?.split(" ")[0] || "där";
 
   const moduleCards = [
     {
       title: "Dagrapporter",
-      description: "Dokumentera dagens arbete",
       icon: BookOpen,
       href: "/daily-reports",
       value: `${weeklyReportsCount ?? 0}`,
       label: "rapporter denna vecka",
-      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
       title: "Offerter",
-      description: "Se och skapa offerter",
       icon: Calculator,
       href: "/estimates",
       value: `${estimatesCount ?? 0}`,
-      label: "offerter",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      label: "offerter totalt",
     },
     {
       title: "Tidsrapport",
-      description: "Registrera arbetade timmar",
       icon: Clock,
       href: "/time-reporting",
-      value: `${weeklyHours ?? 0}h`,
-      label: "denna vecka",
-      color: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+      value: `${weeklyHours ?? 0}`,
+      label: "timmar denna vecka",
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="page-transition space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-6 w-48" />
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
-        </div>
-        <Skeleton className="h-32" />
-      </div>
-    );
-  }
+  if (isLoading) return null;
 
   return (
     <div className="page-transition space-y-6">
       {/* Greeting header */}
       <div>
-        <h1 className="page-title">Hej, {firstName}! 👋</h1>
-        <p className="page-subtitle">Din arbetsöversikt för veckan</p>
+        <h1 className="page-title">Hej, {firstName}</h1>
+        <p className="page-subtitle">
+          Vecka {format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMM", { locale: sv })} –{" "}
+          {format(endOfWeek(new Date(), { weekStartsOn: 1 }), "d MMM", { locale: sv })}
+        </p>
       </div>
 
       {/* Module cards */}
@@ -136,64 +128,65 @@ export default function EmployeeDashboard() {
         {moduleCards.map((card) => (
           <Card
             key={card.href}
-            className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
+            className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
             onClick={() => navigate(card.href)}
           >
-            <CardHeader className="pb-2">
+            <CardContent className="p-5">
               <div className="flex items-center justify-between">
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", card.color)}>
-                  <card.icon className="h-5 w-5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <card.icon className="h-[18px] w-[18px]" />
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{card.title}</span>
                 </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
               </div>
-              <CardTitle className="text-lg mt-3">{card.title}</CardTitle>
-              <CardDescription>{card.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">{card.value}</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">{card.label}</p>
+
+              <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+                {card.value}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{card.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Weekly statistics summary */}
+      {/* Recent time entries */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Din veckostatistik</CardTitle>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium">Senaste tidrapporter</h2>
+            <button
+              onClick={() => navigate("/time-reporting")}
+              className="text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              Visa alla
+            </button>
           </div>
-          <CardDescription>
-            Sammanfattning för {format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM", { locale: sv })} - {format(endOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM", { locale: sv })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <BookOpen className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Dagrapporter</p>
-                <p className="font-semibold">{weeklyReportsCount ?? 0} st</p>
-              </div>
+
+          {recentEntries && recentEntries.length > 0 ? (
+            <div className="mt-3 divide-y divide-border">
+              {recentEntries.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {format(parseISO(entry.date), "EEEE d MMM", { locale: sv })}
+                    </p>
+                    {entry.description && (
+                      <p className="truncate text-sm text-muted-foreground">{entry.description}</p>
+                    )}
+                  </div>
+                  <span className="ml-4 shrink-0 text-sm font-medium tabular-nums">
+                    {Number(entry.hours)} h
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Clock className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Arbetade timmar</p>
-                <p className="font-semibold">{weeklyHours ?? 0}h</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Calculator className="h-5 w-5 text-emerald-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Offerter</p>
-                <p className="font-semibold">{estimatesCount ?? 0} st</p>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Inga tidrapporter ännu. Registrera dina första timmar under Tidsrapport.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
