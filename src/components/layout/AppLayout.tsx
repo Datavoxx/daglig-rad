@@ -67,7 +67,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
     return [
       { label: "Hem", href: "/employee-dashboard", icon: Home, moduleKey: "daily-reports" },
       { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
-      { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
+      { label: "Offerter", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
     ];
   }

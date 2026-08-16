@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ClipboardCheck, Clock, ArrowRight, TrendingUp } from "lucide-react";
+import { BookOpen, Calculator, Clock, ArrowRight, TrendingUp } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -45,19 +45,15 @@ export default function EmployeeDashboard() {
     },
   });
 
-  // Hämta aktiv incheckning (endast egen - RLS)
-  const { data: activeCheckIn, isLoading: checkInLoading } = useQuery({
-    queryKey: ["my-active-checkin"],
+  // Hämta antal offerter användaren kan se (RLS)
+  const { data: estimatesCount, isLoading: estimatesLoading } = useQuery({
+    queryKey: ["my-estimates-count"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("check_in, project_id")
-        .is("check_out", null)
-        .order("check_in", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      return data;
+      const { count } = await supabase
+        .from("project_estimates")
+        .select("*", { count: "exact", head: true });
+
+      return count || 0;
     },
   });
 
@@ -78,29 +74,7 @@ export default function EmployeeDashboard() {
     },
   });
 
-  // Hämta veckans incheckningsdagar
-  const { data: weeklyCheckIns, isLoading: weekCheckInsLoading } = useQuery({
-    queryKey: ["my-weekly-checkins"],
-    queryFn: async () => {
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-      
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("check_in")
-        .gte("check_in", weekStart.toISOString())
-        .lte("check_in", weekEnd.toISOString());
-      
-      // Count unique days
-      const uniqueDays = new Set(
-        data?.map(r => format(parseISO(r.check_in), "yyyy-MM-dd")) || []
-      );
-      
-      return uniqueDays.size;
-    },
-  });
-
-  const isLoading = profileLoading || reportsLoading || checkInLoading || hoursLoading || weekCheckInsLoading;
+  const isLoading = profileLoading || reportsLoading || estimatesLoading || hoursLoading;
 
   const firstName = profile?.full_name?.split(" ")[0] || "där";
 
@@ -115,17 +89,13 @@ export default function EmployeeDashboard() {
       color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
-      title: "Personalliggare",
-      description: "Elektronisk närvaroregistrering",
-      icon: ClipboardCheck,
-      href: "/attendance",
-      value: activeCheckIn ? "Incheckad" : "Ej incheckad",
-      label: activeCheckIn 
-        ? `sedan ${format(parseISO(activeCheckIn.check_in), "HH:mm")}` 
-        : "Checka in för att starta",
-      color: activeCheckIn 
-        ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      title: "Offerter",
+      description: "Se och skapa offerter",
+      icon: Calculator,
+      href: "/estimates",
+      value: `${estimatesCount ?? 0}`,
+      label: "offerter",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     },
     {
       title: "Tidsrapport",
@@ -217,10 +187,10 @@ export default function EmployeeDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <ClipboardCheck className="h-5 w-5 text-green-600" />
+              <Calculator className="h-5 w-5 text-emerald-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Incheckade dagar</p>
-                <p className="font-semibold">{weeklyCheckIns ?? 0} av 5</p>
+                <p className="text-sm text-muted-foreground">Offerter</p>
+                <p className="font-semibold">{estimatesCount ?? 0} st</p>
               </div>
             </div>
           </div>

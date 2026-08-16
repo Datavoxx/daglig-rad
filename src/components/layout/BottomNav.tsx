@@ -47,6 +47,7 @@ export function BottomNav() {
       { label: "Hem", href: "/employee-dashboard", icon: Home, moduleKey: "daily-reports" },
       { label: "Dagbok", href: "/daily-reports", icon: Home, moduleKey: "daily-reports" },
       { label: "Tid", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+      { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
     ];
     return renderNav(employeeItems, location, navigate);
   }

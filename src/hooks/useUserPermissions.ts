@@ -17,7 +17,7 @@ const ALL_MODULES = [
 ];
 
 // Strictly limited modules for employees - NEVER includes dashboard or projects
-const EMPLOYEE_MODULES = ["attendance", "time-reporting", "daily-reports"];
+const EMPLOYEE_MODULES = ["estimates", "time-reporting", "daily-reports"];
 
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
