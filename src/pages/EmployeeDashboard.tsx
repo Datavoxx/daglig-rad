@@ -89,17 +89,13 @@ export default function EmployeeDashboard() {
       color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
-      title: "Personalliggare",
-      description: "Elektronisk närvaroregistrering",
-      icon: ClipboardCheck,
-      href: "/attendance",
-      value: activeCheckIn ? "Incheckad" : "Ej incheckad",
-      label: activeCheckIn 
-        ? `sedan ${format(parseISO(activeCheckIn.check_in), "HH:mm")}` 
-        : "Checka in för att starta",
-      color: activeCheckIn 
-        ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      title: "Offerter",
+      description: "Se och skapa offerter",
+      icon: Calculator,
+      href: "/estimates",
+      value: `${estimatesCount ?? 0}`,
+      label: "offerter",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     },
     {
       title: "Tidsrapport",
