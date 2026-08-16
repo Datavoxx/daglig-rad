@@ -187,10 +187,10 @@ export default function EmployeeDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <ClipboardCheck className="h-5 w-5 text-green-600" />
+              <Calculator className="h-5 w-5 text-emerald-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Incheckade dagar</p>
-                <p className="font-semibold">{weeklyCheckIns ?? 0} av 5</p>
+                <p className="text-sm text-muted-foreground">Offerter</p>
+                <p className="font-semibold">{estimatesCount ?? 0} st</p>
               </div>
             </div>
           </div>
