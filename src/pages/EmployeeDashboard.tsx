@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ClipboardCheck, Clock, ArrowRight, TrendingUp } from "lucide-react";
+import { BookOpen, Calculator, Clock, ArrowRight, TrendingUp } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 import { cn } from "@/lib/utils";
