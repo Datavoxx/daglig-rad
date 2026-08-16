@@ -74,29 +74,7 @@ export default function EmployeeDashboard() {
     },
   });
 
-  // Hämta veckans incheckningsdagar
-  const { data: weeklyCheckIns, isLoading: weekCheckInsLoading } = useQuery({
-    queryKey: ["my-weekly-checkins"],
-    queryFn: async () => {
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-      
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("check_in")
-        .gte("check_in", weekStart.toISOString())
-        .lte("check_in", weekEnd.toISOString());
-      
-      // Count unique days
-      const uniqueDays = new Set(
-        data?.map(r => format(parseISO(r.check_in), "yyyy-MM-dd")) || []
-      );
-      
-      return uniqueDays.size;
-    },
-  });
-
-  const isLoading = profileLoading || reportsLoading || checkInLoading || hoursLoading || weekCheckInsLoading;
+  const isLoading = profileLoading || reportsLoading || estimatesLoading || hoursLoading;
 
   const firstName = profile?.full_name?.split(" ")[0] || "där";
 
