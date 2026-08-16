@@ -45,19 +45,15 @@ export default function EmployeeDashboard() {
     },
   });
 
-  // Hämta aktiv incheckning (endast egen - RLS)
-  const { data: activeCheckIn, isLoading: checkInLoading } = useQuery({
-    queryKey: ["my-active-checkin"],
+  // Hämta antal offerter användaren kan se (RLS)
+  const { data: estimatesCount, isLoading: estimatesLoading } = useQuery({
+    queryKey: ["my-estimates-count"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("check_in, project_id")
-        .is("check_out", null)
-        .order("check_in", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      return data;
+      const { count } = await supabase
+        .from("project_estimates")
+        .select("*", { count: "exact", head: true });
+
+      return count || 0;
     },
   });
 
