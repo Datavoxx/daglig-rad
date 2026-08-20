@@ -261,7 +261,7 @@ export async function generateGuidePdf() {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(...PDF_COLORS.MUTED);
-    doc.text("JIA \u2013 Byggprojekt, enkelt och digitalt", margin, pageHeight - 10);
+    doc.text("JIA \u2013 Entreprenad & förvaltning – med ansvar hela vägen", margin, pageHeight - 10);
     doc.text(`Sida ${i} av ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: "right" });
   }
 

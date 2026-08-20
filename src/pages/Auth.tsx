@@ -226,7 +226,7 @@ export default function Auth() {
               <img src={jiaLogo} alt="JIA" className="h-16 mx-auto" />
             </div>
             <CardTitle className="font-display text-2xl">Välkommen till JIA</CardTitle>
-            <CardDescription>Byggprojekt, enkelt och digitalt</CardDescription>
+            <CardDescription>Entreprenad & förvaltning – med ansvar hela vägen</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Validation error alert */}
@@ -370,22 +370,22 @@ export default function Auth() {
         {/* Contact Info */}
         <div className="text-center text-sm text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">Kontakt</p>
-          <p>Mahad Abdullahi</p>
+          <p>JIA AB</p>
           <div className="flex items-center justify-center gap-3">
             <a 
-              href="tel:0707747731" 
+              href="tel:0708731474" 
               className="flex items-center gap-1 hover:text-primary transition-colors"
             >
               <Phone className="h-3 w-3" />
-              0707747731
+              070-873 14 74
             </a>
             <span>•</span>
             <a 
-              href="mailto:info@datavoxx.se" 
+              href="mailto:info@jiaab.se" 
               className="flex items-center gap-1 hover:text-primary transition-colors"
             >
               <Mail className="h-3 w-3" />
-              info@datavoxx.se
+              info@jiaab.se
             </a>
           </div>
         </div>
