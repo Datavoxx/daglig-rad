@@ -102,7 +102,7 @@ export function GlobalFeedbackPopup({ open, conversationId, onClose }: GlobalFee
 
       toast({
         title: "Tack för din feedback!",
-        description: "Din feedback hjälper oss att förbättra Byggio AI.",
+        description: "Din feedback hjälper oss att förbättra JIA AI.",
       });
 
       onClose();

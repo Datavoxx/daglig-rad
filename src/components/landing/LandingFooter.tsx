@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import byggio from "@/assets/byggio-logo.png";
+import jia from "@/assets/jia-logo.png";
 
 const legalLinks = [
   { label: "Användarvillkor", href: "/terms" },
@@ -19,10 +19,10 @@ const LandingFooter = () => {
           {/* Logo and description */}
           <div className="max-w-sm">
             <Link to="/" className="inline-block mb-4">
-              <img src={byggio} alt="Byggio" className="h-8 w-auto" />
+              <img src={jia} alt="JIA" className="h-8 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground">
-              Byggio digitaliserar svenska byggföretag med AI-driven dokumentation 
+              JIA digitaliserar svenska byggföretag med AI-driven dokumentation 
               och projekthantering.
             </p>
           </div>
@@ -50,7 +50,7 @@ const LandingFooter = () => {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-border/50">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Byggio. Alla rättigheter förbehållna.
+            © {currentYear} JIA. Alla rättigheter förbehållna.
           </p>
         </div>
       </div>

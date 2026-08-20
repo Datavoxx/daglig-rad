@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const testimonials = [
   {
-    quote: "Byggio har revolutionerat hur vi dokumenterar våra projekt. Röstinspelningen sparar mig minst en timme om dagen.",
+    quote: "JIA har revolutionerat hur vi dokumenterar våra projekt. Röstinspelningen sparar mig minst en timme om dagen.",
     author: "Marcus Lindqvist",
     role: "VD, Lindqvist Bygg AB",
     initials: "ML",
@@ -39,7 +39,7 @@ const TestimonialsSection = () => {
             Vad våra kunder säger
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Byggföretag i hela Sverige använder Byggio för att effektivisera sin vardag.
+            Byggföretag i hela Sverige använder JIA för att effektivisera sin vardag.
           </p>
         </div>
 

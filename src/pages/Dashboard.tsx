@@ -342,7 +342,7 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant" },
+            { title: "JIA AI", icon: Sparkles, href: "/global-assistant" },
             { title: "Offert", icon: Calculator, href: "/estimates" },
             { title: "Projekt", icon: FolderKanban, href: "/projects" },
             { title: "Personalliggare", icon: UserCheck, href: "/attendance" },

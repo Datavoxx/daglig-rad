@@ -13,7 +13,7 @@ const IntegrationsSection = () => {
             Flytta din data enkelt
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Har du ett befintligt system? Exportera din data och importera den till Byggio på några minuter
+            Har du ett befintligt system? Exportera din data och importera den till JIA på några minuter
           </p>
         </div>
 

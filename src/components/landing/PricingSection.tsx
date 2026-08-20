@@ -33,7 +33,7 @@ const plans = [
       "Avancerad projektplanering (Gantt)",
       "Löneexport till Visma & Fortnox",
       "Kvitto- & leverantörsfakturahantering",
-      "Byggio AI-assistent obegränsat",
+      "JIA AI-assistent obegränsat",
       "White-label på alla dokument",
       "Egna offertmallar & artikelbibliotek",
       "Prioriterad support & onboarding",

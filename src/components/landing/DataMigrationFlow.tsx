@@ -1,6 +1,6 @@
 import { Database, ArrowRight, Upload } from "lucide-react";
 import excelLogo from "@/assets/excel-logo.png";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 
 const DataMigrationFlow = () => {
   return (
@@ -63,14 +63,14 @@ const DataMigrationFlow = () => {
           <ArrowRight className="absolute text-primary/60 w-4 h-4 md:hidden bottom-0 rotate-90" />
         </div>
 
-        {/* Step 3: Import to Byggio */}
+        {/* Step 3: Import to JIA */}
         <div className="group relative">
           <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="relative bg-card border border-primary/30 rounded-xl p-6 w-48 text-center transition-all duration-300 hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10 animate-float" style={{ animationDelay: "1s" }}>
             <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-primary/10 flex items-center justify-center">
-              <img src={byggioLogo} alt="Byggio" className="w-8 h-8 object-contain" />
+              <img src={jiaLogo} alt="JIA" className="w-8 h-8 object-contain" />
             </div>
-            <h4 className="font-medium text-foreground text-sm mb-1">Importera till Byggio</h4>
+            <h4 className="font-medium text-foreground text-sm mb-1">Importera till JIA</h4>
             <p className="text-xs text-muted-foreground">Klart på minuter</p>
           </div>
         </div>

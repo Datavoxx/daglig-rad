@@ -78,7 +78,7 @@ export function QRCodeGenerator({ projects }: QRCodeGeneratorProps) {
   const getScanUrl = () => {
     if (!existingToken || !selectedProjectId) return "";
     // Använd produktions-URL för QR-koder (egen domän)
-    const baseUrl = "https://datavoxx.se";
+    const baseUrl = "https://jiaab.se";
     return `${baseUrl}/attendance/scan/${selectedProjectId}/${existingToken.token}`;
   };
 

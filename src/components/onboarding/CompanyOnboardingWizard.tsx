@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, MapPin, Phone, Upload, Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 
 interface CompanyOnboardingWizardProps {
   onComplete: () => void;
@@ -211,7 +211,7 @@ export function CompanyOnboardingWizard({
 
       if (error) throw error;
 
-      toast({ title: "Företagsinformation sparad!", description: "Välkommen till Byggio!" });
+      toast({ title: "Företagsinformation sparad!", description: "Välkommen till JIA!" });
       onComplete();
     } catch (error) {
       console.error("Submit error:", error);
@@ -426,7 +426,7 @@ export function CompanyOnboardingWizard({
       <Card className="relative z-10 w-full max-w-lg border-border/50 bg-card/95 backdrop-blur-sm shadow-xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4">
-            <img src={byggioLogo} alt="Byggio" className="h-12 mx-auto" />
+            <img src={jiaLogo} alt="JIA" className="h-12 mx-auto" />
           </div>
           <CardTitle className="font-display text-xl">Konfigurera ditt företag</CardTitle>
           <CardDescription>

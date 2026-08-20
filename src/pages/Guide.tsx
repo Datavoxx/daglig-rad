@@ -63,7 +63,7 @@ export default function Guide() {
           <BookOpen className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-          Kom igång med Byggio
+          Kom igång med JIA
         </h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
           Din kompletta guide till effektiv projekthantering för byggbranschen
@@ -163,7 +163,7 @@ export default function Guide() {
             <AccordionContent className="pt-4 pb-6">
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Projekt är hjärtat i Byggio. Här samlas all information om dina aktiva jobb – från offert till slutbesiktning. Allt du behöver finns samlat i projektets flikar.
+                  Projekt är hjärtat i JIA. Här samlas all information om dina aktiva jobb – från offert till slutbesiktning. Allt du behöver finns samlat i projektets flikar.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
@@ -530,7 +530,7 @@ export default function Guide() {
                   <Sparkles className="h-5 w-5 text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">AI-assistenten (Byggio AI)</p>
+                  <p className="font-medium">AI-assistenten (JIA AI)</p>
                   <p className="text-sm text-muted-foreground font-normal">
                     Skapa och hantera med röst eller text
                   </p>
@@ -540,7 +540,7 @@ export default function Guide() {
             <AccordionContent className="pt-4 pb-6">
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Fråga Byggio AI vad som helst. Skapa projekt, offerter, tidrapporter och mer med röst eller text.
+                  Fråga JIA AI vad som helst. Skapa projekt, offerter, tidrapporter och mer med röst eller text.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
@@ -636,10 +636,10 @@ export default function Guide() {
         <Accordion type="single" collapsible className="w-full space-y-2">
           <AccordionItem value="faq-1" className="border rounded-lg px-4">
             <AccordionTrigger className="text-left hover:no-underline">
-              Kan jag använda Byggio på mobilen?
+              Kan jag använda JIA på mobilen?
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground">
-              Ja! Byggio är optimerat för mobil användning. Du kan enkelt dokumentera arbete, 
+              Ja! JIA är optimerat för mobil användning. Du kan enkelt dokumentera arbete, 
               skapa rapporter och hantera projekt direkt från din telefon ute på byggplatsen.
             </AccordionContent>
           </AccordionItem>
