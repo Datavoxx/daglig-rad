@@ -116,7 +116,7 @@ const GuideSection = () => {
                 <div className="bg-primary/10 rounded-lg p-6 mb-6">
                   <div className="w-12 h-1 bg-primary rounded mb-4" />
                   <h3 className="text-xl font-bold text-foreground mb-2">
-                    BYGGIO GUIDE
+                    JIA GUIDE
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     Din kompletta guide till effektiv projekthantering
@@ -138,7 +138,7 @@ const GuideSection = () => {
                 <div className="mt-6 pt-4 border-t border-border/40">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>PDF • 2 sidor</span>
-                    <span>Byggio Guide</span>
+                    <span>JIA Guide</span>
                   </div>
                 </div>
               </div>

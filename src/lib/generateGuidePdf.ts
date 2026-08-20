@@ -1,17 +1,17 @@
 import jsPDF from "jspdf";
 import { PDF_COLORS } from "./pdfUtils";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 
-// Byggio brand colors
-const BYGGIO_COLORS = {
+// JIA brand colors
+const JIA_COLORS = {
   GREEN_DARK: [22, 101, 52] as [number, number, number],
   GREEN_PRIMARY: [21, 128, 61] as [number, number, number],
   GREEN_LIGHT: [34, 197, 94] as [number, number, number],
 };
 
-async function getByggioLogoBase64(): Promise<string | null> {
+async function getJIALogoBase64(): Promise<string | null> {
   try {
-    const response = await fetch(byggioLogo);
+    const response = await fetch(jiaLogo);
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -20,7 +20,7 @@ async function getByggioLogoBase64(): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Error fetching Byggio logo:", error);
+    console.error("Error fetching JIA logo:", error);
     return null;
   }
 }
@@ -44,7 +44,7 @@ export async function generateGuidePdf() {
     checkPageBreak(20);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...BYGGIO_COLORS.GREEN_PRIMARY);
+    doc.setTextColor(...JIA_COLORS.GREEN_PRIMARY);
     doc.text(text, margin, y);
     y += 8;
     doc.setTextColor(...PDF_COLORS.DARK);
@@ -73,24 +73,24 @@ export async function generateGuidePdf() {
   };
 
   // === COVER / HEADER ===
-  doc.setFillColor(...BYGGIO_COLORS.GREEN_PRIMARY);
+  doc.setFillColor(...JIA_COLORS.GREEN_PRIMARY);
   doc.rect(0, 0, pageWidth, 6, "F");
 
   y = 16;
-  const byggioLogoBase64 = await getByggioLogoBase64();
-  if (byggioLogoBase64) {
+  const jiaLogoBase64 = await getJIALogoBase64();
+  if (jiaLogoBase64) {
     try {
-      doc.addImage(byggioLogoBase64, "PNG", margin, y, 35, 12, undefined, "FAST");
+      doc.addImage(jiaLogoBase64, "PNG", margin, y, 35, 12, undefined, "FAST");
     } catch (e) {
-      console.error("Error adding Byggio logo:", e);
+      console.error("Error adding JIA logo:", e);
     }
   }
 
   y = 50;
   doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(...BYGGIO_COLORS.GREEN_DARK);
-  doc.text("BYGGIO GUIDE", margin, y);
+  doc.setTextColor(...JIA_COLORS.GREEN_DARK);
+  doc.text("JIA GUIDE", margin, y);
 
   y += 10;
   doc.setFontSize(12);
@@ -106,7 +106,7 @@ export async function generateGuidePdf() {
 
   // === SNABBSTART ===
   addSectionHeader("SNABBSTART");
-  addParagraph("Kom ig\u00e5ng med Byggio p\u00e5 bara tre enkla steg:");
+  addParagraph("Kom ig\u00e5ng med JIA p\u00e5 bara tre enkla steg:");
   addBullet("Steg 1: Skapa en offert \u2013 Anv\u00e4nd mallar eller bygg fr\u00e5n grunden med AI-st\u00f6d");
   addBullet("Steg 2: Konvertera till projekt \u2013 N\u00e4r offerten godk\u00e4nns, g\u00f6r den till ett aktivt projekt");
   addBullet("Steg 3: Dokumentera arbetet \u2013 Anv\u00e4nd arbetsdagboken f\u00f6r att logga allt som h\u00e4nder");
@@ -115,7 +115,7 @@ export async function generateGuidePdf() {
   // === PROJEKT ===
   addSectionHeader("PROJEKT \u2013 HELA ARBETSFL\u00d6DET");
   addParagraph(
-    "Projekt \u00e4r hj\u00e4rtat i Byggio. H\u00e4r samlas all information om dina aktiva jobb \u2013 fr\u00e5n offert till slutbesiktning. Allt du beh\u00f6ver finns samlat i projektets flikar."
+    "Projekt \u00e4r hj\u00e4rtat i JIA. H\u00e4r samlas all information om dina aktiva jobb \u2013 fr\u00e5n offert till slutbesiktning. Allt du beh\u00f6ver finns samlat i projektets flikar."
   );
   addBullet("Arbetsdagbok \u2013 Spela in dagrapporter direkt fr\u00e5n byggplatsen");
   addBullet("Planering & Tidslinje \u2013 Skapa visuella Gantt-tidslinjer f\u00f6r projektet");
@@ -193,9 +193,9 @@ export async function generateGuidePdf() {
   y += 4;
 
   // === AI-ASSISTENTEN ===
-  addSectionHeader("AI-ASSISTENTEN (BYGGIO AI)");
+  addSectionHeader("AI-ASSISTENTEN (JIA AI)");
   addParagraph(
-    "Fr\u00e5ga Byggio AI vad som helst. Skapa projekt, offerter, tidrapporter och mer med r\u00f6st eller text."
+    "Fr\u00e5ga JIA AI vad som helst. Skapa projekt, offerter, tidrapporter och mer med r\u00f6st eller text."
   );
   addBullet("R\u00f6ststyrning \u2013 Prata med AI:n");
   addBullet("Skapa poster via chat \u2013 Projekt, offerter, kunder m.m.");
@@ -218,12 +218,12 @@ export async function generateGuidePdf() {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...PDF_COLORS.DARK);
-  doc.text("Kan jag anv\u00e4nda Byggio p\u00e5 mobilen?", margin, y);
+  doc.text("Kan jag anv\u00e4nda JIA p\u00e5 mobilen?", margin, y);
   y += 5;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...PDF_COLORS.MUTED);
   const mobileAnswer = doc.splitTextToSize(
-    "Ja! Byggio \u00e4r optimerat f\u00f6r mobil anv\u00e4ndning. Du kan enkelt dokumentera arbete direkt fr\u00e5n byggplatsen.",
+    "Ja! JIA \u00e4r optimerat f\u00f6r mobil anv\u00e4ndning. Du kan enkelt dokumentera arbete direkt fr\u00e5n byggplatsen.",
     contentWidth
   );
   doc.text(mobileAnswer, margin, y);
@@ -261,9 +261,9 @@ export async function generateGuidePdf() {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(...PDF_COLORS.MUTED);
-    doc.text("Byggio \u2013 Byggprojekt, enkelt och digitalt", margin, pageHeight - 10);
+    doc.text("JIA \u2013 Byggprojekt, enkelt och digitalt", margin, pageHeight - 10);
     doc.text(`Sida ${i} av ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: "right" });
   }
 
-  doc.save("byggio-guide.pdf");
+  doc.save("jia-guide.pdf");
 }

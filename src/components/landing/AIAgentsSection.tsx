@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Mic, FileText, CalendarDays, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
-import byggioAILogo from "@/assets/byggio-ai-logo.png";
+import jiaAILogo from "@/assets/jia-ai-logo.png";
 
 const capabilities = [
   {
@@ -41,10 +41,10 @@ const AIAgentsSection = () => {
             AI-driven
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Möt Byggio AI
+            Möt JIA AI
           </h2>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-            Din kompletta AI-assistent för byggprojekt. Prata in vad som behövs – Byggio AI sköter resten.
+            Din kompletta AI-assistent för byggprojekt. Prata in vad som behövs – JIA AI sköter resten.
           </p>
         </div>
 
@@ -62,20 +62,20 @@ const AIAgentsSection = () => {
                   <div className="w-40 h-40 rounded-full bg-primary/20 blur-2xl animate-glow-pulse" />
                 </div>
                 <img
-                  src={byggioAILogo}
-                  alt="Byggio AI"
+                  src={jiaAILogo}
+                  alt="JIA AI"
                   className="w-44 h-44 md:w-56 md:h-56 object-contain drop-shadow-2xl relative z-10"
                 />
               </div>
 
               {/* Text content */}
               <div className="flex-1 text-center md:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold text-primary mb-2">Byggio AI</h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-primary mb-2">JIA AI</h3>
                 <p className="text-muted-foreground font-medium mb-4">Din AI-assistent för byggprojekt</p>
                 
                 <p className="text-muted-foreground mb-6 leading-relaxed">
                   Slipp sitta vid datorn och skriva. Prata in vad som hänt eller vad projektet innehåller – 
-                  Byggio AI strukturerar allt åt dig. Offerter, tidsplaner, dagrapporter och mer.
+                  JIA AI strukturerar allt åt dig. Offerter, tidsplaner, dagrapporter och mer.
                 </p>
 
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-6">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, LogOut, Loader2, CheckCircle2, XCircle, Building2, User } from "lucide-react";
 import { toast } from "sonner";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 
 interface Project {
   id: string;
@@ -201,7 +201,7 @@ export default function AttendanceScan() {
       <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <img src={byggioLogo} alt="Byggio" className="h-12" />
+            <img src={jiaLogo} alt="JIA" className="h-12" />
           </div>
           <div className="flex justify-center mb-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">

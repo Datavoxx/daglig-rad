@@ -19,7 +19,7 @@ export default function BookingSuccess({ preferredLabel, onClose }: Props) {
 
       <div className="w-full mt-6 pt-6 border-t border-border/60">
         <p className="text-sm text-muted-foreground mb-5">
-          Vi hör av oss så snart som möjligt. Konton till Byggio skapas via inbjudan efter samtalet.
+          Vi hör av oss så snart som möjligt. Konton till JIA skapas via inbjudan efter samtalet.
         </p>
 
         <div className="flex justify-center">

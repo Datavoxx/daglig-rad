@@ -105,7 +105,7 @@ const HeroSection = () => {
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="px-4 py-1 rounded-md bg-background/50 text-xs text-muted-foreground">
-                  app.byggio.se
+                  app.jiaab.se
                 </div>
               </div>
             </div>

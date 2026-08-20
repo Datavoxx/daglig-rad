@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { ArrowRight, Clock, Zap, BookOpen, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 import TrainingBookingDialog from "./TrainingBookingDialog";
 
 const trainingOptions = [
   {
     duration: "30 min",
     title: "Snabbstart",
-    features: ["Grunderna i Byggio", "Kom igång direkt", "Perfekt för dig som vill testa"],
+    features: ["Grunderna i JIA", "Kom igång direkt", "Perfekt för dig som vill testa"],
     icon: Zap,
   },
   {
@@ -32,8 +32,8 @@ const FreeTrainingSection = () => {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <img 
-            src={byggioLogo} 
-            alt="Byggio" 
+            src={jiaLogo} 
+            alt="JIA" 
             className="h-10 w-auto opacity-80"
           />
         </div>
@@ -44,7 +44,7 @@ const FreeTrainingSection = () => {
             Gratis personlig utbildning
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Alla nya användare får en kostnadsfri genomgång av Byggio – anpassad efter dina behov och din tid.
+            Alla nya användare får en kostnadsfri genomgång av JIA – anpassad efter dina behov och din tid.
           </p>
         </div>
 

@@ -99,7 +99,7 @@ const featureData: Record<string, FeatureData> = {
   ai: {
     title: "AI som binder ihop allt",
     subtitle: "Prata – vi sköter resten",
-    heroDescription: "Byggio använder AI för att förstå vad du säger och automatiskt skapa strukturerade dokument. Prata in dina anteckningar efter arbetsdagen – AI:n skapar dagrapporter, offerter och projektplaner åt dig. Du fokuserar på att bygga, vi sköter pappersarbetet.",
+    heroDescription: "JIA använder AI för att förstå vad du säger och automatiskt skapa strukturerade dokument. Prata in dina anteckningar efter arbetsdagen – AI:n skapar dagrapporter, offerter och projektplaner åt dig. Du fokuserar på att bygga, vi sköter pappersarbetet.",
     color: "from-primary to-emerald-500",
     subFeatures: [
       {

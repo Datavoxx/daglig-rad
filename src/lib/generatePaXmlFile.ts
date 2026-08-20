@@ -147,5 +147,5 @@ export function downloadPaXmlFile(blob: Blob, filename: string): void {
 export function generatePaXmlFilename(periodStart: Date, orgNumber?: string): string {
   const yearMonth = periodStart.toISOString().split("T")[0].substring(0, 7);
   const org = orgNumber?.replace(/-/g, "") || "ORGNR";
-  return `BYGGIO_FORTNOX_${yearMonth}_${org}.xml`;
+  return `JIA_FORTNOX_${yearMonth}_${org}.xml`;
 }

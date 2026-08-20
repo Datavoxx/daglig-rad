@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
 import { SessionFeedbackPopup } from "./SessionFeedbackPopup";
 import { BottomNav } from "./BottomNav";
-import byggioLogo from "@/assets/byggio-logo.png";
+import jiaLogo from "@/assets/jia-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,7 +89,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
   // Admin/owner navigation (bygg)
   return [
     { label: "Hem", href: "/dashboard", icon: Home, moduleKey: "dashboard" },
-    { label: "Byggio AI", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
+    { label: "JIA AI", href: "/global-assistant", icon: Sparkles, moduleKey: "dashboard" },
     { label: "Offert", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
     { label: "Projekt", href: "/projects", icon: FolderKanban, moduleKey: "projects" },
     { label: "Personalliggare", href: "/attendance", icon: ClipboardCheck, moduleKey: "attendance" },
@@ -249,7 +249,7 @@ export function AppLayout() {
           className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-1 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
           aria-label="Gå till hem"
         >
-          <img src={byggioLogo} alt="Byggio" className="w-full h-full object-contain hover:scale-105 transition-transform" />
+          <img src={jiaLogo} alt="JIA" className="w-full h-full object-contain hover:scale-105 transition-transform" />
         </button>
 
         {/* Navigation */}
@@ -339,7 +339,7 @@ export function AppLayout() {
                       className="flex h-20 w-full items-center justify-center border-b border-sidebar-border p-4 hover:bg-sidebar-accent/30 transition-colors cursor-pointer"
                       aria-label="Gå till hem"
                     >
-                      <img src={byggioLogo} alt="Byggio" className="h-12 w-auto object-contain" />
+                      <img src={jiaLogo} alt="JIA" className="h-12 w-auto object-contain" />
                     </button>
                   </SheetClose>
 
@@ -440,7 +440,7 @@ export function AppLayout() {
             className="absolute left-1/2 -translate-x-1/2 md:hidden"
             aria-label="Gå till hem"
           >
-            <img src={byggioLogo} alt="Byggio" className="h-8 w-auto" />
+            <img src={jiaLogo} alt="JIA" className="h-8 w-auto" />
           </button>
 
           <div className="flex items-center gap-1.5">
