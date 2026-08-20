@@ -32,8 +32,11 @@ const LandingNavbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={jia} alt="JIA" className="h-8 md:h-10 w-auto" />
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src={jia} alt="JIA" className="h-8 md:h-9 w-auto" />
+            <span className="font-display font-extrabold tracking-[0.18em] text-base md:text-lg text-foreground">
+              JIA
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

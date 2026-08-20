@@ -68,8 +68,8 @@ const HeroSection = () => {
 
         {/* Subheading - business impact focused, tighter */}
         <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto mb-10 animate-fade-in leading-relaxed" style={{ animationDelay: "0.2s" }}>
-          Samla dokumentation, planering och offerter i ett system – 
-          byggt för byggföretag som vill spara tid och öka lönsamheten.
+          JIA:s plattform för entreprenad och förvaltning – dokumentation, planering,
+          tidrapportering och offerter samlat, med ansvar hela vägen.
         </p>
 
         {/* CTA buttons */}
