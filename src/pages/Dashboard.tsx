@@ -29,6 +29,7 @@ import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardAssistantWidget } from "@/components/dashboard/DashboardAssistantWidget";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
