@@ -309,6 +309,9 @@ export default function Settings() {
           <TabsTrigger value="debiteringstyper" className="shrink-0 lg:justify-start lg:w-full">Debiteringstyper</TabsTrigger>
           <TabsTrigger value="lonetyper" className="shrink-0 lg:justify-start lg:w-full">Lönetyper</TabsTrigger>
           <TabsTrigger value="artiklar" className="shrink-0 lg:justify-start lg:w-full">Artiklar</TabsTrigger>
+          {role === "founder" && (
+            <TabsTrigger value="behorigheter" className="shrink-0 lg:justify-start lg:w-full">Behörigheter</TabsTrigger>
+          )}
         </TabsList>
         <div className="flex-1 min-w-0">
 
