@@ -601,6 +601,63 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          id: string
+          plain_text: string | null
+          project_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by: string
+          customer_id?: string | null
+          id?: string
+          plain_text?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          id?: string
+          plain_text?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invitations: {
         Row: {
           accepted_at: string | null
@@ -2147,6 +2204,7 @@ export type Database = {
       user_permissions: {
         Row: {
           created_at: string | null
+          email: string | null
           id: string
           modules: string[] | null
           updated_at: string | null
@@ -2154,6 +2212,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          email?: string | null
           id?: string
           modules?: string[] | null
           updated_at?: string | null
@@ -2161,6 +2220,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          email?: string | null
           id?: string
           modules?: string[] | null
           updated_at?: string | null
@@ -2427,7 +2487,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_permissions_with_email: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          modules: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_employer_id: { Args: { employee_user_id: string }; Returns: string }
