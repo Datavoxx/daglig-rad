@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// All available modules for admins/owners
+// All module keys that can be controlled from the database (user_permissions.modules)
 const ALL_MODULES = [
   "dashboard",
   "projects",
@@ -10,15 +10,52 @@ const ALL_MODULES = [
   "guide",
   "settings",
   "invoices",
+  "accounting",
+  "receipts",
   "time-reporting",
   "attendance",
   "daily-reports",
   "payroll-export",
-  "docs"
+  "inspections",
+  "docs",
 ];
 
-// Strictly limited modules for employees - NEVER includes dashboard or projects
-const EMPLOYEE_MODULES = ["estimates", "time-reporting", "daily-reports", "docs"];
+// Preferred order when picking a landing page for a user
+const ROUTE_BY_MODULE: Record<string, string> = {
+  dashboard: "/dashboard",
+  projects: "/projects",
+  estimates: "/estimates",
+  customers: "/customers",
+  invoices: "/invoices",
+  accounting: "/accounting",
+  receipts: "/invoices?tab=receipts",
+  "time-reporting": "/time-reporting",
+  attendance: "/attendance",
+  "daily-reports": "/daily-reports",
+  "payroll-export": "/payroll-export",
+  inspections: "/inspections",
+  docs: "/docs",
+  guide: "/guide",
+  settings: "/settings",
+};
+
+const FALLBACK_ORDER = [
+  "dashboard",
+  "daily-reports",
+  "time-reporting",
+  "estimates",
+  "projects",
+  "docs",
+  "attendance",
+  "customers",
+  "invoices",
+  "accounting",
+  "receipts",
+  "inspections",
+  "payroll-export",
+  "guide",
+  "settings",
+];
 
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -35,7 +72,7 @@ export function useUserPermissions() {
           return;
         }
 
-        // Fetch user role
+        // Role only decides which menu variant / start page is used, not access
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -45,31 +82,16 @@ export function useUserPermissions() {
         const userRole = roleData?.role || null;
         setRole(userRole);
 
-        // Founders and admins get full access
-        if (userRole === "founder" || userRole === "admin") {
-          setIsEmployee(false);
-          setPermissions(ALL_MODULES);
-          setLoading(false);
-          return;
-        }
-
-        // Check if user is an employee (linked via employees table)
         const { data: employeeData } = await supabase
           .from("employees")
-          .select("id, user_id")
+          .select("id")
           .eq("linked_user_id", user.id)
           .eq("is_active", true)
           .maybeSingle();
 
-        // If user is an employee (role 'user'), ALWAYS use restricted modules
-        if (employeeData || userRole === "user") {
-          setIsEmployee(true);
-          setPermissions(EMPLOYEE_MODULES);
-          setLoading(false);
-          return;
-        }
+        setIsEmployee(!!employeeData || userRole === "user");
 
-        // Fallback: fetch from user_permissions table
+        // The database is the single source of truth for module access
         const { data, error } = await supabase
           .from("user_permissions")
           .select("modules")
@@ -79,14 +101,8 @@ export function useUserPermissions() {
         if (error) {
           console.error("Error fetching permissions:", error);
           setPermissions([]);
-        } else if (!data || !data.modules || data.modules.length === 0) {
-          setPermissions(ALL_MODULES);
         } else {
-          if (data.modules.includes("dashboard")) {
-            setPermissions(ALL_MODULES);
-          } else {
-            setPermissions(data.modules);
-          }
+          setPermissions(data?.modules ?? []);
         }
       } catch (err) {
         console.error("Error in fetchPermissions:", err);
@@ -101,23 +117,22 @@ export function useUserPermissions() {
 
   const hasAccess = (module: string) => permissions.includes(module);
 
-  // Helper to get the first available module (for navigation fallback)
+  // First allowed module, in a sensible order
   const getDefaultRoute = () => {
-    // Employees go to their dedicated dashboard
-    if (isEmployee) return "/employee-dashboard";
-    // Admins/owners go to the main dashboard
-    if (permissions.includes("dashboard")) return "/dashboard";
-    if (permissions.length > 0) return `/${permissions[0]}`;
-    return "/employee-dashboard";
+    if (isEmployee && permissions.includes("daily-reports")) {
+      return "/employee-dashboard";
+    }
+    const first = FALLBACK_ORDER.find((m) => permissions.includes(m));
+    return first ? ROUTE_BY_MODULE[first] : "/profile";
   };
 
-  return { 
-    permissions, 
-    loading, 
-    hasAccess, 
+  return {
+    permissions,
+    loading,
+    hasAccess,
     allModules: ALL_MODULES,
     isEmployee,
     role,
-    getDefaultRoute
+    getDefaultRoute,
   };
 }

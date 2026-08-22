@@ -80,12 +80,12 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
       { label: "Jobb", href: "/projects", icon: Briefcase, moduleKey: "projects" },
       { label: "Offerter", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
       { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
-      { label: "Kvitton", href: "/invoices?tab=receipts", icon: Receipt, moduleKey: "invoices" },
+      { label: "Kvitton", href: "/invoices?tab=receipts", icon: Receipt, moduleKey: "receipts" },
       { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
       { label: "Docs", href: "/docs", icon: FileText, moduleKey: "docs" },
       { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
-      { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },
+      { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "accounting" },
     ];
   }
   
@@ -103,7 +103,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
     { label: "Docs", href: "/docs", icon: FileText, moduleKey: "docs" },
     { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
     { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
-    { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },
+    { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "accounting" },
   ];
 };
 

@@ -87,7 +87,7 @@ const App = () => {
                 <Route path="/docs" element={<ProtectedModuleRoute module="docs"><Docs /></ProtectedModuleRoute>} />
                 <Route path="/docs/:id" element={<ProtectedModuleRoute module="docs"><DocView /></ProtectedModuleRoute>} />
                 <Route path="/invoices" element={<ProtectedModuleRoute module="invoices"><Invoices /></ProtectedModuleRoute>} />
-                <Route path="/accounting" element={<ProtectedModuleRoute module="invoices"><Accounting /></ProtectedModuleRoute>} />
+                <Route path="/accounting" element={<ProtectedModuleRoute module="accounting"><Accounting /></ProtectedModuleRoute>} />
                 <Route path="/time-reporting" element={<ProtectedModuleRoute module="time-reporting"><TimeReporting /></ProtectedModuleRoute>} />
                 <Route path="/attendance" element={<ProtectedModuleRoute module="attendance"><Attendance /></ProtectedModuleRoute>} />
                 <Route path="/daily-reports" element={<ProtectedModuleRoute module="daily-reports"><DailyReports /></ProtectedModuleRoute>} />
