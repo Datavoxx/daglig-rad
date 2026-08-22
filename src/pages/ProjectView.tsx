@@ -9,7 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen, FileDown, Loader2 } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, FileEdit, ClipboardList, FolderOpen, CalendarDays, BookOpen, FileDown, Loader2, FileText } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useUserIndustry } from "@/hooks/useUserIndustry";
 import { generateProjectPdf } from "@/lib/generateProjectPdf";
