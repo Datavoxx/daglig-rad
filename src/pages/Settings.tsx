@@ -665,6 +665,13 @@ export default function Settings() {
         <TabsContent value="artiklar" className="space-y-6">
           <ArticleManager />
         </TabsContent>
+
+        {/* Behörigheter tab (endast founder) */}
+        {role === "founder" && (
+          <TabsContent value="behorigheter" className="space-y-6">
+            <PermissionsManager />
+          </TabsContent>
+        )}
         </div>
       </Tabs>
     </div>
