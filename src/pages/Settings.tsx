@@ -13,6 +13,8 @@ import { EmployeeManager } from "@/components/settings/EmployeeManager";
 import { BillingTypeManager } from "@/components/settings/BillingTypeManager";
 import { SalaryTypeManager } from "@/components/settings/SalaryTypeManager";
 import { ArticleManager } from "@/components/settings/ArticleManager";
+import { PermissionsManager } from "@/components/settings/PermissionsManager";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface CompanySettings {
   id?: string;
@@ -35,7 +37,10 @@ interface CompanySettings {
 }
 
 export default function Settings() {
+  const { role } = useUserPermissions();
   const [loading, setLoading] = useState(true);
+  
+  // Company settings state
   
   // Company settings state
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -304,6 +309,9 @@ export default function Settings() {
           <TabsTrigger value="debiteringstyper" className="shrink-0 lg:justify-start lg:w-full">Debiteringstyper</TabsTrigger>
           <TabsTrigger value="lonetyper" className="shrink-0 lg:justify-start lg:w-full">Lönetyper</TabsTrigger>
           <TabsTrigger value="artiklar" className="shrink-0 lg:justify-start lg:w-full">Artiklar</TabsTrigger>
+          {role === "founder" && (
+            <TabsTrigger value="behorigheter" className="shrink-0 lg:justify-start lg:w-full">Behörigheter</TabsTrigger>
+          )}
         </TabsList>
         <div className="flex-1 min-w-0">
 
@@ -657,6 +665,13 @@ export default function Settings() {
         <TabsContent value="artiklar" className="space-y-6">
           <ArticleManager />
         </TabsContent>
+
+        {/* Behörigheter tab (endast founder) */}
+        {role === "founder" && (
+          <TabsContent value="behorigheter" className="space-y-6">
+            <PermissionsManager />
+          </TabsContent>
+        )}
         </div>
       </Tabs>
     </div>
