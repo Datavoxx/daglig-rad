@@ -13,6 +13,8 @@ import { EmployeeManager } from "@/components/settings/EmployeeManager";
 import { BillingTypeManager } from "@/components/settings/BillingTypeManager";
 import { SalaryTypeManager } from "@/components/settings/SalaryTypeManager";
 import { ArticleManager } from "@/components/settings/ArticleManager";
+import { PermissionsManager } from "@/components/settings/PermissionsManager";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface CompanySettings {
   id?: string;
