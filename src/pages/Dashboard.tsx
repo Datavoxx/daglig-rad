@@ -497,8 +497,10 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Upcoming Deadlines Card */}
+        {hasAccess("invoices") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
