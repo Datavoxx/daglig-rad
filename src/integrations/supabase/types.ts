@@ -2484,7 +2484,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_permissions_with_email: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          modules: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_employer_id: { Args: { employee_user_id: string }; Returns: string }
