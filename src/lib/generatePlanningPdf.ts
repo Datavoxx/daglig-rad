@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { getCompanyLogoBase64, PDF_COLORS } from "./pdfUtils";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 interface PlanPhase {
   name: string;
@@ -71,9 +71,9 @@ const phaseColorsLight: Record<string, [number, number, number]> = {
 };
 
 // Helper function to convert imported image to base64
-async function getJIALogoBase64(): Promise<string | null> {
+async function getByggioLogoBase64(): Promise<string | null> {
   try {
-    const response = await fetch(jiaLogo);
+    const response = await fetch(byggioLogo);
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -97,15 +97,15 @@ export async function generatePlanningPdf(data: PlanningData): Promise<void> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
 
-  // Get logos - prefer company logo, fallback to JIA logo
+  // Get logos - prefer company logo, fallback to Byggio logo
   const companyLogoBase64 = await getCompanyLogoBase64(data.companySettings?.logo_url || null);
-  const jiaLogoBase64 = await getJIALogoBase64();
-  const logoBase64 = companyLogoBase64 || jiaLogoBase64;
+  const byggioLogoBase64 = await getByggioLogoBase64();
+  const logoBase64 = companyLogoBase64 || byggioLogoBase64;
 
   // === PAGE 1: Cover Page ===
   
-  // Background accent - JIA GREEN
-  doc.setFillColor(...PDF_COLORS.JIA_GREEN);
+  // Background accent - Byggio GREEN
+  doc.setFillColor(...PDF_COLORS.Byggio_GREEN);
   doc.rect(0, 0, pageWidth, 8, "F");
   
   // Logo in top left

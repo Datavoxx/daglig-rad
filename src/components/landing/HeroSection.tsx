@@ -68,7 +68,7 @@ const HeroSection = () => {
 
         {/* Subheading - business impact focused, tighter */}
         <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto mb-10 animate-fade-in leading-relaxed" style={{ animationDelay: "0.2s" }}>
-          JIA:s plattform för entreprenad och förvaltning – dokumentation, planering,
+          Byggio:s plattform för entreprenad och förvaltning – dokumentation, planering,
           tidrapportering och offerter samlat, med ansvar hela vägen.
         </p>
 
@@ -105,7 +105,7 @@ const HeroSection = () => {
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="px-4 py-1 rounded-md bg-background/50 text-xs text-muted-foreground">
-                  app.jiaab.se
+                  app.byggio.se
                 </div>
               </div>
             </div>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 const emailSchema = z.string().email("Ogiltig e-postadress");
 const passwordSchema = z.string().min(6, "Lösenordet måste vara minst 6 tecken");
@@ -101,7 +101,7 @@ export default function Auth() {
     setResetLoading(true);
     setValidationError(null);
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: "https://jiaab.se/auth",
+      redirectTo: "https://byggio.se/auth",
     });
     setResetLoading(false);
 
@@ -144,7 +144,7 @@ export default function Auth() {
           <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <img src={jiaLogo} alt="JIA" className="h-16 mx-auto" />
+                <img src={byggioLogo} alt="Byggio" className="h-16 mx-auto" />
               </div>
               <CardTitle className="font-display text-2xl">Nytt lösenord</CardTitle>
               <CardDescription>Ange ditt nya lösenord</CardDescription>
@@ -223,9 +223,9 @@ export default function Auth() {
         <Card className="w-full border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
-              <img src={jiaLogo} alt="JIA" className="h-16 mx-auto" />
+              <img src={byggioLogo} alt="Byggio" className="h-16 mx-auto" />
             </div>
-            <CardTitle className="font-display text-2xl">Välkommen till JIA</CardTitle>
+            <CardTitle className="font-display text-2xl">Välkommen till Byggio</CardTitle>
             <CardDescription>Entreprenad & förvaltning – med ansvar hela vägen</CardDescription>
           </CardHeader>
           <CardContent>
@@ -359,7 +359,7 @@ export default function Auth() {
                     className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     <BookOpen className="h-4 w-4" />
-                    <span>Förstå JIA</span>
+                    <span>Förstå Byggio</span>
                   </Link>
                 </div>
               </>
@@ -370,7 +370,7 @@ export default function Auth() {
         {/* Contact Info */}
         <div className="text-center text-sm text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">Kontakt</p>
-          <p>JIA AB</p>
+          <p>Byggio</p>
           <div className="flex items-center justify-center gap-3">
             <a 
               href="tel:0708731474" 
@@ -381,11 +381,11 @@ export default function Auth() {
             </a>
             <span>•</span>
             <a 
-              href="mailto:info@jiaab.se" 
+              href="mailto:info@byggio.se" 
               className="flex items-center gap-1 hover:text-primary transition-colors"
             >
               <Mail className="h-3 w-3" />
-              info@jiaab.se
+              info@byggio.se
             </a>
           </div>
         </div>

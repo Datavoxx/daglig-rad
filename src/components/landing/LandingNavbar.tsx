@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import jia from "@/assets/jia-logo.png";
+import byggio from "@/assets/byggio-logo.png";
 
 const LandingNavbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -33,9 +33,9 @@ const LandingNavbar = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={jia} alt="JIA" className="h-8 md:h-9 w-auto" />
+            <img src={byggio} alt="Byggio" className="h-8 md:h-9 w-auto" />
             <span className="font-display font-extrabold tracking-[0.18em] text-base md:text-lg text-foreground">
-              JIA
+              Byggio
             </span>
           </Link>
 

@@ -1,7 +1,7 @@
-// Centraliserad konfiguration för AI-agenter i JIA
-// Nu konsoliderat till ett enda AI-varumärke: JIA AI
+// Centraliserad konfiguration för AI-agenter i Byggio
+// Nu konsoliderat till ett enda AI-varumärke: Byggio AI
 
-import jiaAILogo from "@/assets/jia-ai-logo.png";
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 export interface AIAgent {
   name: string;
@@ -11,23 +11,23 @@ export interface AIAgent {
   avatar: string;
 }
 
-// JIA AI - enhetligt AI-varumärke
-const jiaAgent: AIAgent = {
-  name: "JIA AI",
+// Byggio AI - enhetligt AI-varumärke
+const byggioAgent: AIAgent = {
+  name: "Byggio AI",
   title: "Din AI-assistent",
   description: "Din kompletta AI-assistent för byggprojekt",
-  promptIntro: "Du är JIA AI, en expert-assistent för svenska byggföretag.",
-  avatar: jiaAILogo,
+  promptIntro: "Du är Byggio AI, en expert-assistent för svenska byggföretag.",
+  avatar: byggioAILogo,
 };
 
 export const AI_AGENTS = {
   // Primär agent
-  jia: jiaAgent,
+  byggio: byggioAgent,
   
   // Alias för bakåtkompatibilitet (alla pekar på samma agent)
-  estimate: jiaAgent,
-  planning: jiaAgent,
-  diary: jiaAgent,
+  estimate: byggioAgent,
+  planning: byggioAgent,
+  diary: byggioAgent,
 } as const;
 
 export type AIAgentType = keyof typeof AI_AGENTS;

@@ -76,7 +76,7 @@ export default function Planning() {
     isSupported,
     isIOSDevice,
   } = useVoiceRecorder({
-    agentName: "JIA AI",
+    agentName: "Byggio AI",
     onTranscriptUpdate: (newTranscript) => {
       setTranscript(newTranscript);
     },

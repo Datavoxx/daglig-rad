@@ -95,7 +95,7 @@ export function InlineDiaryCreator({
     isSupported,
     isIOSDevice,
   } = useVoiceRecorder({
-    agentName: "JIA AI",
+    agentName: "Byggio AI",
     onTranscriptUpdate: (newTranscript) => {
       setTranscript(newTranscript);
     },

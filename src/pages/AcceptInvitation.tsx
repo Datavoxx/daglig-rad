@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 interface InvitationData {
   valid: boolean;
@@ -168,13 +168,13 @@ export default function AcceptInvitation() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={jiaLogo} alt="JIA" className="h-10" />
+            <img src={byggioLogo} alt="Byggio" className="h-10" />
           </div>
           <CardTitle className="text-2xl">
             Välkommen till {invitationData.organizationName}!
           </CardTitle>
           <CardDescription>
-            Aktivera ditt konto för att börja använda JIA
+            Aktivera ditt konto för att börja använda Byggio
           </CardDescription>
         </CardHeader>
         <CardContent>

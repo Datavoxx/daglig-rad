@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Epilogue", "system-ui", "sans-serif"],
-        display: ["Urbanist", "Epilogue", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["DM Sans", "Inter", "system-ui", "sans-serif"],
       },
       fontSize: {
         "2xs": ["0.6875rem", { lineHeight: "1rem" }],
@@ -193,7 +193,7 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
         },
-        "jia-pulse": {
+        "byggio-pulse": {
           "0%, 100%": { opacity: "1", transform: "scale(1)" },
           "50%": { opacity: "0.6", transform: "scale(0.95)" },
         },
@@ -219,7 +219,7 @@ export default {
         "flow-pulse": "flow-pulse 2s ease-in-out infinite",
         "data-particle": "data-particle 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
-        "jia-pulse": "jia-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "byggio-pulse": "byggio-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

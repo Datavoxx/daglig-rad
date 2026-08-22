@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 export default function Terms() {
   return (
@@ -15,7 +15,7 @@ export default function Terms() {
             Tillbaka till startsidan
           </Link>
           <Link to="/" className="block mb-6">
-            <img src={jiaLogo} alt="JIA" className="h-10" />
+            <img src={byggioLogo} alt="Byggio" className="h-10" />
           </Link>
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
             Användarvillkor
@@ -28,9 +28,9 @@ export default function Terms() {
         {/* Content */}
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8">
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">Välkommen till JIA</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Välkommen till Byggio</h2>
             <p className="text-muted-foreground leading-relaxed">
-              När du använder JIA godkänner du dessa villkor. Vi har försökt hålla dem enkla och tydliga.
+              När du använder Byggio godkänner du dessa villkor. Vi har försökt hålla dem enkla och tydliga.
             </p>
           </section>
 
@@ -89,7 +89,7 @@ export default function Terms() {
             <ul className="space-y-2 text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">─</span>
-                <span>JIA är ett verktyg – du ansvarar för att verifiera all information innan den används professionellt</span>
+                <span>Byggio är ett verktyg – du ansvarar för att verifiera all information innan den används professionellt</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">─</span>

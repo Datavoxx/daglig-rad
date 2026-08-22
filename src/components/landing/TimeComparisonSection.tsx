@@ -7,21 +7,21 @@ const comparisons = [
     icon: FileText,
     task: "Skapa dagrapport",
     traditional: { time: 45, unit: "min" },
-    jia: { time: 3, unit: "min" },
+    byggio: { time: 3, unit: "min" },
     saving: 93,
   },
   {
     icon: Calculator,
     task: "Skicka offert",
     traditional: { time: 25, unit: "min" },
-    jia: { time: 6, unit: "min" },
+    byggio: { time: 6, unit: "min" },
     saving: 76,
   },
   {
     icon: Calendar,
     task: "Projektplanering",
     traditional: { time: 30, unit: "min" },
-    jia: { time: 5, unit: "min" },
+    byggio: { time: 5, unit: "min" },
     saving: 83,
   },
 ];
@@ -40,7 +40,7 @@ const TimeComparisonSection = () => {
             Se hur mycket snabbare du blir
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Jämför vanliga arbetsuppgifter – traditionella metoder mot JIA.
+            Jämför vanliga arbetsuppgifter – traditionella metoder mot Byggio.
           </p>
         </div>
 
@@ -48,9 +48,9 @@ const TimeComparisonSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {comparisons.map((item, index) => {
             const Icon = item.icon;
-            // Calculate bar widths (jia is always shorter)
+            // Calculate bar widths (byggio is always shorter)
             const traditionalWidth = 100;
-            const jiaWidth = Math.max(5, (100 - item.saving));
+            const byggioWidth = Math.max(5, (100 - item.saving));
             
             return (
               <TiltCard
@@ -97,18 +97,18 @@ const TimeComparisonSection = () => {
                           </div>
                         </div>
 
-                        {/* JIA */}
+                        {/* Byggio */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Med JIA</span>
+                            <span>Med Byggio</span>
                             <span className="font-medium text-primary">
-                              {item.jia.time} {item.jia.unit}
+                              {item.byggio.time} {item.byggio.unit}
                             </span>
                           </div>
                           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all duration-700 ease-out"
-                              style={{ width: `${jiaWidth}%` }}
+                              style={{ width: `${byggioWidth}%` }}
                             />
                           </div>
                         </div>
