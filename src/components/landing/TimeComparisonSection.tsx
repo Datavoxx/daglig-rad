@@ -50,7 +50,7 @@ const TimeComparisonSection = () => {
             const Icon = item.icon;
             // Calculate bar widths (byggio is always shorter)
             const traditionalWidth = 100;
-            const jiaWidth = Math.max(5, (100 - item.saving));
+            const byggioWidth = Math.max(5, (100 - item.saving));
             
             return (
               <TiltCard
@@ -108,7 +108,7 @@ const TimeComparisonSection = () => {
                           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all duration-700 ease-out"
-                              style={{ width: `${jiaWidth}%` }}
+                              style={{ width: `${byggioWidth}%` }}
                             />
                           </div>
                         </div>
