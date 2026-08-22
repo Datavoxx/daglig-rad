@@ -29,6 +29,7 @@ import { sv } from "date-fns/locale";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardAssistantWidget } from "@/components/dashboard/DashboardAssistantWidget";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,7 @@ interface UpcomingDeadline {
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { hasAccess } = useUserPermissions();
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -342,14 +344,14 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "JIA AI", icon: Sparkles, href: "/global-assistant" },
-            { title: "Offert", icon: Calculator, href: "/estimates" },
-            { title: "Projekt", icon: FolderKanban, href: "/projects" },
-            { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
-            { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
-            { title: "Kunder", icon: Users, href: "/customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true" },
-          ].map((item) => (
+            { title: "JIA AI", icon: Sparkles, href: "/global-assistant", module: "dashboard" },
+            { title: "Offert", icon: Calculator, href: "/estimates", module: "estimates" },
+            { title: "Projekt", icon: FolderKanban, href: "/projects", module: "projects" },
+            { title: "Personalliggare", icon: UserCheck, href: "/attendance", module: "attendance" },
+            { title: "Tidsrapport", icon: Clock, href: "/time-reporting", module: "time-reporting" },
+            { title: "Kunder", icon: Users, href: "/customers", module: "customers" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", module: "receipts" },
+          ].filter((item) => hasAccess(item.module)).map((item) => (
             <button
               key={item.title}
               onClick={() => navigate(item.href)}
@@ -365,7 +367,9 @@ const Dashboard = () => {
       )}
 
       {/* Primary KPI Cards - Most important metrics */}
+      {(hasAccess("attendance") || hasAccess("time-reporting") || hasAccess("projects") || hasAccess("invoices")) && (
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {hasAccess("attendance") && (
         <KpiCard
           title="Personal på plats"
           value={dashboardData?.activeWorkers.length ?? 0}
@@ -375,6 +379,8 @@ const Dashboard = () => {
           delay={0}
           subtitle="just nu"
         />
+        )}
+        {hasAccess("time-reporting") && (
         <KpiCard
           title="Timmar"
           value={formatHours(dashboardData?.totalHoursThisWeek ?? 0)}
@@ -385,6 +391,8 @@ const Dashboard = () => {
           delay={80}
           subtitle="denna vecka"
         />
+        )}
+        {hasAccess("projects") && (
         <KpiCard
           title="Aktiva projekt"
           value={dashboardData?.activeProjects ?? 0}
@@ -394,6 +402,8 @@ const Dashboard = () => {
           accentColor="violet"
           delay={160}
         />
+        )}
+        {hasAccess("invoices") && (
         <KpiCard
           title="Obetalda fakturor"
           value={dashboardData?.overdueInvoices ?? 0}
@@ -403,11 +413,15 @@ const Dashboard = () => {
           delay={240}
           subtitle={dashboardData?.overdueTotal ? formatCurrency(dashboardData.overdueTotal) : undefined}
         />
+        )}
       </section>
+      )}
 
       {/* Secondary row - Active workers + Upcoming deadlines */}
+      {(hasAccess("attendance") || hasAccess("invoices")) && (
       <section className="grid gap-4 lg:grid-cols-2">
         {/* Active Workers Card */}
+        {hasAccess("attendance") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -483,8 +497,10 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Upcoming Deadlines Card */}
+        {hasAccess("invoices") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -537,10 +553,12 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
       </section>
+      )}
 
       {/* Draft invoices alert */}
-      {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+      {hasAccess("invoices") && dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
         <Card 
           className="border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors"
           onClick={() => navigate("/invoices")}
@@ -568,38 +586,34 @@ const Dashboard = () => {
       )}
 
       {/* Additional KPIs - Secondary metrics */}
-      <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <span className="h-1 w-1 rounded-full bg-primary" />
-          Statistik
-        </h2>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          <QuickStatCard
-            title="Offerter totalt"
-            icon={Calculator}
-            href="/estimates"
-            onClick={() => navigate("/estimates")}
-          />
-          <QuickStatCard
-            title="Kunder"
-            icon={Users}
-            href="/customers"
-            onClick={() => navigate("/customers")}
-          />
-          <QuickStatCard
-            title="Dagrapporter"
-            icon={TrendingUp}
-            href="/daily-reports"
-            onClick={() => navigate("/daily-reports")}
-          />
-          <QuickStatCard
-            title="Besiktningar"
-            icon={FolderKanban}
-            href="/inspections"
-            onClick={() => navigate("/inspections")}
-          />
-        </div>
-      </section>
+      {(() => {
+        const statCards = [
+          { title: "Offerter totalt", icon: Calculator, href: "/estimates", module: "estimates" },
+          { title: "Kunder", icon: Users, href: "/customers", module: "customers" },
+          { title: "Dagrapporter", icon: TrendingUp, href: "/daily-reports", module: "daily-reports" },
+          { title: "Besiktningar", icon: FolderKanban, href: "/inspections", module: "inspections" },
+        ].filter((c) => hasAccess(c.module));
+        if (statCards.length === 0) return null;
+        return (
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-primary" />
+              Statistik
+            </h2>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {statCards.map((c) => (
+                <QuickStatCard
+                  key={c.title}
+                  title={c.title}
+                  icon={c.icon}
+                  href={c.href}
+                  onClick={() => navigate(c.href)}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
       <AIUsageDialog open={showAIUsage} onOpenChange={setShowAIUsage} />
     </div>
   );
