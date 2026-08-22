@@ -19,6 +19,7 @@ import ProjectOverviewTab from "@/components/projects/ProjectOverviewTab";
 import ProjectAtaTab from "@/components/projects/ProjectAtaTab";
 import ProjectWorkOrdersTab from "@/components/projects/ProjectWorkOrdersTab";
 import ProjectFilesTab from "@/components/projects/ProjectFilesTab";
+import ProjectDocsTab from "@/components/projects/ProjectDocsTab";
 import ProjectPlanningTab from "@/components/projects/ProjectPlanningTab";
 import ProjectDiaryTab from "@/components/projects/ProjectDiaryTab";
 import JobDetailView from "@/components/jobs/JobDetailView";
@@ -309,6 +310,10 @@ export default function ProjectView() {
             <BookOpen className="h-4 w-4" />
             <span>Dagbok</span>
           </TabsTrigger>
+          <TabsTrigger value="docs" className="flex items-center gap-1.5 min-w-fit tab-active-glow hover:bg-muted/50 py-2 px-3 text-[11px] md:text-sm">
+            <FileText className="h-4 w-4" />
+            <span>Dokument</span>
+          </TabsTrigger>
         </TabsList>
 
 
@@ -337,6 +342,10 @@ export default function ProjectView() {
 
         <TabsContent value="workorders" className="mt-6">
           <ProjectWorkOrdersTab projectId={project.id} projectName={project.name} estimateId={project.estimate_id} />
+        </TabsContent>
+
+        <TabsContent value="docs" className="mt-6">
+          <ProjectDocsTab projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="files" className="mt-6">
