@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Calculator, Clock, ChevronRight } from "lucide-react";
+import { BookOpen, Calculator, Clock, ChevronRight, FileText } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -52,6 +52,17 @@ export default function EmployeeDashboard() {
     },
   });
 
+  const { data: docsCount, isLoading: docsLoading } = useQuery({
+    queryKey: ["my-docs-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("documents")
+        .select("*", { count: "exact", head: true });
+
+      return count || 0;
+    },
+  });
+
   const { data: weeklyHours, isLoading: hoursLoading } = useQuery({
     queryKey: ["my-weekly-hours"],
     queryFn: async () => {
@@ -82,7 +93,7 @@ export default function EmployeeDashboard() {
   });
 
   const isLoading =
-    profileLoading || reportsLoading || estimatesLoading || hoursLoading || recentLoading;
+    profileLoading || reportsLoading || estimatesLoading || docsLoading || hoursLoading || recentLoading;
 
   const firstName = profile?.full_name?.split(" ")[0] || "där";
 
@@ -108,6 +119,13 @@ export default function EmployeeDashboard() {
       value: `${weeklyHours ?? 0}`,
       label: "timmar denna vecka",
     },
+    {
+      title: "Docs",
+      icon: FileText,
+      href: "/docs",
+      value: `${docsCount ?? 0}`,
+      label: "dokument",
+    },
   ];
 
   if (isLoading) return null;
@@ -124,7 +142,7 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Module cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {moduleCards.map((card) => (
           <Card
             key={card.href}
