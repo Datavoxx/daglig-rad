@@ -37,7 +37,10 @@ interface CompanySettings {
 }
 
 export default function Settings() {
+  const { role } = useUserPermissions();
   const [loading, setLoading] = useState(true);
+  
+  // Company settings state
   
   // Company settings state
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
