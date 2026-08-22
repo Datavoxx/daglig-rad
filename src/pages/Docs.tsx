@@ -73,10 +73,10 @@ export default function Docs() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon={FileText}
+          icon={<FileText className="h-5 w-5" />}
           title="Inga dokument ännu"
           description="Skapa ditt första dokument för att börja anteckna."
-          action={
+          actions={
             <Button onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
               Nytt dokument
