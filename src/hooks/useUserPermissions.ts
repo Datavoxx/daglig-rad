@@ -76,10 +76,14 @@ export function useUserPermissions() {
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
+          .eq("user_id", user.id);
 
-        const userRole = roleData?.role || null;
+        const roles = (roleData ?? []).map((r) => r.role as string);
+        const userRole = roles.includes("founder")
+          ? "founder"
+          : roles.includes("admin")
+            ? "admin"
+            : (roles[0] ?? null);
         setRole(userRole);
 
         const { data: employeeData } = await supabase
