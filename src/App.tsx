@@ -41,6 +41,8 @@ import FeatureDetail from "@/pages/features/FeatureDetail";
 import AgentDetail from "@/pages/ai/AgentDetail";
 import GlobalAssistant from "@/pages/GlobalAssistant";
 import ServiceHomeDashboard from "@/pages/ServiceHomeDashboard";
+import Docs from "@/pages/Docs";
+import DocView from "@/pages/DocView";
 
 const queryClient = new QueryClient();
 
