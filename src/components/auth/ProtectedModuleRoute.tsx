@@ -9,7 +9,7 @@ interface ProtectedModuleRouteProps {
 }
 
 export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteProps) {
-  const { hasAccess, loading, permissions } = useUserPermissions();
+  const { hasAccess, loading, permissions, getDefaultRoute } = useUserPermissions();
   const hasShownToast = useRef(false);
 
   const canAccess = hasAccess(module);
@@ -26,13 +26,18 @@ export function ProtectedModuleRoute({ module, children }: ProtectedModuleRouteP
   }
 
   if (!canAccess) {
-    // Redirect to daily-reports for employees, or first available module
-    const fallback = permissions.includes("daily-reports")
-      ? "/daily-reports"
-      : permissions.length > 0
-        ? `/${permissions[0]}`
-        : "/dashboard";
-    return <Navigate to={fallback} replace />;
+    // No modules at all — show a message instead of redirecting in a loop
+    if (permissions.length === 0) {
+      return (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 px-6 text-center">
+          <h1 className="text-lg font-semibold">Du saknar behörighet</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Inga moduler är aktiverade för ditt konto. Kontakta din administratör.
+          </p>
+        </div>
+      );
+    }
+    return <Navigate to={getDefaultRoute()} replace />;
   }
 
   return <>{children}</>;
