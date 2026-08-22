@@ -99,7 +99,7 @@ const HowItWorksSection = () => {
                   "Spela in din röst – få en komplett rapport"
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-xl">
-                  JIA's AI lyssnar på din beskrivning och skapar automatiskt dagrapporter, 
+                  Byggio's AI lyssnar på din beskrivning och skapar automatiskt dagrapporter, 
                   offerter och projektplaner. Allt strukturerat och professionellt.
                 </p>
 

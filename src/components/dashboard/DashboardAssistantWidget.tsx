@@ -20,7 +20,7 @@ export function DashboardAssistantWidget() {
           Testa nya
         </span>
         <span className="text-sm font-semibold text-primary">
-          JIA AI
+          Byggio AI
         </span>
         <Sparkles className="h-4 w-4 text-primary" />
       </div>

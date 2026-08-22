@@ -188,7 +188,7 @@ export function VoiceFormSection({
         className="gap-2"
       >
         <Mic className="h-4 w-4" />
-        Låt JIA AI hjälpa dig
+        Låt Byggio AI hjälpa dig
       </Button>
     );
   }
@@ -304,7 +304,7 @@ export function VoiceFormSection({
         <div className="flex items-center justify-center gap-3 py-4">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
           <span className="text-sm font-medium text-foreground">
-            JIA AI analyserar ditt meddelande...
+            Byggio AI analyserar ditt meddelande...
           </span>
         </div>
       </div>

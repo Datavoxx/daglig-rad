@@ -150,7 +150,7 @@ export function EmployeeManager() {
         employeeName: employee.name,
         employeeRole: employee.employee_role,
         organizationName,
-        baseUrl: "https://jiaab.se",
+        baseUrl: "https://byggio.se",
       },
     });
 

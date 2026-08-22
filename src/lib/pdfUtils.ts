@@ -59,10 +59,10 @@ export const PDF_COLORS = {
   MUTED: [100, 116, 139] as [number, number, number],    // slate-500
   WHITE: [255, 255, 255] as [number, number, number],
   LIGHT_GRAY: [241, 245, 249] as [number, number, number], // slate-100
-  HEADER_BG: [34, 197, 94] as [number, number, number],  // green-500 - JIA GREEN
+  HEADER_BG: [34, 197, 94] as [number, number, number],  // green-500 - Byggio GREEN
   BLUE: [59, 130, 246] as [number, number, number],      // blue-500
   GREEN: [34, 197, 94] as [number, number, number],      // green-500
   RED: [239, 68, 68] as [number, number, number],        // red-500
   AMBER: [245, 158, 11] as [number, number, number],     // amber-500
-  JIA_GREEN: [34, 197, 94] as [number, number, number], // green-500 - Primary brand color
+  Byggio_GREEN: [34, 197, 94] as [number, number, number], // green-500 - Primary brand color
 };

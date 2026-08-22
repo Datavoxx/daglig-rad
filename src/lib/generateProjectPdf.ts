@@ -129,8 +129,8 @@ const deviationTypes: Record<string, string> = {
   other: "Övrigt",
 };
 
-// Colors — JIA brand
-const PRIMARY: [number, number, number] = [34, 197, 94];   // green-500 (JIA)
+// Colors — Byggio brand
+const PRIMARY: [number, number, number] = [34, 197, 94];   // green-500 (Byggio)
 const DARK: [number, number, number] = [15, 23, 42];       // slate-900
 const MUTED: [number, number, number] = [100, 116, 139];   // slate-500
 

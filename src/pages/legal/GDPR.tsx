@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 export default function GDPR() {
   return (
@@ -15,7 +15,7 @@ export default function GDPR() {
             Tillbaka till startsidan
           </Link>
           <Link to="/" className="block mb-6">
-            <img src={jiaLogo} alt="JIA" className="h-10" />
+            <img src={byggioLogo} alt="Byggio" className="h-10" />
           </Link>
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
             GDPR

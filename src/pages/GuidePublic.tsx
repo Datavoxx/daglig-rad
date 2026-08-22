@@ -3,7 +3,7 @@ import { FileText, CalendarDays, Calculator, ArrowRight, Download, Clock, Landma
 import { generateGuidePdf } from "@/lib/generateGuidePdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import jiaLogo from "@/assets/jia-logo.png";
+import byggioLogo from "@/assets/byggio-logo.png";
 
 const features = [
   {
@@ -47,13 +47,13 @@ export default function GuidePublic() {
         {/* Header */}
         <div className="text-center mb-12">
           <Link to="/auth" className="inline-block mb-6">
-            <img src={jiaLogo} alt="JIA" className="h-14 mx-auto" />
+            <img src={byggioLogo} alt="Byggio" className="h-14 mx-auto" />
           </Link>
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Förstå JIA
+            Förstå Byggio
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            JIA är en digital plattform för byggprojekt som gör det enkelt att dokumentera, 
+            Byggio är en digital plattform för byggprojekt som gör det enkelt att dokumentera, 
             planera och kalkylera – direkt från mobilen eller datorn.
           </p>
         </div>

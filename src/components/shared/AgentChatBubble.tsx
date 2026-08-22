@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
-// Import JIA AI logo
-import jiaAILogo from "@/assets/jia-ai-logo.png";
+// Import Byggio AI logo
+import byggioAILogo from "@/assets/byggio-ai-logo.png";
 
 interface Message {
   role: "user" | "assistant";
@@ -83,13 +83,13 @@ interface AgentChatBubbleProps {
   context: Omit<SagaContext, "type"> | Omit<BoContext, "type">;
 }
 
-// JIA AI configuration (unified)
+// Byggio AI configuration (unified)
 const agentConfig = {
-  name: "JIA AI",
+  name: "Byggio AI",
   title: "Din AI-assistent",
-  avatar: jiaAILogo,
-  greeting: "Hej! Jag är JIA AI, din assistent. Ställ frågor så hjälper jag dig!",
-  placeholder: "Fråga JIA AI...",
+  avatar: byggioAILogo,
+  greeting: "Hej! Jag är Byggio AI, din assistent. Ställ frågor så hjälper jag dig!",
+  placeholder: "Fråga Byggio AI...",
 };
 
 export function AgentChatBubble({ agent, context }: AgentChatBubbleProps) {

@@ -139,5 +139,5 @@ export function downloadTluFile(blob: Blob, filename: string): void {
 export function generateTluFilename(periodStart: Date, _periodEnd: Date, orgNumber?: string): string {
   const yearMonth = periodStart.toISOString().split("T")[0].substring(0, 7);
   const org = orgNumber?.replace(/-/g, "") || "ORGNR";
-  return `JIA_VISMA_${yearMonth}_${org}.tlu`;
+  return `Byggio_VISMA_${yearMonth}_${org}.tlu`;
 }

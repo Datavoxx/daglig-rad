@@ -344,7 +344,7 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "JIA AI", icon: Sparkles, href: "/global-assistant", module: "dashboard" },
+            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant", module: "dashboard" },
             { title: "Offert", icon: Calculator, href: "/estimates", module: "estimates" },
             { title: "Projekt", icon: FolderKanban, href: "/projects", module: "projects" },
             { title: "Personalliggare", icon: UserCheck, href: "/attendance", module: "attendance" },
