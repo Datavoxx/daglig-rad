@@ -367,7 +367,9 @@ const Dashboard = () => {
       )}
 
       {/* Primary KPI Cards - Most important metrics */}
+      {(hasAccess("attendance") || hasAccess("time-reporting") || hasAccess("projects") || hasAccess("invoices")) && (
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {hasAccess("attendance") && (
         <KpiCard
           title="Personal på plats"
           value={dashboardData?.activeWorkers.length ?? 0}
@@ -377,6 +379,8 @@ const Dashboard = () => {
           delay={0}
           subtitle="just nu"
         />
+        )}
+        {hasAccess("time-reporting") && (
         <KpiCard
           title="Timmar"
           value={formatHours(dashboardData?.totalHoursThisWeek ?? 0)}
@@ -387,6 +391,8 @@ const Dashboard = () => {
           delay={80}
           subtitle="denna vecka"
         />
+        )}
+        {hasAccess("projects") && (
         <KpiCard
           title="Aktiva projekt"
           value={dashboardData?.activeProjects ?? 0}
@@ -396,6 +402,8 @@ const Dashboard = () => {
           accentColor="violet"
           delay={160}
         />
+        )}
+        {hasAccess("invoices") && (
         <KpiCard
           title="Obetalda fakturor"
           value={dashboardData?.overdueInvoices ?? 0}
@@ -405,7 +413,9 @@ const Dashboard = () => {
           delay={240}
           subtitle={dashboardData?.overdueTotal ? formatCurrency(dashboardData.overdueTotal) : undefined}
         />
+        )}
       </section>
+      )}
 
       {/* Secondary row - Active workers + Upcoming deadlines */}
       <section className="grid gap-4 lg:grid-cols-2">
