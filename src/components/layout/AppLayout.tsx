@@ -14,6 +14,7 @@ import {
   Clock,
   ClipboardCheck,
   FileSpreadsheet,
+  FileText,
   Sparkles,
   Briefcase,
   Receipt,
@@ -69,6 +70,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
       { label: "Dagrapporter", href: "/daily-reports", icon: BookOpen, moduleKey: "daily-reports" },
       { label: "Offerter", href: "/estimates", icon: Calculator, moduleKey: "estimates" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+      { label: "Docs", href: "/docs", icon: FileText, moduleKey: "docs" },
     ];
   }
 
@@ -81,6 +83,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
       { label: "Kvitton", href: "/invoices?tab=receipts", icon: Receipt, moduleKey: "invoices" },
       { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
       { label: "Tidsrapport", href: "/time-reporting", icon: Clock, moduleKey: "time-reporting" },
+      { label: "Docs", href: "/docs", icon: FileText, moduleKey: "docs" },
       { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
       { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },
     ];
@@ -97,6 +100,7 @@ const getNavItems = (isEmployee: boolean, isServiceIndustry: boolean): NavItem[]
     { label: "Löneexport", href: "/payroll-export", icon: FileSpreadsheet, moduleKey: "payroll-export" },
     { label: "Fakturor", href: "/invoices", icon: Landmark, moduleKey: "invoices" },
     { label: "Kunder", href: "/customers", icon: Users, moduleKey: "customers" },
+    { label: "Docs", href: "/docs", icon: FileText, moduleKey: "docs" },
     { label: "Inställningar", href: "/settings", icon: Settings, moduleKey: "settings" },
     { label: "Guide", href: "/guide", icon: BookOpen, moduleKey: "guide" },
     { label: "Bokföring", href: "/accounting", icon: BookOpen, moduleKey: "invoices" },

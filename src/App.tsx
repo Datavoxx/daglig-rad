@@ -41,6 +41,8 @@ import FeatureDetail from "@/pages/features/FeatureDetail";
 import AgentDetail from "@/pages/ai/AgentDetail";
 import GlobalAssistant from "@/pages/GlobalAssistant";
 import ServiceHomeDashboard from "@/pages/ServiceHomeDashboard";
+import Docs from "@/pages/Docs";
+import DocView from "@/pages/DocView";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +84,8 @@ const App = () => {
                 <Route path="/customers" element={<ProtectedModuleRoute module="customers"><Customers /></ProtectedModuleRoute>} />
                 <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
                 <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />
+                <Route path="/docs" element={<ProtectedModuleRoute module="docs"><Docs /></ProtectedModuleRoute>} />
+                <Route path="/docs/:id" element={<ProtectedModuleRoute module="docs"><DocView /></ProtectedModuleRoute>} />
                 <Route path="/invoices" element={<ProtectedModuleRoute module="invoices"><Invoices /></ProtectedModuleRoute>} />
                 <Route path="/accounting" element={<ProtectedModuleRoute module="invoices"><Accounting /></ProtectedModuleRoute>} />
                 <Route path="/time-reporting" element={<ProtectedModuleRoute module="time-reporting"><TimeReporting /></ProtectedModuleRoute>} />

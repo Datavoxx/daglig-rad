@@ -601,6 +601,63 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          id: string
+          plain_text: string | null
+          project_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by: string
+          customer_id?: string | null
+          id?: string
+          plain_text?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          id?: string
+          plain_text?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invitations: {
         Row: {
           accepted_at: string | null
