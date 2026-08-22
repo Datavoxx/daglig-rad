@@ -344,14 +344,14 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "JIA AI", icon: Sparkles, href: "/global-assistant" },
-            { title: "Offert", icon: Calculator, href: "/estimates" },
-            { title: "Projekt", icon: FolderKanban, href: "/projects" },
-            { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
-            { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
-            { title: "Kunder", icon: Users, href: "/customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true" },
-          ].map((item) => (
+            { title: "JIA AI", icon: Sparkles, href: "/global-assistant", module: "dashboard" },
+            { title: "Offert", icon: Calculator, href: "/estimates", module: "estimates" },
+            { title: "Projekt", icon: FolderKanban, href: "/projects", module: "projects" },
+            { title: "Personalliggare", icon: UserCheck, href: "/attendance", module: "attendance" },
+            { title: "Tidsrapport", icon: Clock, href: "/time-reporting", module: "time-reporting" },
+            { title: "Kunder", icon: Users, href: "/customers", module: "customers" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", module: "receipts" },
+          ].filter((item) => hasAccess(item.module)).map((item) => (
             <button
               key={item.title}
               onClick={() => navigate(item.href)}
