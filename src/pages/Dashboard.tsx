@@ -183,6 +183,16 @@ const Dashboard = () => {
           .select("hours, date")
           .eq("employer_id", userData.user.id)
           .gte("date", fourteenDaysAgo.toISOString().split('T')[0]),
+        // Antal offerter
+        supabase
+          .from("project_estimates")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userData.user.id),
+        // Antal dokument
+        supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userData.user.id),
       ]);
 
       // Fetch profile data for active workers
