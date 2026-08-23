@@ -592,30 +592,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <FolderPlus className="h-5 w-5 text-primary" />
-                Starta projekt?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
-                Det gör att du snabbt kan börja planera och hantera arbetet.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Inte nu</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => {
-                  navigate(`/projects?createFrom=${savedEstimateId}`);
-                }}
-              >
-                Skapa projekt
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </>
     );
   }
@@ -660,30 +636,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Radera
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <FolderPlus className="h-5 w-5 text-primary" />
-              Starta projekt?
-            </AlertDialogTitle>
-              <AlertDialogDescription>
-                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
-                Det gör att du snabbt kan börja planera och hantera arbetet.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Inte nu</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                navigate(`/projects?createFrom=${savedEstimateId}`);
-              }}
-            >
-              Skapa projekt
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
