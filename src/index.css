@@ -524,3 +524,27 @@
 .ProseMirror .selectedCell:after { @apply bg-primary/10 pointer-events-none absolute inset-0 z-[2]; content: ""; }
 .ProseMirror .column-resize-handle { @apply bg-primary absolute right-[-2px] top-0 bottom-0 w-1 pointer-events-none; }
 .ProseMirror.resize-cursor { cursor: col-resize; }
+
+/* ---- Docs: A4 page mode ---- */
+.doc-page-a4 {
+  width: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20mm;
+  background-color: hsl(var(--card));
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(297mm - 1px),
+    hsl(var(--border)) calc(297mm - 1px),
+    hsl(var(--border)) 297mm
+  );
+  background-origin: border-box;
+  background-clip: border-box;
+}
+.doc-page-a4 .ProseMirror {
+  min-height: calc(297mm - 40mm);
+}
+@media (max-width: 900px) {
+  .doc-page-a4 { padding: 12mm; }
+}
