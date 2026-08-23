@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { AIUsageDialog } from "@/components/dashboard/AIUsageDialog";
