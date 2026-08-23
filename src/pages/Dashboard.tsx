@@ -127,6 +127,9 @@ const Dashboard = () => {
         projectsTrendRes,
         // Recent hours trend
         hoursTrendRes,
+        // Counts
+        estimateCountRes,
+        documentCountRes,
       ] = await Promise.all([
         // Active workers
         supabase
