@@ -9,7 +9,7 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, FileText, Infinity as InfinityIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DocEditorToolbar } from "@/components/docs/DocEditorToolbar";
 
