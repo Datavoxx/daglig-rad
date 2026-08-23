@@ -180,6 +180,8 @@ export function AppLayout() {
   const navItems = getNavItems(isEmployee, isServiceIndustry);
   const visibleNavItems = navItems.filter(item => {
     if (item.moduleKey === "payroll-export" && userEmail?.toLowerCase() !== "mahad@datavoxx.se") return false;
+    // Byggio AI är endast tillgängligt för admin
+    if (item.href === "/global-assistant" && role !== "admin") return false;
     return hasAccess(item.moduleKey);
   });
 
