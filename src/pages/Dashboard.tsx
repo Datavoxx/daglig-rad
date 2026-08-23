@@ -562,10 +562,13 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
       </section>
+      )}
 
       {/* Draft invoices alert */}
-      {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+      {hasAccess("invoices") && dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+
         <Card 
           className="border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors"
           onClick={() => navigate("/invoices")}
