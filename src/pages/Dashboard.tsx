@@ -596,38 +596,36 @@ const Dashboard = () => {
       )}
 
       {/* Additional KPIs - Secondary metrics */}
-      <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <span className="h-1 w-1 rounded-full bg-primary" />
-          Statistik
-        </h2>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          <QuickStatCard
-            title="Offerter totalt"
-            icon={Calculator}
-            href="/estimates"
-            onClick={() => navigate("/estimates")}
-          />
-          <QuickStatCard
-            title="Kunder"
-            icon={Users}
-            href="/customers"
-            onClick={() => navigate("/customers")}
-          />
-          <QuickStatCard
-            title="Dagrapporter"
-            icon={TrendingUp}
-            href="/daily-reports"
-            onClick={() => navigate("/daily-reports")}
-          />
-          <QuickStatCard
-            title="Besiktningar"
-            icon={FolderKanban}
-            href="/inspections"
-            onClick={() => navigate("/inspections")}
-          />
-        </div>
-      </section>
+      {(() => {
+        const statCards = [
+          { title: "Offerter totalt", icon: Calculator, href: "/estimates", moduleKey: "estimates" },
+          { title: "Docs", icon: FileText, href: "/docs", moduleKey: "docs" },
+          { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
+          { title: "Dagrapporter", icon: TrendingUp, href: "/daily-reports", moduleKey: "daily-reports" },
+          { title: "Besiktningar", icon: FolderKanban, href: "/inspections", moduleKey: "inspections" },
+        ].filter((c) => hasAccess(c.moduleKey));
+        if (statCards.length === 0) return null;
+        return (
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-primary" />
+              Statistik
+            </h2>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {statCards.map((card) => (
+                <QuickStatCard
+                  key={card.title}
+                  title={card.title}
+                  icon={card.icon}
+                  href={card.href}
+                  onClick={() => navigate(card.href)}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       <AIUsageDialog open={showAIUsage} onOpenChange={setShowAIUsage} />
     </div>
   );
