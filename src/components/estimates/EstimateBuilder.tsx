@@ -10,7 +10,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, FolderPlus, Undo2, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, Undo2, ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,7 +72,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [showProjectRecommendation, setShowProjectRecommendation] = useState(false);
+  
   const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
   
   
@@ -222,7 +222,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       await new Promise(resolve => setTimeout(resolve, 0));
       const newEstimateId = await estimate.saveAsync();
       setSavedEstimateId(newEstimateId);
-      setShowProjectRecommendation(true);
     } catch (error) {
       // Error is handled by the mutation's onError
     }
@@ -360,27 +359,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
                 <ExternalLink className="h-4 w-4" />
                 Gå till projekt
               </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    if (estimate.state.status === "draft") {
-                      await handleSaveAsCompleted();
-                    } else {
-                      const id = await estimate.saveAsync();
-                      setSavedEstimateId(id);
-                      setShowProjectRecommendation(true);
-                    }
-                  } catch {}
-                }}
-                className="h-8 gap-1"
-              >
-                <FolderPlus className="h-4 w-4" />
-                Starta projekt
-              </Button>
-            )}
+            ) : null}
             {estimate.state.status === "completed" && (
               <Button
                 variant="ghost"
@@ -613,30 +592,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <FolderPlus className="h-5 w-5 text-primary" />
-                Starta projekt?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
-                Det gör att du snabbt kan börja planera och hantera arbetet.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Inte nu</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => {
-                  navigate(`/projects?createFrom=${savedEstimateId}`);
-                }}
-              >
-                Skapa projekt
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </>
     );
   }
@@ -681,30 +636,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Radera
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={showProjectRecommendation} onOpenChange={setShowProjectRecommendation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <FolderPlus className="h-5 w-5 text-primary" />
-              Starta projekt?
-            </AlertDialogTitle>
-              <AlertDialogDescription>
-                Nu när offerten är godkänd, vill du gå vidare och starta ett projekt? 
-                Det gör att du snabbt kan börja planera och hantera arbetet.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Inte nu</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                navigate(`/projects?createFrom=${savedEstimateId}`);
-              }}
-            >
-              Skapa projekt
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
