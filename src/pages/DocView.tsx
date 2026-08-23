@@ -1,0 +1,149 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Link from "@tiptap/extension-link";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { DocEditorToolbar } from "@/components/docs/DocEditorToolbar";
+
+export default function DocView() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const extensions = useMemo(
+    () => [
+      StarterKit,
+      Placeholder.configure({ placeholder: "Börja skriva…" }),
+      Link.configure({ openOnClick: false, autolink: true }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+    ],
+    []
+  );
+
+  const editor = useEditor({
+    extensions,
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "doc-editor focus:outline-none min-h-[60vh]",
+      },
+    },
+    onUpdate: () => scheduleSave(),
+  });
+
+  const scheduleSave = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void save(), 800);
+  };
+
+  const save = async () => {
+    if (!id || !editor) return;
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        title: title.trim() || "Namnlöst dokument",
+        content: editor.getJSON() as never,
+        plain_text: editor.getText(),
+        updated_by: user?.id ?? null,
+      })
+      .eq("id", id);
+    setSaving(false);
+    if (error) {
+      toast.error("Kunde inte spara dokumentet");
+      return;
+    }
+    setSavedAt(new Date());
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id || !editor) return;
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Dokumentet kunde inte hittas");
+        navigate("/docs");
+        return;
+      }
+      setTitle(data.title ?? "");
+      editor.commands.setContent((data.content as never) ?? "");
+      setLoaded(true);
+    };
+    void load();
+  }, [id, editor]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!window.confirm("Ta bort dokumentet?")) return;
+    const { error } = await supabase.from("documents").delete().eq("id", id);
+    if (error) {
+      toast.error("Kunde inte ta bort dokumentet");
+      return;
+    }
+    toast.success("Dokumentet togs bort");
+    navigate("/docs");
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 md:p-6">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/docs")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Alla dokument
+        </Button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {saving
+              ? "Sparar…"
+              : savedAt
+                ? `Sparat ${savedAt.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`
+                : "Alla ändringar sparas automatiskt"}
+          </span>
+          <Button variant="ghost" size="sm" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <Input
+        value={title}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          scheduleSave();
+        }}
+        placeholder="Namnlöst dokument"
+        className="h-auto border-0 px-0 text-3xl font-bold shadow-none focus-visible:ring-0"
+      />
+
+      <DocEditorToolbar editor={editor} />
+
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}

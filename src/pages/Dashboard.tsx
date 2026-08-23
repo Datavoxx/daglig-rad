@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { AIUsageDialog } from "@/components/dashboard/AIUsageDialog";
@@ -19,7 +21,9 @@ import {
   Plus,
   ExternalLink,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  FileText
+
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +65,8 @@ interface UpcomingDeadline {
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { hasAccess } = useUserPermissions();
+
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -342,14 +348,16 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant" },
-            { title: "Offert", icon: Calculator, href: "/estimates" },
-            { title: "Projekt", icon: FolderKanban, href: "/projects" },
-            { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
-            { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
-            { title: "Kunder", icon: Users, href: "/customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true" },
-          ].map((item) => (
+            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant", moduleKey: "dashboard" },
+            { title: "Offert", icon: Calculator, href: "/estimates", moduleKey: "estimates" },
+            { title: "Docs", icon: FileText, href: "/docs", moduleKey: "docs" },
+            { title: "Projekt", icon: FolderKanban, href: "/projects", moduleKey: "projects" },
+            { title: "Personalliggare", icon: UserCheck, href: "/attendance", moduleKey: "attendance" },
+            { title: "Tidsrapport", icon: Clock, href: "/time-reporting", moduleKey: "time-reporting" },
+            { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", moduleKey: "invoices" },
+          ].filter((item) => hasAccess(item.moduleKey)).map((item) => (
+
             <button
               key={item.title}
               onClick={() => navigate(item.href)}
@@ -365,7 +373,9 @@ const Dashboard = () => {
       )}
 
       {/* Primary KPI Cards - Most important metrics */}
+      {(hasAccess("attendance") || hasAccess("time-reporting") || hasAccess("projects") || hasAccess("invoices")) && (
       <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {hasAccess("attendance") && (
         <KpiCard
           title="Personal på plats"
           value={dashboardData?.activeWorkers.length ?? 0}
@@ -375,6 +385,8 @@ const Dashboard = () => {
           delay={0}
           subtitle="just nu"
         />
+        )}
+        {hasAccess("time-reporting") && (
         <KpiCard
           title="Timmar"
           value={formatHours(dashboardData?.totalHoursThisWeek ?? 0)}
@@ -385,6 +397,8 @@ const Dashboard = () => {
           delay={80}
           subtitle="denna vecka"
         />
+        )}
+        {hasAccess("projects") && (
         <KpiCard
           title="Aktiva projekt"
           value={dashboardData?.activeProjects ?? 0}
@@ -394,6 +408,8 @@ const Dashboard = () => {
           accentColor="violet"
           delay={160}
         />
+        )}
+        {hasAccess("invoices") && (
         <KpiCard
           title="Obetalda fakturor"
           value={dashboardData?.overdueInvoices ?? 0}
@@ -403,7 +419,10 @@ const Dashboard = () => {
           delay={240}
           subtitle={dashboardData?.overdueTotal ? formatCurrency(dashboardData.overdueTotal) : undefined}
         />
+        )}
       </section>
+      )}
+
 
       {/* Secondary row - Active workers + Upcoming deadlines */}
       <section className="grid gap-4 lg:grid-cols-2">
