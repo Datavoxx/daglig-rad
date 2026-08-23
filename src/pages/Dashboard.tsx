@@ -279,6 +279,8 @@ const Dashboard = () => {
         hoursSparkline: generateHoursSparkline(),
         projectsSparkline: generateProjectSparkline(),
         upcomingDeadlines: deadlines,
+        estimateCount: estimateCountRes.count || 0,
+        documentCount: documentCountRes.count || 0,
       };
     },
   });
