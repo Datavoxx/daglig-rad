@@ -201,12 +201,22 @@ export default function DocView() {
       <DocEditorToolbar editor={editor} />
 
       {pageMode === "a4" ? (
-        <div className="overflow-x-auto">
-          <div ref={pageRef} className="doc-page-a4 rounded-lg border border-border shadow-sm">
-            <EditorContent editor={editor} />
+        <div className="overflow-x-auto py-2">
+          <div className="doc-a4-wrap">
+            <div ref={pageRef} className="doc-page-a4">
+              <EditorContent editor={editor} />
+            </div>
+            {Array.from({ length: Math.max(0, pageCount - 1) }).map((_, i) => (
+              <div
+                key={i}
+                className="doc-page-break"
+                style={{ top: `calc(${(i + 1) * 297}mm - 6px)` }}
+              />
+            ))}
           </div>
         </div>
       ) : (
+
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <EditorContent editor={editor} />
         </div>
