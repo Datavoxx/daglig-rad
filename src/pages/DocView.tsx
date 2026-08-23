@@ -9,9 +9,10 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2, FileText, Infinity as InfinityIcon } from "lucide-react";
+import { ArrowLeft, Trash2, FileText, Infinity as InfinityIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { DocEditorToolbar } from "@/components/docs/DocEditorToolbar";
+import { exportDocToPdf } from "@/lib/exportDocToPdf";
 
 const MM_TO_PX = 96 / 25.4;
 const A4_PAGE_PX = 297 * MM_TO_PX;
@@ -129,6 +130,21 @@ export default function DocView() {
   }, [pageMode, loaded, editor]);
 
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (!editor) return;
+    setExporting(true);
+    try {
+      await exportDocToPdf(title, editor.getHTML());
+      toast.success("PDF skapad");
+    } catch {
+      toast.error("Kunde inte skapa PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!id) return;
     if (!window.confirm("Ta bort dokumentet?")) return;
@@ -182,6 +198,9 @@ export default function DocView() {
                 ? `Sparat ${savedAt.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`
                 : "Alla ändringar sparas automatiskt"}
           </span>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting}>
+            <Download className="mr-2 h-4 w-4" /> PDF
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
