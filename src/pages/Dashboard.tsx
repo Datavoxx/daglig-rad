@@ -346,14 +346,16 @@ const Dashboard = () => {
       {isMobile ? (
         <section className="grid grid-cols-2 gap-3">
           {[
-            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant" },
-            { title: "Offert", icon: Calculator, href: "/estimates" },
-            { title: "Projekt", icon: FolderKanban, href: "/projects" },
-            { title: "Personalliggare", icon: UserCheck, href: "/attendance" },
-            { title: "Tidsrapport", icon: Clock, href: "/time-reporting" },
-            { title: "Kunder", icon: Users, href: "/customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true" },
-          ].map((item) => (
+            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant", moduleKey: "dashboard" },
+            { title: "Offert", icon: Calculator, href: "/estimates", moduleKey: "estimates" },
+            { title: "Docs", icon: FileText, href: "/docs", moduleKey: "docs" },
+            { title: "Projekt", icon: FolderKanban, href: "/projects", moduleKey: "projects" },
+            { title: "Personalliggare", icon: UserCheck, href: "/attendance", moduleKey: "attendance" },
+            { title: "Tidsrapport", icon: Clock, href: "/time-reporting", moduleKey: "time-reporting" },
+            { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
+            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", moduleKey: "invoices" },
+          ].filter((item) => hasAccess(item.moduleKey)).map((item) => (
+
             <button
               key={item.title}
               onClick={() => navigate(item.href)}
