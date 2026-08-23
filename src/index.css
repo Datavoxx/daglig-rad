@@ -517,8 +517,8 @@
 .ProseMirror ul[data-type="taskList"] { @apply list-none pl-0; }
 .ProseMirror ul[data-type="taskList"] li { @apply flex items-start gap-2; }
 .ProseMirror ul[data-type="taskList"] li > label { @apply mt-1; }
-.ProseMirror table { @apply w-full my-4 border-collapse table-fixed; }
-.ProseMirror table td, .ProseMirror table th { @apply border border-border px-3 py-2 align-top relative min-w-[3rem]; }
+.ProseMirror table { @apply w-full my-4 border-collapse table-fixed border border-black; }
+.ProseMirror table td, .ProseMirror table th { @apply border border-black px-3 py-2 align-top relative min-w-[3rem]; }
 .ProseMirror table th { @apply bg-muted font-semibold text-left; }
 .ProseMirror table p { @apply my-0; }
 .ProseMirror .selectedCell:after { @apply bg-primary/10 pointer-events-none absolute inset-0 z-[2]; content: ""; }
