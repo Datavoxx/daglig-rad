@@ -13,6 +13,9 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocEditorToolbar } from "@/components/docs/DocEditorToolbar";
 
+const MM_TO_PX = 96 / 25.4;
+const A4_PAGE_PX = 297 * MM_TO_PX;
+
 export default function DocView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -20,7 +23,13 @@ export default function DocView() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [pageMode, setPageMode] = useState<"a4" | "endless">(
+    () => (localStorage.getItem("docs:pageMode") as "a4" | "endless") ?? "endless"
+  );
+  const [pageCount, setPageCount] = useState(1);
+  const pageRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+
 
   const extensions = useMemo(
     () => [
