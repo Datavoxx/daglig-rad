@@ -23,6 +23,8 @@ import Inspections from "@/pages/Inspections";
 import InspectionNew from "@/pages/InspectionNew";
 import InspectionView from "@/pages/InspectionView";
 import Estimates from "@/pages/Estimates";
+import Docs from "@/pages/Docs";
+import DocView from "@/pages/DocView";
 import Customers from "@/pages/Customers";
 import Guide from "@/pages/Guide";
 import GuidePublic from "@/pages/GuidePublic";
@@ -79,6 +81,8 @@ const App = () => {
                 <Route path="/inspections/new" element={<ProtectedModuleRoute module="inspections"><InspectionNew /></ProtectedModuleRoute>} />
                 <Route path="/inspections/:id" element={<ProtectedModuleRoute module="inspections"><InspectionView /></ProtectedModuleRoute>} />
                 <Route path="/estimates" element={<ProtectedModuleRoute module="estimates"><Estimates /></ProtectedModuleRoute>} />
+                <Route path="/docs" element={<ProtectedModuleRoute module="docs"><Docs /></ProtectedModuleRoute>} />
+                <Route path="/docs/:id" element={<ProtectedModuleRoute module="docs"><DocView /></ProtectedModuleRoute>} />
                 <Route path="/customers" element={<ProtectedModuleRoute module="customers"><Customers /></ProtectedModuleRoute>} />
                 <Route path="/guide" element={<ProtectedModuleRoute module="guide"><Guide /></ProtectedModuleRoute>} />
                 <Route path="/settings" element={<ProtectedModuleRoute module="settings"><Settings /></ProtectedModuleRoute>} />

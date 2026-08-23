@@ -6,6 +6,7 @@ const ALL_MODULES = [
   "dashboard",
   "projects",
   "estimates",
+  "docs",
   "customers",
   "guide",
   "settings",
@@ -16,8 +17,12 @@ const ALL_MODULES = [
   "payroll-export"
 ];
 
+// Default modules for brand new accounts (mirrors handle_new_user)
+const DEFAULT_MODULES = ["dashboard", "estimates", "docs"];
+
 // Strictly limited modules for employees - NEVER includes dashboard or projects
 const EMPLOYEE_MODULES = ["estimates", "time-reporting", "daily-reports"];
+
 
 export function useUserPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -34,18 +39,22 @@ export function useUserPermissions() {
           return;
         }
 
-        // Fetch user role
-        const { data: roleData } = await supabase
+        // Fetch user roles (a user may have several)
+        const { data: roleRows } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
+          .eq("user_id", user.id);
 
-        const userRole = roleData?.role || null;
+        const roles = (roleRows ?? []).map((r) => r.role as string);
+        const userRole = roles.includes("admin")
+          ? "admin"
+          : roles.includes("founder")
+            ? "founder"
+            : roles[0] ?? null;
         setRole(userRole);
 
-        // Founders and admins get full access
-        if (userRole === "founder" || userRole === "admin") {
+        // Only admins get unconditional full access
+        if (userRole === "admin") {
           setIsEmployee(false);
           setPermissions(ALL_MODULES);
           setLoading(false);
@@ -68,7 +77,7 @@ export function useUserPermissions() {
           return;
         }
 
-        // Fallback: fetch from user_permissions table
+        // Everyone else (founders/owners): user_permissions is the source of truth
         const { data, error } = await supabase
           .from("user_permissions")
           .select("modules")
@@ -79,14 +88,11 @@ export function useUserPermissions() {
           console.error("Error fetching permissions:", error);
           setPermissions([]);
         } else if (!data || !data.modules || data.modules.length === 0) {
-          setPermissions(ALL_MODULES);
+          setPermissions(DEFAULT_MODULES);
         } else {
-          if (data.modules.includes("dashboard")) {
-            setPermissions(ALL_MODULES);
-          } else {
-            setPermissions(data.modules);
-          }
+          setPermissions(data.modules);
         }
+
       } catch (err) {
         console.error("Error in fetchPermissions:", err);
         setPermissions([]);

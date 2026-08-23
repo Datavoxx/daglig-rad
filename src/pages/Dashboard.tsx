@@ -425,9 +425,12 @@ const Dashboard = () => {
 
 
       {/* Secondary row - Active workers + Upcoming deadlines */}
+      {(hasAccess("attendance") || hasAccess("invoices")) && (
       <section className="grid gap-4 lg:grid-cols-2">
         {/* Active Workers Card */}
+        {hasAccess("attendance") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
+
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -502,9 +505,12 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Upcoming Deadlines Card */}
+        {hasAccess("invoices") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
+
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -556,10 +562,13 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        )}
       </section>
+      )}
 
       {/* Draft invoices alert */}
-      {dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+      {hasAccess("invoices") && dashboardData?.draftInvoices && dashboardData.draftInvoices > 0 && (
+
         <Card 
           className="border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors"
           onClick={() => navigate("/invoices")}
@@ -587,38 +596,36 @@ const Dashboard = () => {
       )}
 
       {/* Additional KPIs - Secondary metrics */}
-      <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <span className="h-1 w-1 rounded-full bg-primary" />
-          Statistik
-        </h2>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          <QuickStatCard
-            title="Offerter totalt"
-            icon={Calculator}
-            href="/estimates"
-            onClick={() => navigate("/estimates")}
-          />
-          <QuickStatCard
-            title="Kunder"
-            icon={Users}
-            href="/customers"
-            onClick={() => navigate("/customers")}
-          />
-          <QuickStatCard
-            title="Dagrapporter"
-            icon={TrendingUp}
-            href="/daily-reports"
-            onClick={() => navigate("/daily-reports")}
-          />
-          <QuickStatCard
-            title="Besiktningar"
-            icon={FolderKanban}
-            href="/inspections"
-            onClick={() => navigate("/inspections")}
-          />
-        </div>
-      </section>
+      {(() => {
+        const statCards = [
+          { title: "Offerter totalt", icon: Calculator, href: "/estimates", moduleKey: "estimates" },
+          { title: "Docs", icon: FileText, href: "/docs", moduleKey: "docs" },
+          { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
+          { title: "Dagrapporter", icon: TrendingUp, href: "/daily-reports", moduleKey: "daily-reports" },
+          { title: "Besiktningar", icon: FolderKanban, href: "/inspections", moduleKey: "inspections" },
+        ].filter((c) => hasAccess(c.moduleKey));
+        if (statCards.length === 0) return null;
+        return (
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-primary" />
+              Statistik
+            </h2>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {statCards.map((card) => (
+                <QuickStatCard
+                  key={card.title}
+                  title={card.title}
+                  icon={card.icon}
+                  href={card.href}
+                  onClick={() => navigate(card.href)}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       <AIUsageDialog open={showAIUsage} onOpenChange={setShowAIUsage} />
     </div>
   );
