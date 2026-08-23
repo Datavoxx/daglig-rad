@@ -127,6 +127,9 @@ const Dashboard = () => {
         projectsTrendRes,
         // Recent hours trend
         hoursTrendRes,
+        // Counts
+        estimateCountRes,
+        documentCountRes,
       ] = await Promise.all([
         // Active workers
         supabase
@@ -180,6 +183,16 @@ const Dashboard = () => {
           .select("hours, date")
           .eq("employer_id", userData.user.id)
           .gte("date", fourteenDaysAgo.toISOString().split('T')[0]),
+        // Antal offerter
+        supabase
+          .from("project_estimates")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userData.user.id),
+        // Antal dokument
+        supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userData.user.id),
       ]);
 
       // Fetch profile data for active workers
@@ -266,6 +279,8 @@ const Dashboard = () => {
         hoursSparkline: generateHoursSparkline(),
         projectsSparkline: generateProjectSparkline(),
         upcomingDeadlines: deadlines,
+        estimateCount: estimateCountRes.count || 0,
+        documentCount: documentCountRes.count || 0,
       };
     },
   });
@@ -344,32 +359,99 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Global Assistant Widget / Mobile Quick Grid */}
-      {isMobile ? (
-        <section className="grid grid-cols-2 gap-3">
-          {[
-            { title: "Byggio AI", icon: Sparkles, href: "/global-assistant", moduleKey: "dashboard" },
-            { title: "Offert", icon: Calculator, href: "/estimates", moduleKey: "estimates" },
-            { title: "Docs", icon: FileText, href: "/docs", moduleKey: "docs" },
-            { title: "Projekt", icon: FolderKanban, href: "/projects", moduleKey: "projects" },
-            { title: "Personalliggare", icon: UserCheck, href: "/attendance", moduleKey: "attendance" },
-            { title: "Tidsrapport", icon: Clock, href: "/time-reporting", moduleKey: "time-reporting" },
-            { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
-            { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", moduleKey: "invoices" },
-          ].filter((item) => hasAccess(item.moduleKey)).map((item) => (
-
-            <button
-              key={item.title}
-              onClick={() => navigate(item.href)}
-              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card/50 p-5 ring-1 ring-black/5 dark:ring-white/5 active:scale-95 transition-transform"
+      {/* Snabbval: Offert & Docs */}
+      {(hasAccess("estimates") || hasAccess("docs")) && (
+        <section className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          {hasAccess("estimates") && (
+            <Card
+              className="group cursor-pointer border-border/40 bg-card/50 hover:bg-muted/50 transition-all hover-lift"
+              onClick={() => navigate("/estimates?new=true")}
             >
-              <item.icon className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-foreground">{item.title}</span>
-            </button>
-          ))}
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                  <Calculator className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Ny offert</p>
+                  <p className="text-xs text-muted-foreground">Skapa en offert direkt</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:translate-x-0.5 transition-transform" />
+              </CardContent>
+            </Card>
+          )}
+          {hasAccess("docs") && (
+            <Card
+              className="group cursor-pointer border-border/40 bg-card/50 hover:bg-muted/50 transition-all hover-lift"
+              onClick={() => navigate("/docs")}
+            >
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Nytt dokument</p>
+                  <p className="text-xs text-muted-foreground">Öppna Docs</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:translate-x-0.5 transition-transform" />
+              </CardContent>
+            </Card>
+          )}
         </section>
-      ) : (
-        <DashboardAssistantWidget />
+      )}
+
+      {/* Antal offerter & dokument */}
+      {(hasAccess("estimates") || hasAccess("docs")) && (
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {hasAccess("estimates") && (
+            <KpiCard
+              title="Offerter"
+              value={dashboardData?.estimateCount ?? 0}
+              icon={Calculator}
+              onClick={() => navigate("/estimates")}
+              accentColor="primary"
+              delay={0}
+              subtitle="totalt"
+            />
+          )}
+          {hasAccess("docs") && (
+            <KpiCard
+              title="Dokument"
+              value={dashboardData?.documentCount ?? 0}
+              icon={FileText}
+              onClick={() => navigate("/docs")}
+              accentColor="blue"
+              delay={80}
+              subtitle="totalt"
+            />
+          )}
+        </section>
+      )}
+
+      {/* Global Assistant Widget / Mobile Quick Grid (endast admin) */}
+      {userEmail?.toLowerCase() === "mahad@datavoxx.se" && (
+        isMobile ? (
+          <section className="grid grid-cols-2 gap-3">
+            {[
+              { title: "Byggio AI", icon: Sparkles, href: "/global-assistant", moduleKey: "dashboard" },
+              { title: "Projekt", icon: FolderKanban, href: "/projects", moduleKey: "projects" },
+              { title: "Personalliggare", icon: UserCheck, href: "/attendance", moduleKey: "attendance" },
+              { title: "Tidsrapport", icon: Clock, href: "/time-reporting", moduleKey: "time-reporting" },
+              { title: "Kunder", icon: Users, href: "/customers", moduleKey: "customers" },
+              { title: "Kvitto", icon: Receipt, href: "/invoices?tab=receipts&auto=true", moduleKey: "invoices" },
+            ].filter((item) => hasAccess(item.moduleKey)).map((item) => (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.href)}
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card/50 p-5 ring-1 ring-black/5 dark:ring-white/5 active:scale-95 transition-transform"
+              >
+                <item.icon className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium text-foreground">{item.title}</span>
+              </button>
+            ))}
+          </section>
+        ) : (
+          <DashboardAssistantWidget />
+        )
       )}
 
       {/* Primary KPI Cards - Most important metrics */}
