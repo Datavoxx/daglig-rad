@@ -525,26 +525,35 @@
 .ProseMirror .column-resize-handle { @apply bg-primary absolute right-[-2px] top-0 bottom-0 w-1 pointer-events-none; }
 .ProseMirror.resize-cursor { cursor: col-resize; }
 
-/* ---- Docs: A4 page mode ---- */
-.doc-page-a4 {
+/* ---- Docs: A4 page mode (Google Docs look) ---- */
+.doc-a4-wrap {
+  position: relative;
   width: 210mm;
   max-width: 100%;
   margin: 0 auto;
+}
+.doc-page-a4 {
+  width: 100%;
   padding: 20mm;
-  background-color: transparent;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    hsl(var(--card)) 0,
-    hsl(var(--card)) calc(297mm - 45mm),
-    transparent calc(297mm - 45mm),
-    transparent 297mm
-  );
-  background-origin: border-box;
-  background-clip: border-box;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-sm);
 }
 .doc-page-a4 .ProseMirror {
   min-height: calc(297mm - 40mm);
 }
+/* separator strip drawn between simulated pages */
+.doc-page-break {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  height: 12px;
+  background: hsl(var(--background));
+  border-top: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  pointer-events: none;
+}
 @media (max-width: 900px) {
   .doc-page-a4 { padding: 12mm; }
 }
+
