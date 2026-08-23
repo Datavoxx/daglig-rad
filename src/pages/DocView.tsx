@@ -109,6 +109,26 @@ export default function DocView() {
     };
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("docs:pageMode", pageMode);
+  }, [pageMode]);
+
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || pageMode !== "a4") {
+      setPageCount(1);
+      return;
+    }
+    const measure = () => {
+      setPageCount(Math.max(1, Math.ceil(el.scrollHeight / A4_PAGE_PX)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [pageMode, loaded, editor]);
+
+
   const handleDelete = async () => {
     if (!id) return;
     if (!window.confirm("Ta bort dokumentet?")) return;
