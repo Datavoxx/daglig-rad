@@ -144,12 +144,37 @@ export default function DocView() {
   if (!loaded) return null;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 md:p-6">
+    <div className={`mx-auto w-full space-y-4 p-4 md:p-6 ${pageMode === "a4" ? "max-w-5xl" : "max-w-4xl"}`}>
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate("/docs")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Alla dokument
         </Button>
         <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-md border border-border p-0.5">
+            <Button
+              type="button"
+              variant={pageMode === "a4" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPageMode("a4")}
+            >
+              <FileText className="mr-1 h-3.5 w-3.5" /> A4
+            </Button>
+            <Button
+              type="button"
+              variant={pageMode === "endless" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPageMode("endless")}
+            >
+              <Infinity className="mr-1 h-3.5 w-3.5" /> Obegränsad
+            </Button>
+          </div>
+          {pageMode === "a4" && (
+            <span className="text-xs text-muted-foreground">
+              {pageCount} {pageCount === 1 ? "sida" : "sidor"}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {saving
               ? "Sparar…"
@@ -175,9 +200,18 @@ export default function DocView() {
 
       <DocEditorToolbar editor={editor} />
 
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <EditorContent editor={editor} />
-      </div>
+      {pageMode === "a4" ? (
+        <div className="overflow-x-auto">
+          <div ref={pageRef} className="doc-page-a4 rounded-lg border border-border shadow-sm">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <EditorContent editor={editor} />
+        </div>
+      )}
     </div>
   );
 }
+
