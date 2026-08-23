@@ -7,7 +7,7 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FreeTrainingSection from "@/components/landing/FreeTrainingSection";
 import TimeComparisonSection from "@/components/landing/TimeComparisonSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import PricingSection from "@/components/landing/PricingSection";
+
 import GuideSection from "@/components/landing/GuideSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
@@ -25,7 +25,7 @@ const Landing = () => {
         <HowItWorksSection />
         <TimeComparisonSection />
         <TestimonialsSection />
-        <PricingSection />
+        
         <GuideSection />
         <CTASection />
       </main>
