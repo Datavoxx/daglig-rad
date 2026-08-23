@@ -9,9 +9,12 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, FileText, Infinity as InfinityIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DocEditorToolbar } from "@/components/docs/DocEditorToolbar";
+
+const MM_TO_PX = 96 / 25.4;
+const A4_PAGE_PX = 297 * MM_TO_PX;
 
 export default function DocView() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +23,13 @@ export default function DocView() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [pageMode, setPageMode] = useState<"a4" | "endless">(
+    () => (localStorage.getItem("docs:pageMode") as "a4" | "endless") ?? "endless"
+  );
+  const [pageCount, setPageCount] = useState(1);
+  const pageRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+
 
   const extensions = useMemo(
     () => [
@@ -100,6 +109,26 @@ export default function DocView() {
     };
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("docs:pageMode", pageMode);
+  }, [pageMode]);
+
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || pageMode !== "a4") {
+      setPageCount(1);
+      return;
+    }
+    const measure = () => {
+      setPageCount(Math.max(1, Math.ceil(el.scrollHeight / A4_PAGE_PX)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [pageMode, loaded, editor]);
+
+
   const handleDelete = async () => {
     if (!id) return;
     if (!window.confirm("Ta bort dokumentet?")) return;
@@ -115,12 +144,37 @@ export default function DocView() {
   if (!loaded) return null;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 md:p-6">
+    <div className={`mx-auto w-full space-y-4 p-4 md:p-6 ${pageMode === "a4" ? "max-w-5xl" : "max-w-4xl"}`}>
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate("/docs")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Alla dokument
         </Button>
         <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-md border border-border p-0.5">
+            <Button
+              type="button"
+              variant={pageMode === "a4" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPageMode("a4")}
+            >
+              <FileText className="mr-1 h-3.5 w-3.5" /> A4
+            </Button>
+            <Button
+              type="button"
+              variant={pageMode === "endless" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPageMode("endless")}
+            >
+              <InfinityIcon className="mr-1 h-3.5 w-3.5" /> Obegränsad
+            </Button>
+          </div>
+          {pageMode === "a4" && (
+            <span className="text-xs text-muted-foreground">
+              {pageCount} {pageCount === 1 ? "sida" : "sidor"}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {saving
               ? "Sparar…"
@@ -146,9 +200,18 @@ export default function DocView() {
 
       <DocEditorToolbar editor={editor} />
 
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <EditorContent editor={editor} />
-      </div>
+      {pageMode === "a4" ? (
+        <div className="overflow-x-auto">
+          <div ref={pageRef} className="doc-page-a4 rounded-lg border border-border shadow-sm">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <EditorContent editor={editor} />
+        </div>
+      )}
     </div>
   );
 }
+
