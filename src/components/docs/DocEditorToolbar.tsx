@@ -13,6 +13,10 @@ import {
   Redo2,
   Link as LinkIcon,
   Code,
+  Table as TableIcon,
+  Columns3,
+  Rows3,
+  Trash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +84,29 @@ export function DocEditorToolbar({ editor }: DocEditorToolbarProps) {
       <Button type="button" variant="ghost" size="sm" className={btn(editor.isActive("link"))} onClick={setLink}>
         <LinkIcon className="h-4 w-4" />
       </Button>
+      <Separator orientation="vertical" className="mx-1 h-6" />
+      <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Infoga tabell" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+        <TableIcon className="h-4 w-4" />
+      </Button>
+      {editor.isActive("table") && (
+        <>
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Lägg till kolumn" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+            <Columns3 className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Lägg till rad" onClick={() => editor.chain().focus().addRowAfter().run()}>
+            <Rows3 className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" title="Ta bort kolumn" onClick={() => editor.chain().focus().deleteColumn().run()}>
+            -Kol
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" title="Ta bort rad" onClick={() => editor.chain().focus().deleteRow().run()}>
+            -Rad
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" title="Ta bort tabell" onClick={() => editor.chain().focus().deleteTable().run()}>
+            <Trash className="h-4 w-4" />
+          </Button>
+        </>
+      )}
       <Separator orientation="vertical" className="mx-1 h-6" />
       <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => editor.chain().focus().undo().run()}>
         <Undo2 className="h-4 w-4" />
