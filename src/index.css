@@ -494,3 +494,26 @@
   border-radius: 0.375rem;
   box-shadow: 0 0 12px hsl(142 69% 45% / 0.25);
 }
+
+/* TipTap document editor typography */
+.ProseMirror {
+  @apply outline-none text-foreground leading-relaxed;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground float-left h-0 pointer-events-none;
+}
+.ProseMirror h1 { @apply text-3xl font-bold mt-6 mb-3; }
+.ProseMirror h2 { @apply text-2xl font-semibold mt-5 mb-2; }
+.ProseMirror h3 { @apply text-xl font-semibold mt-4 mb-2; }
+.ProseMirror p { @apply my-2; }
+.ProseMirror ul { @apply list-disc pl-6 my-2; }
+.ProseMirror ol { @apply list-decimal pl-6 my-2; }
+.ProseMirror blockquote { @apply border-l-4 border-border pl-4 italic text-muted-foreground my-3; }
+.ProseMirror code { @apply bg-muted px-1.5 py-0.5 rounded text-sm; }
+.ProseMirror pre { @apply bg-muted p-4 rounded-lg my-3 overflow-x-auto; }
+.ProseMirror a { @apply text-primary underline underline-offset-2; }
+.ProseMirror hr { @apply my-6 border-border; }
+.ProseMirror ul[data-type="taskList"] { @apply list-none pl-0; }
+.ProseMirror ul[data-type="taskList"] li { @apply flex items-start gap-2; }
+.ProseMirror ul[data-type="taskList"] li > label { @apply mt-1; }
