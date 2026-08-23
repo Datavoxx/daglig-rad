@@ -61,6 +61,8 @@ interface UpcomingDeadline {
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { hasAccess } = useUserPermissions();
+
   const [greeting, setGreeting] = useState("Välkommen");
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
