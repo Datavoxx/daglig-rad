@@ -425,9 +425,12 @@ const Dashboard = () => {
 
 
       {/* Secondary row - Active workers + Upcoming deadlines */}
+      {(hasAccess("attendance") || hasAccess("invoices")) && (
       <section className="grid gap-4 lg:grid-cols-2">
         {/* Active Workers Card */}
+        {hasAccess("attendance") && (
         <Card className="border-border/40 bg-card/50 ring-1 ring-black/5 dark:ring-white/5">
+
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
