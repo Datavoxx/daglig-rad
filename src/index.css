@@ -535,8 +535,8 @@
   background-image: repeating-linear-gradient(
     to bottom,
     hsl(var(--card)) 0,
-    hsl(var(--card)) calc(297mm - 18mm),
-    transparent calc(297mm - 18mm),
+    hsl(var(--card)) calc(297mm - 45mm),
+    transparent calc(297mm - 45mm),
     transparent 297mm
   );
   background-origin: border-box;
