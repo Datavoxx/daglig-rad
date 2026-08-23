@@ -167,7 +167,7 @@ export default function DocView() {
               className="h-7 px-2 text-xs"
               onClick={() => setPageMode("endless")}
             >
-              <Infinity className="mr-1 h-3.5 w-3.5" /> Obegränsad
+              <InfinityIcon className="mr-1 h-3.5 w-3.5" /> Obegränsad
             </Button>
           </div>
           {pageMode === "a4" && (
