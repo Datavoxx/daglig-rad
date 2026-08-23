@@ -116,7 +116,7 @@ export function AppLayout() {
   const [feedbackTrigger, setFeedbackTrigger] = useState<"logout" | "inactivity">("logout");
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee } = useUserPermissions();
+  const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee, role } = useUserPermissions();
   const isMobile = useIsMobile();
   const { isServiceIndustry } = useUserIndustry();
 
