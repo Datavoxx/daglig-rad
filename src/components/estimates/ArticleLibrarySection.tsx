@@ -82,32 +82,65 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
     setLoading(false);
   };
 
-  const handleCreateArticle = async () => {
+  const handleSaveArticle = async () => {
     if (!newArticle.name.trim()) { toast.error("Ange ett namn"); return; }
     setCreating(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCreating(false); return; }
 
-    const { error } = await supabase.from("articles").insert({
-      user_id: user.id,
+    const payload = {
       name: newArticle.name.trim(),
       description: newArticle.description.trim() || null,
       article_category: newArticle.category || "Material",
       unit: newArticle.unit,
       default_price: parseFloat(newArticle.price) || 0,
-      sort_order: articles.length,
-    });
+    };
+
+    const { error } = editingArticle
+      ? await supabase.from("articles").update(payload).eq("id", editingArticle.id)
+      : await supabase.from("articles").insert({ ...payload, user_id: user.id, sort_order: articles.length });
 
     if (error) {
-      toast.error("Kunde inte skapa artikel");
+      toast.error(editingArticle ? "Kunde inte spara artikeln" : "Kunde inte skapa artikel");
     } else {
-      toast.success("Artikel skapad");
+      toast.success(editingArticle ? "Artikel uppdaterad" : "Artikel skapad");
       setNewArticle({ name: "", description: "", category: "", unit: "st", price: "" });
+      setEditingArticle(null);
       setShowCreateDialog(false);
       await fetchArticles();
     }
     setCreating(false);
   };
+
+  const openEditArticle = (article: Article) => {
+    setEditingArticle(article);
+    setNewArticle({
+      name: article.name,
+      description: article.description ?? "",
+      category: article.article_category,
+      unit: article.unit,
+      price: String(article.default_price ?? 0),
+    });
+    setShowCreateDialog(true);
+  };
+
+  const handleDeleteArticle = async () => {
+    if (!deletingArticle) return;
+    const { error } = await supabase.from("articles").delete().eq("id", deletingArticle.id);
+    if (error) {
+      toast.error("Kunde inte ta bort artikeln");
+    } else {
+      toast.success("Artikel borttagen");
+      setArticles((prev) => prev.filter((a) => a.id !== deletingArticle.id));
+      setSelectedArticles((prev) => {
+        const next = new Set(prev);
+        next.delete(deletingArticle.id);
+        return next;
+      });
+    }
+    setDeletingArticle(null);
+  };
+
 
   const filteredArticles = articles.filter((article) => {
     const query = searchQuery.toLowerCase();
