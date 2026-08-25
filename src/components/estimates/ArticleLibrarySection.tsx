@@ -254,9 +254,29 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
                                 {article.description && <p className="text-xs text-muted-foreground truncate">{article.description}</p>}
                               </div>
                             </div>
-                            <div className="text-right shrink-0 ml-2">
-                              <p className="text-sm font-medium">{formatCurrency(article.default_price)}</p>
-                              <p className="text-xs text-muted-foreground">/{article.unit}</p>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <div className="text-right">
+                                <p className="text-sm font-medium">{formatCurrency(article.default_price)}</p>
+                                <p className="text-xs text-muted-foreground">/{article.unit}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                title="Redigera"
+                                onClick={(e) => { e.stopPropagation(); openEditArticle(article); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive"
+                                title="Ta bort"
+                                onClick={(e) => { e.stopPropagation(); setDeletingArticle(article); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </div>
                         );
