@@ -123,6 +123,28 @@ export function DocEditorToolbar({ editor }: DocEditorToolbarProps) {
       <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Infoga tabell" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
         <TableIcon className="h-4 w-4" />
       </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0"
+        title="Infoga bild"
+        disabled={uploading}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <ImagePlus className="h-4 w-4" />
+      </Button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void handleImageUpload(file);
+        }}
+      />
       {editor.isActive("table") && (
         <>
           <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Lägg till kolumn" onClick={() => editor.chain().focus().addColumnAfter().run()}>
