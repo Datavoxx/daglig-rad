@@ -406,27 +406,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         </CardContent>
       </Card>
 
-      {/* Work items */}
-      <Card className="border bg-card">
-        <CardHeader className="pb-2 pt-3 px-3">
-          <div className="flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-medium">Tidsplan</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="px-3 pb-3 pt-0">
-          <Textarea
-            value={estimate.state.assumptions.join("\n")}
-            onChange={(e) =>
-              estimate.updateAssumptions(
-                e.target.value.split("\n")
-              )
-            }
-            placeholder="En punkt per rad..."
-            className="min-h-[60px] resize-none bg-muted/30 border border-border rounded-md p-2 text-sm focus:ring-1 focus:ring-primary/40 focus:border-primary/40 focus:bg-background transition-colors"
-          />
-        </CardContent>
-      </Card>
 
       {/* Divider */}
       <div className="h-px bg-border" />
