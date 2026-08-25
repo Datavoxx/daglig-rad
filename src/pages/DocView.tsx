@@ -44,6 +44,7 @@ export default function DocView() {
       TableRow,
       TableHeader,
       TableCell,
+      Image.configure({ inline: false, allowBase64: false }),
     ],
     []
   );
