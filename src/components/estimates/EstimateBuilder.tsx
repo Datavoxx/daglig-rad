@@ -10,7 +10,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Eye, EyeOff, FileText, Trash2, ClipboardList, ListChecks, ArrowLeft, Maximize2, Mic, Save, Loader2, Undo2, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, FileText, Trash2, ClipboardList, ArrowLeft, Maximize2, Mic, Save, Loader2, Undo2, ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
