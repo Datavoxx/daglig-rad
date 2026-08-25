@@ -601,12 +601,37 @@ export type Database = {
           },
         ]
       }
+      document_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           content: Json
           created_at: string
           created_by: string
           customer_id: string | null
+          folder_id: string | null
           id: string
           plain_text: string | null
           project_id: string | null
@@ -620,6 +645,7 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_id?: string | null
+          folder_id?: string | null
           id?: string
           plain_text?: string | null
           project_id?: string | null
@@ -633,6 +659,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string | null
+          folder_id?: string | null
           id?: string
           plain_text?: string | null
           project_id?: string | null
@@ -647,6 +674,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
             referencedColumns: ["id"]
           },
           {
