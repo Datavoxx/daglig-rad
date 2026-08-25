@@ -58,6 +58,8 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
   const [newArticle, setNewArticle] = useState({ name: "", description: "", category: "", unit: "st", price: "" });
   const { categoryNames } = useArticleCategories();
 
