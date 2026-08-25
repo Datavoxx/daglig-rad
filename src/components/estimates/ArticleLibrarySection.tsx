@@ -354,10 +354,32 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Avbryt</Button>
-            <Button onClick={handleCreateArticle} disabled={creating}>{creating ? "Sparar..." : "Skapa artikel"}</Button>
+            <Button onClick={handleSaveArticle} disabled={creating}>
+              {creating ? "Sparar..." : editingArticle ? "Spara ändringar" : "Skapa artikel"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingArticle} onOpenChange={(open) => !open && setDeletingArticle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort artikel?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deletingArticle?.name}" tas bort permanent från artikelbiblioteket.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteArticle}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
