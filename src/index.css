@@ -557,3 +557,13 @@
   .doc-page-a4 { padding: 12mm; }
 }
 
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+}
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+}
+
