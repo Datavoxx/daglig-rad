@@ -495,6 +495,15 @@ export default function Estimates() {
                           >
                             {estimate.status === "draft" ? "Draft" : "Godkänd"}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            title="Duplicera"
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateEstimate(estimate.id); }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
