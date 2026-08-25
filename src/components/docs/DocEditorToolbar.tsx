@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,14 +18,22 @@ import {
   Columns3,
   Rows3,
   Trash,
+  ImagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface DocEditorToolbarProps {
   editor: Editor | null;
 }
 
+const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
+
 export function DocEditorToolbar({ editor }: DocEditorToolbarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   if (!editor) return null;
 
   const btn = (active: boolean) =>
@@ -40,6 +49,32 @@ export function DocEditorToolbar({ editor }: DocEditorToolbarProps) {
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("doc-images").upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data: signed, error: signError } = await supabase.storage
+        .from("doc-images")
+        .createSignedUrl(path, TEN_YEARS);
+      if (signError || !signed) throw signError;
+      editor.chain().focus().setImage({ src: signed.signedUrl }).run();
+    } catch {
+      toast.error("Kunde inte ladda upp bilden");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
 
   return (
     <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-background/95 p-1.5 backdrop-blur-sm">
@@ -88,6 +123,28 @@ export function DocEditorToolbar({ editor }: DocEditorToolbarProps) {
       <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Infoga tabell" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
         <TableIcon className="h-4 w-4" />
       </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0"
+        title="Infoga bild"
+        disabled={uploading}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <ImagePlus className="h-4 w-4" />
+      </Button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void handleImageUpload(file);
+        }}
+      />
       {editor.isActive("table") && (
         <>
           <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title="Lägg till kolumn" onClick={() => editor.chain().focus().addColumnAfter().run()}>
