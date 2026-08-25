@@ -306,9 +306,18 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
         )}
       </Card>
 
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) {
+            setEditingArticle(null);
+            setNewArticle({ name: "", description: "", category: "", unit: "st", price: "" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Ny artikel</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingArticle ? "Redigera artikel" : "Ny artikel"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Namn *</Label>
