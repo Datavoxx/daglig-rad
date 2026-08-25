@@ -161,19 +161,6 @@ export function QuoteLivePreview({
               </p>
             </div>
 
-            {/* Work items */}
-            {assumptions && assumptions.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-bold text-black mb-2">Tidsplan:</h3>
-                <div className="space-y-1">
-                  {assumptions.map((item, idx) => (
-                    <p key={idx} className="text-sm text-gray-800 whitespace-pre-line">
-                      {item}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Price table */}
             <div className="mb-6">
