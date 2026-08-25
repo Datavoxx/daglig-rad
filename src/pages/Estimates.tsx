@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package, Tags } from "lucide-react";
+import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package, Tags, Copy } from "lucide-react";
 import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
 import { ArticleLibrarySection } from "@/components/estimates/ArticleLibrarySection";
 import { ArticleCategorySection } from "@/components/estimates/ArticleCategorySection";
