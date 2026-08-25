@@ -414,6 +414,16 @@ export default function Estimates() {
                             )}
                             <span>{format(new Date(estimate.updated_at), "d MMM", { locale: sv })}</span>
                           </div>
+                          <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            title="Duplicera"
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateEstimate(estimate.id); }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
