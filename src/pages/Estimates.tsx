@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package, Tags } from "lucide-react";
+import { Calculator, FileText, Calendar, User, ArrowLeft, Trash2, Plus, Package, Tags, Copy } from "lucide-react";
 import { EstimateImportDialog } from "@/components/estimates/EstimateImportDialog";
 import { ArticleLibrarySection } from "@/components/estimates/ArticleLibrarySection";
 import { ArticleCategorySection } from "@/components/estimates/ArticleCategorySection";
@@ -225,6 +225,59 @@ export default function Estimates() {
     return null;
   };
 
+  const handleDuplicateEstimate = async (estimateId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const { data: original, error: fetchError } = await supabase
+        .from("project_estimates")
+        .select("*")
+        .eq("id", estimateId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const { id, created_at, updated_at, offer_number, ...rest } = original as any;
+
+      const { data: copy, error: insertError } = await supabase
+        .from("project_estimates")
+        .insert({
+          ...rest,
+          user_id: userData.user.id,
+          status: "draft",
+          manual_project_name: `${rest.manual_project_name || "Offert"} (kopia)`,
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+
+      const { data: items, error: itemsError } = await supabase
+        .from("estimate_items")
+        .select("*")
+        .eq("estimate_id", estimateId);
+      if (itemsError) throw itemsError;
+
+      if (items && items.length > 0) {
+        const newItems = items.map((item: any) => {
+          const { id: _id, created_at: _c, updated_at: _u, ...itemRest } = item;
+          return { ...itemRest, estimate_id: copy.id };
+        });
+        const { error: copyItemsError } = await supabase.from("estimate_items").insert(newItems);
+        if (copyItemsError) throw copyItemsError;
+      }
+
+      toast({ title: "Offert duplicerad" });
+      queryClient.invalidateQueries({ queryKey: ["saved-estimates"] });
+    } catch (error) {
+      console.error("Duplicate estimate error:", error);
+      toast({
+        title: "Kunde inte duplicera offert",
+        description: "Något gick fel, försök igen",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteEstimate = async (estimateId: string) => {
     try {
       const { error } = await supabase
@@ -361,6 +414,16 @@ export default function Estimates() {
                             )}
                             <span>{format(new Date(estimate.updated_at), "d MMM", { locale: sv })}</span>
                           </div>
+                          <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            title="Duplicera"
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateEstimate(estimate.id); }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -391,6 +454,7 @@ export default function Estimates() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -431,6 +495,15 @@ export default function Estimates() {
                           >
                             {estimate.status === "draft" ? "Draft" : "Godkänd"}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            title="Duplicera"
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateEstimate(estimate.id); }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button

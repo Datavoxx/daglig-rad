@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Package, Plus, Search, X, Check } from "lucide-react";
+import { Package, Plus, Search, X, Check, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useArticleCategories } from "@/hooks/useArticleCategories";
@@ -58,6 +59,8 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
   const [newArticle, setNewArticle] = useState({ name: "", description: "", category: "", unit: "st", price: "" });
   const { categoryNames } = useArticleCategories();
 
@@ -80,32 +83,65 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
     setLoading(false);
   };
 
-  const handleCreateArticle = async () => {
+  const handleSaveArticle = async () => {
     if (!newArticle.name.trim()) { toast.error("Ange ett namn"); return; }
     setCreating(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCreating(false); return; }
 
-    const { error } = await supabase.from("articles").insert({
-      user_id: user.id,
+    const payload = {
       name: newArticle.name.trim(),
       description: newArticle.description.trim() || null,
       article_category: newArticle.category || "Material",
       unit: newArticle.unit,
       default_price: parseFloat(newArticle.price) || 0,
-      sort_order: articles.length,
-    });
+    };
+
+    const { error } = editingArticle
+      ? await supabase.from("articles").update(payload).eq("id", editingArticle.id)
+      : await supabase.from("articles").insert({ ...payload, user_id: user.id, sort_order: articles.length });
 
     if (error) {
-      toast.error("Kunde inte skapa artikel");
+      toast.error(editingArticle ? "Kunde inte spara artikeln" : "Kunde inte skapa artikel");
     } else {
-      toast.success("Artikel skapad");
+      toast.success(editingArticle ? "Artikel uppdaterad" : "Artikel skapad");
       setNewArticle({ name: "", description: "", category: "", unit: "st", price: "" });
+      setEditingArticle(null);
       setShowCreateDialog(false);
       await fetchArticles();
     }
     setCreating(false);
   };
+
+  const openEditArticle = (article: Article) => {
+    setEditingArticle(article);
+    setNewArticle({
+      name: article.name,
+      description: article.description ?? "",
+      category: article.article_category,
+      unit: article.unit,
+      price: String(article.default_price ?? 0),
+    });
+    setShowCreateDialog(true);
+  };
+
+  const handleDeleteArticle = async () => {
+    if (!deletingArticle) return;
+    const { error } = await supabase.from("articles").delete().eq("id", deletingArticle.id);
+    if (error) {
+      toast.error("Kunde inte ta bort artikeln");
+    } else {
+      toast.success("Artikel borttagen");
+      setArticles((prev) => prev.filter((a) => a.id !== deletingArticle.id));
+      setSelectedArticles((prev) => {
+        const next = new Set(prev);
+        next.delete(deletingArticle.id);
+        return next;
+      });
+    }
+    setDeletingArticle(null);
+  };
+
 
   const filteredArticles = articles.filter((article) => {
     const query = searchQuery.toLowerCase();
@@ -219,9 +255,29 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
                                 {article.description && <p className="text-xs text-muted-foreground truncate">{article.description}</p>}
                               </div>
                             </div>
-                            <div className="text-right shrink-0 ml-2">
-                              <p className="text-sm font-medium">{formatCurrency(article.default_price)}</p>
-                              <p className="text-xs text-muted-foreground">/{article.unit}</p>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <div className="text-right">
+                                <p className="text-sm font-medium">{formatCurrency(article.default_price)}</p>
+                                <p className="text-xs text-muted-foreground">/{article.unit}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                title="Redigera"
+                                onClick={(e) => { e.stopPropagation(); openEditArticle(article); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive"
+                                title="Ta bort"
+                                onClick={(e) => { e.stopPropagation(); setDeletingArticle(article); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </div>
                         );
@@ -251,9 +307,18 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
         )}
       </Card>
 
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) {
+            setEditingArticle(null);
+            setNewArticle({ name: "", description: "", category: "", unit: "st", price: "" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Ny artikel</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingArticle ? "Redigera artikel" : "Ny artikel"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Namn *</Label>
@@ -290,10 +355,32 @@ export function ArticleLibrarySection({ onAddArticles }: ArticleLibrarySectionPr
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Avbryt</Button>
-            <Button onClick={handleCreateArticle} disabled={creating}>{creating ? "Sparar..." : "Skapa artikel"}</Button>
+            <Button onClick={handleSaveArticle} disabled={creating}>
+              {creating ? "Sparar..." : editingArticle ? "Spara ändringar" : "Skapa artikel"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingArticle} onOpenChange={(open) => !open && setDeletingArticle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort artikel?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deletingArticle?.name}" tas bort permanent från artikelbiblioteket.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteArticle}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
