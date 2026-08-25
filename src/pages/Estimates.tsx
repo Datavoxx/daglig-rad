@@ -454,6 +454,7 @@ export default function Estimates() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </div>
                         </div>
                       </div>
                     ))}
