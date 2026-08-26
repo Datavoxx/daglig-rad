@@ -259,7 +259,10 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
-  const refText = [data.company?.contact_person, data.company?.contact_phone].filter(Boolean).join(" ");
+  const refText = [
+    data.ourReference || data.company?.contact_person,
+    data.ourReferencePhone || data.company?.contact_phone,
+  ].filter(Boolean).join(" ");
   doc.text(refText || "–", margin, yPos);
   
   yPos += 6;
