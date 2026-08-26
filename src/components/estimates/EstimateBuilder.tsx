@@ -518,6 +518,19 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         onChange={estimate.updateClosing}
       />
 
+      {/* Advanced settings */}
+      <AdvancedSettingsSection
+        ourReference={estimate.state.ourReference}
+        ourReferencePhone={estimate.state.ourReferencePhone}
+        paymentTermsDays={estimate.state.paymentTermsDays}
+        validDays={estimate.state.validDays}
+        vatPercent={estimate.state.vatPercent}
+        hideUnitPrice={estimate.state.hideUnitPrice}
+        roundTotal={estimate.state.roundTotal}
+        referenceOptions={referenceOptions}
+        onChange={estimate.updateAdvanced}
+      />
+
       {/* Sticky totals bar */}
       <StickyTotals
         laborCost={estimate.totals.laborCost}
