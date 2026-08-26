@@ -30,6 +30,14 @@ export interface EstimateState {
   rutPercent: number;
   transcript: string;
   status: "draft" | "completed";
+  // Reference & advanced settings
+  ourReference: string;
+  ourReferencePhone: string;
+  paymentTermsDays: number;
+  validDays: number;
+  vatPercent: number;
+  hideUnitPrice: boolean;
+  roundTotal: boolean;
   // Manual mode fields
   manualProjectName: string;
   manualClientName: string;
