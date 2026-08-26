@@ -101,14 +101,16 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   }, 0);
   const markup = markupFromItems > 0 ? markupFromItems : subtotal * (data.markupPercent / 100);
   const totalExclVat = subtotal + markup;
-  const vat = totalExclVat * 0.25;
+  const vatPercent = data.vatPercent ?? 25;
+  const vatRate = vatPercent / 100;
+  const vat = totalExclVat * vatRate;
   const totalInclVat = totalExclVat + vat;
   
   // ROT calculation - use rot_eligible items only
   const rotEligibleLaborCost = data.items
     .filter((item) => item.type === "labor" && item.rot_eligible)
     .reduce((sum, item) => sum + item.subtotal, 0);
-  const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
+  const rotEligibleWithVat = rotEligibleLaborCost * (1 + vatRate);
   const rotAmountRaw = data.rotEnabled ? rotEligibleWithVat * (data.rotPercent / 100) : 0;
   const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
   
@@ -116,13 +118,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   const rutEligibleLaborCost = data.items
     .filter((item) => item.type === "labor" && item.rut_eligible)
     .reduce((sum, item) => sum + item.subtotal, 0);
-  const rutEligibleWithVat = rutEligibleLaborCost * 1.25;
+  const rutEligibleWithVat = rutEligibleLaborCost * (1 + vatRate);
   const rutAmountRaw = data.rutEnabled ? rutEligibleWithVat * 0.5 : 0;
   const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
   
   // Combined deduction with cap
   const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-  const amountToPay = totalInclVat - combinedDeduction;
+  const amountToPayRaw = totalInclVat - combinedDeduction;
+  const amountToPay = data.roundTotal ? Math.round(amountToPayRaw / 100) * 100 : amountToPayRaw;
   
   const hasAnyDeduction = data.rotEnabled || data.rutEnabled;
 
