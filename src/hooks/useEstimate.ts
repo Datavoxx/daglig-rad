@@ -220,6 +220,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rutPercent: Number((existingEstimate as any).rut_percent) || 50,
         transcript: existingEstimate.original_transcript || "",
         status: (existingEstimate.status as "draft" | "completed") || "draft",
+        ourReference: (existingEstimate as any).our_reference || "",
+        ourReferencePhone: (existingEstimate as any).our_reference_phone || "",
+        paymentTermsDays: Number((existingEstimate as any).payment_terms_days ?? 10),
+        validDays: Number((existingEstimate as any).valid_days ?? 30),
+        vatPercent: Number((existingEstimate as any).vat_percent ?? 25),
+        hideUnitPrice: (existingEstimate as any).hide_unit_price ?? false,
+        roundTotal: (existingEstimate as any).round_total ?? false,
         // Preserve manual fields from existing estimate if available
         manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
         manualClientName: (existingEstimate as any).manual_client_name || prev.manualClientName || "",
