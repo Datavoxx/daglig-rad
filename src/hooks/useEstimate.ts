@@ -495,6 +495,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rut_percent: state.rutPercent,
         version: existing ? (existing.version || 1) : 1,
         status: state.status,
+        our_reference: state.ourReference || null,
+        our_reference_phone: state.ourReferencePhone || null,
+        payment_terms_days: state.paymentTermsDays,
+        valid_days: state.validDays,
+        vat_percent: state.vatPercent,
+        hide_unit_price: state.hideUnitPrice,
+        round_total: state.roundTotal,
         // Manual mode fields
         manual_project_name: isManualMode ? state.manualProjectName : null,
         manual_client_name: isManualMode ? state.manualClientName : null,
