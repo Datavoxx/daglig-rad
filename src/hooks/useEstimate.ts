@@ -643,6 +643,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     updateManualClientName,
     updateManualAddress,
     updateStatus,
+    updateAdvanced,
     reset,
     setState,
     
