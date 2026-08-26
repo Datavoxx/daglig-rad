@@ -293,22 +293,26 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
 
     const markup = hasAnyMarkupEnabled ? markupFromItems : 0;
     const totalExclVat = subtotal + markup;
-    const vat = totalExclVat * 0.25;
+    const vatRate = (state.vatPercent ?? 25) / 100;
+    const vat = totalExclVat * vatRate;
     const totalInclVat = totalExclVat + vat;
 
     // ROT calculation with cap
-    const rotEligibleLaborWithVat = rotEligibleLaborCost * 1.25;
+    const rotEligibleLaborWithVat = rotEligibleLaborCost * (1 + vatRate);
     const rotAmountRaw = state.rotEnabled ? rotEligibleLaborWithVat * (state.rotPercent / 100) : 0;
     const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
     
     // RUT calculation with cap (always 50%)
-    const rutEligibleLaborWithVat = rutEligibleLaborCost * 1.25;
+    const rutEligibleLaborWithVat = rutEligibleLaborCost * (1 + vatRate);
     const rutAmountRaw = state.rutEnabled ? rutEligibleLaborWithVat * 0.5 : 0;
     const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
     
     // Combined cap
     const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-    const amountToPay = totalInclVat - combinedDeduction;
+    const amountToPayRaw = totalInclVat - combinedDeduction;
+    const amountToPay = state.roundTotal
+      ? Math.round(amountToPayRaw / 100) * 100
+      : amountToPayRaw;
 
     return {
       laborCost,
