@@ -398,11 +398,6 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
         },
     // Keep clear of the page footer (Bankgiro block starts at pageHeight - 25)
     margin: { left: margin, right: margin, bottom: 35 },
-    didDrawPage: (hookData) => {
-      if (hookData.pageNumber > 1) {
-        // Footer for continuation pages is drawn at the end
-      }
-    },
   });
 
   yPos = (doc as any).lastAutoTable.finalY + 2;
@@ -410,7 +405,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   // Totals section
   const totalsX = pageWidth - margin - 60;
   const valuesX = pageWidth - margin;
-  
+
+  // Make sure the totals block never collides with the footer (Bankgiro etc.)
+  const totalsHeight = hasAnyDeduction ? 55 : 25;
+  if (yPos + totalsHeight > pageHeight - 35) {
+    doc.addPage();
+    yPos = margin;
+  }
+
   doc.setDrawColor(150, 150, 150);
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
