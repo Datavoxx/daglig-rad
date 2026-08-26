@@ -427,7 +427,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 5;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  doc.text("Moms 25%", totalsX, yPos, { align: "right" });
+  doc.text(`Moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
   doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
   
   yPos += 6;
