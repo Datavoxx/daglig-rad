@@ -57,6 +57,13 @@ interface QuoteData {
   rotPercent: number;
   rutEnabled?: boolean;
   paymentTerms?: string;
+  /** Advanced settings */
+  ourReference?: string;
+  ourReferencePhone?: string;
+  paymentTermsDays?: number;
+  vatPercent?: number;
+  hideUnitPrice?: boolean;
+  roundTotal?: boolean;
 }
 
 export async function generateQuotePdf(data: QuoteData): Promise<void> {
