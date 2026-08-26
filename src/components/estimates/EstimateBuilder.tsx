@@ -193,7 +193,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       await generateQuotePdf({
         offerNumber: "OFF-001",
         projectName: displayProjectName,
-        validDays: 30,
+        validDays: estimate.state.validDays,
         company: companySettings
           ? {
               company_name: companySettings.company_name || undefined,
