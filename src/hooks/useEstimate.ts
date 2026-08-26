@@ -331,7 +331,12 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       combinedDeduction,
       amountToPay,
     };
-  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled]);
+  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled, state.vatPercent, state.roundTotal]);
+
+  // Advanced settings updaters
+  const updateAdvanced = useCallback((patch: Partial<EstimateState>) => {
+    setState((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   // Update functions
   const updateScope = useCallback((scope: string) => {
