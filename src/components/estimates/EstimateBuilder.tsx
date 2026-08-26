@@ -147,13 +147,46 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, phone")
         .eq("id", userData.user.id)
         .single();
       if (error) throw error;
       return data;
     },
   });
+
+  // Employees available as "Vår referens"
+  const { data: employees } = useQuery({
+    queryKey: ["estimate-reference-employees"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
+      const { data, error } = await supabase
+        .from("employees")
+        .select("name, phone")
+        .eq("user_id", userData.user.id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const referenceOptions = [
+    ...(userProfile?.full_name
+      ? [{ name: userProfile.full_name, phone: (userProfile as any).phone || companySettings?.contact_phone || "" }]
+      : []),
+    ...(companySettings?.contact_person
+      ? [{ name: companySettings.contact_person, phone: companySettings.contact_phone || "" }]
+      : []),
+    ...(employees || []).map((e) => ({ name: e.name, phone: e.phone || "" })),
+  ].filter(
+    (option, index, arr) => option.name && arr.findIndex((o) => o.name === option.name) === index
+  );
+
+  const effectiveReference = estimate.state.ourReference || companySettings?.contact_person || userProfile?.full_name || "";
+
 
   const handleDownload = async () => {
     try {
