@@ -583,7 +583,6 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setTextColor(100, 100, 100);
   doc.text(`Undertecknat dokument mailas till ${data.company?.email || "info@foretag.se"}`, margin, yPos);
 
-  drawFooter(2, 3);
 
   // ============================================
   // PAGE 3 - Terms
@@ -663,7 +662,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(50, 50, 50);
-  doc.text("10 dagar netto.", margin, yPos);
+  doc.text(`${data.paymentTermsDays ?? 10} dagar netto.`, margin, yPos);
 
   yPos += 12;
 
@@ -732,7 +731,12 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 5;
   doc.text("•  Garanti enligt konsumenttjänstlagen", margin, yPos);
 
-  drawFooter(3, 3);
+  // Draw footer on every page with correct page numbering
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    drawFooter(p, totalPages);
+  }
 
   // ============================================
   // SAVE FILE
