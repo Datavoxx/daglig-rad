@@ -18,6 +18,7 @@ import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
 
 import { ClosingSection } from "./ClosingSection";
+import { AdvancedSettingsSection } from "./AdvancedSettingsSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
 import { TaxDeductionPanel } from "./TaxDeductionPanel";
