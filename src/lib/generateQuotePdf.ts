@@ -336,23 +336,38 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   }
 
   // Price table - handle show_only_total
+  const hideUnitPrice = data.hideUnitPrice === true;
+
   const tableData = data.items.map((item) => {
     const description = item.description || item.moment;
     if (item.show_only_total) {
-      return [description, "–", "–", "–", formatNumber(item.subtotal)];
+      const row = [description, "–", "–", "–", formatNumber(item.subtotal)];
+      return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
     }
-    return [
+    // Use the unit selected on the item, regardless of type.
+    // Fall back to "h" only for labor items that have no unit set.
+    const unitLabel = item.unit || (item.type === "labor" ? "h" : "–");
+    const amount =
+      item.type === "labor"
+        ? (item.hours ?? item.quantity)?.toString() || "–"
+        : (item.quantity ?? item.hours)?.toString() || "–";
+    const row = [
       description,
-      item.type === "labor" ? (item.hours?.toString() || "–") : (item.quantity?.toString() || "–"),
-      item.type === "labor" ? "h" : (item.unit || "–"),
+      amount,
+      unitLabel,
       formatNumber(item.unit_price),
       formatNumber(item.subtotal),
     ];
+    return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
   });
 
   autoTable(doc, {
     startY: yPos,
-    head: [["Beskrivning", "Antal", "Enhet", "À-pris", "Summa"]],
+    head: [
+      hideUnitPrice
+        ? ["Beskrivning", "Antal", "Enhet", "Summa"]
+        : ["Beskrivning", "Antal", "Enhet", "À-pris", "Summa"],
+    ],
     body: tableData,
     theme: "plain",
     styles: {
@@ -367,14 +382,27 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
       lineWidth: { bottom: 0.5 },
       lineColor: [150, 150, 150],
     },
-    columnStyles: {
-      0: { cellWidth: "auto" },
-      1: { halign: "right", cellWidth: 18 },
-      2: { halign: "right", cellWidth: 16 },
-      3: { halign: "right", cellWidth: 25 },
-      4: { halign: "right", cellWidth: 25 },
+    columnStyles: hideUnitPrice
+      ? {
+          0: { cellWidth: "auto" },
+          1: { halign: "right", cellWidth: 18 },
+          2: { halign: "right", cellWidth: 16 },
+          3: { halign: "right", cellWidth: 25 },
+        }
+      : {
+          0: { cellWidth: "auto" },
+          1: { halign: "right", cellWidth: 18 },
+          2: { halign: "right", cellWidth: 16 },
+          3: { halign: "right", cellWidth: 25 },
+          4: { halign: "right", cellWidth: 25 },
+        },
+    // Keep clear of the page footer (Bankgiro block starts at pageHeight - 25)
+    margin: { left: margin, right: margin, bottom: 35 },
+    didDrawPage: (hookData) => {
+      if (hookData.pageNumber > 1) {
+        // Footer for continuation pages is drawn at the end
+      }
     },
-    margin: { left: margin, right: margin },
   });
 
   yPos = (doc as any).lastAutoTable.finalY + 2;
