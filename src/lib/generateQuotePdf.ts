@@ -470,7 +470,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     doc.text(`${formatNumber(amountToPay)} kr`, valuesX, yPos + 3, { align: "right" });
   }
 
-  drawFooter(1, 3);
+  
 
   // ============================================
   // PAGE 2 - Acceptance
