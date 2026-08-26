@@ -226,6 +226,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         rotEnabled: estimate.state.rotEnabled,
         rotPercent: estimate.state.rotPercent,
         rutEnabled: estimate.state.rutEnabled,
+        ourReference: effectiveReference || undefined,
+        ourReferencePhone: estimate.state.ourReferencePhone || undefined,
+        paymentTermsDays: estimate.state.paymentTermsDays,
+        vatPercent: estimate.state.vatPercent,
+        hideUnitPrice: estimate.state.hideUnitPrice,
+        roundTotal: estimate.state.roundTotal,
       });
       toast.success("Offert nedladdad");
     } catch (error) {
