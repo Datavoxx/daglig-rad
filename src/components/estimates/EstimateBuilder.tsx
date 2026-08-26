@@ -477,9 +477,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         />
       </section>
 
-      {/* Divider */}
-      <div className="h-px bg-border" />
-
       {/* Addons */}
       <AddonsSection
         addons={estimate.state.addons}
