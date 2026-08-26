@@ -30,6 +30,14 @@ export interface EstimateState {
   rutPercent: number;
   transcript: string;
   status: "draft" | "completed";
+  // Reference & advanced settings
+  ourReference: string;
+  ourReferencePhone: string;
+  paymentTermsDays: number;
+  validDays: number;
+  vatPercent: number;
+  hideUnitPrice: boolean;
+  roundTotal: boolean;
   // Manual mode fields
   manualProjectName: string;
   manualClientName: string;
@@ -59,6 +67,13 @@ const initialState: EstimateState = {
   rutPercent: 50,
   transcript: "",
   status: "draft",
+  ourReference: "",
+  ourReferencePhone: "",
+  paymentTermsDays: 10,
+  validDays: 30,
+  vatPercent: 25,
+  hideUnitPrice: false,
+  roundTotal: false,
   manualProjectName: "",
   manualClientName: "",
   manualAddress: "",
@@ -205,6 +220,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rutPercent: Number((existingEstimate as any).rut_percent) || 50,
         transcript: existingEstimate.original_transcript || "",
         status: (existingEstimate.status as "draft" | "completed") || "draft",
+        ourReference: (existingEstimate as any).our_reference || "",
+        ourReferencePhone: (existingEstimate as any).our_reference_phone || "",
+        paymentTermsDays: Number((existingEstimate as any).payment_terms_days ?? 10),
+        validDays: Number((existingEstimate as any).valid_days ?? 30),
+        vatPercent: Number((existingEstimate as any).vat_percent ?? 25),
+        hideUnitPrice: (existingEstimate as any).hide_unit_price ?? false,
+        roundTotal: (existingEstimate as any).round_total ?? false,
         // Preserve manual fields from existing estimate if available
         manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
         manualClientName: (existingEstimate as any).manual_client_name || prev.manualClientName || "",
@@ -271,22 +293,26 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
 
     const markup = hasAnyMarkupEnabled ? markupFromItems : 0;
     const totalExclVat = subtotal + markup;
-    const vat = totalExclVat * 0.25;
+    const vatRate = (state.vatPercent ?? 25) / 100;
+    const vat = totalExclVat * vatRate;
     const totalInclVat = totalExclVat + vat;
 
     // ROT calculation with cap
-    const rotEligibleLaborWithVat = rotEligibleLaborCost * 1.25;
+    const rotEligibleLaborWithVat = rotEligibleLaborCost * (1 + vatRate);
     const rotAmountRaw = state.rotEnabled ? rotEligibleLaborWithVat * (state.rotPercent / 100) : 0;
     const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
     
     // RUT calculation with cap (always 50%)
-    const rutEligibleLaborWithVat = rutEligibleLaborCost * 1.25;
+    const rutEligibleLaborWithVat = rutEligibleLaborCost * (1 + vatRate);
     const rutAmountRaw = state.rutEnabled ? rutEligibleLaborWithVat * 0.5 : 0;
     const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
     
     // Combined cap
     const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-    const amountToPay = totalInclVat - combinedDeduction;
+    const amountToPayRaw = totalInclVat - combinedDeduction;
+    const amountToPay = state.roundTotal
+      ? Math.round(amountToPayRaw / 100) * 100
+      : amountToPayRaw;
 
     return {
       laborCost,
@@ -305,7 +331,12 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       combinedDeduction,
       amountToPay,
     };
-  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled]);
+  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled, state.vatPercent, state.roundTotal]);
+
+  // Advanced settings updaters
+  const updateAdvanced = useCallback((patch: Partial<EstimateState>) => {
+    setState((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   // Update functions
   const updateScope = useCallback((scope: string) => {
@@ -464,6 +495,13 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         rut_percent: state.rutPercent,
         version: existing ? (existing.version || 1) : 1,
         status: state.status,
+        our_reference: state.ourReference || null,
+        our_reference_phone: state.ourReferencePhone || null,
+        payment_terms_days: state.paymentTermsDays,
+        valid_days: state.validDays,
+        vat_percent: state.vatPercent,
+        hide_unit_price: state.hideUnitPrice,
+        round_total: state.roundTotal,
         // Manual mode fields
         manual_project_name: isManualMode ? state.manualProjectName : null,
         manual_client_name: isManualMode ? state.manualClientName : null,
@@ -605,6 +643,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     updateManualClientName,
     updateManualAddress,
     updateStatus,
+    updateAdvanced,
     reset,
     setState,
     

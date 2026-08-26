@@ -57,6 +57,13 @@ interface QuoteData {
   rotPercent: number;
   rutEnabled?: boolean;
   paymentTerms?: string;
+  /** Advanced settings */
+  ourReference?: string;
+  ourReferencePhone?: string;
+  paymentTermsDays?: number;
+  vatPercent?: number;
+  hideUnitPrice?: boolean;
+  roundTotal?: boolean;
 }
 
 export async function generateQuotePdf(data: QuoteData): Promise<void> {
@@ -94,14 +101,16 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   }, 0);
   const markup = markupFromItems > 0 ? markupFromItems : subtotal * (data.markupPercent / 100);
   const totalExclVat = subtotal + markup;
-  const vat = totalExclVat * 0.25;
+  const vatPercent = data.vatPercent ?? 25;
+  const vatRate = vatPercent / 100;
+  const vat = totalExclVat * vatRate;
   const totalInclVat = totalExclVat + vat;
   
   // ROT calculation - use rot_eligible items only
   const rotEligibleLaborCost = data.items
     .filter((item) => item.type === "labor" && item.rot_eligible)
     .reduce((sum, item) => sum + item.subtotal, 0);
-  const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
+  const rotEligibleWithVat = rotEligibleLaborCost * (1 + vatRate);
   const rotAmountRaw = data.rotEnabled ? rotEligibleWithVat * (data.rotPercent / 100) : 0;
   const rotAmount = Math.min(rotAmountRaw, ROT_MAX);
   
@@ -109,13 +118,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   const rutEligibleLaborCost = data.items
     .filter((item) => item.type === "labor" && item.rut_eligible)
     .reduce((sum, item) => sum + item.subtotal, 0);
-  const rutEligibleWithVat = rutEligibleLaborCost * 1.25;
+  const rutEligibleWithVat = rutEligibleLaborCost * (1 + vatRate);
   const rutAmountRaw = data.rutEnabled ? rutEligibleWithVat * 0.5 : 0;
   const rutAmount = Math.min(rutAmountRaw, RUT_MAX);
   
   // Combined deduction with cap
   const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-  const amountToPay = totalInclVat - combinedDeduction;
+  const amountToPayRaw = totalInclVat - combinedDeduction;
+  const amountToPay = data.roundTotal ? Math.round(amountToPayRaw / 100) * 100 : amountToPayRaw;
   
   const hasAnyDeduction = data.rotEnabled || data.rutEnabled;
 
@@ -249,7 +259,10 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
-  const refText = [data.company?.contact_person, data.company?.contact_phone].filter(Boolean).join(" ");
+  const refText = [
+    data.ourReference || data.company?.contact_person,
+    data.ourReferencePhone || data.company?.contact_phone,
+  ].filter(Boolean).join(" ");
   doc.text(refText || "–", margin, yPos);
   
   yPos += 6;
@@ -323,23 +336,38 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   }
 
   // Price table - handle show_only_total
+  const hideUnitPrice = data.hideUnitPrice === true;
+
   const tableData = data.items.map((item) => {
     const description = item.description || item.moment;
     if (item.show_only_total) {
-      return [description, "–", "–", "–", formatNumber(item.subtotal)];
+      const row = [description, "–", "–", "–", formatNumber(item.subtotal)];
+      return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
     }
-    return [
+    // Use the unit selected on the item, regardless of type.
+    // Fall back to "h" only for labor items that have no unit set.
+    const unitLabel = item.unit || (item.type === "labor" ? "h" : "–");
+    const amount =
+      item.type === "labor"
+        ? (item.hours ?? item.quantity)?.toString() || "–"
+        : (item.quantity ?? item.hours)?.toString() || "–";
+    const row = [
       description,
-      item.type === "labor" ? (item.hours?.toString() || "–") : (item.quantity?.toString() || "–"),
-      item.type === "labor" ? "h" : (item.unit || "–"),
+      amount,
+      unitLabel,
       formatNumber(item.unit_price),
       formatNumber(item.subtotal),
     ];
+    return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
   });
 
   autoTable(doc, {
     startY: yPos,
-    head: [["Beskrivning", "Antal", "Enhet", "À-pris", "Summa"]],
+    head: [
+      hideUnitPrice
+        ? ["Beskrivning", "Antal", "Enhet", "Summa"]
+        : ["Beskrivning", "Antal", "Enhet", "À-pris", "Summa"],
+    ],
     body: tableData,
     theme: "plain",
     styles: {
@@ -354,14 +382,22 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
       lineWidth: { bottom: 0.5 },
       lineColor: [150, 150, 150],
     },
-    columnStyles: {
-      0: { cellWidth: "auto" },
-      1: { halign: "right", cellWidth: 18 },
-      2: { halign: "right", cellWidth: 16 },
-      3: { halign: "right", cellWidth: 25 },
-      4: { halign: "right", cellWidth: 25 },
-    },
-    margin: { left: margin, right: margin },
+    columnStyles: hideUnitPrice
+      ? {
+          0: { cellWidth: "auto" },
+          1: { halign: "right", cellWidth: 18 },
+          2: { halign: "right", cellWidth: 16 },
+          3: { halign: "right", cellWidth: 25 },
+        }
+      : {
+          0: { cellWidth: "auto" },
+          1: { halign: "right", cellWidth: 18 },
+          2: { halign: "right", cellWidth: 16 },
+          3: { halign: "right", cellWidth: 25 },
+          4: { halign: "right", cellWidth: 25 },
+        },
+    // Keep clear of the page footer (Bankgiro block starts at pageHeight - 25)
+    margin: { left: margin, right: margin, bottom: 35 },
   });
 
   yPos = (doc as any).lastAutoTable.finalY + 2;
@@ -369,7 +405,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   // Totals section
   const totalsX = pageWidth - margin - 60;
   const valuesX = pageWidth - margin;
-  
+
+  // Make sure the totals block never collides with the footer (Bankgiro etc.)
+  const totalsHeight = hasAnyDeduction ? 55 : 25;
+  if (yPos + totalsHeight > pageHeight - 35) {
+    doc.addPage();
+    yPos = margin;
+  }
+
   doc.setDrawColor(150, 150, 150);
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
@@ -384,7 +427,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 5;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  doc.text("Moms 25%", totalsX, yPos, { align: "right" });
+  doc.text(`Moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
   doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
   
   yPos += 6;
@@ -427,7 +470,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     doc.text(`${formatNumber(amountToPay)} kr`, valuesX, yPos + 3, { align: "right" });
   }
 
-  drawFooter(1, 3);
+  
 
   // ============================================
   // PAGE 2 - Acceptance
@@ -540,7 +583,6 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setTextColor(100, 100, 100);
   doc.text(`Undertecknat dokument mailas till ${data.company?.email || "info@foretag.se"}`, margin, yPos);
 
-  drawFooter(2, 3);
 
   // ============================================
   // PAGE 3 - Terms
@@ -620,7 +662,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(50, 50, 50);
-  doc.text("10 dagar netto.", margin, yPos);
+  doc.text(`${data.paymentTermsDays ?? 10} dagar netto.`, margin, yPos);
 
   yPos += 12;
 
@@ -689,7 +731,12 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 5;
   doc.text("•  Garanti enligt konsumenttjänstlagen", margin, yPos);
 
-  drawFooter(3, 3);
+  // Draw footer on every page with correct page numbering
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    drawFooter(p, totalPages);
+  }
 
   // ============================================
   // SAVE FILE

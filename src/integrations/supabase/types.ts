@@ -1466,6 +1466,7 @@ export type Database = {
           closing_text: string | null
           conditions: Json | null
           created_at: string | null
+          hide_unit_price: boolean
           id: string
           introduction_text: string | null
           labor_cost: number | null
@@ -1481,10 +1482,14 @@ export type Database = {
           notes: string | null
           offer_number: string | null
           original_transcript: string | null
+          our_reference: string | null
+          our_reference_phone: string | null
           payment_terms: string | null
+          payment_terms_days: number
           project_id: string | null
           rot_enabled: boolean | null
           rot_percent: number | null
+          round_total: boolean
           rut_enabled: boolean | null
           rut_percent: number | null
           scope: string | null
@@ -1497,6 +1502,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           valid_days: number | null
+          vat_percent: number
           version: number
         }
         Insert: {
@@ -1504,6 +1510,7 @@ export type Database = {
           closing_text?: string | null
           conditions?: Json | null
           created_at?: string | null
+          hide_unit_price?: boolean
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
@@ -1519,10 +1526,14 @@ export type Database = {
           notes?: string | null
           offer_number?: string | null
           original_transcript?: string | null
+          our_reference?: string | null
+          our_reference_phone?: string | null
           payment_terms?: string | null
+          payment_terms_days?: number
           project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
+          round_total?: boolean
           rut_enabled?: boolean | null
           rut_percent?: number | null
           scope?: string | null
@@ -1535,6 +1546,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           valid_days?: number | null
+          vat_percent?: number
           version?: number
         }
         Update: {
@@ -1542,6 +1554,7 @@ export type Database = {
           closing_text?: string | null
           conditions?: Json | null
           created_at?: string | null
+          hide_unit_price?: boolean
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
@@ -1557,10 +1570,14 @@ export type Database = {
           notes?: string | null
           offer_number?: string | null
           original_transcript?: string | null
+          our_reference?: string | null
+          our_reference_phone?: string | null
           payment_terms?: string | null
+          payment_terms_days?: number
           project_id?: string | null
           rot_enabled?: boolean | null
           rot_percent?: number | null
+          round_total?: boolean
           rut_enabled?: boolean | null
           rut_percent?: number | null
           scope?: string | null
@@ -1573,6 +1590,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           valid_days?: number | null
+          vat_percent?: number
           version?: number
         }
         Relationships: [

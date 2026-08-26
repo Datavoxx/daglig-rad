@@ -18,6 +18,7 @@ import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
 
 import { ClosingSection } from "./ClosingSection";
+import { AdvancedSettingsSection } from "./AdvancedSettingsSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
 import { TaxDeductionPanel } from "./TaxDeductionPanel";
@@ -146,7 +147,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, phone")
         .eq("id", userData.user.id)
         .single();
       if (error) throw error;
@@ -154,12 +155,45 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     },
   });
 
+  // Employees available as "Vår referens"
+  const { data: employees } = useQuery({
+    queryKey: ["estimate-reference-employees"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+
+      const { data, error } = await supabase
+        .from("employees")
+        .select("name, phone")
+        .eq("user_id", userData.user.id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const referenceOptions = [
+    ...(userProfile?.full_name
+      ? [{ name: userProfile.full_name, phone: (userProfile as any).phone || companySettings?.contact_phone || "" }]
+      : []),
+    ...(companySettings?.contact_person
+      ? [{ name: companySettings.contact_person, phone: companySettings.contact_phone || "" }]
+      : []),
+    ...(employees || []).map((e) => ({ name: e.name, phone: e.phone || "" })),
+  ].filter(
+    (option, index, arr) => option.name && arr.findIndex((o) => o.name === option.name) === index
+  );
+
+  const effectiveReference = estimate.state.ourReference || companySettings?.contact_person || userProfile?.full_name || "";
+
+
   const handleDownload = async () => {
     try {
       await generateQuotePdf({
         offerNumber: "OFF-001",
         projectName: displayProjectName,
-        validDays: 30,
+        validDays: estimate.state.validDays,
         company: companySettings
           ? {
               company_name: companySettings.company_name || undefined,
@@ -192,6 +226,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         rotEnabled: estimate.state.rotEnabled,
         rotPercent: estimate.state.rotPercent,
         rutEnabled: estimate.state.rutEnabled,
+        ourReference: effectiveReference || undefined,
+        ourReferencePhone: estimate.state.ourReferencePhone || undefined,
+        paymentTermsDays: estimate.state.paymentTermsDays,
+        vatPercent: estimate.state.vatPercent,
+        hideUnitPrice: estimate.state.hideUnitPrice,
+        roundTotal: estimate.state.roundTotal,
       });
       toast.success("Offert nedladdad");
     } catch (error) {
@@ -305,7 +345,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           createdAt={null}
           status={estimate.state.status}
           isEditable={isManualMode}
-          ourReference={userProfile?.full_name}
+          ourReference={effectiveReference}
           onProjectNameChange={estimate.updateManualProjectName}
           onClientNameChange={estimate.updateManualClientName}
           onAddressChange={estimate.updateManualAddress}
@@ -476,6 +516,19 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       <ClosingSection
         text={estimate.state.closingText}
         onChange={estimate.updateClosing}
+      />
+
+      {/* Advanced settings */}
+      <AdvancedSettingsSection
+        ourReference={estimate.state.ourReference}
+        ourReferencePhone={estimate.state.ourReferencePhone}
+        paymentTermsDays={estimate.state.paymentTermsDays}
+        validDays={estimate.state.validDays}
+        vatPercent={estimate.state.vatPercent}
+        hideUnitPrice={estimate.state.hideUnitPrice}
+        roundTotal={estimate.state.roundTotal}
+        referenceOptions={referenceOptions}
+        onChange={estimate.updateAdvanced}
       />
 
       {/* Sticky totals bar */}
