@@ -17,7 +17,6 @@ interface AdvancedSettingsSectionProps {
   validDays: number;
   vatPercent: number;
   hideUnitPrice: boolean;
-  roundTotal: boolean;
   logoUrl?: string | null;
   companyLogoUrl?: string | null;
   referenceOptions?: { name: string; phone?: string | null }[];
@@ -28,7 +27,6 @@ interface AdvancedSettingsSectionProps {
     validDays?: number;
     vatPercent?: number;
     hideUnitPrice?: boolean;
-    roundTotal?: boolean;
     logoUrl?: string | null;
   }) => void;
 }
@@ -40,7 +38,6 @@ export function AdvancedSettingsSection({
   validDays,
   vatPercent,
   hideUnitPrice,
-  roundTotal,
   logoUrl = null,
   companyLogoUrl = null,
   referenceOptions = [],
@@ -302,19 +299,6 @@ export function AdvancedSettingsSection({
               <Switch
                 checked={hideUnitPrice}
                 onCheckedChange={(checked) => onChange({ hideUnitPrice: checked })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Avrunda att betala</p>
-                <p className="text-xs text-muted-foreground">
-                  Avrundar slutsumman till närmaste hundralapp.
-                </p>
-              </div>
-              <Switch
-                checked={roundTotal}
-                onCheckedChange={(checked) => onChange({ roundTotal: checked })}
               />
             </div>
           </div>
