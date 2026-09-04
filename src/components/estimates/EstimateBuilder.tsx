@@ -17,7 +17,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useEstimate } from "@/hooks/useEstimate";
 import { EstimateHeader } from "./EstimateHeader";
 
-import { ClosingSection } from "./ClosingSection";
 import { AdvancedSettingsSection } from "./AdvancedSettingsSection";
 import { EstimateTable } from "./EstimateTable";
 import { AddonsSection } from "./AddonsSection";
@@ -512,19 +511,12 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       {/* Divider */}
       <div className="h-px bg-border" />
 
-      {/* Closing section */}
-      <ClosingSection
-        text={estimate.state.closingText}
-        onChange={estimate.updateClosing}
-      />
-
       {/* Advanced settings */}
       <AdvancedSettingsSection
         ourReference={estimate.state.ourReference}
         ourReferencePhone={estimate.state.ourReferencePhone}
         paymentTermsDays={estimate.state.paymentTermsDays}
         validDays={estimate.state.validDays}
-        vatPercent={estimate.state.vatPercent}
         hideUnitPrice={estimate.state.hideUnitPrice}
         logoUrl={estimate.state.logoUrl}
         companyLogoUrl={companySettings?.logo_url || null}

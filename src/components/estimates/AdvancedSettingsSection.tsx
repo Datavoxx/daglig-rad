@@ -15,7 +15,6 @@ interface AdvancedSettingsSectionProps {
   ourReferencePhone: string;
   paymentTermsDays: number;
   validDays: number;
-  vatPercent: number;
   hideUnitPrice: boolean;
   logoUrl?: string | null;
   companyLogoUrl?: string | null;
@@ -25,7 +24,6 @@ interface AdvancedSettingsSectionProps {
     ourReferencePhone?: string;
     paymentTermsDays?: number;
     validDays?: number;
-    vatPercent?: number;
     hideUnitPrice?: boolean;
     logoUrl?: string | null;
   }) => void;
@@ -36,7 +34,6 @@ export function AdvancedSettingsSection({
   ourReferencePhone,
   paymentTermsDays,
   validDays,
-  vatPercent,
   hideUnitPrice,
   logoUrl = null,
   companyLogoUrl = null,
@@ -246,7 +243,7 @@ export function AdvancedSettingsSection({
           </div>
 
           {/* Numbers */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="payment-days" className="text-xs">
                 Betalningsvillkor (dagar netto)
@@ -269,19 +266,6 @@ export function AdvancedSettingsSection({
                 inputMode="numeric"
                 value={String(validDays)}
                 onChange={(e) => onChange({ validDays: toNumber(e.target.value, 30) })}
-                className="h-9 tabular-nums"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="vat-percent" className="text-xs">
-                Momssats (%)
-              </Label>
-              <Input
-                id="vat-percent"
-                inputMode="decimal"
-                value={String(vatPercent)}
-                onChange={(e) => onChange({ vatPercent: toNumber(e.target.value, 25) })}
                 className="h-9 tabular-nums"
               />
             </div>
