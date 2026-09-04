@@ -63,7 +63,6 @@ interface QuoteData {
   paymentTermsDays?: number;
   vatPercent?: number;
   hideUnitPrice?: boolean;
-  roundTotal?: boolean;
 }
 
 export async function generateQuotePdf(data: QuoteData): Promise<void> {
@@ -124,8 +123,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   // Combined deduction with cap
   const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-  const amountToPayRaw = totalInclVat - combinedDeduction;
-  const amountToPay = data.roundTotal ? Math.round(amountToPayRaw / 100) * 100 : amountToPayRaw;
+  const amountToPay = totalInclVat - combinedDeduction;
   
   const hasAnyDeduction = data.rotEnabled || data.rutEnabled;
 

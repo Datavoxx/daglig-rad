@@ -235,7 +235,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         paymentTermsDays: estimate.state.paymentTermsDays,
         vatPercent: estimate.state.vatPercent,
         hideUnitPrice: estimate.state.hideUnitPrice,
-        roundTotal: estimate.state.roundTotal,
       });
       toast.success("Offert nedladdad");
     } catch (error) {
@@ -527,7 +526,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         validDays={estimate.state.validDays}
         vatPercent={estimate.state.vatPercent}
         hideUnitPrice={estimate.state.hideUnitPrice}
-        roundTotal={estimate.state.roundTotal}
         logoUrl={estimate.state.logoUrl}
         companyLogoUrl={companySettings?.logo_url || null}
         onChange={estimate.updateAdvanced}

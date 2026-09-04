@@ -37,7 +37,6 @@ export interface EstimateState {
   validDays: number;
   vatPercent: number;
   hideUnitPrice: boolean;
-  roundTotal: boolean;
   logoUrl: string | null;
   // Manual mode fields
   manualProjectName: string;
@@ -74,7 +73,6 @@ const initialState: EstimateState = {
   validDays: 30,
   vatPercent: 25,
   hideUnitPrice: false,
-  roundTotal: false,
   logoUrl: null,
   manualProjectName: "",
   manualClientName: "",
@@ -228,7 +226,6 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         validDays: Number((existingEstimate as any).valid_days ?? 30),
         vatPercent: Number((existingEstimate as any).vat_percent ?? 25),
         hideUnitPrice: (existingEstimate as any).hide_unit_price ?? false,
-        roundTotal: (existingEstimate as any).round_total ?? false,
         logoUrl: (existingEstimate as any).logo_url ?? null,
         // Preserve manual fields from existing estimate if available
         manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
@@ -312,10 +309,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
     
     // Combined cap
     const combinedDeduction = Math.min(rotAmount + rutAmount, COMBINED_MAX);
-    const amountToPayRaw = totalInclVat - combinedDeduction;
-    const amountToPay = state.roundTotal
-      ? Math.round(amountToPayRaw / 100) * 100
-      : amountToPayRaw;
+    const amountToPay = totalInclVat - combinedDeduction;
 
     return {
       laborCost,
@@ -334,7 +328,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       combinedDeduction,
       amountToPay,
     };
-  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled, state.vatPercent, state.roundTotal]);
+  }, [state.items, state.addons, state.markupPercent, state.rotEnabled, state.rotPercent, state.rutEnabled, state.vatPercent]);
 
   // Advanced settings updaters
   const updateAdvanced = useCallback((patch: Partial<EstimateState>) => {
@@ -504,7 +498,6 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         valid_days: state.validDays,
         vat_percent: state.vatPercent,
         hide_unit_price: state.hideUnitPrice,
-        round_total: state.roundTotal,
         logo_url: state.logoUrl,
         // Manual mode fields
         manual_project_name: isManualMode ? state.manualProjectName : null,
