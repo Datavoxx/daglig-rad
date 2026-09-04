@@ -24,7 +24,7 @@ const DOC_CSS = `
   ul[data-type="taskList"] li { display: flex; gap: 6px; }
 `;
 
-export async function exportDocToPdf(title: string, html: string) {
+export async function exportDocToPdf(title: string, html: string, logoUrl?: string | null) {
   const container = document.createElement("div");
   container.style.cssText = [
     "position:fixed",
@@ -38,6 +38,23 @@ export async function exportDocToPdf(title: string, html: string) {
   const style = document.createElement("style");
   style.textContent = DOC_CSS;
   container.appendChild(style);
+
+  if (logoUrl) {
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex;justify-content:flex-end;margin-bottom:16px;";
+    const logo = document.createElement("img");
+    logo.src = logoUrl;
+    logo.crossOrigin = "anonymous";
+    logo.style.cssText = "max-height:48px;max-width:180px;object-fit:contain;";
+    await new Promise<void>((resolve) => {
+      logo.onload = () => resolve();
+      logo.onerror = () => resolve();
+    });
+    if (logo.naturalWidth > 0) {
+      header.appendChild(logo);
+      container.appendChild(header);
+    }
+  }
 
   const heading = document.createElement("h1");
   heading.textContent = title || "Namnlöst dokument";

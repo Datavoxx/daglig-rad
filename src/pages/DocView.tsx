@@ -138,7 +138,17 @@ export default function DocView() {
     if (!editor) return;
     setExporting(true);
     try {
-      await exportDocToPdf(title, editor.getHTML());
+      const { data: userData } = await supabase.auth.getUser();
+      let logoUrl: string | null = null;
+      if (userData.user) {
+        const { data: settings } = await supabase
+          .from("company_settings")
+          .select("logo_url")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        logoUrl = settings?.logo_url ?? null;
+      }
+      await exportDocToPdf(title, editor.getHTML(), logoUrl);
       toast.success("PDF skapad");
     } catch {
       toast.error("Kunde inte skapa PDF");
