@@ -524,7 +524,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         vatPercent={estimate.state.vatPercent}
         hideUnitPrice={estimate.state.hideUnitPrice}
         roundTotal={estimate.state.roundTotal}
-        referenceOptions={referenceOptions}
         onChange={estimate.updateAdvanced}
       />
 
