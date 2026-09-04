@@ -4,13 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import type { MessageData, NextAction } from "@/types/global-assistant";
-import { FeedbackSection } from "./FeedbackSection";
 
 interface ResultCardProps {
   data: MessageData;
   content?: string;
   onNextAction?: (action: NextAction) => void;
-  conversationId?: string;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -33,7 +31,7 @@ const iconMap: Record<string, React.ElementType> = {
   "user-plus": UserPlus,
 };
 
-export function ResultCard({ data, content, onNextAction, conversationId }: ResultCardProps) {
+export function ResultCard({ data, content, onNextAction }: ResultCardProps) {
   const navigate = useNavigate();
   const isSuccess = data.success !== false;
 
@@ -104,14 +102,6 @@ export function ResultCard({ data, content, onNextAction, conversationId }: Resu
             )}
           </div>
         </div>
-        
-        {/* Feedback Section */}
-        {data.showFeedback && data.taskType && isSuccess && (
-          <FeedbackSection
-            taskType={data.taskType}
-            conversationId={conversationId}
-          />
-        )}
       </CardContent>
     </Card>
   );

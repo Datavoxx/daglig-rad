@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, History, ArrowLeft, RefreshCw } from "lucide-react";
-import { useConversationFeedback } from "@/contexts/ConversationFeedbackContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/global-assistant/ChatInput";
@@ -16,7 +15,7 @@ import type { ReferenceTag } from "@/components/global-assistant/ReferenceTagPic
 export default function GlobalAssistant() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setLastConversation } = useConversationFeedback();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -36,16 +35,6 @@ export default function GlobalAssistant() {
     conversationIdRef.current = currentConversationId;
     messagesLengthRef.current = messages.length;
   }, [currentConversationId, messages.length]);
-  
-  // Trigger feedback popup when leaving the page
-  useEffect(() => {
-    return () => {
-      // Only trigger if there was a real conversation (more than 1 message = user + assistant)
-      if (conversationIdRef.current && messagesLengthRef.current > 1) {
-        setLastConversation(conversationIdRef.current);
-      }
-    };
-  }, [setLastConversation]);
 
   const handleNewChat = () => {
     setMessages([]);
@@ -750,7 +739,6 @@ export default function GlobalAssistant() {
         <>
           <MessageList
             messages={messages}
-            conversationId={currentConversationId}
             onProposalConfirm={handleProposalConfirm}
             onProposalCancel={handleProposalCancel}
             onProposalModify={handleProposalModify}

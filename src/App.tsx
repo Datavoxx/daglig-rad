@@ -1,7 +1,6 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ConversationFeedbackProvider } from "@/contexts/ConversationFeedbackContext";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -51,7 +50,6 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <ConversationFeedbackProvider>
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
@@ -99,7 +97,6 @@ const App = () => {
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </ConversationFeedbackProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

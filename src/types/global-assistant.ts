@@ -64,9 +64,8 @@ export interface MessageData {
   nextActions?: NextAction[];
   downloadLink?: { label: string; href: string };
   
-  // For feedback
-  showFeedback?: boolean;
   taskType?: string;
+  
   
   // For list
   listItems?: ListItem[];

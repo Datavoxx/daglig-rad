@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { RouteTransition } from "./RouteTransition";
-import { SessionFeedbackPopup } from "./SessionFeedbackPopup";
+
 import { BottomNav } from "./BottomNav";
 import byggioLogo from "@/assets/byggio-logo.png";
 import { FileText } from "lucide-react";
@@ -112,8 +112,6 @@ export function AppLayout() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showSessionFeedback, setShowSessionFeedback] = useState(false);
-  const [feedbackTrigger, setFeedbackTrigger] = useState<"logout" | "inactivity">("logout");
   const location = useLocation();
   const navigate = useNavigate();
   const { hasAccess, loading: permissionsLoading, getDefaultRoute, isEmployee, role } = useUserPermissions();
@@ -121,17 +119,9 @@ export function AppLayout() {
   const { isServiceIndustry } = useUserIndustry();
 
 
-  const handleLogoutClick = () => {
-    setFeedbackTrigger("logout");
-    setShowSessionFeedback(true);
-  };
-
-  const handleFeedbackComplete = async () => {
-    setShowSessionFeedback(false);
-    if (feedbackTrigger === "logout") {
-      await supabase.auth.signOut();
-      navigate("/auth");
-    }
+  const handleLogoutClick = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
   };
 
   // Live clock - update every second
@@ -518,12 +508,6 @@ export function AppLayout() {
         <BottomNav />
 
       </div>
-      <SessionFeedbackPopup
-        open={showSessionFeedback}
-        trigger={feedbackTrigger}
-        onComplete={handleFeedbackComplete}
-        onStayLoggedIn={() => setShowSessionFeedback(false)}
-      />
     </div>
   );
 }
