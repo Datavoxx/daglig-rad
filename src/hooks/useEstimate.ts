@@ -38,6 +38,7 @@ export interface EstimateState {
   vatPercent: number;
   hideUnitPrice: boolean;
   roundTotal: boolean;
+  logoUrl: string | null;
   // Manual mode fields
   manualProjectName: string;
   manualClientName: string;
@@ -74,6 +75,7 @@ const initialState: EstimateState = {
   vatPercent: 25,
   hideUnitPrice: false,
   roundTotal: false,
+  logoUrl: null,
   manualProjectName: "",
   manualClientName: "",
   manualAddress: "",
@@ -227,6 +229,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         vatPercent: Number((existingEstimate as any).vat_percent ?? 25),
         hideUnitPrice: (existingEstimate as any).hide_unit_price ?? false,
         roundTotal: (existingEstimate as any).round_total ?? false,
+        logoUrl: (existingEstimate as any).logo_url ?? null,
         // Preserve manual fields from existing estimate if available
         manualProjectName: (existingEstimate as any).manual_project_name || prev.manualProjectName || "",
         manualClientName: (existingEstimate as any).manual_client_name || prev.manualClientName || "",
@@ -502,6 +505,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
         vat_percent: state.vatPercent,
         hide_unit_price: state.hideUnitPrice,
         round_total: state.roundTotal,
+        logo_url: state.logoUrl,
         // Manual mode fields
         manual_project_name: isManualMode ? state.manualProjectName : null,
         manual_client_name: isManualMode ? state.manualClientName : null,

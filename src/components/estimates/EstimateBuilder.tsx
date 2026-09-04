@@ -185,6 +185,10 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     (option, index, arr) => option.name && arr.findIndex((o) => o.name === option.name) === index
   );
 
+  const effectiveCompany = companySettings
+    ? { ...companySettings, logo_url: estimate.state.logoUrl || companySettings.logo_url }
+    : companySettings;
+
   const effectiveReference = estimate.state.ourReference || companySettings?.contact_person || userProfile?.full_name || "";
 
 
@@ -194,9 +198,9 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         offerNumber: "OFF-001",
         projectName: displayProjectName,
         validDays: estimate.state.validDays,
-        company: companySettings
+        company: effectiveCompany
           ? {
-              company_name: companySettings.company_name || undefined,
+              company_name: effectiveCompany!.company_name || undefined,
               org_number: companySettings.org_number || undefined,
               address: companySettings.address || undefined,
               postal_code: companySettings.postal_code || undefined,
@@ -205,7 +209,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
               email: companySettings.email || undefined,
               website: companySettings.website || undefined,
               bankgiro: companySettings.bankgiro || undefined,
-              logo_url: companySettings.logo_url || undefined,
+              logo_url: effectiveCompany?.logo_url || undefined,
               contact_person: companySettings.contact_person || undefined,
               contact_phone: companySettings.contact_phone || undefined,
               momsregnr: companySettings.momsregnr || undefined,
@@ -524,6 +528,9 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         vatPercent={estimate.state.vatPercent}
         hideUnitPrice={estimate.state.hideUnitPrice}
         roundTotal={estimate.state.roundTotal}
+        logoUrl={estimate.state.logoUrl}
+        companyLogoUrl={companySettings?.logo_url || null}
+        referenceOptions={referenceOptions}
         onChange={estimate.updateAdvanced}
       />
 
@@ -574,7 +581,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
       <div className="group-hover:opacity-90 transition-opacity">
         <QuoteLivePreview
           project={displayProject}
-          company={companySettings}
+          company={effectiveCompany}
           scope={estimate.state.scope}
           assumptions={estimate.state.assumptions}
           items={estimate.state.items}
@@ -596,7 +603,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           open={mobilePreviewOpen}
           onOpenChange={setMobilePreviewOpen}
           project={displayProject}
-          company={companySettings}
+          company={effectiveCompany}
           scope={estimate.state.scope}
           assumptions={estimate.state.assumptions}
           items={estimate.state.items}
@@ -644,7 +651,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         open={mobilePreviewOpen}
         onOpenChange={setMobilePreviewOpen}
         project={displayProject}
-        company={companySettings}
+        company={effectiveCompany}
         scope={estimate.state.scope}
         assumptions={estimate.state.assumptions}
         items={estimate.state.items}
