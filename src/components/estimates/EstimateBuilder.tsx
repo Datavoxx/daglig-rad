@@ -530,7 +530,6 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         roundTotal={estimate.state.roundTotal}
         logoUrl={estimate.state.logoUrl}
         companyLogoUrl={companySettings?.logo_url || null}
-        referenceOptions={referenceOptions}
         onChange={estimate.updateAdvanced}
       />
 
