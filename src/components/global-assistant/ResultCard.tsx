@@ -9,7 +9,6 @@ interface ResultCardProps {
   data: MessageData;
   content?: string;
   onNextAction?: (action: NextAction) => void;
-  conversationId?: string;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -32,7 +31,7 @@ const iconMap: Record<string, React.ElementType> = {
   "user-plus": UserPlus,
 };
 
-export function ResultCard({ data, content, onNextAction, conversationId }: ResultCardProps) {
+export function ResultCard({ data, content, onNextAction }: ResultCardProps) {
   const navigate = useNavigate();
   const isSuccess = data.success !== false;
 
