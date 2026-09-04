@@ -1470,6 +1470,7 @@ export type Database = {
           id: string
           introduction_text: string | null
           labor_cost: number | null
+          logo_url: string | null
           manual_address: string | null
           manual_city: string | null
           manual_client_name: string | null
@@ -1514,6 +1515,7 @@ export type Database = {
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
+          logo_url?: string | null
           manual_address?: string | null
           manual_city?: string | null
           manual_client_name?: string | null
@@ -1558,6 +1560,7 @@ export type Database = {
           id?: string
           introduction_text?: string | null
           labor_cost?: number | null
+          logo_url?: string | null
           manual_address?: string | null
           manual_city?: string | null
           manual_client_name?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.project_estimates ADD COLUMN IF NOT EXISTS logo_url text;
