@@ -241,7 +241,6 @@ export function MessageList({
                     data={message.data} 
                     content={message.content} 
                     onNextAction={onNextAction} 
-                    conversationId={conversationId || undefined}
                   />
                 )}
 
