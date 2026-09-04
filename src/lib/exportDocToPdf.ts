@@ -41,7 +41,7 @@ export async function exportDocToPdf(title: string, html: string, logoUrl?: stri
 
   if (logoUrl) {
     const header = document.createElement("div");
-    header.style.cssText = "display:flex;justify-content:flex-end;margin-bottom:16px;";
+    header.style.cssText = "display:flex;justify-content:flex-start;margin-bottom:16px;";
     const logo = document.createElement("img");
     logo.src = logoUrl;
     logo.crossOrigin = "anonymous";
