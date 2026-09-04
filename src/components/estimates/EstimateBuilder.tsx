@@ -200,7 +200,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         validDays: estimate.state.validDays,
         company: effectiveCompany
           ? {
-              company_name: effectiveCompany!.company_name || undefined,
+              company_name: companySettings.company_name || undefined,
               org_number: companySettings.org_number || undefined,
               address: companySettings.address || undefined,
               postal_code: companySettings.postal_code || undefined,
