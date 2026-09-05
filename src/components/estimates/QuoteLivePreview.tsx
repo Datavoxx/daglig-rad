@@ -199,7 +199,7 @@ export function QuoteLivePreview({
                             {item.type === "labor" ? item.hours : item.quantity}
                           </td>
                           <td className="py-2 text-right text-gray-600">
-                            {item.type === "labor" ? "h" : item.unit}
+                            {item.unit}
                           </td>
                           <td className="py-2 text-right text-gray-600">
                             {formatCurrency(item.unit_price)}
