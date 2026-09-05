@@ -49,6 +49,7 @@ export function InlineEditableCell({
     }
     if (e.key === "Escape") {
       setLocalValue(String(value ?? ""));
+      onChange(String(value ?? ""));
       inputRef.current?.blur();
     }
     onKeyDown?.(e);
@@ -86,7 +87,10 @@ export function InlineEditableCell({
         type={type === "number" ? "text" : "text"}
         inputMode={type === "number" ? "decimal" : "text"}
         value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
+        onChange={(e) => {
+          setLocalValue(e.target.value);
+          onChange(e.target.value);
+        }}
         onFocus={() => setIsFocused(true)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
