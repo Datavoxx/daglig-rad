@@ -246,7 +246,7 @@ export function QuotePreviewSheet({
                         {item.show_only_total ? "–" : (item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity)}
                       </td>
                       <td className="py-2 text-right text-gray-600">
-                        {item.show_only_total ? "–" : (item.type === "labor" ? "tim" : item.unit)}
+                        {item.show_only_total ? "–" : item.unit}
                       </td>
                       <td className="py-2 text-right text-gray-600">
                         {item.show_only_total ? "–" : formatCurrency(item.unit_price)}
