@@ -49,6 +49,7 @@ export function InlineEditableCell({
     }
     if (e.key === "Escape") {
       setLocalValue(String(value ?? ""));
+      onChange(String(value ?? ""));
       inputRef.current?.blur();
     }
     onKeyDown?.(e);
