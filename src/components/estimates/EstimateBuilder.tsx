@@ -579,6 +579,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          ourReference={effectiveReference}
+          ourReferencePhone={effectiveReferencePhone}
         />
       </div>
     </div>
@@ -600,6 +602,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          ourReference={effectiveReference}
+          ourReferencePhone={effectiveReferencePhone}
         />
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
@@ -648,6 +652,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}
+        ourReference={effectiveReference}
+        ourReferencePhone={effectiveReferencePhone}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
