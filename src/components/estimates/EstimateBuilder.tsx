@@ -189,6 +189,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     : companySettings;
 
   const effectiveReference = estimate.state.ourReference || companySettings?.contact_person || userProfile?.full_name || "";
+  const effectiveReferencePhone = estimate.state.ourReferencePhone || companySettings?.contact_phone || "";
 
 
   const handleDownload = async () => {
@@ -578,6 +579,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          ourReference={effectiveReference}
+          ourReferencePhone={effectiveReferencePhone}
         />
       </div>
     </div>
@@ -599,6 +602,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          ourReference={effectiveReference}
+          ourReferencePhone={effectiveReferencePhone}
         />
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
@@ -647,6 +652,8 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}
+        ourReference={effectiveReference}
+        ourReferencePhone={effectiveReferencePhone}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
