@@ -533,8 +533,8 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  if (data.company?.contact_phone) {
-    doc.text(`Mobil: ${data.company.contact_phone}`, margin, yPos);
+  if (data.ourReferencePhone || data.company?.contact_phone) {
+    doc.text(`Mobil: ${data.ourReferencePhone || data.company?.contact_phone}`, margin, yPos);
     yPos += 5;
   }
   if (data.company?.email) {

@@ -189,6 +189,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
     : companySettings;
 
   const effectiveReference = estimate.state.ourReference || companySettings?.contact_person || userProfile?.full_name || "";
+  const effectiveReferencePhone = estimate.state.ourReferencePhone || companySettings?.contact_phone || "";
 
 
   const handleDownload = async () => {
