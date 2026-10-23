@@ -520,13 +520,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos = 50;
   doc.setFontSize(12);
   doc.setTextColor(50, 50, 50);
+  doc.setFont("helvetica", "normal");
   doc.text("Med vänliga hälsningar", margin, yPos);
 
   yPos += 12;
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.text(data.company?.contact_person || "–", margin, yPos);
+  doc.text(data.ourReference || data.company?.contact_person || "–", margin, yPos);
   
   yPos += 6;
   doc.setFontSize(10);

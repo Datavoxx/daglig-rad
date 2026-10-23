@@ -57,6 +57,8 @@ interface QuotePreviewSheetProps {
   offerNumber?: string;
   validDays?: number;
   onRefresh?: () => void;
+  ourReference?: string;
+  ourReferencePhone?: string;
 }
 
 export function QuotePreviewSheet({
@@ -73,6 +75,8 @@ export function QuotePreviewSheet({
   offerNumber = "OFF-001",
   validDays = 30,
   onRefresh,
+  ourReference,
+  ourReferencePhone,
 }: QuotePreviewSheetProps) {
   const isMobile = useIsMobile();
   const today = new Date();
@@ -188,8 +192,9 @@ export function QuotePreviewSheet({
               <div>
                 <p className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-1">Vår referens</p>
                 <p className="font-medium text-black text-sm md:text-base">
-                  {company?.contact_person || "–"}
-                  {company?.contact_phone && ` ${company.contact_phone}`}
+                  {ourReference || company?.contact_person || "–"}
+                  {(ourReferencePhone || company?.contact_phone) &&
+                    ` ${ourReferencePhone || company?.contact_phone}`}
                 </p>
                 <p className="text-xs md:text-sm text-gray-600 mt-1 md:mt-2">
                   Datum: {format(today, "yyyy-MM-dd")}
@@ -371,9 +376,11 @@ export function QuotePreviewSheet({
 
             <div className="mb-12">
               <p className="text-lg text-gray-800 mb-8">Med vänliga hälsningar</p>
-              <p className="font-bold text-black text-lg">{company?.contact_person || "–"}</p>
-              {company?.contact_phone && (
-                <p className="text-gray-600">Mobil: {company.contact_phone}</p>
+              <p className="font-bold text-black text-lg">
+                {ourReference || company?.contact_person || "–"}
+              </p>
+              {(ourReferencePhone || company?.contact_phone) && (
+                <p className="text-gray-600">Mobil: {ourReferencePhone || company?.contact_phone}</p>
               )}
               {company?.email && (
                 <p className="text-gray-600">E-post: {company.email}</p>
