@@ -44,6 +44,7 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
   const [address, setAddress] = useState("");
   const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
