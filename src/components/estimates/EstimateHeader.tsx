@@ -24,6 +24,7 @@ interface EstimateHeaderProps {
   isEditable?: boolean;
   ourReference?: string | null;
   onOurReferenceChange?: (name: string) => void;
+  ourReferencePlaceholder?: string | null;
   onProjectNameChange?: (name: string) => void;
   onClientNameChange?: (name: string) => void;
   onAddressChange?: (address: string) => void;
@@ -41,6 +42,7 @@ export function EstimateHeader({
   isEditable = false,
   ourReference,
   onOurReferenceChange,
+  ourReferencePlaceholder,
   onProjectNameChange,
   onClientNameChange,
   onAddressChange,
@@ -155,7 +157,7 @@ export function EstimateHeader({
               type="text"
               value={ourReference || ""}
               onChange={(e) => onOurReferenceChange(e.target.value)}
-              placeholder="Namn..."
+              placeholder={ourReferencePlaceholder || "Namn..."}
               className="bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 placeholder:text-muted-foreground/50 min-w-[100px]"
             />
           </div>
