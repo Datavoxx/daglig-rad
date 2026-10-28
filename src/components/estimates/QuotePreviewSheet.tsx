@@ -63,6 +63,8 @@ interface QuotePreviewSheetProps {
   onRefresh?: () => void;
   ourReference?: string;
   ourReferencePhone?: string;
+  /** Private customer: show prices incl. VAT. Business: excl. VAT. */
+  pricesInclVat?: boolean;
 }
 
 export function QuotePreviewSheet({
@@ -83,6 +85,7 @@ export function QuotePreviewSheet({
   onRefresh,
   ourReference,
   ourReferencePhone,
+  pricesInclVat = true,
 }: QuotePreviewSheetProps) {
   const isMobile = useIsMobile();
   const today = new Date();
@@ -123,6 +126,7 @@ export function QuotePreviewSheet({
   const totalExclVat = subtotal + markup;
   const vat = totalExclVat * 0.25;
   const totalInclVat = totalExclVat + vat;
+  const vf = pricesInclVat ? 1.25 : 1;
   
   // ROT calculation on rot_eligible labor cost including VAT
   const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
@@ -271,39 +275,62 @@ export function QuotePreviewSheet({
                         {item.show_only_total ? "–" : item.unit}
                       </td>
                       <td className="py-2 text-right text-black">
-                        {item.show_only_total ? "–" : formatCurrency(item.unit_price)}
+                        {item.show_only_total ? "–" : formatCurrency(item.unit_price * vf)}
                       </td>
                       <td className="py-2 text-right font-medium text-black">
-                        {formatCurrency(item.subtotal)}
+                        {formatCurrency(item.subtotal * vf)}
                       </td>
                     </tr>
                   ))}
                   
                   {/* Subtotals */}
-                  <tr className="border-t-2 border-gray-400">
-                    <td colSpan={4} className="py-2 text-right font-medium text-black">
-                      Summa exkl. moms
-                    </td>
-                    <td className="py-2 text-right font-medium text-black">
-                      {formatCurrency(totalExclVat)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={4} className="py-2 text-right text-black">
-                      Moms 25%
-                    </td>
-                    <td className="py-2 text-right text-black">
-                      {formatCurrency(vat)}
-                    </td>
-                  </tr>
-                  <tr className="border-t border-gray-300">
-                    <td colSpan={4} className="py-2 text-right font-bold text-black">
-                      Totalt inkl. moms
-                    </td>
-                    <td className="py-2 text-right font-bold text-black">
-                      {formatCurrency(totalInclVat)}
-                    </td>
-                  </tr>
+                  {pricesInclVat ? (
+                    <>
+                      <tr className="border-t-2 border-gray-400">
+                        <td colSpan={4} className="py-2 text-right font-bold text-black">
+                          Totalt inkl. moms
+                        </td>
+                        <td className="py-2 text-right font-bold text-black">
+                          {formatCurrency(totalInclVat)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={4} className="py-2 text-right text-black">
+                          Varav moms 25%
+                        </td>
+                        <td className="py-2 text-right text-black">
+                          {formatCurrency(vat)}
+                        </td>
+                      </tr>
+                    </>
+                  ) : (
+                    <>
+                      <tr className="border-t-2 border-gray-400">
+                        <td colSpan={4} className="py-2 text-right font-bold text-black">
+                          Summa exkl. moms
+                        </td>
+                        <td className="py-2 text-right font-bold text-black">
+                          {formatCurrency(totalExclVat)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={4} className="py-2 text-right text-black">
+                          Moms 25%
+                        </td>
+                        <td className="py-2 text-right text-black">
+                          {formatCurrency(vat)}
+                        </td>
+                      </tr>
+                      <tr className="border-t border-gray-300">
+                        <td colSpan={4} className="py-2 text-right font-medium text-black">
+                          Totalt inkl. moms
+                        </td>
+                        <td className="py-2 text-right font-medium text-black">
+                          {formatCurrency(totalInclVat)}
+                        </td>
+                      </tr>
+                    </>
+                  )}
                   
                   {rotEnabled && rotAmount > 0 && (
                        <tr>
@@ -345,7 +372,7 @@ export function QuotePreviewSheet({
                   )}
                 </tbody>
               </table>
-              <AddonsPreviewTable addons={addons} />
+              <AddonsPreviewTable addons={addons} inclVat={pricesInclVat} />
             </div>
 
             {/* Footer */}
