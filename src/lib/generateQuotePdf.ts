@@ -402,7 +402,9 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
       // Red asterisk on ROT-eligible labor rows, like Bygglet
       if (hookData.section !== "body" || hookData.column.index !== 0) return;
       const item = data.items[hookData.row.index];
-      if (!item || !item.rot_eligible || item.type !== "labor" || !data.rotEnabled) return;
+      const isMarked =
+        (item?.rot_eligible && data.rotEnabled) || (item?.rut_eligible && data.rutEnabled);
+      if (!item || !isMarked || item.type !== "labor") return;
       const texts: string[] = hookData.cell.text || [];
       if (texts.length === 0) return;
       const lastLine = texts[texts.length - 1];
