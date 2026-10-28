@@ -250,7 +250,12 @@ export function QuotePreviewSheet({
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id} className="border-b border-gray-200">
-                      <td className="py-2 text-gray-800">{item.description || item.moment}</td>
+                      <td className="py-2 text-gray-800">
+                        {item.description || item.moment}
+                        {item.rot_eligible && rotEnabled && item.type === "labor" && (
+                          <span className="ml-0.5 text-red-600 font-bold">*</span>
+                        )}
+                      </td>
                       <td className="py-2 text-right text-gray-600">
                         {item.show_only_total ? "–" : (item.type === "labor" ? (item.hours ?? item.quantity) : item.quantity)}
                       </td>
