@@ -3,13 +3,14 @@ import type { EstimateAddon } from "@/hooks/useEstimate";
 const fmt = (n: number) => new Intl.NumberFormat("sv-SE").format(Math.round(n || 0));
 
 /** Read-only Tillval table for quote previews. Never part of the total. */
-export function AddonsPreviewTable({ addons }: { addons: EstimateAddon[] }) {
+export function AddonsPreviewTable({ addons, inclVat = false }: { addons: EstimateAddon[]; inclVat?: boolean }) {
   if (!addons.length) return null;
+  const vf = inclVat ? 1.25 : 1;
   return (
     <div className="mt-8">
       <h3 className="font-bold text-sm text-black mb-1">Tillval</h3>
       <p className="text-[11px] text-gray-500 mb-2">
-        Frivilliga tillval – ingår ej i totalsumman. Priser exkl. moms.
+        Frivilliga tillval – ingår ej i totalsumman. Priser {inclVat ? "inkl." : "exkl."} moms.
       </p>
       <table className="w-full text-sm">
         <thead>
@@ -35,10 +36,10 @@ export function AddonsPreviewTable({ addons }: { addons: EstimateAddon[] }) {
                 <>
                   <td className="py-2 text-right text-gray-600">{a.type === "labor" ? a.hours ?? a.quantity : a.quantity}</td>
                   <td className="py-2 text-right text-gray-600">{a.unit}</td>
-                  <td className="py-2 text-right text-gray-600">{fmt(a.unit_price)}</td>
+                  <td className="py-2 text-right text-gray-600">{fmt(a.unit_price * vf)}</td>
                 </>
               )}
-              <td className="py-2 text-right font-medium text-black">{fmt(a.subtotal)}</td>
+              <td className="py-2 text-right font-medium text-black">{fmt(a.subtotal * vf)}</td>
             </tr>
           ))}
         </tbody>
