@@ -65,6 +65,8 @@ interface QuoteData {
   paymentTermsDays?: number;
   vatPercent?: number;
   hideUnitPrice?: boolean;
+  /** Private customer: prices shown incl. VAT. Business: excl. VAT. */
+  pricesInclVat?: boolean;
 }
 
 export async function generateQuotePdf(data: QuoteData): Promise<void> {
@@ -104,6 +106,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   const totalExclVat = subtotal + markup;
   const vatPercent = data.vatPercent ?? 25;
   const vatRate = vatPercent / 100;
+  const vf = data.pricesInclVat === false ? 1 : 1 + vatRate;
   const vat = totalExclVat * vatRate;
   const totalInclVat = totalExclVat + vat;
   
@@ -343,7 +346,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   const tableData = data.items.map((item) => {
     const description = item.description || item.moment;
     if (item.show_only_total) {
-      const row = [description, "–", "–", "–", formatNumber(item.subtotal)];
+      const row = [description, "–", "–", "–", formatNumber(item.subtotal * vf)];
       return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
     }
     // Use the unit selected on the item, regardless of type.
@@ -357,8 +360,8 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
       description,
       amount,
       unitLabel,
-      formatNumber(item.unit_price),
-      formatNumber(item.subtotal),
+      formatNumber(item.unit_price * vf),
+      formatNumber(item.subtotal * vf),
     ];
     return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
   });
@@ -439,26 +442,36 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.text("Summa exkl. moms", totalsX, yPos, { align: "right" });
-  doc.text(`${formatNumber(totalExclVat)} kr`, valuesX, yPos, { align: "right" });
-  
-  yPos += 5;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
-  doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
-  
-  yPos += 6;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(totalsX - 40, yPos - 2, pageWidth - margin, yPos - 2);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.text("Totalt inkl. moms", totalsX, yPos + 3, { align: "right" });
-  doc.text(`${formatNumber(totalInclVat)} kr`, valuesX, yPos + 3, { align: "right" });
+  if (vf > 1) {
+    // Private customer: total incl. VAT first, VAT shown as "varav"
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Totalt inkl. moms", totalsX, yPos, { align: "right" });
+    doc.text(`${formatNumber(totalInclVat)} kr`, valuesX, yPos, { align: "right" });
+    yPos += 5;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Varav moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
+    doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
+    yPos -= 3;
+  } else {
+    // Business customer: excl. VAT is the main sum
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Summa exkl. moms", totalsX, yPos, { align: "right" });
+    doc.text(`${formatNumber(totalExclVat)} kr`, valuesX, yPos, { align: "right" });
+    yPos += 5;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
+    doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
+    yPos += 6;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(totalsX - 40, yPos - 2, pageWidth - margin, yPos - 2);
+    doc.text("Totalt inkl. moms", totalsX, yPos + 3, { align: "right" });
+    doc.text(`${formatNumber(totalInclVat)} kr`, valuesX, yPos + 3, { align: "right" });
+  }
   
   if (hasAnyDeduction) {
     yPos += 10;
@@ -506,13 +519,13 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(0, 0, 0);
-    doc.text("Frivilliga tillval \u2013 ing\u00e5r ej i totalsumman. Priser exkl. moms.", margin, yPos);
+    doc.text("Frivilliga tillval \u2013 ing\u00e5r ej i totalsumman. Priser " + (vf > 1 ? "inkl." : "exkl.") + " moms.", margin, yPos);
     yPos += 3;
 
     const addonRows = data.addons.map((item) => {
       const description = item.description || item.article || item.moment || "";
       if (item.show_only_total) {
-        const row = [description, "\u2013", "\u2013", "\u2013", formatNumber(item.subtotal)];
+        const row = [description, "\u2013", "\u2013", "\u2013", formatNumber(item.subtotal * vf)];
         return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
       }
       const unitLabel = item.unit || (item.type === "labor" ? "h" : "\u2013");
@@ -520,7 +533,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
         item.type === "labor"
           ? (item.hours ?? item.quantity)?.toString() || "\u2013"
           : (item.quantity ?? item.hours)?.toString() || "\u2013";
-      const row = [description, amount, unitLabel, formatNumber(item.unit_price), formatNumber(item.subtotal)];
+      const row = [description, amount, unitLabel, formatNumber(item.unit_price * vf), formatNumber(item.subtotal * vf)];
       return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
     });
 
