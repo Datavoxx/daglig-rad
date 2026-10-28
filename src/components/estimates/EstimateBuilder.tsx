@@ -621,6 +621,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           scope={estimate.state.scope}
           assumptions={estimate.state.assumptions}
           items={estimate.state.items}
+          addons={estimate.state.addons}
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
@@ -671,6 +672,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         scope={estimate.state.scope}
         assumptions={estimate.state.assumptions}
         items={estimate.state.items}
+        addons={estimate.state.addons}
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}

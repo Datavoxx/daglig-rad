@@ -5,6 +5,7 @@ import { PinchZoomContainer } from "./PinchZoomContainer";
 import { cn } from "@/lib/utils";
 import type { EstimateItem } from "./EstimateTable";
 import type { EstimateAddon } from "@/hooks/useEstimate";
+import { AddonsPreviewTable } from "./AddonsPreviewTable";
 
 interface CompanyInfo {
   company_name?: string;
@@ -74,11 +75,7 @@ export function QuoteLivePreview({
   const subcontractorCost = items
     .filter((i) => i.type === "subcontractor")
     .reduce((sum, i) => sum + i.subtotal, 0);
-  const addonsCost = addons
-    .filter((a) => a.is_selected)
-    .reduce((sum, a) => sum + a.price, 0);
-
-  const subtotal = laborCost + materialCost + subcontractorCost + addonsCost;
+  const subtotal = laborCost + materialCost + subcontractorCost;
   
   // Per-item markup
   const markupFromItems = items.reduce((sum, i) => {
@@ -106,7 +103,6 @@ export function QuoteLivePreview({
   };
 
   const customerAddressLines = parseAddress(project?.address);
-  const selectedAddons = addons.filter((a) => a.is_selected);
 
   const pageContent = (
     <div className={isMobile ? "w-[210mm]" : undefined}>
@@ -217,30 +213,6 @@ export function QuoteLivePreview({
                     </tr>
                   ))}
 
-                  {/* Selected addons */}
-                  {selectedAddons.length > 0 && (
-                    <>
-                      <tr>
-                        <td colSpan={5} className="py-2 pt-4 font-bold text-black">
-                          Tillval
-                        </td>
-                      </tr>
-                      {selectedAddons.map((addon) => (
-                        <tr key={addon.id} className="border-b border-gray-200 bg-blue-50/50">
-                          <td className="py-2 text-gray-800">{addon.name}</td>
-                          <td className="py-2 text-right text-gray-600">1</td>
-                          <td className="py-2 text-right text-gray-600">st</td>
-                          <td className="py-2 text-right text-gray-600">
-                            {formatCurrency(addon.price)}
-                          </td>
-                          <td className="py-2 text-right font-medium text-black">
-                            {formatCurrency(addon.price)}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
-
                   {/* Totals */}
                   <tr className="border-t-2 border-gray-400">
                     <td colSpan={4} className="py-2 text-right font-medium text-black">
@@ -289,6 +261,7 @@ export function QuoteLivePreview({
                   )}
                 </tbody>
               </table>
+              <AddonsPreviewTable addons={addons} />
             </div>
 
             {/* Footer */}
