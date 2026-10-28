@@ -305,9 +305,8 @@ export function QuotePreviewSheet({
                     </td>
                   </tr>
                   
-                  {rotEnabled && (
-                    <>
-                      <tr>
+                  {rotEnabled && rotAmount > 0 && (
+                       <tr>
                         <td colSpan={4} className="py-2 text-right text-red-600 font-semibold">
                           * {rotPercent}% ROT-avdrag inkl moms
                          </td>
@@ -315,6 +314,19 @@ export function QuotePreviewSheet({
                           -{formatCurrency(rotAmount)}
                         </td>
                       </tr>
+                  )}
+                  {rutEnabled && rutAmount > 0 && (
+                       <tr>
+                        <td colSpan={4} className="py-2 text-right text-red-600 font-semibold">
+                          * 50% RUT-avdrag inkl moms
+                         </td>
+                        <td className="py-2 text-right text-red-600 font-semibold">
+                          -{formatCurrency(rutAmount)}
+                        </td>
+                      </tr>
+                  )}
+                  {(rotEnabled || rutEnabled) && (
+                    <>
                       <tr className="bg-gray-100">
                         <td colSpan={4} className={cn(
                           "py-3 text-right font-bold text-black",
