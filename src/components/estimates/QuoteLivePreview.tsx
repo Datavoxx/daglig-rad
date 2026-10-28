@@ -129,28 +129,28 @@ export function QuoteLivePreview({
               </div>
               <div className="text-right">
                 <h1 className="text-3xl font-bold text-black mb-2">Offert</h1>
-                <p className="text-sm text-gray-600">Nr: {offerNumber}</p>
+                <p className="text-sm text-black">Nr: {offerNumber}</p>
               </div>
             </div>
 
             {/* Reference and customer */}
             <div className="grid grid-cols-2 gap-8 mb-8 border-t border-b border-gray-300 py-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Vår referens</p>
+                <p className="text-xs text-black uppercase tracking-wider mb-1">Vår referens</p>
                 <p className="font-medium text-black">
                   {ourReference || company?.contact_person || "–"}
                   {(ourReferencePhone || company?.contact_phone) &&
                     ` ${ourReferencePhone || company.contact_phone}`}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-black mt-2">
                   Datum: {format(today, "yyyy-MM-dd")}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Kund</p>
+                <p className="text-xs text-black uppercase tracking-wider mb-1">Kund</p>
                 <p className="font-medium text-black">{project?.client_name || "–"}</p>
                 {customerAddressLines.map((line, idx) => (
-                  <p key={idx} className="text-sm text-gray-600">{line}</p>
+                  <p key={idx} className="text-sm text-black">{line}</p>
                 ))}
               </div>
             </div>
@@ -165,7 +165,7 @@ export function QuoteLivePreview({
             {/* Project description */}
             <div className="mb-6">
               <h3 className="font-bold text-black mb-2">Projektbeskrivning</h3>
-              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
                 {scope || "Ej angiven"}
               </p>
             </div>
@@ -186,7 +186,7 @@ export function QuoteLivePreview({
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id} className="border-b border-gray-200">
-                      <td className="py-2 text-gray-800">
+                      <td className="py-2 text-black">
                         {item.description || item.moment}
                         {((item.rot_eligible && rotEnabled) || ((item as any).rut_eligible && rutEnabled)) && item.type === "labor" && (
                           <span className="ml-0.5 text-red-600 font-bold">*</span>
@@ -195,19 +195,19 @@ export function QuoteLivePreview({
                       {/* Show price details only if show_only_total is false */}
                       {item.show_only_total ? (
                         <>
-                          <td className="py-2 text-right text-gray-400">–</td>
-                          <td className="py-2 text-right text-gray-400">–</td>
-                          <td className="py-2 text-right text-gray-400">–</td>
+                          <td className="py-2 text-right text-black">–</td>
+                          <td className="py-2 text-right text-black">–</td>
+                          <td className="py-2 text-right text-black">–</td>
                         </>
                       ) : (
                         <>
-                          <td className="py-2 text-right text-gray-600">
+                          <td className="py-2 text-right text-black">
                             {item.type === "labor" ? item.hours : item.quantity}
                           </td>
-                          <td className="py-2 text-right text-gray-600">
+                          <td className="py-2 text-right text-black">
                             {item.unit}
                           </td>
-                          <td className="py-2 text-right text-gray-600">
+                          <td className="py-2 text-right text-black">
                             {formatCurrency(item.unit_price)}
                           </td>
                         </>
@@ -228,10 +228,10 @@ export function QuoteLivePreview({
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={4} className="py-2 text-right text-gray-600">
+                    <td colSpan={4} className="py-2 text-right text-black">
                       Moms 25%
                     </td>
-                    <td className="py-2 text-right text-gray-600">
+                    <td className="py-2 text-right text-black">
                       {formatCurrency(vat)}
                     </td>
                   </tr>
@@ -283,7 +283,7 @@ export function QuoteLivePreview({
 
             {/* Footer */}
             <div className="border-t border-gray-300 pt-4 mt-auto">
-              <div className="grid grid-cols-4 gap-4 text-xs text-gray-600">
+              <div className="grid grid-cols-4 gap-4 text-xs text-black">
                 <div>
                   <p className="font-medium text-black">Postadress</p>
                   <p>{company?.company_name || "–"}</p>
@@ -303,7 +303,7 @@ export function QuoteLivePreview({
                   <p>{company?.f_skatt !== false ? "Ja" : "Nej"}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 text-right mt-2">Sida 1 (3)</p>
+              <p className="text-xs text-black text-right mt-2">Sida 1 (3)</p>
             </div>
           </div>
 
@@ -320,20 +320,20 @@ export function QuoteLivePreview({
                 )}
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Offert Nr: {offerNumber}</p>
+                <p className="text-sm text-black">Offert Nr: {offerNumber}</p>
               </div>
             </div>
 
             <div className="mb-12">
-              <p className="text-lg text-gray-800 mb-8">Med vänliga hälsningar</p>
+              <p className="text-lg text-black mb-8">Med vänliga hälsningar</p>
               <p className="font-bold text-black text-lg">
                 {ourReference || company?.contact_person || "–"}
               </p>
               {(ourReferencePhone || company?.contact_phone) && (
-                <p className="text-gray-600">Mobil: {ourReferencePhone || company?.contact_phone}</p>
+                <p className="text-black">Mobil: {ourReferencePhone || company?.contact_phone}</p>
               )}
               {company?.email && (
-                <p className="text-gray-600">E-post: {company.email}</p>
+                <p className="text-black">E-post: {company.email}</p>
               )}
             </div>
 
@@ -341,20 +341,20 @@ export function QuoteLivePreview({
               <h3 className="font-bold text-black text-lg mb-8">Acceptera ovanstående</h3>
               <div className="space-y-6">
                 <div className="flex items-end gap-2">
-                  <span className="text-gray-800">Ort:</span>
+                  <span className="text-black">Ort:</span>
                   <div className="flex-1 border-b border-dotted border-gray-400 h-6"></div>
                 </div>
                 <div className="flex items-end gap-2">
-                  <span className="text-gray-800">Datum:</span>
+                  <span className="text-black">Datum:</span>
                   <div className="flex-1 border-b border-dotted border-gray-400 h-6"></div>
                 </div>
                 <div className="mt-12">
                   <div className="border-b border-dotted border-gray-400 h-12 mb-2"></div>
-                  <p className="text-xs text-gray-500 italic">Namnteckning</p>
+                  <p className="text-xs text-black italic">Namnteckning</p>
                 </div>
               </div>
             </div>
-            <p className="text-xs text-gray-400 text-right mt-8">Sida 2 (3)</p>
+            <p className="text-xs text-black text-right mt-8">Sida 2 (3)</p>
           </div>
 
           {/* Page 3 - Terms */}
@@ -370,13 +370,13 @@ export function QuoteLivePreview({
                 )}
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Offert Nr: {offerNumber}</p>
+                <p className="text-sm text-black">Offert Nr: {offerNumber}</p>
               </div>
             </div>
 
             <h2 className="text-xl font-bold text-black mb-8">Förutsättningar & villkor</h2>
 
-            <div className="space-y-6 text-sm text-gray-800">
+            <div className="space-y-6 text-sm text-black">
               <div>
                 <h4 className="font-bold text-black mb-2">Offertens giltighetstid</h4>
                 <p>
@@ -413,7 +413,7 @@ export function QuoteLivePreview({
                 </p>
               </div>
             </div>
-            <p className="text-xs text-gray-400 text-right mt-8">Sida 3 (3)</p>
+            <p className="text-xs text-black text-right mt-8">Sida 3 (3)</p>
           </div>
     </div>
   );

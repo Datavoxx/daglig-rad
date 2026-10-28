@@ -151,7 +151,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     
     yPos += 4;
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     
     // Postadress
     doc.text(data.company?.company_name || "–", margin, yPos);
@@ -168,7 +168,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
       doc.setTextColor(0, 0, 0);
       doc.text("Momsreg.nr", margin + colWidth * 2, yPos + 5);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
+      doc.setTextColor(0, 0, 0);
       doc.text(data.company.momsregnr, margin + colWidth * 2, yPos + 8);
     }
     
@@ -177,7 +177,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     
     // Page number
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    doc.setTextColor(0, 0, 0);
     doc.text(`Sida ${pageNum} (${totalPages})`, pageWidth - margin, pageHeight - 10, { align: "right" });
   };
 
@@ -237,7 +237,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Nr: ${data.offerNumber}`, pageWidth - margin, margin + 12, { align: "right" });
 
   // Reference and customer info section
@@ -248,10 +248,11 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 8;
   const midX = pageWidth / 2;
+  const headerLabelY = yPos;
   
   // Left: Vår referens
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text("VÅR REFERENS", margin, yPos);
   
@@ -267,14 +268,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 6;
   doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Datum: ${format(today, "yyyy-MM-dd")}`, margin, yPos);
 
-  // Right: Kund
-  let rightY = 53;
+  // Right: Kund (aligned with Vår referens)
+  let rightY = headerLabelY + 5;
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text("KUND", midX, rightY - 5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("KUND", midX, headerLabelY);
   
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
@@ -286,11 +287,12 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     addressLines.forEach((line, idx) => {
       rightY += 5;
       doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
+      doc.setTextColor(0, 0, 0);
       doc.text(line, midX, rightY);
     });
   }
 
+  yPos = Math.max(yPos, rightY);
   yPos += 8;
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, yPos, pageWidth - margin, yPos);
@@ -311,7 +313,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   const scopeLines = doc.splitTextToSize(data.scope || "Ej angiven", pageWidth - margin * 2);
   doc.text(scopeLines, margin, yPos);
   yPos += scopeLines.length * 4 + 6;
@@ -326,7 +328,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     yPos += 5;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(50, 50, 50);
+    doc.setTextColor(0, 0, 0);
     
     data.conditions.forEach((condition) => {
       doc.text(`•  ${condition}`, margin, yPos);
@@ -443,7 +445,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 5;
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Moms ${vatPercent}%`, totalsX, yPos, { align: "right" });
   doc.text(`${formatNumber(vat)} kr`, valuesX, yPos, { align: "right" });
   
@@ -503,7 +505,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     yPos += 4;
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     doc.text("Frivilliga tillval \u2013 ing\u00e5r ej i totalsumman. Priser exkl. moms.", margin, yPos);
     yPos += 3;
 
@@ -601,13 +603,13 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
 
   // Offer number right
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text(`Offert Nr: ${data.offerNumber}`, pageWidth - margin, margin + 5, { align: "right" });
 
   yPos = 50;
   doc.setFontSize(12);
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text("Med vänliga hälsningar", margin, yPos);
 
@@ -620,7 +622,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   if (data.ourReferencePhone || data.company?.contact_phone) {
     doc.text(`Mobil: ${data.ourReferencePhone || data.company?.contact_phone}`, margin, yPos);
     yPos += 5;
@@ -644,7 +646,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 15;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   doc.text("Ort:", margin, yPos);
   doc.setDrawColor(150, 150, 150);
   doc.setLineDashPattern([1, 1], 0);
@@ -660,14 +662,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 5;
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "italic");
   doc.text("Namnteckning", margin, yPos);
 
   yPos += 20;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Undertecknat dokument mailas till ${data.company?.email || "info@foretag.se"}`, margin, yPos);
 
 
@@ -714,7 +716,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
 
   // Offer number right
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text(`Offert Nr: ${data.offerNumber}`, pageWidth - margin, margin + 5, { align: "right" });
 
@@ -733,7 +735,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Offertens giltighetstid gäller ${validDays} dagar från ovanstående datum.`, margin, yPos);
   yPos += 4;
   doc.text(`Giltig t.o.m. ${format(validUntil, "yyyy-MM-dd")}.`, margin, yPos);
@@ -748,7 +750,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   doc.text(`${data.paymentTermsDays ?? 10} dagar netto.`, margin, yPos);
 
   yPos += 12;
@@ -761,7 +763,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   const ataText = doc.splitTextToSize(
     "Skulle det under projektets gång uppstå oförutsedda förhållanden eller behov av ändringar som påverkar det avtalade arbetet, kommer vi att upprätta en separat ÄTA-offert (ändrings- och tilläggsarbeten) för godkännande innan arbetet påbörjas. Inget tillkommande arbete utförs utan skriftligt godkännande.",
     pageWidth - margin * 2
@@ -778,7 +780,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
     yPos += 6;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(50, 50, 50);
+    doc.setTextColor(0, 0, 0);
     const taxText = doc.splitTextToSize(
       "För fullständig information om hur ROT- och RUT-avdragen fungerar hänvisar vi till Skatteverkets hemsida www.skatteverket.se. Kunden ansvarar för att kraven för avdrag uppfylls. ROT-avdrag är max 50 000 kr per person/år. RUT-avdrag är max 75 000 kr per person/år. Kombinerat max 75 000 kr per person/år.",
       pageWidth - margin * 2
@@ -795,7 +797,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   const gdprText = doc.splitTextToSize(
     "Vid godkännande av denna offert accepterar du att vi behandlar dina personuppgifter för att kunna fullfölja vårt åtagande gentemot dig som kund. Den information vi behandlar för er är information som berörs och är nödvändig för byggprojektens administration. Personuppgifterna lagras och hanteras i projektverktyget Bygglet som har tekniska och organisatoriska säkerhetsåtgärder för att skydda hanteringen av Personuppgifter och lever upp till de krav som ställs enligt EU:s dataskyddsförordning (GDPR). Vi kommer om ni begär det att radera eller anonymisera och oavsett anledning därtill, inklusive att radera samtliga kopior som inte enligt GDPR måste sparas. Vi kommer inte att överföra Personuppgifter till land utanför EU/ESS",
     pageWidth - margin * 2
@@ -811,7 +813,7 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   yPos += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(0, 0, 0);
   doc.text("•  Arbetet utförs enligt gällande branschregler", margin, yPos);
   yPos += 5;
   doc.text("•  Eventuella tillkommande arbeten faktureras enligt överenskommelse", margin, yPos);
