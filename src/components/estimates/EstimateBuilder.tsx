@@ -601,6 +601,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          rutEnabled={estimate.state.rutEnabled}
           ourReference={effectiveReference}
           ourReferencePhone={effectiveReferencePhone}
         />
@@ -625,6 +626,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
+          rutEnabled={estimate.state.rutEnabled}
           ourReference={effectiveReference}
           ourReferencePhone={effectiveReferencePhone}
         />
@@ -676,6 +678,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}
+        rutEnabled={estimate.state.rutEnabled}
         ourReference={effectiveReference}
         ourReferencePhone={effectiveReferencePhone}
       />
