@@ -4,13 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { EstimateItem } from "@/components/estimates/EstimateTable";
 
-export interface EstimateAddon {
-  id: string;
+/** Tillval: same shape as an offer line item, but never included in totals. */
+export type EstimateAddon = EstimateItem & {
   name: string;
-  description?: string;
   price: number;
   is_selected: boolean;
-  sort_order: number;
+};
+
+export function addonFromRow(addon: any): EstimateAddon {
+  const d = (addon.item_data || {}) as Partial<EstimateItem>;
+  const price = Number(addon.price) || 0;
+  const item: EstimateItem = {
+    id: addon.id || crypto.randomUUID(),
+    article: d.article ?? "",
+    description: d.description ?? addon.description ?? addon.name ?? "",
+    show_only_total: d.show_only_total ?? false,
+    moment: d.moment ?? addon.name ?? "",
+    type: d.type ?? "material",
+    quantity: d.quantity ?? 1,
+    unit: d.unit ?? "st",
+    hours: d.hours ?? null,
+    unit_price: d.unit_price ?? price,
+    subtotal: d.subtotal ?? price,
+    comment: d.comment ?? "",
+    uncertainty: d.uncertainty ?? "medium",
+    sort_order: addon.sort_order || 0,
+    rot_eligible: d.rot_eligible ?? false,
+    rut_eligible: d.rut_eligible ?? false,
+    markup_enabled: false,
+    markup_percent: 0,
+  };
+  return { ...item, name: addon.name || item.description, price: item.subtotal, is_selected: false };
 }
 
 export interface EstimateState {
@@ -205,14 +229,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
             markup_percent: Number(item.markup_percent) || 0,
           };
         }),
-        addons: existingEstimate.addons.map((addon: any) => ({
-          id: addon.id,
-          name: addon.name,
-          description: addon.description,
-          price: Number(addon.price) || 0,
-          is_selected: addon.is_selected || false,
-          sort_order: addon.sort_order || 0,
-        })),
+        addons: existingEstimate.addons.map((addon: any) => addonFromRow(addon)),
         markupPercent: Number(existingEstimate.markup_percent) || 0,
         rotEnabled: existingEstimate.rot_enabled || false,
         rotPercent: Number(existingEstimate.rot_percent) || 30,
@@ -275,11 +292,10 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
       .filter((item) => item.type === "subcontractor")
       .reduce((sum, item) => sum + (item.subtotal || 0), 0);
 
-    const addonsCost = state.addons
-      .filter((addon) => addon.is_selected)
-      .reduce((sum, addon) => sum + addon.price, 0);
+    // Tillval are optional for the customer and never part of the total
+    const addonsCost = state.addons.reduce((sum, addon) => sum + (addon.subtotal || 0), 0);
 
-    const subtotal = laborCost + materialCost + subcontractorCost + addonsCost;
+    const subtotal = laborCost + materialCost + subcontractorCost;
     
     // Per-item markup calculation
     const hasAnyMarkupEnabled = state.items.some(item => item.markup_enabled);
@@ -370,14 +386,7 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
   }, []);
 
   const addAddon = useCallback((name: string, price: number, description?: string) => {
-    const newAddon: EstimateAddon = {
-      id: crypto.randomUUID(),
-      name,
-      description,
-      price,
-      is_selected: false,
-      sort_order: state.addons.length,
-    };
+    const newAddon: EstimateAddon = addonFromRow({ name, description, price, sort_order: state.addons.length });
     setState((prev) => ({ ...prev, addons: [...prev.addons, newAddon] }));
   }, [state.addons.length]);
 
@@ -556,14 +565,18 @@ export function useEstimate(projectId: string | null, manualData?: ManualEstimat
 
       // Insert addons
       if (state.addons.length > 0) {
-        const addonsToInsert = state.addons.map((addon, index) => ({
-          estimate_id: estimateId,
-          name: addon.name,
-          description: addon.description,
-          price: addon.price,
-          is_selected: addon.is_selected,
-          sort_order: index,
-        }));
+        const addonsToInsert = state.addons.map((addon, index) => {
+          const { name: _n, price: _p, is_selected: _s, ...item } = addon;
+          return {
+            estimate_id: estimateId,
+            name: addon.description || addon.article || addon.name || "Tillval",
+            description: addon.description || null,
+            price: addon.subtotal || 0,
+            is_selected: false,
+            sort_order: index,
+            item_data: { ...item, sort_order: index } as any,
+          };
+        });
         const { error } = await supabase.from("estimate_addons").insert(addonsToInsert);
         if (error) throw error;
       }
