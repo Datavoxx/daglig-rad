@@ -23,6 +23,8 @@ interface EstimateHeaderProps {
   status: "draft" | "completed";
   isEditable?: boolean;
   ourReference?: string | null;
+  onOurReferenceChange?: (name: string) => void;
+  ourReferencePlaceholder?: string | null;
   onProjectNameChange?: (name: string) => void;
   onClientNameChange?: (name: string) => void;
   onAddressChange?: (address: string) => void;
@@ -39,6 +41,8 @@ export function EstimateHeader({
   status,
   isEditable = false,
   ourReference,
+  onOurReferenceChange,
+  ourReferencePlaceholder,
   onProjectNameChange,
   onClientNameChange,
   onAddressChange,
@@ -145,12 +149,24 @@ export function EstimateHeader({
             )}
           </>
         )}
-        {ourReference && (
+        {onOurReferenceChange ? (
+          <div className="flex items-center gap-1">
+            <UserCheck className="h-3 w-3 shrink-0" />
+            <span className="shrink-0">Vår ref:</span>
+            <input
+              type="text"
+              value={ourReference || ""}
+              onChange={(e) => onOurReferenceChange(e.target.value)}
+              placeholder={ourReferencePlaceholder || "Namn..."}
+              className="bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/40 rounded px-1 placeholder:text-muted-foreground/50 min-w-[100px]"
+            />
+          </div>
+        ) : ourReference ? (
           <div className="flex items-center gap-1">
             <UserCheck className="h-3 w-3" />
             <span>Vår ref: {ourReference}</span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
