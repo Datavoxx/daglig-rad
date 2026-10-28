@@ -209,27 +209,57 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <Select
-                value={selectedCustomerId}
-                onValueChange={handleCustomerSelect}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Välj befintlig kund..." />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  <SelectItem value="new">
-                    <span className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Ny kund
-                    </span>
-                  </SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={customerPickerOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedCustomerId
+                      ? customers.find((c) => c.id === selectedCustomerId)?.name
+                      : "Välj befintlig kund..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-background border shadow-lg z-50" align="start">
+                  <Command>
+                    <CommandInput placeholder="Sök kund..." autoFocus />
+                    <CommandList>
+                      <CommandEmpty>Ingen kund hittades.</CommandEmpty>
+                      <CommandItem
+                        value="ny kund"
+                        onSelect={() => {
+                          setCustomerPickerOpen(false);
+                          handleCustomerSelect("new");
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ny kund
+                      </CommandItem>
+                      {customers.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          value={customer.name}
+                          onSelect={() => {
+                            setCustomerPickerOpen(false);
+                            handleCustomerSelect(customer.id);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {customer.name}
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
         )}
