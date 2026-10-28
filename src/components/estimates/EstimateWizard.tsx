@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AddressAutocomplete, AddressData } from "@/components/shared/AddressAutocomplete";
 import { CustomerFormDialog } from "@/components/customers/CustomerFormDialog";
-import { ArrowLeft, ArrowRight, Plus, User, FileText, MapPin, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, User, FileText, MapPin, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -42,6 +44,7 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
   const [address, setAddress] = useState("");
   const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -206,27 +209,57 @@ export function EstimateWizard({ onComplete, onCancel }: EstimateWizardProps) {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <Select
-                value={selectedCustomerId}
-                onValueChange={handleCustomerSelect}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Välj befintlig kund..." />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  <SelectItem value="new">
-                    <span className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Ny kund
-                    </span>
-                  </SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={customerPickerOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedCustomerId
+                      ? customers.find((c) => c.id === selectedCustomerId)?.name
+                      : "Välj befintlig kund..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-background border shadow-lg z-50" align="start">
+                  <Command>
+                    <CommandInput placeholder="Sök kund..." autoFocus />
+                    <CommandList>
+                      <CommandEmpty>Ingen kund hittades.</CommandEmpty>
+                      <CommandItem
+                        value="ny kund"
+                        onSelect={() => {
+                          setCustomerPickerOpen(false);
+                          handleCustomerSelect("new");
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ny kund
+                      </CommandItem>
+                      {customers.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          value={customer.name}
+                          onSelect={() => {
+                            setCustomerPickerOpen(false);
+                            handleCustomerSelect(customer.id);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {customer.name}
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
         )}
