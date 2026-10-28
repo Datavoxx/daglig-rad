@@ -349,6 +349,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           status={estimate.state.status}
           isEditable={isManualMode}
           ourReference={effectiveReference}
+          onOurReferenceChange={(name) => estimate.updateAdvanced({ ourReference: name })}
           onProjectNameChange={estimate.updateManualProjectName}
           onClientNameChange={estimate.updateManualClientName}
           onAddressChange={estimate.updateManualAddress}
