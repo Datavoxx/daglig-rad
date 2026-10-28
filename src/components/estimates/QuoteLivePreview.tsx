@@ -242,12 +242,12 @@ export function QuoteLivePreview({
                   {rotEnabled && (
                     <>
                       <tr>
-                        <td colSpan={4} className="py-2 text-right text-gray-600 italic">
+                        <td colSpan={4} className="py-2 text-right text-red-600 font-semibold">
                           * {rotPercent}% ROT-avdrag inkl moms
                         </td>
-                        <td className="py-2 text-right text-gray-600 italic">
+                        <td className="py-2 text-right text-red-600 font-semibold">
                           -{formatCurrency(rotAmount)}
-                        </td>
+                         </td>
                       </tr>
                       <tr className="bg-gray-100">
                         <td colSpan={4} className="py-3 text-right font-bold text-black text-lg">

@@ -444,15 +444,15 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   if (hasAnyDeduction) {
     yPos += 10;
     doc.setFontSize(9);
-    doc.setFont("helvetica", "italic");
-    doc.setTextColor(100, 100, 100);
-    
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(220, 38, 38);
+
     if (data.rotEnabled && rotAmount > 0) {
       doc.text(`* ${data.rotPercent}% ROT-avdrag inkl moms`, totalsX, yPos, { align: "right" });
       doc.text(`-${formatNumber(rotAmount)} kr`, valuesX, yPos, { align: "right" });
       yPos += 5;
     }
-    
+
     if (data.rutEnabled && rutAmount > 0) {
       doc.text(`* 50% RUT-avdrag inkl moms`, totalsX, yPos, { align: "right" });
       doc.text(`-${formatNumber(rutAmount)} kr`, valuesX, yPos, { align: "right" });
