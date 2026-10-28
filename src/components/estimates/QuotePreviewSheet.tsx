@@ -1,3 +1,5 @@
+import type { EstimateAddon } from "@/hooks/useEstimate";
+import { AddonsPreviewTable } from "./AddonsPreviewTable";
 import { format, addDays } from "date-fns";
 import { FileText, RefreshCw } from "lucide-react";
 import {
@@ -51,6 +53,7 @@ interface QuotePreviewSheetProps {
   scope: string;
   assumptions: string[];
   items: EstimateItem[];
+  addons?: EstimateAddon[];
   markupPercent: number;
   rotEnabled: boolean;
   rotPercent: number;
@@ -69,6 +72,7 @@ export function QuotePreviewSheet({
   scope,
   assumptions,
   items,
+  addons = [],
   markupPercent,
   rotEnabled,
   rotPercent,
@@ -316,6 +320,7 @@ export function QuotePreviewSheet({
                   )}
                 </tbody>
               </table>
+              <AddonsPreviewTable addons={addons} />
             </div>
 
             {/* Footer */}

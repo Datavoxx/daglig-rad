@@ -1,0 +1,1 @@
+ALTER TABLE public.estimate_addons ADD COLUMN IF NOT EXISTS item_data jsonb;

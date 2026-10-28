@@ -803,6 +803,7 @@ export type Database = {
           estimate_id: string
           id: string
           is_selected: boolean | null
+          item_data: Json | null
           name: string
           price: number
           sort_order: number | null
@@ -814,6 +815,7 @@ export type Database = {
           estimate_id: string
           id?: string
           is_selected?: boolean | null
+          item_data?: Json | null
           name: string
           price?: number
           sort_order?: number | null
@@ -825,6 +827,7 @@ export type Database = {
           estimate_id?: string
           id?: string
           is_selected?: boolean | null
+          item_data?: Json | null
           name?: string
           price?: number
           sort_order?: number | null

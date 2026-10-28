@@ -49,6 +49,8 @@ interface QuoteData {
   scope: string;
   conditions: string[];
   items: QuoteItem[];
+  /** Tillval - shown in own table after totals, never included in totals */
+  addons?: QuoteItem[];
   laborCost: number;
   materialCost: number;
   subcontractorCost: number;
@@ -469,6 +471,75 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   }
 
   
+
+  // Tillval (optional, not part of totals)
+  if (data.addons && data.addons.length > 0) {
+    yPos += 14;
+    if (yPos + 30 > pageHeight - 35) {
+      doc.addPage();
+      yPos = margin;
+    }
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Tillval", margin, yPos);
+    yPos += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Frivilliga tillval \u2013 ing\u00e5r ej i totalsumman. Priser exkl. moms.", margin, yPos);
+    yPos += 3;
+
+    const addonRows = data.addons.map((item) => {
+      const description = item.description || item.article || item.moment || "";
+      if (item.show_only_total) {
+        const row = [description, "\u2013", "\u2013", "\u2013", formatNumber(item.subtotal)];
+        return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
+      }
+      const unitLabel = item.unit || (item.type === "labor" ? "h" : "\u2013");
+      const amount =
+        item.type === "labor"
+          ? (item.hours ?? item.quantity)?.toString() || "\u2013"
+          : (item.quantity ?? item.hours)?.toString() || "\u2013";
+      const row = [description, amount, unitLabel, formatNumber(item.unit_price), formatNumber(item.subtotal)];
+      return hideUnitPrice ? [row[0], row[1], row[2], row[4]] : row;
+    });
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [
+        hideUnitPrice
+          ? ["Beskrivning", "Antal", "Enhet", "Summa"]
+          : ["Beskrivning", "Antal", "Enhet", "\u00c0-pris", "Summa"],
+      ],
+      body: addonRows,
+      theme: "plain",
+      styles: { fontSize: 9, cellPadding: 2, textColor: [50, 50, 50] },
+      headStyles: {
+        fillColor: [255, 255, 255],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        lineWidth: { bottom: 0.5 },
+        lineColor: [150, 150, 150],
+      },
+      columnStyles: hideUnitPrice
+        ? {
+            0: { cellWidth: "auto" },
+            1: { halign: "right", cellWidth: 18 },
+            2: { halign: "right", cellWidth: 16 },
+            3: { halign: "right", cellWidth: 25 },
+          }
+        : {
+            0: { cellWidth: "auto" },
+            1: { halign: "right", cellWidth: 18 },
+            2: { halign: "right", cellWidth: 16 },
+            3: { halign: "right", cellWidth: 25 },
+            4: { halign: "right", cellWidth: 25 },
+          },
+      margin: { left: margin, right: margin, bottom: 35 },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 2;
+  }
 
   // ============================================
   // PAGE 2 - Acceptance

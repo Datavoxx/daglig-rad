@@ -19,7 +19,6 @@ import { EstimateHeader } from "./EstimateHeader";
 
 import { AdvancedSettingsSection } from "./AdvancedSettingsSection";
 import { EstimateTable } from "./EstimateTable";
-import { AddonsSection } from "./AddonsSection";
 import { TaxDeductionPanel } from "./TaxDeductionPanel";
 import { MarkupPanel } from "./MarkupPanel";
 import { StickyTotals } from "./StickyTotals";
@@ -223,6 +222,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         scope: estimate.state.scope,
         conditions: estimate.state.assumptions,
         items: estimate.state.items,
+        addons: estimate.state.addons,
         laborCost: estimate.totals.laborCost,
         materialCost: estimate.totals.materialCost,
         subcontractorCost: estimate.totals.subcontractorCost,
@@ -482,13 +482,33 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         />
       </section>
 
-      {/* Addons */}
-      <AddonsSection
-        addons={estimate.state.addons}
-        onToggle={estimate.toggleAddon}
-        onAdd={estimate.addAddon}
-        onRemove={estimate.removeAddon}
-      />
+      {/* Addons (Tillval) - same structure as offer items, never in total */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <div className="h-1 w-1 rounded-full bg-primary" />
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Tillval
+          </h2>
+          <span className="text-[11px] text-muted-foreground">– ingår ej i totalsumman</span>
+        </div>
+        <EstimateTable
+          items={estimate.state.addons}
+          onItemsChange={(items) =>
+            estimate.updateAddons(
+              items.map((it) => ({
+                ...it,
+                markup_enabled: false,
+                markup_percent: 0,
+                name: it.description || it.article || "Tillval",
+                price: it.subtotal || 0,
+                is_selected: false,
+              }))
+            )
+          }
+          rotEnabled={false}
+          rutEnabled={false}
+        />
+      </section>
 
       {/* Divider */}
       <div className="h-px bg-border" />
@@ -531,7 +551,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         laborCost={estimate.totals.laborCost}
         materialCost={estimate.totals.materialCost}
         subcontractorCost={estimate.totals.subcontractorCost}
-        addonsCost={estimate.totals.addonsCost}
+        addonsCost={0}
         markup={estimate.totals.markup}
         vat={estimate.totals.vat}
         totalInclVat={estimate.totals.totalInclVat}
@@ -601,6 +621,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           scope={estimate.state.scope}
           assumptions={estimate.state.assumptions}
           items={estimate.state.items}
+          addons={estimate.state.addons}
           markupPercent={estimate.state.markupPercent}
           rotEnabled={estimate.state.rotEnabled}
           rotPercent={estimate.state.rotPercent}
@@ -651,6 +672,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         scope={estimate.state.scope}
         assumptions={estimate.state.assumptions}
         items={estimate.state.items}
+        addons={estimate.state.addons}
         markupPercent={estimate.state.markupPercent}
         rotEnabled={estimate.state.rotEnabled}
         rotPercent={estimate.state.rotPercent}
