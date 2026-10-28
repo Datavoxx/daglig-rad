@@ -177,14 +177,11 @@ export function QuoteLivePreview({
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.id} className={cn(
-                      "border-b border-gray-200",
-                      item.rot_eligible && rotEnabled && item.type === "labor" && "bg-green-50/50"
-                    )}>
+                    <tr key={item.id} className="border-b border-gray-200">
                       <td className="py-2 text-gray-800">
                         {item.description || item.moment}
                         {item.rot_eligible && rotEnabled && item.type === "labor" && (
-                          <span className="ml-1.5 text-[10px] text-green-700 font-medium">ROT</span>
+                          <span className="ml-0.5 text-red-600 font-bold">*</span>
                         )}
                       </td>
                       {/* Show price details only if show_only_total is false */}
