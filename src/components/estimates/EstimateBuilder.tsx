@@ -119,6 +119,22 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
   const displayClientName = isManualMode ? estimate.state.manualClientName : project?.client_name || "";
   const displayAddress = isManualMode ? estimate.state.manualAddress : project?.address || "";
 
+  // Customer type decides VAT display: business = excl. moms, private = incl. moms
+  const { data: customerType } = useQuery({
+    queryKey: ["customer-type-by-name", displayClientName],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("customer_type")
+        .eq("name", displayClientName)
+        .limit(1)
+        .maybeSingle();
+      return data?.customer_type || "private";
+    },
+    enabled: !!displayClientName,
+  });
+  const pricesInclVat = customerType !== "business";
+
   // Fetch company settings
   const { data: companySettings } = useQuery({
     queryKey: ["company-settings"],
@@ -232,6 +248,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         rutEnabled: estimate.state.rutEnabled,
         ourReference: effectiveReference || undefined,
         ourReferencePhone: estimate.state.ourReferencePhone || undefined,
+        pricesInclVat,
         paymentTermsDays: estimate.state.paymentTermsDays,
         vatPercent: estimate.state.vatPercent,
         hideUnitPrice: estimate.state.hideUnitPrice,
@@ -604,6 +621,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           rutEnabled={estimate.state.rutEnabled}
           ourReference={effectiveReference}
           ourReferencePhone={effectiveReferencePhone}
+          pricesInclVat={pricesInclVat}
         />
       </div>
     </div>
@@ -629,6 +647,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
           rutEnabled={estimate.state.rutEnabled}
           ourReference={effectiveReference}
           ourReferencePhone={effectiveReferencePhone}
+          pricesInclVat={pricesInclVat}
         />
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
@@ -681,6 +700,7 @@ export function EstimateBuilder({ project, manualData, estimateId, onDelete, onB
         rutEnabled={estimate.state.rutEnabled}
         ourReference={effectiveReference}
         ourReferencePhone={effectiveReferencePhone}
+          pricesInclVat={pricesInclVat}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
