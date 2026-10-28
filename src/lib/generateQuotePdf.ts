@@ -248,10 +248,11 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 8;
   const midX = pageWidth / 2;
+  const headerLabelY = yPos;
   
   // Left: Vår referens
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text("VÅR REFERENS", margin, yPos);
   
@@ -267,14 +268,14 @@ export async function generateQuotePdf(data: QuoteData): Promise<void> {
   
   yPos += 6;
   doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Datum: ${format(today, "yyyy-MM-dd")}`, margin, yPos);
 
-  // Right: Kund
-  let rightY = 53;
+  // Right: Kund (aligned with Vår referens)
+  let rightY = headerLabelY + 5;
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text("KUND", midX, rightY - 5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("KUND", midX, headerLabelY);
   
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
