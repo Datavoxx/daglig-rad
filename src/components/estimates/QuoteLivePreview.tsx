@@ -34,6 +34,7 @@ interface QuoteLivePreviewProps {
   markupPercent: number;
   rotEnabled: boolean;
   rotPercent: number;
+  rutEnabled?: boolean;
   offerNumber?: string;
   validDays?: number;
   ourReference?: string;
@@ -50,6 +51,7 @@ export function QuoteLivePreview({
   markupPercent,
   rotEnabled,
   rotPercent,
+  rutEnabled = false,
   offerNumber = "OFF-001",
   validDays = 30,
   ourReference,
@@ -67,6 +69,11 @@ export function QuoteLivePreview({
   // ROT-eligible labor cost (only items marked as rot_eligible)
   const rotEligibleLaborCost = items
     .filter((i) => i.type === "labor" && i.rot_eligible)
+    .reduce((sum, i) => sum + i.subtotal, 0);
+
+  // RUT-eligible labor cost (only items marked as rut_eligible)
+  const rutEligibleLaborCost = items
+    .filter((i) => i.type === "labor" && (i as any).rut_eligible)
     .reduce((sum, i) => sum + i.subtotal, 0);
     
   const materialCost = items
@@ -92,7 +99,8 @@ export function QuoteLivePreview({
   // Use ROT-eligible labor for ROT calculation
   const rotEligibleWithVat = rotEligibleLaborCost * 1.25;
   const rotAmount = rotEnabled ? rotEligibleWithVat * (rotPercent / 100) : 0;
-  const amountToPay = totalInclVat - rotAmount;
+  const rutAmount = rutEnabled ? rutEligibleLaborCost * 1.25 * 0.5 : 0;
+  const amountToPay = totalInclVat - rotAmount - rutAmount;
 
   const formatCurrency = (num: number) =>
     new Intl.NumberFormat("sv-SE").format(Math.round(num));
@@ -180,7 +188,7 @@ export function QuoteLivePreview({
                     <tr key={item.id} className="border-b border-gray-200">
                       <td className="py-2 text-gray-800">
                         {item.description || item.moment}
-                        {item.rot_eligible && rotEnabled && item.type === "labor" && (
+                        {((item.rot_eligible && rotEnabled) || ((item as any).rut_eligible && rutEnabled)) && item.type === "labor" && (
                           <span className="ml-0.5 text-red-600 font-bold">*</span>
                         )}
                       </td>
@@ -236,8 +244,7 @@ export function QuoteLivePreview({
                     </td>
                   </tr>
 
-                  {rotEnabled && (
-                    <>
+                  {rotEnabled && rotAmount > 0 && (
                       <tr>
                         <td colSpan={4} className="py-2 text-right text-red-600 font-semibold">
                           * {rotPercent}% ROT-avdrag inkl moms
@@ -246,6 +253,19 @@ export function QuoteLivePreview({
                           -{formatCurrency(rotAmount)}
                          </td>
                       </tr>
+                  )}
+                  {rutEnabled && rutAmount > 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-2 text-right text-red-600 font-semibold">
+                          * 50% RUT-avdrag inkl moms
+                        </td>
+                        <td className="py-2 text-right text-red-600 font-semibold">
+                          -{formatCurrency(rutAmount)}
+                         </td>
+                      </tr>
+                  )}
+                  {(rotEnabled || rutEnabled) && (
+                    <>
                       <tr className="bg-gray-100">
                         <td colSpan={4} className="py-3 text-right font-bold text-black text-lg">
                           Att betala
@@ -254,7 +274,7 @@ export function QuoteLivePreview({
                           {formatCurrency(amountToPay)}
                         </td>
                       </tr>
-                    </>
+                     </>
                   )}
                 </tbody>
               </table>
